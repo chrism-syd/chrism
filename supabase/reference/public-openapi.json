@@ -1,0 +1,537 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CM2 public schema reference (manual Knights/import refresh)",
+    "version": "2026-03-24",
+    "description": "Manual interim OpenAPI-style reference for the public tables and RPC touched by the Supreme importer overhaul. This is intended to replace stale reference files until a live schema export is regenerated from Supabase."
+  },
+  "x-generated-from": "migrations 20260324_000008 through 20260324_000016 and finalized importer behavior",
+  "paths": {
+    "/rest/v1/people": {
+      "get": {
+        "summary": "Query shared core people records",
+        "description": "Reference path only. Knights-specific fields no longer live on people.",
+        "responses": {
+          "200": {
+            "description": "People rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/People"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/organization_memberships": {
+      "get": {
+        "summary": "Query organization-scoped membership rows",
+        "responses": {
+          "200": {
+            "description": "Membership rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationMembership"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/person_kofc_profiles": {
+      "get": {
+        "summary": "Query Knights-specific person profiles",
+        "responses": {
+          "200": {
+            "description": "Knights profile rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonKofcProfile"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/organization_kofc_profiles": {
+      "get": {
+        "summary": "Query Knights-specific organization profiles",
+        "responses": {
+          "200": {
+            "description": "Organization Knights profile rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationKofcProfile"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/apply_supreme_import_row": {
+      "post": {
+        "summary": "Apply one confirmed Supreme import row atomically",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplySupremeImportRowInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolved member action",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplySupremeImportRowResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or conflict error"
+          },
+          "409": {
+            "description": "Duplicate membership conflict"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "People": {
+        "type": "object",
+        "description": "Shared core person record. Knights-only fields have been removed.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "council_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "middle_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "suffix": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "description": "Encrypted-at-rest by app layer"
+          },
+          "email_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "cell_phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Encrypted-at-rest by app layer"
+          },
+          "cell_phone_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "home_phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "other_phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_line_1": {
+            "type": "string",
+            "nullable": true,
+            "description": "Encrypted-at-rest by app layer"
+          },
+          "address_line_1_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true,
+            "description": "Encrypted-at-rest by app layer"
+          },
+          "city_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "state_province": {
+            "type": "string",
+            "nullable": true,
+            "description": "Encrypted-at-rest by app layer"
+          },
+          "state_province_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "postal_code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Encrypted-at-rest by app layer"
+          },
+          "postal_code_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Stored as date; hash-only for privacy"
+          },
+          "birth_date_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "pii_key_version": {
+            "type": "string",
+            "nullable": true
+          },
+          "council_activity_level_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "primary_relationship_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_source_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_provisional_member": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "council_id",
+          "first_name",
+          "last_name"
+        ]
+      },
+      "OrganizationMembership": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "membership_status_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "membership_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Canonical member number"
+          },
+          "is_primary_membership": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "source_code": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "person_id"
+        ]
+      },
+      "PersonKofcProfile": {
+        "type": "object",
+        "properties": {
+          "person_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "first_degree_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "second_degree_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "third_degree_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "years_in_service": {
+            "type": "integer",
+            "nullable": true
+          },
+          "member_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "member_class": {
+            "type": "string",
+            "nullable": true
+          },
+          "assembly_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "Only for actual 4th Degree assembly members"
+          }
+        },
+        "required": [
+          "person_id"
+        ]
+      },
+      "OrganizationKofcProfile": {
+        "type": "object",
+        "properties": {
+          "organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "council_number": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "organization_id"
+        ]
+      },
+      "ApplySupremeImportRowInput": {
+        "type": "object",
+        "properties": {
+          "p_council_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "p_organization_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "p_auth_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "p_import_mode": {
+            "type": "string",
+            "enum": [
+              "create_new",
+              "update_existing"
+            ]
+          },
+          "p_existing_person_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "p_council_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_first_name": {
+            "type": "string"
+          },
+          "p_middle_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_last_name": {
+            "type": "string"
+          },
+          "p_suffix": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_email_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_cell_phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_cell_phone_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_address_line_1": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_address_line_1_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_city": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_city_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_state_province": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_state_province_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_postal_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_postal_code_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "p_birth_date_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_pii_key_version": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_council_activity_level_code": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_member_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_first_degree_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "p_second_degree_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "p_third_degree_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "p_years_in_service": {
+            "type": "integer",
+            "nullable": true
+          },
+          "p_member_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_member_class": {
+            "type": "string",
+            "nullable": true
+          },
+          "p_assembly_number": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "p_council_id",
+          "p_organization_id",
+          "p_auth_user_id",
+          "p_import_mode",
+          "p_first_name",
+          "p_last_name"
+        ]
+      },
+      "ApplySupremeImportRowResult": {
+        "type": "object",
+        "properties": {
+          "person_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated"
+            ]
+          }
+        },
+        "required": [
+          "person_id",
+          "action"
+        ]
+      }
+    }
+  }
+}

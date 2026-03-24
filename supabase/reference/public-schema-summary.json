@@ -1,0 +1,373 @@
+{
+  "generated_at": "2026-03-24",
+  "source": "manual refresh from applied migrations 20260324_000008 through 20260324_000016 and importer code changes",
+  "scope": "tables and rpc affected by the Supreme importer / Knights schema cleanup",
+  "tables": {
+    "people": {
+      "role": "shared core person record",
+      "relevant_columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "council_id",
+          "type": "uuid"
+        },
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "first_name",
+          "type": "text",
+          "required_for_import": true
+        },
+        {
+          "name": "middle_name",
+          "type": "text"
+        },
+        {
+          "name": "last_name",
+          "type": "text",
+          "required_for_import": true
+        },
+        {
+          "name": "suffix",
+          "type": "text"
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "protected": "encrypted"
+        },
+        {
+          "name": "email_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "cell_phone",
+          "type": "text",
+          "protected": "encrypted"
+        },
+        {
+          "name": "cell_phone_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "home_phone",
+          "type": "text"
+        },
+        {
+          "name": "other_phone",
+          "type": "text"
+        },
+        {
+          "name": "address_line_1",
+          "type": "text",
+          "protected": "encrypted"
+        },
+        {
+          "name": "address_line_1_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "protected": "encrypted"
+        },
+        {
+          "name": "city_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "state_province",
+          "type": "text",
+          "protected": "encrypted"
+        },
+        {
+          "name": "state_province_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "postal_code",
+          "type": "text",
+          "protected": "encrypted"
+        },
+        {
+          "name": "postal_code_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "birth_date",
+          "type": "date",
+          "protected": "hash-only"
+        },
+        {
+          "name": "birth_date_hash",
+          "type": "text",
+          "protected": "hash"
+        },
+        {
+          "name": "pii_key_version",
+          "type": "text"
+        },
+        {
+          "name": "council_activity_level_code",
+          "type": "text"
+        },
+        {
+          "name": "primary_relationship_code",
+          "type": "text"
+        },
+        {
+          "name": "created_source_code",
+          "type": "text"
+        },
+        {
+          "name": "is_provisional_member",
+          "type": "boolean"
+        },
+        {
+          "name": "created_by_auth_user_id",
+          "type": "uuid"
+        },
+        {
+          "name": "updated_by_auth_user_id",
+          "type": "uuid"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "people_contact_required_for_non_import",
+          "kind": "check",
+          "rule": "Rows with created_source_code = 'supreme_import' may omit contact methods. Other rows must have at least one of email, cell_phone, home_phone, or other_phone."
+        }
+      ],
+      "removed_legacy_columns": [
+        "member_number",
+        "member_number_hash",
+        "supreme_member_type",
+        "supreme_member_class",
+        "assembly_number",
+        "first_degree_date",
+        "second_degree_date",
+        "third_degree_date",
+        "reentry_date",
+        "years_of_service",
+        "mail_returned_flag",
+        "supreme_exempt_flag"
+      ]
+    },
+    "organization_memberships": {
+      "role": "organization-scoped membership relationship",
+      "relevant_columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid"
+        },
+        {
+          "name": "person_id",
+          "type": "uuid"
+        },
+        {
+          "name": "membership_status_code",
+          "type": "text"
+        },
+        {
+          "name": "membership_number",
+          "type": "text",
+          "canonical": true
+        },
+        {
+          "name": "is_primary_membership",
+          "type": "boolean"
+        },
+        {
+          "name": "source_code",
+          "type": "text"
+        },
+        {
+          "name": "created_by_auth_user_id",
+          "type": "uuid"
+        },
+        {
+          "name": "updated_by_auth_user_id",
+          "type": "uuid"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "organization_memberships_org_person_uidx",
+          "kind": "unique_index",
+          "columns": [
+            "organization_id",
+            "person_id"
+          ]
+        },
+        {
+          "name": "organization_memberships_org_membership_number_uidx",
+          "kind": "partial_unique_index",
+          "columns": [
+            "organization_id",
+            "membership_number"
+          ],
+          "predicate": "membership_number is not null"
+        },
+        {
+          "name": "organization_memberships_org_person_primary_uidx",
+          "kind": "partial_unique_index",
+          "columns": [
+            "organization_id",
+            "person_id"
+          ],
+          "predicate": "is_primary_membership is true"
+        }
+      ],
+      "removed_legacy_columns": [
+        "member_number"
+      ]
+    },
+    "person_kofc_profiles": {
+      "role": "Knights-specific person extension",
+      "relevant_columns": [
+        {
+          "name": "person_id",
+          "type": "uuid"
+        },
+        {
+          "name": "first_degree_date",
+          "type": "date"
+        },
+        {
+          "name": "second_degree_date",
+          "type": "date"
+        },
+        {
+          "name": "third_degree_date",
+          "type": "date"
+        },
+        {
+          "name": "years_in_service",
+          "type": "integer"
+        },
+        {
+          "name": "member_type",
+          "type": "text"
+        },
+        {
+          "name": "member_class",
+          "type": "text"
+        },
+        {
+          "name": "assembly_number",
+          "type": "text",
+          "note": "Person-level only. Use only for actual 4th Degree assembly members."
+        }
+      ]
+    },
+    "organization_kofc_profiles": {
+      "role": "Knights-specific organization extension",
+      "relevant_columns": [
+        {
+          "name": "organization_id",
+          "type": "uuid"
+        },
+        {
+          "name": "council_number",
+          "type": "text"
+        }
+      ],
+      "removed_legacy_columns": [
+        "assembly_number"
+      ]
+    }
+  },
+  "rpc": {
+    "apply_supreme_import_row": {
+      "role": "atomic one-row confirmed Supreme import",
+      "inputs_summary": {
+        "context": [
+          "p_council_id",
+          "p_organization_id",
+          "p_auth_user_id",
+          "p_import_mode",
+          "p_existing_person_id",
+          "p_council_number"
+        ],
+        "core_person": [
+          "p_title",
+          "p_first_name",
+          "p_middle_name",
+          "p_last_name",
+          "p_suffix",
+          "p_email",
+          "p_cell_phone",
+          "p_address_line_1",
+          "p_city",
+          "p_state_province",
+          "p_postal_code",
+          "p_birth_date",
+          "p_council_activity_level_code"
+        ],
+        "pii_hashes": [
+          "p_email_hash",
+          "p_cell_phone_hash",
+          "p_address_line_1_hash",
+          "p_city_hash",
+          "p_state_province_hash",
+          "p_postal_code_hash",
+          "p_birth_date_hash",
+          "p_pii_key_version"
+        ],
+        "membership": [
+          "p_member_number"
+        ],
+        "kofc": [
+          "p_first_degree_date",
+          "p_second_degree_date",
+          "p_third_degree_date",
+          "p_years_in_service",
+          "p_member_type",
+          "p_member_class",
+          "p_assembly_number"
+        ]
+      },
+      "returns": {
+        "type": "jsonb",
+        "shape": {
+          "person_id": "uuid",
+          "action": "created|updated"
+        }
+      },
+      "behavior": [
+        "row-atomic all-or-nothing writes",
+        "prefers membership_number match inside current organization",
+        "updates existing record on idempotent re-import",
+        "fails if one membership number resolves to multiple people in the same organization",
+        "fails if UI-selected person conflicts with membership-number match"
+      ]
+    }
+  },
+  "canonical_rules": [
+    "Store membership_number on organization_memberships.",
+    "Store degree dates, years_in_service, member_type, member_class, and assembly_number on person_kofc_profiles.",
+    "Store council_number on organization_kofc_profiles.",
+    "Do not store Knights-only fields on people.",
+    "Treat person_kofc_profiles.assembly_number as person-specific, not council-wide."
+  ],
+  "known_gaps": [
+    "This summary is a manual refresh, not a live pg_dump or auto-generated PostgREST schema export.",
+    "Untouched public tables outside the Supreme importer scope are intentionally omitted."
+  ]
+}

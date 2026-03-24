@@ -1,0 +1,247 @@
+'use client';
+
+import { useActionState, useMemo, useState } from 'react';
+import { submitProfileChangeRequest } from '@/app/me/actions';
+
+type PendingValues = {
+  email: string | null;
+  cell_phone: string | null;
+  home_phone: string | null;
+  preferred_name: string | null;
+  email_requested?: boolean;
+  cell_phone_requested?: boolean;
+  home_phone_requested?: boolean;
+} | null;
+
+type RejectedNotices = Partial<
+  Record<
+    'email' | 'cell_phone' | 'home_phone',
+    {
+      reviewedAt: string | null;
+    }
+  >
+>;
+
+type ActionState = {
+  status: 'idle' | 'success' | 'error';
+  message: string;
+};
+
+const initialState: ActionState = {
+  status: 'idle',
+  message: '',
+};
+
+function displayValue(value: string | null) {
+  return value && value.trim().length > 0 ? value : 'Not added yet';
+}
+
+function pendingDisplayValue(value: string | null, requested?: boolean) {
+  if (requested && !value) {
+    return 'Clear this value';
+  }
+
+  return displayValue(value);
+}
+
+function rejectionMessage(label: string) {
+  return `${label} edit you submitted was rejected. Please contact your organization to process the change.`;
+}
+
+function Row({
+  label,
+  value,
+  pendingValue,
+  pendingRequested,
+  rejectedNotice,
+  editing,
+  name,
+  onEdit,
+  placeholder,
+}: {
+  label: string;
+  value: string | null;
+  pendingValue?: string | null;
+  pendingRequested?: boolean;
+  rejectedNotice?: { reviewedAt: string | null } | null;
+  editing?: boolean;
+  name?: string;
+  onEdit?: () => void;
+  placeholder?: string;
+}) {
+  const showPending = pendingRequested || (pendingValue !== undefined && pendingValue !== null && pendingValue !== value);
+  const showRejected = !showPending && Boolean(rejectedNotice);
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        gap: 12,
+        alignItems: 'start',
+        padding: '14px 0',
+        borderTop: '1px solid var(--divider)',
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div className="qv-detail-label">{label}</div>
+        {editing && name ? (
+          <input
+            name={name}
+            defaultValue={value ?? ''}
+            placeholder={placeholder}
+            style={{ marginTop: 8 }}
+          />
+        ) : (
+          <div className="qv-detail-value" style={{ marginTop: 4 }}>{displayValue(value)}</div>
+        )}
+        {showPending ? (
+          <p className="qv-inline-message" style={{ marginTop: 8 }}>
+            Pending review: {pendingDisplayValue(pendingValue ?? null, pendingRequested)}
+          </p>
+        ) : null}
+        {showRejected ? (
+          <p className="qv-inline-error" style={{ marginTop: 8 }}>
+            {rejectionMessage(label)}
+          </p>
+        ) : null}
+      </div>
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="qv-button-secondary"
+          aria-label={`Edit ${label.toLowerCase()}`}
+          style={{ minWidth: 44, paddingInline: 14 }}
+        >
+          ✎
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export default function AccountSummarySection({
+  officialName,
+  preferredName,
+  email,
+  cellPhone,
+  homePhone,
+  addressHelpText,
+  pendingValues,
+  rejectedNotices,
+}: {
+  officialName: string;
+  preferredName: string | null;
+  email: string | null;
+  cellPhone: string | null;
+  homePhone: string | null;
+  addressHelpText: string;
+  pendingValues: PendingValues;
+  rejectedNotices: RejectedNotices;
+}) {
+  const [state, action, isPending] = useActionState(submitProfileChangeRequest, initialState);
+  const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
+
+  const isEditing = useMemo(() => Object.values(editingFields).some(Boolean), [editingFields]);
+
+  function enableField(field: string) {
+    setEditingFields((current) => ({ ...current, [field]: true }));
+  }
+
+  return (
+    <section className="qv-card">
+      <div className="qv-directory-section-head">
+        <div>
+          <h2 className="qv-section-title">Account summary</h2>
+        </div>
+      </div>
+
+      <form action={action}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
+          <div>
+            <div className="qv-detail-item" style={{ marginBottom: 16 }}>
+              <div className="qv-detail-label">Official record name</div>
+              <div className="qv-detail-value">{officialName}</div>
+            </div>
+
+            <Row
+              label="Preferred name"
+              value={preferredName}
+              pendingValue={pendingValues?.preferred_name ?? null}
+              editing={!!editingFields.preferred_name}
+              name="preferred_name"
+              placeholder="How you would like your name to appear"
+              onEdit={() => enableField('preferred_name')}
+            />
+          </div>
+
+          <div>
+            <Row
+              label="Email"
+              value={email}
+              pendingValue={pendingValues?.email ?? null}
+              pendingRequested={pendingValues?.email_requested ?? false}
+              rejectedNotice={rejectedNotices.email ?? null}
+              editing={!!editingFields.email}
+              name="email"
+              placeholder="Your preferred email address"
+              onEdit={() => enableField('email')}
+            />
+
+            <Row
+              label="Cell phone"
+              value={cellPhone}
+              pendingValue={pendingValues?.cell_phone ?? null}
+              pendingRequested={pendingValues?.cell_phone_requested ?? false}
+              rejectedNotice={rejectedNotices.cell_phone ?? null}
+              editing={!!editingFields.cell_phone}
+              name="cell_phone"
+              placeholder="Your cell phone number"
+              onEdit={() => enableField('cell_phone')}
+            />
+
+            <Row
+              label="Home phone"
+              value={homePhone}
+              pendingValue={pendingValues?.home_phone ?? null}
+              pendingRequested={pendingValues?.home_phone_requested ?? false}
+              rejectedNotice={rejectedNotices.home_phone ?? null}
+              editing={!!editingFields.home_phone}
+              name="home_phone"
+              placeholder="Your home phone number"
+              onEdit={() => enableField('home_phone')}
+            />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--divider)' }}>
+          <div className="qv-detail-label">Home address</div>
+          <div className="qv-detail-value">{addressHelpText}</div>
+        </div>
+
+        {state.status !== 'idle' ? (
+          <p className={state.status === 'error' ? 'qv-inline-error' : 'qv-inline-message'} style={{ marginTop: 14 }}>
+            {state.message}
+          </p>
+        ) : null}
+
+        {isEditing ? (
+          <div className="qv-form-actions" style={{ marginTop: 18 }}>
+            <button
+              type="button"
+              className="qv-button-secondary"
+              onClick={() => setEditingFields({})}
+              disabled={isPending}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="qv-button-primary" disabled={isPending}>
+              {isPending ? 'Sending for review...' : 'Confirm changes'}
+            </button>
+          </div>
+        ) : null}
+      </form>
+    </section>
+  );
+}
