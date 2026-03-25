@@ -1,0 +1,12 @@
+Email label
+- Signed-in claim submitted
+
+User flow that triggers this email
+- A signed-in user opens /me/claim-organization.
+- They identify their council or request access manually.
+- The claim is submitted into the review queue.
+- Chrism emails the requester to confirm the request was received.
+
+Intent
+- Acknowledge receipt.
+- Set expectations that review comes before access.

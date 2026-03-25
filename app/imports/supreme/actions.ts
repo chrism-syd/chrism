@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
 import { protectPeoplePayload } from '@/lib/security/pii';
+import { normalizeSupremeImportTextField } from '@/lib/imports/supreme-text-normalization';
 import type { ImportFieldKey } from '@/lib/imports/supreme';
 
 type ApplyImportRowPayload = {
@@ -51,21 +52,40 @@ function omitNullish<T extends Record<string, unknown>>(payload: T) {
   ) as Partial<T>;
 }
 
+function normalizeSupremeField(
+  field:
+    | 'title'
+    | 'first_name'
+    | 'middle_name'
+    | 'last_name'
+    | 'suffix'
+    | 'email'
+    | 'address_line_1'
+    | 'city'
+    | 'state_province'
+    | 'postal_code'
+    | 'supreme_member_type'
+    | 'supreme_member_class',
+  value: string | null | undefined
+) {
+  return normalizeSupremeImportTextField(field, value);
+}
+
 function buildProtectedPersonPayload(row: ApplyImportRowPayload) {
   const values = row.fieldValues;
 
   return protectPeoplePayload({
-    title: normalizeText(values.title),
-    first_name: normalizeText(values.first_name),
-    middle_name: normalizeText(values.middle_name),
-    last_name: normalizeText(values.last_name),
-    suffix: normalizeText(values.suffix),
-    email: normalizeText(values.email),
+    title: normalizeSupremeField('title', values.title),
+    first_name: normalizeSupremeField('first_name', values.first_name),
+    middle_name: normalizeSupremeField('middle_name', values.middle_name),
+    last_name: normalizeSupremeField('last_name', values.last_name),
+    suffix: normalizeSupremeField('suffix', values.suffix),
+    email: normalizeSupremeField('email', values.email),
     cell_phone: normalizeText(values.cell_phone),
-    address_line_1: normalizeText(values.address_line_1),
-    city: normalizeText(values.city),
-    state_province: normalizeText(values.state_province),
-    postal_code: normalizeText(values.postal_code),
+    address_line_1: normalizeSupremeField('address_line_1', values.address_line_1),
+    city: normalizeSupremeField('city', values.city),
+    state_province: normalizeSupremeField('state_province', values.state_province),
+    postal_code: normalizeSupremeField('postal_code', values.postal_code),
     birth_date: normalizeDate(values.birth_date),
     council_activity_level_code: normalizeText(values.council_activity_level_code),
   });
@@ -79,8 +99,8 @@ function buildKofcProfilePayload(row: ApplyImportRowPayload) {
     second_degree_date: normalizeDate(values.second_degree_date),
     third_degree_date: normalizeDate(values.third_degree_date),
     years_in_service: normalizeInteger(values.years_of_service),
-    member_type: normalizeText(values.supreme_member_type),
-    member_class: normalizeText(values.supreme_member_class),
+    member_type: normalizeSupremeField('supreme_member_type', values.supreme_member_type),
+    member_class: normalizeSupremeField('supreme_member_class', values.supreme_member_class),
     assembly_number: normalizeText(values.assembly_number),
   });
 }

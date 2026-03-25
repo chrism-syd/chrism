@@ -25,7 +25,6 @@ import {
   type ResolvedImportFieldValues,
   type SpreadsheetColumnDefinition,
   type SpreadsheetFieldKey,
-  type SpreadsheetFieldOption,
   type SupremeImportRow,
 } from '@/lib/imports/supreme';
 

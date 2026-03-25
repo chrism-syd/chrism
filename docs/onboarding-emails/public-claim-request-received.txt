@@ -1,0 +1,9 @@
+Label: public claim request received
+
+Trigger:
+A cold visitor submits /claim-organization.
+
+User flow:
+1. Visitor self-identifies their council details.
+2. Chrism creates a pending organization_claim_requests record.
+3. Admin or super admin reviews the request later.

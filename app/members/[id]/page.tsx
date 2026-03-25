@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
-import DeleteMemberForm from '@/app/members/delete-member-form'
+import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 import { formatDate } from '@/lib/custom-lists'
@@ -170,7 +170,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
         <section className="qv-hero-card">
           <div className="qv-detail-hero-main">
-            <div>
+            <div className="qv-detail-hero-copy">
               <p className="qv-eyebrow">Member Directory</p>
               <h1 className="qv-title">
                 {person.first_name} {person.last_name}
@@ -186,13 +186,22 @@ export default async function MemberDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="qv-detail-actions" style={{ marginTop: 20 }}>
-            <Link href="/members" className="qv-button-secondary qv-link-button">
-              Back to members
-            </Link>
-            <Link href={`/members/${person.id}/edit`} className="qv-button-primary qv-link-button">
-              Edit member
-            </Link>
+          <div className="qv-detail-action-row" style={{ marginTop: 20 }}>
+            <div className="qv-detail-actions">
+              <Link href="/members" className="qv-button-secondary qv-link-button">
+                Back to members
+              </Link>
+              <Link href={`/members/${person.id}/edit`} className="qv-button-primary qv-link-button">
+                Edit member
+              </Link>
+            </div>
+
+            {permissions.isCouncilAdmin ? (
+              <DeleteMemberIconButton
+                memberId={person.id}
+                memberName={`${person.first_name} ${person.last_name}`.trim()}
+              />
+            ) : null}
           </div>
         </section>
 
@@ -226,14 +235,6 @@ export default async function MemberDetailPage({ params }: PageProps) {
               </div>
             </section>
 
-            <section className="qv-card qv-danger-card">
-              <h2 className="qv-section-title">Delete member</h2>
-              <p className="qv-section-subtitle">
-                This removes the member from the active directory. Use only when the row should no longer appear in
-                organization records.
-              </p>
-              <DeleteMemberForm memberId={person.id} />
-            </section>
           </div>
 
           <div className="qv-detail-stack">

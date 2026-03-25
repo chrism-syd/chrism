@@ -1,0 +1,11 @@
+Email label
+- RSVP-led onboarding
+
+User flow that triggers this email
+- A person arrives through RSVP context.
+- Chrism has safe event-specific context for association.
+- The system emails the person with a secure link that continues the RSVP-led onboarding or account-link flow.
+
+Intent
+- Use RSVP context as an allowed association path.
+- Keep this separate from cold walk-in onboarding.

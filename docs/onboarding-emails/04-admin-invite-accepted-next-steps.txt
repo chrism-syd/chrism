@@ -1,0 +1,11 @@
+Email label
+- Admin invite accepted
+
+User flow that triggers this email
+- The invitee accepts an admin invite.
+- Chrism grants the resulting admin relationship.
+- Chrism sends a follow-up email confirming access and pointing to the next step inside the product.
+
+Intent
+- Confirm that access is active.
+- Reduce first-session confusion after acceptance.

@@ -1,0 +1,11 @@
+Email label
+- Claim needs follow-up
+
+User flow that triggers this email
+- A reviewer cannot confidently approve the claim as submitted.
+- The reviewer needs more detail, or the request does not match the council information well enough.
+- Chrism emails the requester asking for the missing details or clarifying what to do next.
+
+Intent
+- Prevent silent dead ends.
+- Keep manual review moving without granting access too early.

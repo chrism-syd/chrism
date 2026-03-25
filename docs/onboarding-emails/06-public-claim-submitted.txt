@@ -1,0 +1,12 @@
+Email label
+- Public walk-in claim submitted
+
+User flow that triggers this email
+- A cold visitor opens /claim-organization.
+- They identify their council or request access manually.
+- The request is submitted into the review queue without revealing hidden member matches.
+- Chrism emails the requester to confirm the request was received.
+
+Intent
+- Confirm that the request is in review.
+- Preserve the product rule that cold visitors are not shown hidden identity or council matches.

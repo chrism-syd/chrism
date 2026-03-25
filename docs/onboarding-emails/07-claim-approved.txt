@@ -1,0 +1,11 @@
+Email label
+- Claim approved
+
+User flow that triggers this email
+- A super admin or reviewer approves a council or organization claim.
+- The resulting admin assignment is created.
+- Chrism emails the requester that access is now ready.
+
+Intent
+- Close the loop.
+- Tell the user where to go next now that access exists.

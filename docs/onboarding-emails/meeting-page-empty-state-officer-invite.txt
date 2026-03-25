@@ -1,0 +1,9 @@
+Label: meeting page empty state officer invite
+
+Trigger:
+A visitor on a blank public council meetings page submits the lightweight officer contact form.
+
+User flow:
+1. Visitor enters name and email address.
+2. Chrism sends the secure-link onboarding email.
+3. Recipient signs in and lands in the council claim/onboarding flow with the council prefilled.

@@ -1,0 +1,9 @@
+Label: public claim approved
+
+Trigger:
+A super admin approves a pending organization claim request.
+
+User flow:
+1. Reviewer confirms the claimant against supporting records.
+2. Chrism grants organization admin access.
+3. The claimant receives the approval email and returns to the app as an active admin.

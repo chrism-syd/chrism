@@ -1,0 +1,12 @@
+Email label
+- Admin invite sent
+
+User flow that triggers this email
+- A Grand Knight, Financial Secretary, or authorized admin intentionally invites a person to help manage the council or organization in Chrism.
+- The invite is created from the future admin invite UI.
+- Chrism emails the invitee with a secure action link.
+- The link takes the invitee into the dedicated admin invite acceptance flow.
+
+Intent
+- This should become the primary intentional onboarding path.
+- It is lower-friction than public walk-in claims.

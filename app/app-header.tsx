@@ -93,7 +93,9 @@ export default async function AppHeader() {
             links={[
               { href: '/me', label: 'Profile' },
               ...(permissions.isCouncilAdmin ? [{ href: '/me/council', label: 'Organization settings' }] : []),
+              ...(!permissions.isCouncilAdmin && permissions.organizationId ? [{ href: '/me/claim-organization', label: 'Claim admin access' }] : []),
               ...(permissions.hasStaffAccess ? [{ href: '/members/officers', label: 'Officers' }] : []),
+              ...(permissions.isSuperAdmin ? [{ href: '/super-admin/organization-claims', label: 'Claim queue' }] : []),
             ]}
             email={permissions.email}
             devMode={

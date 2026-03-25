@@ -124,8 +124,12 @@ export default async function EventsPage() {
 
   const events = eventsData ?? []
   const standardEvents = events.filter((event) => event.event_kind_code === 'standard')
+  const nowIso = new Date().toISOString()
   const meetingEvents = events.filter(
-    (event) => event.event_kind_code !== 'standard' && !['draft', 'completed', 'cancelled'].includes(event.status_code)
+    (event) =>
+      event.event_kind_code !== 'standard' &&
+      !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
+      event.ends_at >= nowIso
   )
   const draftEvents = standardEvents.filter((event) => event.status_code === 'draft')
   const hostedEvents = standardEvents.filter(
@@ -304,7 +308,7 @@ export default async function EventsPage() {
                 <div className="qv-directory-section-head" style={{ alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <h2 className="qv-section-title">Meetings</h2>
-                    <p className="qv-section-subtitle">Upcoming council meetings in date order.</p>
+                    <p className="qv-section-subtitle">Upcoming council meetings only. Completed meetings move to the archive.</p>
                   </div>
 
                   {publicMeetingsHref || meetingsFeedHref ? (

@@ -90,11 +90,7 @@ const EXECUTIVE_COMMITTEE_OFFICE_CODES = new Set<string>([
 
 const AUTOMATIC_COUNCIL_ADMIN_OFFICE_CODES = new Set<string>([
   'grand_knight',
-  'deputy_grand_knight',
-  'chancellor',
-  'recorder',
-  'treasurer',
-  'trustee',
+  'financial_secretary',
 ])
 
 function buildRole(

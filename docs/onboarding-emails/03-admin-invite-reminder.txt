@@ -1,0 +1,10 @@
+Email label
+- Admin invite reminder
+
+User flow that triggers this email
+- An admin invite is still pending after a reminder threshold.
+- The inviter chooses to resend it, or the system sends a reminder later.
+- Chrism emails the invitee with the same or refreshed secure action link.
+
+Intent
+- Recover invites that were ignored, buried, or forgotten.

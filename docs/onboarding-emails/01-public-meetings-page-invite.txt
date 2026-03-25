@@ -1,0 +1,14 @@
+Email label
+- Public meetings page invite
+
+User flow that triggers this email
+- A visitor opens a public council meetings page.
+- The council has no upcoming published General or Executive meetings.
+- The page shows the blank-state message and a small form asking for Name and email address.
+- Someone enters a council officer's name and email address and clicks Send email.
+- Chrism sends a secure email link.
+- After the recipient clicks the link, they land in signed-in council onboarding.
+
+Intent
+- Turn a blank public page into a soft onboarding entry point.
+- Give the council a path into setup instead of a dead end.

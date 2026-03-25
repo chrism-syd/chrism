@@ -1,3 +1,7 @@
+import {
+  normalizeSupremeImportTextField,
+} from '@/lib/imports/supreme-text-normalization'
+
 export type ImportFieldSectionKey = 'core' | 'membership' | 'kofc'
 
 export type ImportFieldKey =
@@ -449,26 +453,26 @@ export function mapSpreadsheetRowsToSupremeRows(
         sourceRowNumber: rowOffset + headerInfo.headerIndex + 2,
         councilNumber: normalizeMemberNumber(String(get('council_number') ?? '')),
         memberNumber,
-        title: normalizeWhitespace(String(get('title') ?? '')) || null,
-        firstName,
-        middleName: normalizeWhitespace(String(get('middle_name') ?? '')) || null,
-        lastName,
-        suffix: normalizeWhitespace(String(get('suffix') ?? '')) || null,
-        email: normalizeWhitespace(String(get('email') ?? '')) || null,
+        title: normalizeSupremeImportTextField('title', String(get('title') ?? '')),
+        firstName: normalizeSupremeImportTextField('first_name', firstName) ?? firstName,
+        middleName: normalizeSupremeImportTextField('middle_name', String(get('middle_name') ?? '')),
+        lastName: normalizeSupremeImportTextField('last_name', lastName) ?? lastName,
+        suffix: normalizeSupremeImportTextField('suffix', String(get('suffix') ?? '')),
+        email: normalizeSupremeImportTextField('email', String(get('email') ?? '')),
         cellPhone: normalizeWhitespace(String(get('cell_phone') ?? '')) || null,
         homePhone: normalizeWhitespace(String(get('home_phone') ?? '')) || null,
         otherPhone: normalizeWhitespace(String(get('other_phone') ?? '')) || null,
-        streetAddress: normalizeWhitespace(String(get('address_line_1') ?? '')) || null,
-        city: normalizeWhitespace(String(get('city') ?? '')) || null,
-        stateProvince: normalizeWhitespace(String(get('state_province') ?? '')) || null,
-        postalCode: normalizeWhitespace(String(get('postal_code') ?? '')) || null,
+        streetAddress: normalizeSupremeImportTextField('address_line_1', String(get('address_line_1') ?? '')),
+        city: normalizeSupremeImportTextField('city', String(get('city') ?? '')),
+        stateProvince: normalizeSupremeImportTextField('state_province', String(get('state_province') ?? '')),
+        postalCode: normalizeSupremeImportTextField('postal_code', String(get('postal_code') ?? '')),
         firstDegreeDate: parseSpreadsheetDate(get('first_degree_date')),
         secondDegreeDate: parseSpreadsheetDate(get('second_degree_date')),
         thirdDegreeDate: parseSpreadsheetDate(get('third_degree_date')),
         yearsOfService: parseSpreadsheetInteger(get('years_of_service')),
         birthDate: parseSpreadsheetDate(get('birth_date')),
-        memberType: normalizeWhitespace(String(get('supreme_member_type') ?? '')) || null,
-        memberClass: normalizeWhitespace(String(get('supreme_member_class') ?? '')) || null,
+        memberType: normalizeSupremeImportTextField('supreme_member_type', String(get('supreme_member_type') ?? '')),
+        memberClass: normalizeSupremeImportTextField('supreme_member_class', String(get('supreme_member_class') ?? '')),
         assemblyNumber: normalizeMemberNumber(String(get('assembly_number') ?? '')),
       } satisfies SupremeImportRow
     })

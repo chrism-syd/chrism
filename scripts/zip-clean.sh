@@ -1,14 +1,16 @@
 #!/bin/bash
 set -e
 
-PROJECT_DIR="."
-ZIP_NAME="../Chrism.zip"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ZIP_NAME="$PROJECT_DIR/../Chrism.zip"
 
 find "$PROJECT_DIR" -name ".DS_Store" -delete
 
 COPYFILE_DISABLE=1 zip -r "$ZIP_NAME" "$PROJECT_DIR" \
   -x "*.DS_Store" \
   -x "__MACOSX/*" \
+  -x "*/.env.local" \
   -x "*/node_modules/*" \
   -x "*/.next/*" \
   -x "*/.git/*" \

@@ -9,6 +9,7 @@ type ActiveArchivedEventRow = {
   ends_at: string
   status_code: string
   location_name: string | null
+  event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting'
 }
 
 type DeletedEventArchiveRow = {
@@ -59,15 +60,28 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
+function getArchiveStatusLabel(event: ActiveArchivedEventRow) {
+  if (event.status_code === 'cancelled') return 'Cancelled'
+  if (event.event_kind_code !== 'standard') return 'Completed'
+  return 'Completed'
+}
+
+function getArchiveMetaLabel(event: ActiveArchivedEventRow) {
+  if (event.event_kind_code === 'executive_meeting') return 'Executive meeting'
+  if (event.event_kind_code === 'general_meeting') return 'General meeting'
+  return 'Event'
+}
+
 export default async function EventArchivePage() {
   const { admin: supabase, council } = await getCurrentActingCouncilContext({ redirectTo: '/events' })
+  const nowIso = new Date().toISOString()
 
   const [{ data: completedEvents, error: completedError }, { data: deletedEvents, error: deletedError }] = await Promise.all([
     supabase
       .from('events')
-      .select('id, title, starts_at, ends_at, status_code, location_name')
+      .select('id, title, starts_at, ends_at, status_code, location_name, event_kind_code')
       .eq('council_id', council.id)
-      .in('status_code', ['completed', 'cancelled'])
+      .or(`status_code.in.(completed,cancelled),and(event_kind_code.in.(general_meeting,executive_meeting),ends_at.lt.${nowIso})`)
       .order('starts_at', { ascending: false })
       .returns<ActiveArchivedEventRow[]>(),
     supabase
@@ -91,7 +105,7 @@ export default async function EventArchivePage() {
                 {council.council_number ? ` (${council.council_number})` : ''}
               </p>
               <h1 className="qv-title">Events archive</h1>
-              <p className="qv-subtitle">Completed, cancelled, and archived events stay visible here for admins.</p>
+              <p className="qv-subtitle">Completed, cancelled, past meetings, and archived events stay visible here for admins.</p>
             </div>
             <div className="qv-directory-actions">
               <Link href="/events" className="qv-link-button qv-button-secondary">
@@ -111,14 +125,14 @@ export default async function EventArchivePage() {
               <div className="qv-directory-section-head">
                 <div>
                   <h2 className="qv-section-title">Completed and cancelled</h2>
-                  <p className="qv-section-subtitle">These events still exist in the live table, but they are no longer active.</p>
+                  <p className="qv-section-subtitle">Completed events, cancelled events, and past meetings still appear here for reference.</p>
                 </div>
               </div>
 
               {(completedEvents ?? []).length === 0 ? (
                 <div className="qv-empty">
                   <h3 className="qv-empty-title">No completed or cancelled events</h3>
-                  <p className="qv-empty-text">Completed and cancelled events will appear here automatically.</p>
+                  <p className="qv-empty-text">Completed events and past meetings will appear here automatically.</p>
                 </div>
               ) : (
                 <div className="qv-member-list">
@@ -129,7 +143,9 @@ export default async function EventArchivePage() {
                           <div className="qv-member-name">{event.title}</div>
                           <div className="qv-inline-message">{formatDateRange(event.starts_at, event.ends_at)}</div>
                           <div className="qv-inline-message">{event.location_name || 'No location listed'}</div>
-                          <div className="qv-inline-message">Status: {event.status_code}</div>
+                          <div className="qv-inline-message">
+                            {getArchiveMetaLabel(event)} • {getArchiveStatusLabel(event)}
+                          </div>
                         </div>
                         <div className="qv-member-row-right">
                           <span className="qv-chevron">›</span>

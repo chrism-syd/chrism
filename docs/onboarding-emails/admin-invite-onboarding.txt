@@ -1,0 +1,11 @@
+Label: admin invite onboarding
+
+Trigger:
+A current Grand Knight, Financial Secretary, or super admin sends an organization admin invite from /me/council.
+
+User flow:
+1. Admin enters the invitee name, email, and optional onboarding notes.
+2. Chrism creates a pending organization_admin_invitations record.
+3. Supabase sends the secure sign-in link email.
+4. Invitee clicks the link, signs in, lands on /admin-invite, and accepts the admin invite.
+5. Chrism grants organization admin access and marks the invite accepted.

@@ -244,6 +244,22 @@ export default async function MyProfilePage() {
               Organization settings
             </Link>
           </div>
+        ) : permissions.organizationId && permissions.councilId ? (
+          <section className="qv-card" style={{ marginTop: 20 }}>
+            <div className="qv-directory-section-head">
+              <div>
+                <h2 className="qv-section-title">Need council admin access?</h2>
+                <p className="qv-section-subtitle">
+                  Submit a claim for review and we will verify it against the state database before granting access.
+                </p>
+              </div>
+            </div>
+            <div className="qv-form-actions">
+              <Link href="/me/claim-organization" className="qv-link-button qv-button-primary">
+                Claim organization access
+              </Link>
+            </div>
+          </section>
         ) : null}
 
         {claimedRsvps.length > 0 ? (

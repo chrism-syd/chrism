@@ -324,7 +324,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     isCouncilAdmin,
     isSuperAdmin,
     actingMode,
-    isDevMode: actingMode === 'admin',
+    isDevMode: actingMode !== 'normal',
     currentViewLabel: isSuperAdmin
       ? getSuperAdminViewLabel({ mode: actingMode, organizationName })
       : null,

@@ -95,6 +95,14 @@ Relevant columns:
 | `member_class` | `text` | Knights-specific |
 | `assembly_number` | `text` | Person-level 4th Degree assembly membership only |
 
+### Admin access relationships
+
+Use `organization_admin_assignments` as the canonical admin-grant table for councils and organizations.
+
+- Active council-scoped legacy grants in `council_admin_assignments` are compatibility inputs only.
+- Cleanup migration `20260325002000_consolidate_org_admin_assignments.sql` mirrors active legacy council grants into `organization_admin_assignments`.
+- Permission resolution should derive council admin access from the organization linked to the council, not from a separate parallel council-admin table.
+
 ### Knights-specific organization data: `public.organization_kofc_profiles`
 
 Use `organization_kofc_profiles` only for organization-scoped Knights attributes.

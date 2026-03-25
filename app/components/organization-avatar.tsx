@@ -8,6 +8,7 @@ type Props = {
   logoPath?: string | null
   logoStoragePath?: string | null
   logoAltText?: string | null
+  fallbackLogoPath?: string | null
   size?: number
   title?: string
 }
@@ -58,15 +59,18 @@ export default function OrganizationAvatar({
   logoPath,
   logoStoragePath,
   logoAltText,
+  fallbackLogoPath,
   size = 72,
   title,
 }: Props) {
-  const [failed, setFailed] = useState(false)
+  const [failedPrimary, setFailedPrimary] = useState(false)
+  const [failedFallback, setFailedFallback] = useState(false)
   const initials = useMemo(() => buildInitials(displayName), [displayName])
-  const src = useMemo(() => normalizeLogoSrc(logoPath ?? logoStoragePath), [logoPath, logoStoragePath])
-  const showLogo = Boolean(src) && !failed
+  const primarySrc = useMemo(() => normalizeLogoSrc(logoPath ?? logoStoragePath), [logoPath, logoStoragePath])
+  const fallbackSrc = useMemo(() => normalizeLogoSrc(fallbackLogoPath), [fallbackLogoPath])
+  const src = !failedPrimary && primarySrc ? primarySrc : !failedFallback && fallbackSrc ? fallbackSrc : null
 
-  if (showLogo && src) {
+  if (src) {
     return (
       <Image
         src={src}
@@ -74,7 +78,13 @@ export default function OrganizationAvatar({
         title={title ?? displayName}
         width={size}
         height={size}
-        onError={() => setFailed(true)}
+        onError={() => {
+          if (!failedPrimary && primarySrc && src === primarySrc) {
+            setFailedPrimary(true)
+            return
+          }
+          setFailedFallback(true)
+        }}
         style={{
           width: size,
           height: size,

@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "verify": "npm run lint -- --max-warnings=0 && npm run typecheck",
     "schema:pull": "node scripts/pull-supabase-schema.mjs",
-    "pii:backfill": "node --env-file=.env.local scripts/backfill-encrypted-pii.mjs"
+    "pii:backfill": "node --env-file=.env.local scripts/backfill-encrypted-pii.mjs",
+    "supreme:text-case-backfill": "node --env-file=.env.local scripts/backfill-supreme-import-text-case.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
