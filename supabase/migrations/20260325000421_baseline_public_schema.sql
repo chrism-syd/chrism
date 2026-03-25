@@ -1,3 +1,7 @@
+-- Baseline migration generated from supabase/schema.sql.
+-- Created by scripts/rebaseline-supabase-migrations.sh on 2026-03-25T00:04:21Z.
+-- This file intentionally mirrors the live public schema snapshot.
+
 
 
 
