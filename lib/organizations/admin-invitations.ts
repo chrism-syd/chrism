@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { buildAuthConfirmRedirectUrl } from '@/lib/auth/redirects'
+import { sendBrevoTransactionalEmail } from '@/lib/email/brevo'
 import {
   normalizeAdminGrantEmail,
   saveOrganizationAdminAssignment,
@@ -160,37 +160,133 @@ export async function createOrganizationAdminInvitation(args: {
   }
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function buildAdminInvitationAuthPath(args: { baseUrl: string; invitePath: string; tokenHash: string; type?: string | null }) {
+  const confirmUrl = new URL(buildAuthConfirmRedirectUrl(args.baseUrl, args.invitePath))
+  confirmUrl.searchParams.set('token_hash', args.tokenHash)
+  confirmUrl.searchParams.set('type', args.type || 'magiclink')
+  return confirmUrl.toString()
+}
+
+function buildAdminInvitationEmailCopy(args: {
+  organizationName: string
+  councilName?: string | null
+  councilNumber?: string | null
+  inviteeName?: string | null
+  inviterName?: string | null
+  notes?: string | null
+  acceptUrl: string
+}) {
+  const organizationLabel = args.organizationName.trim() || 'this organization'
+  const councilBits = [args.councilName?.trim(), args.councilNumber ? `Council ${args.councilNumber}` : null].filter(Boolean)
+  const councilLabel = councilBits.length > 0 ? councilBits.join(' • ') : null
+  const greetingName = args.inviteeName?.trim() || 'there'
+  const inviterLine = args.inviterName?.trim() ? `${args.inviterName.trim()} invited you to help manage` : 'You were invited to help manage'
+  const notesHtml = args.notes?.trim()
+    ? `<p style="margin:16px 0 0;color:#334155;font-size:15px;line-height:1.6;"><strong>Onboarding notes:</strong> ${escapeHtml(args.notes.trim())}</p>`
+    : ''
+  const notesText = args.notes?.trim() ? `
+
+Onboarding notes: ${args.notes.trim()}` : ''
+  const councilHtml = councilLabel ? `<p style="margin:8px 0 0;color:#475569;font-size:14px;">${escapeHtml(councilLabel)}</p>` : ''
+  const councilText = councilLabel ? `
+${councilLabel}` : ''
+  const subject = `You are invited to manage ${organizationLabel} on Chrism`
+  const htmlContent = `
+    <div style="background:#f8fafc;padding:32px 16px;font-family:Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;">
+        <p style="margin:0 0 12px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Chrism admin invite</p>
+        <h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;color:#0f172a;">You have been invited to help manage ${escapeHtml(organizationLabel)}</h1>
+        <p style="margin:0;color:#334155;font-size:16px;line-height:1.6;">Hi ${escapeHtml(greetingName)},</p>
+        <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.6;">${escapeHtml(inviterLine)} <strong>${escapeHtml(organizationLabel)}</strong> in Chrism.</p>
+        ${councilHtml}
+        ${notesHtml}
+        <div style="margin:28px 0;">
+          <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:600;">Accept admin invite</a>
+        </div>
+        <p style="margin:0;color:#475569;font-size:14px;line-height:1.6;">This secure link will sign you in or finish creating your account, then bring you straight to the invite acceptance screen.</p>
+        <p style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.6;word-break:break-word;">If the button does not work, paste this link into your browser:<br>${escapeHtml(args.acceptUrl)}</p>
+      </div>
+    </div>
+  `.trim()
+  const textContent = `Hi ${greetingName},
+
+${inviterLine} ${organizationLabel} in Chrism.${councilText}${notesText}
+
+Accept your admin invite:
+${args.acceptUrl}
+
+This secure link will sign you in or finish creating your account, then bring you straight to the invite acceptance screen.`
+
+  return {
+    subject,
+    htmlContent,
+    textContent,
+  }
+}
+
 export async function sendOrganizationAdminInvitationEmail(args: {
   inviteeEmail: string
+  inviteeName?: string | null
   invitePath: string
+  organizationName: string
+  councilName?: string | null
+  councilNumber?: string | null
+  inviterName?: string | null
+  notes?: string | null
   origin?: string | null
 }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-
-  if (!supabaseUrl || !publishableKey) {
-    throw new Error('Missing Supabase public auth environment variables.')
-  }
-
-  const client = createSupabaseClient(supabaseUrl, publishableKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
-
-  const emailRedirectTo = buildAuthConfirmRedirectUrl(args.origin || getBaseUrl(), args.invitePath)
-  const { error } = await client.auth.signInWithOtp({
+  const admin = createAdminClient()
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
     email: args.inviteeEmail,
-    options: {
-      shouldCreateUser: true,
-      emailRedirectTo,
-    },
   })
 
   if (error) {
     throw new Error(error.message)
   }
+
+  const properties = (data as { properties?: { hashed_token?: string | null; verification_type?: string | null } } | null)?.properties
+  const tokenHash = properties?.hashed_token?.trim()
+
+  if (!tokenHash) {
+    throw new Error('Supabase did not return a hashed invite token for this admin invite.')
+  }
+
+  const acceptUrl = buildAdminInvitationAuthPath({
+    baseUrl: args.origin || getBaseUrl(),
+    invitePath: args.invitePath,
+    tokenHash,
+    type: properties?.verification_type ?? 'magiclink',
+  })
+
+  const emailCopy = buildAdminInvitationEmailCopy({
+    organizationName: args.organizationName,
+    councilName: args.councilName,
+    councilNumber: args.councilNumber,
+    inviteeName: args.inviteeName,
+    inviterName: args.inviterName,
+    notes: args.notes,
+    acceptUrl,
+  })
+
+  await sendBrevoTransactionalEmail({
+    to: [{
+      email: args.inviteeEmail,
+      name: args.inviteeName ?? undefined,
+    }],
+    subject: emailCopy.subject,
+    htmlContent: emailCopy.htmlContent,
+    textContent: emailCopy.textContent,
+  })
 }
 
 export async function getOrganizationAdminInvitationByRawToken(rawToken: string) {

@@ -309,7 +309,13 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
 
     await sendOrganizationAdminInvitationEmail({
       inviteeEmail: inviteEmail,
+      inviteeName,
       invitePath: invitation.invitePath,
+      organizationName: context.permissions.organizationName ?? context.council.name ?? 'this organization',
+      councilName: context.council.name,
+      councilNumber: context.council.council_number,
+      inviterName: context.permissions.email,
+      notes: grantNotes,
       origin,
     })
   } catch (error) {
