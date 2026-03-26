@@ -1,141 +1,104 @@
-import type { ReactNode } from 'react'
 import Link from 'next/link'
-import FeatureShowcaseContainer from './feature-showcase-container'
+import AppHeader from '@/app/app-header'
+import { getAppSiteMapSections } from '@/lib/dev/app-sitemap'
 
-function DemoStageCard({
-  heading,
-  body,
-  children,
-}: {
-  heading: string
-  body: string
-  children: ReactNode
-}) {
-  return (
-    <div className="qv-testing-stage-card">
-      <div className="qv-testing-stage-hero" />
-      <div className="qv-testing-stage-overlay">
-        <div className="qv-testing-stage-callout">
-          <h3 className="qv-testing-stage-callout-title">{heading}</h3>
-          <p className="qv-testing-stage-callout-copy">{body}</p>
-        </div>
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-        <div className="qv-testing-stage-content-box">{children}</div>
-      </div>
-    </div>
+export default function TestingSiteMapPage() {
+  const sections = getAppSiteMapSections()
+  const totalPages = sections.reduce((count, section) => count + section.entries.length, 0)
+  const staticPages = sections.reduce(
+    (count, section) => count + section.entries.filter((entry) => !entry.isDynamic).length,
+    0
   )
-}
-
-export default function TestingFeatureShowcasePage() {
-  const items = [
-    {
-      id: 'invite',
-      label: 'Invite flow',
-      title: 'Invite a council officer to get started',
-      description:
-        'This uses a lighter inner box for form content so the parent container can still carry richer imagery, diagrams, or other content around it.',
-      panelContent: (
-        <DemoStageCard
-          heading="No meetings have been added to your council calendar."
-          body="Let your council officers know that their meeting page on Chrism is blank."
-        >
-          <div className="qv-form-grid">
-            <div>
-              <h4 className="qv-testing-form-title">Invite a council officer to get started</h4>
-              <p className="qv-section-subtitle" style={{ marginTop: 8 }}>
-                We will send a secure email link so they can start Chrism onboarding.
-              </p>
-            </div>
-
-            <div className="qv-form-row qv-form-row-2">
-              <label className="qv-control">
-                <span className="qv-label">Name</span>
-                <input placeholder="e.g. John Smith" />
-              </label>
-              <label className="qv-control">
-                <span className="qv-label">Email address</span>
-                <input type="email" placeholder="name@example.com" />
-              </label>
-            </div>
-
-            <div className="qv-form-actions">
-              <button type="button" className="qv-button-primary">
-                Send email
-              </button>
-            </div>
-          </div>
-        </DemoStageCard>
-      ),
-    },
-    {
-      id: 'content',
-      label: 'Flexible content',
-      title: 'The stage can hold more than media',
-      description:
-        'Treat the right side as a container, not a hard-coded image slot. That leaves room for forms, stats, empty states, embedded previews, or mixed layouts.',
-      panelContent: (
-        <div className="qv-testing-stage-card qv-testing-stage-card-simple">
-          <div className="qv-testing-stat-grid">
-            <div className="qv-testing-stat-tile">
-              <div className="qv-testing-stat-number">3</div>
-              <div className="qv-testing-stat-label">Pending invites</div>
-            </div>
-            <div className="qv-testing-stat-tile">
-              <div className="qv-testing-stat-number">12</div>
-              <div className="qv-testing-stat-label">Upcoming meetings</div>
-            </div>
-            <div className="qv-testing-stat-tile">
-              <div className="qv-testing-stat-number">2</div>
-              <div className="qv-testing-stat-label">Open claims</div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'mobile',
-      label: 'Mobile behavior',
-      title: 'The layout should collapse cleanly',
-      description:
-        'On smaller screens the stage stacks above the pills, and the active panel becomes a straightforward accordion. Fancy is optional. Usable is not.',
-      panelContent: (
-        <div className="qv-testing-stage-card qv-testing-stage-card-simple">
-          <div className="qv-testing-mobile-frame">
-            <div className="qv-testing-mobile-notch" />
-            <div className="qv-testing-mobile-screen">
-              <div className="qv-testing-mobile-box" />
-              <div className="qv-testing-mobile-pill is-active">Invite flow</div>
-              <div className="qv-testing-mobile-pill">Approval path</div>
-              <div className="qv-testing-mobile-pill">Admin roster</div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ]
+  const dynamicPages = totalPages - staticPages
 
   return (
     <main className="qv-page">
-      <div className="qv-shell" style={{ maxWidth: 1320 }}>
-        <div className="qv-app-header">
-          <div>
-            <p className="qv-eyebrow">Components / testing</p>
-            <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-              Standalone sandbox page for the Apple-inspired showcase container.
-            </p>
-          </div>
-          <Link href="/me/council" className="qv-link-button qv-button-secondary">
-            Back to council admin
-          </Link>
-        </div>
+      <div className="qv-shell">
+        <AppHeader />
 
-        <FeatureShowcaseContainer
-          eyebrow="Exploration"
-          title="Feature showcase container"
-          intro="A reusable pattern for stacked feature pills on the left and flexible staged content on the right. This version is intentionally simpler than Apple’s small moon-landing of motion design."
-          items={items}
-          initialItemId="invite"
-        />
+        <section className="qv-card qv-compact-card">
+          <p className="qv-detail-label">Testing surface map</p>
+          <h1 className="qv-section-title" style={{ marginTop: 8 }}>Page sitemap</h1>
+          <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
+            This page scans the App Router and groups every <code>page.tsx</code> route by flow so you can give each surface a set of eyes.
+            Static routes are clickable. Dynamic routes are still listed, but they need a real ID or token before you can open them.
+          </p>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 12,
+              marginTop: 20,
+            }}
+          >
+            {[
+              { label: 'Total pages', value: totalPages },
+              { label: 'Static routes', value: staticPages },
+              { label: 'Dynamic routes', value: dynamicPages },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                style={{
+                  border: '1px solid var(--divider)',
+                  borderRadius: 16,
+                  background: 'var(--bg-sunken)',
+                  padding: 16,
+                }}
+              >
+                <div className="qv-detail-label">{stat.label}</div>
+                <div className="qv-detail-value" style={{ marginTop: 6 }}>{stat.value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div style={{ display: 'grid', gap: 18, marginTop: 18 }}>
+          {sections.map((section) => (
+            <section key={section.key} className="qv-card qv-compact-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <h2 className="qv-section-title" style={{ margin: 0 }}>{section.label}</h2>
+                <span className="qv-mini-pill">{section.entries.length} page{section.entries.length === 1 ? '' : 's'}</span>
+              </div>
+
+              <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
+                {section.entries.map((entry) => (
+                  <div
+                    key={entry.filePath}
+                    style={{
+                      border: '1px solid var(--divider)',
+                      borderRadius: 16,
+                      background: 'var(--bg-sunken)',
+                      padding: 16,
+                      display: 'grid',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="qv-detail-label">{entry.routeLabel}</div>
+                        {entry.isDynamic ? (
+                          <div className="qv-detail-value" style={{ marginTop: 4 }}>{entry.route}</div>
+                        ) : (
+                          <Link href={entry.route} className="qv-member-link" style={{ display: 'inline-block', marginTop: 4 }}>
+                            {entry.route}
+                          </Link>
+                        )}
+                      </div>
+                      <span className="qv-mini-pill">{entry.isDynamic ? 'Dynamic params needed' : 'Openable now'}</span>
+                    </div>
+                    <div className="qv-member-meta" style={{ margin: 0 }}>
+                      {entry.filePath}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     </main>
   )

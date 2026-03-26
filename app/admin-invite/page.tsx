@@ -19,10 +19,14 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
   const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
 
   if (!token) {
-    redirect('/me?error=Missing admin invite token.')
+    redirect('/admin-invite/invalid?reason=missing')
   }
 
   const invitation = await getOrganizationAdminInvitationByRawToken(token)
+
+  if (!invitation) {
+    redirect(`/admin-invite/invalid?reason=missing&token=${encodeURIComponent(token)}`)
+  }
   const permissions = await getCurrentUserPermissions()
   const signedInEmail = permissions.email?.trim().toLowerCase() ?? null
 
@@ -36,12 +40,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
 
         <section className="qv-card qv-compact-card">
           <h1 className="qv-section-title">Admin invite onboarding</h1>
-          {!invitation ? (
-            <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-              That invite could not be found.
-            </p>
-          ) : (
-            <div className="qv-form-grid" style={{ marginTop: 18 }}>
+          <div className="qv-form-grid" style={{ marginTop: 18 }}>
               <p className="qv-section-subtitle" style={{ marginTop: 0 }}>
                 You were invited to manage {invitation.organizationName}
                 {invitation.councilName ? ` for ${invitation.councilName}` : ''}.
@@ -101,7 +100,6 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
                 </form>
               )}
             </div>
-          )}
         </section>
       </div>
     </main>
