@@ -35,7 +35,9 @@ export type CurrentUserPermissions = {
   email: string | null
 }
 
-type AppUserRow = NonNullable<CurrentUserPermissions['appUser']>
+type AppUserRow = NonNullable<CurrentUserPermissions['appUser']> & {
+  council_id?: string | null
+}
 type CouncilAdminAssignmentRow = { council_id: string | null }
 type OrganizationAdminAssignmentRow = { organization_id: string | null }
 type AutomaticCouncilAdminTermRow = {
@@ -76,6 +78,62 @@ function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() || null
 }
 
+async function ensureAppUserRow(args: {
+  admin: ReturnType<typeof createAdminClient>
+  authUserId: string
+  existingAppUser: AppUserRow | null
+  personId?: string | null
+  councilId?: string | null
+  isSuperAdmin?: boolean
+}) {
+  const {
+    admin,
+    authUserId,
+    existingAppUser,
+    personId = null,
+    councilId = null,
+    isSuperAdmin = false,
+  } = args
+
+  const needsInsert = !existingAppUser
+  const needsSync =
+    !needsInsert &&
+    ((personId && existingAppUser.person_id !== personId) ||
+      (councilId && (existingAppUser.council_id ?? null) !== councilId) ||
+      (isSuperAdmin && !existingAppUser.is_super_admin) ||
+      existingAppUser.is_active === false)
+
+  if (!needsInsert && !needsSync) {
+    return existingAppUser
+  }
+
+  const payload = {
+    id: authUserId,
+    person_id: personId ?? existingAppUser?.person_id ?? null,
+    council_id: councilId ?? existingAppUser?.council_id ?? null,
+    is_active: existingAppUser?.is_active ?? true,
+    is_super_admin: isSuperAdmin || existingAppUser?.is_super_admin || false,
+  }
+
+  const { data, error } = await admin
+    .from('users')
+    .upsert(payload, { onConflict: 'id' })
+    .select('id, person_id, council_id, is_active, is_super_admin')
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Could not provision app user row: ${error.message}`)
+  }
+
+  return (data as AppUserRow | null) ?? {
+    id: authUserId,
+    person_id: payload.person_id,
+    council_id: payload.council_id,
+    is_active: payload.is_active,
+    is_super_admin: payload.is_super_admin,
+  }
+}
+
 export async function getCurrentUserPermissions(): Promise<CurrentUserPermissions> {
   const supabase = await createClient()
   const {
@@ -106,11 +164,11 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const { data: appUserData } = await admin
     .from('users')
-    .select('id, person_id, is_active, is_super_admin')
+    .select('id, person_id, council_id, is_active, is_super_admin')
     .eq('id', user.id)
     .maybeSingle()
 
-  const appUser = (appUserData as AppUserRow | null) ?? null
+  let appUser = (appUserData as AppUserRow | null) ?? null
   const explicitSuperAdmin = Boolean(appUser?.is_super_admin)
   const isSuperAdmin = explicitSuperAdmin || isConfiguredSuperAdminEmail(normalizedEmail)
   const currentYear = new Date().getFullYear()
@@ -155,46 +213,48 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   }
 
   const personId = appUser?.person_id ?? derivedOfficerEmailPersonId ?? null
-  const realHasStaffAccess = (Boolean(appUser?.id) && appUser?.is_active !== false) || Boolean(derivedOfficerEmailPersonId)
+  const realHasStaffAccess =
+    (Boolean(appUser?.id) && appUser?.is_active !== false) || Boolean(derivedOfficerEmailPersonId)
 
-  const [councilAdminAssignmentResult, organizationAdminAssignmentResult, automaticCouncilAdminTermResult] = await Promise.all([
-    admin
-      .from('council_admin_assignments')
-      .select('council_id')
-      .eq('is_active', true)
-      .or(
-        [
-          `user_id.eq.${user.id}`,
-          personId ? `person_id.eq.${personId}` : '',
-          normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
-        ]
-          .filter(Boolean)
-          .join(',')
-      )
-      .limit(10),
-    admin
-      .from('organization_admin_assignments')
-      .select('organization_id')
-      .eq('is_active', true)
-      .or(
-        [
-          `user_id.eq.${user.id}`,
-          personId ? `person_id.eq.${personId}` : '',
-          normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
-        ]
-          .filter(Boolean)
-          .join(',')
-      )
-      .limit(10),
-    personId
-      ? admin
-          .from('person_officer_terms')
-          .select('council_id, office_scope_code, office_code')
-          .eq('person_id', personId)
-          .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
-          .limit(20)
-      : Promise.resolve({ data: [] as AutomaticCouncilAdminTermRow[] }),
-  ])
+  const [councilAdminAssignmentResult, organizationAdminAssignmentResult, automaticCouncilAdminTermResult] =
+    await Promise.all([
+      admin
+        .from('council_admin_assignments')
+        .select('council_id')
+        .eq('is_active', true)
+        .or(
+          [
+            `user_id.eq.${user.id}`,
+            personId ? `person_id.eq.${personId}` : '',
+            normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
+          ]
+            .filter(Boolean)
+            .join(',')
+        )
+        .limit(10),
+      admin
+        .from('organization_admin_assignments')
+        .select('organization_id')
+        .eq('is_active', true)
+        .or(
+          [
+            `user_id.eq.${user.id}`,
+            personId ? `person_id.eq.${personId}` : '',
+            normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
+          ]
+            .filter(Boolean)
+            .join(',')
+        )
+        .limit(10),
+      personId
+        ? admin
+            .from('person_officer_terms')
+            .select('council_id, office_scope_code, office_code')
+            .eq('person_id', personId)
+            .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
+            .limit(20)
+        : Promise.resolve({ data: [] as AutomaticCouncilAdminTermRow[] }),
+    ])
 
   const councilAdminAssignments =
     (councilAdminAssignmentResult.data as CouncilAdminAssignmentRow[] | null)?.filter(
@@ -203,7 +263,8 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const organizationAdminAssignments =
     (organizationAdminAssignmentResult.data as OrganizationAdminAssignmentRow[] | null)?.filter(
-      (row): row is OrganizationAdminAssignmentRow & { organization_id: string } => Boolean(row.organization_id)
+      (row): row is OrganizationAdminAssignmentRow & { organization_id: string } =>
+        Boolean(row.organization_id)
     ) ?? []
 
   const automaticCouncilAdminTerms =
@@ -216,6 +277,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     councilAdminAssignments[0]?.council_id ??
     automaticCouncilAdminTerms[0]?.council_id ??
     derivedOfficerEmailCouncilId ??
+    appUser?.council_id ??
     null
 
   let realOrganizationId = organizationAdminAssignments[0]?.organization_id ?? null
@@ -228,7 +290,8 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       .eq('id', personId)
       .maybeSingle()
 
-    realCouncilId = ((linkedPersonData as LinkedPersonCouncilRow | null)?.council_id ?? null) || realCouncilId
+    realCouncilId =
+      ((linkedPersonData as LinkedPersonCouncilRow | null)?.council_id ?? null) || realCouncilId
   }
 
   if (!realCouncilId && realOrganizationId) {
@@ -264,9 +327,20 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       .eq('id', realOrganizationId)
       .maybeSingle()
 
-    const organizationRow = organizationData as { display_name: string | null; preferred_name: string | null } | null
+    const organizationRow = organizationData as
+      | { display_name: string | null; preferred_name: string | null }
+      | null
     realOrganizationName = organizationRow?.preferred_name ?? organizationRow?.display_name ?? null
   }
+
+  appUser = await ensureAppUserRow({
+    admin,
+    authUserId: user.id,
+    existingAppUser: appUser,
+    personId,
+    councilId: realCouncilId,
+    isSuperAdmin,
+  })
 
   const realIsCouncilAdmin =
     explicitSuperAdmin ||
@@ -275,9 +349,15 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     organizationAdminAssignments.some((assignment) => assignment.organization_id === realOrganizationId)
 
   const cookieStore = await cookies()
-  const actingMode = isSuperAdmin ? normalizeActingMode(cookieStore.get(ACTING_MODE_COOKIE)?.value) : 'normal'
-  const requestedOrganizationId = isSuperAdmin ? cookieStore.get(ACTING_ORGANIZATION_COOKIE)?.value ?? null : null
-  const requestedCouncilId = isSuperAdmin ? cookieStore.get(ACTING_COUNCIL_COOKIE)?.value ?? null : null
+  const actingMode = isSuperAdmin
+    ? normalizeActingMode(cookieStore.get(ACTING_MODE_COOKIE)?.value)
+    : 'normal'
+  const requestedOrganizationId = isSuperAdmin
+    ? cookieStore.get(ACTING_ORGANIZATION_COOKIE)?.value ?? null
+    : null
+  const requestedCouncilId = isSuperAdmin
+    ? cookieStore.get(ACTING_COUNCIL_COOKIE)?.value ?? null
+    : null
 
   let organizationId: string | null = realOrganizationId
   let organizationName: string | null = realOrganizationName
@@ -318,7 +398,14 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   return {
     authUser: user,
-    appUser,
+    appUser: appUser
+      ? {
+          id: appUser.id,
+          person_id: appUser.person_id,
+          is_active: appUser.is_active,
+          is_super_admin: appUser.is_super_admin,
+        }
+      : null,
     isSignedIn: true,
     hasStaffAccess,
     isCouncilAdmin,
