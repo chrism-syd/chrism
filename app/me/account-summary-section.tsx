@@ -27,20 +27,14 @@ type ActionState = {
   message: string;
 };
 
-const initialState: ActionState = {
-  status: 'idle',
-  message: '',
-};
+const initialState: ActionState = { status: 'idle', message: '' };
 
 function displayValue(value: string | null) {
   return value && value.trim().length > 0 ? value : 'Not added yet';
 }
 
 function pendingDisplayValue(value: string | null, requested?: boolean) {
-  if (requested && !value) {
-    return 'Clear this value';
-  }
-
+  if (requested && !value) return 'Clear this value';
   return displayValue(value);
 }
 
@@ -49,15 +43,7 @@ function rejectionMessage(label: string) {
 }
 
 function Row({
-  label,
-  value,
-  pendingValue,
-  pendingRequested,
-  rejectedNotice,
-  editing,
-  name,
-  onEdit,
-  placeholder,
+  label, value, pendingValue, pendingRequested, rejectedNotice, editing, name, onEdit, placeholder,
 }: {
   label: string;
   value: string | null;
@@ -73,47 +59,19 @@ function Row({
   const showRejected = !showPending && Boolean(rejectedNotice);
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) auto',
-        gap: 12,
-        alignItems: 'start',
-        padding: '14px 0',
-        borderTop: '1px solid var(--divider)',
-      }}
-    >
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start', padding: '14px 0', borderTop: '1px solid var(--divider)' }}>
       <div style={{ minWidth: 0 }}>
         <div className="qv-detail-label">{label}</div>
         {editing && name ? (
-          <input
-            name={name}
-            defaultValue={value ?? ''}
-            placeholder={placeholder}
-            style={{ marginTop: 8 }}
-          />
+          <input name={name} defaultValue={value ?? ''} placeholder={placeholder} style={{ marginTop: 8 }} />
         ) : (
           <div className="qv-detail-value" style={{ marginTop: 4 }}>{displayValue(value)}</div>
         )}
-        {showPending ? (
-          <p className="qv-inline-message" style={{ marginTop: 8 }}>
-            Pending review: {pendingDisplayValue(pendingValue ?? null, pendingRequested)}
-          </p>
-        ) : null}
-        {showRejected ? (
-          <p className="qv-inline-error" style={{ marginTop: 8 }}>
-            {rejectionMessage(label)}
-          </p>
-        ) : null}
+        {showPending ? <p className="qv-inline-message" style={{ marginTop: 8 }}>Pending review: {pendingDisplayValue(pendingValue ?? null, pendingRequested)}</p> : null}
+        {showRejected ? <p className="qv-inline-error" style={{ marginTop: 8 }}>{rejectionMessage(label)}</p> : null}
       </div>
       {onEdit ? (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="qv-button-secondary"
-          aria-label={`Edit ${label.toLowerCase()}`}
-          style={{ minWidth: 44, paddingInline: 14 }}
-        >
+        <button type="button" onClick={onEdit} className="qv-button-secondary" aria-label={`Edit ${label.toLowerCase()}`} style={{ minWidth: 44, paddingInline: 14 }}>
           ✎
         </button>
       ) : null}
@@ -122,40 +80,32 @@ function Row({
 }
 
 export default function AccountSummarySection({
-  officialName,
-  preferredName,
-  email,
-  cellPhone,
-  homePhone,
-  addressHelpText,
-  pendingValues,
-  rejectedNotices,
+  officialName, firstName, lastName, preferredName, email, cellPhone, homePhone, addressHelpText,
+  pendingValues, rejectedNotices, allowStandaloneIdentityEdit = false,
 }: {
   officialName: string;
+  firstName?: string | null;
+  lastName?: string | null;
   preferredName: string | null;
   email: string | null;
   cellPhone: string | null;
   homePhone: string | null;
-  addressHelpText: string;
+  addressHelpText?: string | null;
   pendingValues: PendingValues;
   rejectedNotices: RejectedNotices;
+  allowStandaloneIdentityEdit?: boolean;
 }) {
   const [state, action, isPending] = useActionState(submitProfileChangeRequest, initialState);
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
 
   const isEditing = useMemo(() => Object.values(editingFields).some(Boolean), [editingFields]);
-
   function enableField(field: string) {
     setEditingFields((current) => ({ ...current, [field]: true }));
   }
 
   return (
     <section className="qv-card">
-      <div className="qv-directory-section-head">
-        <div>
-          <h2 className="qv-section-title">Account summary</h2>
-        </div>
-      </div>
+      <div className="qv-directory-section-head"><div><h2 className="qv-section-title">Account summary</h2></div></div>
 
       <form action={action}>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
@@ -165,60 +115,29 @@ export default function AccountSummarySection({
               <div className="qv-detail-value">{officialName}</div>
             </div>
 
-            <Row
-              label="Preferred name"
-              value={preferredName}
-              pendingValue={pendingValues?.preferred_name ?? null}
-              editing={!!editingFields.preferred_name}
-              name="preferred_name"
-              placeholder="How you would like your name to appear"
-              onEdit={() => enableField('preferred_name')}
-            />
+            {allowStandaloneIdentityEdit ? (
+              <>
+                <Row label="First name" value={firstName ?? null} editing={!!editingFields.first_name} name="first_name" placeholder="Your first name" onEdit={() => enableField('first_name')} />
+                <Row label="Last name" value={lastName ?? null} editing={!!editingFields.last_name} name="last_name" placeholder="Your last name" onEdit={() => enableField('last_name')} />
+              </>
+            ) : null}
+
+            <Row label="Preferred name" value={preferredName} pendingValue={pendingValues?.preferred_name ?? null} editing={!!editingFields.preferred_name} name="preferred_name" placeholder="How you would like your name to appear" onEdit={() => enableField('preferred_name')} />
           </div>
 
           <div>
-            <Row
-              label="Email"
-              value={email}
-              pendingValue={pendingValues?.email ?? null}
-              pendingRequested={pendingValues?.email_requested ?? false}
-              rejectedNotice={rejectedNotices.email ?? null}
-              editing={!!editingFields.email}
-              name="email"
-              placeholder="Your preferred email address"
-              onEdit={() => enableField('email')}
-            />
-
-            <Row
-              label="Cell phone"
-              value={cellPhone}
-              pendingValue={pendingValues?.cell_phone ?? null}
-              pendingRequested={pendingValues?.cell_phone_requested ?? false}
-              rejectedNotice={rejectedNotices.cell_phone ?? null}
-              editing={!!editingFields.cell_phone}
-              name="cell_phone"
-              placeholder="Your cell phone number"
-              onEdit={() => enableField('cell_phone')}
-            />
-
-            <Row
-              label="Home phone"
-              value={homePhone}
-              pendingValue={pendingValues?.home_phone ?? null}
-              pendingRequested={pendingValues?.home_phone_requested ?? false}
-              rejectedNotice={rejectedNotices.home_phone ?? null}
-              editing={!!editingFields.home_phone}
-              name="home_phone"
-              placeholder="Your home phone number"
-              onEdit={() => enableField('home_phone')}
-            />
+            <Row label="Email" value={email} pendingValue={pendingValues?.email ?? null} pendingRequested={pendingValues?.email_requested ?? false} rejectedNotice={rejectedNotices.email ?? null} editing={!!editingFields.email} name="email" placeholder="Your preferred email address" onEdit={() => enableField('email')} />
+            <Row label="Cell phone" value={cellPhone} pendingValue={pendingValues?.cell_phone ?? null} pendingRequested={pendingValues?.cell_phone_requested ?? false} rejectedNotice={rejectedNotices.cell_phone ?? null} editing={!!editingFields.cell_phone} name="cell_phone" placeholder="Your cell phone number" onEdit={() => enableField('cell_phone')} />
+            <Row label="Home phone" value={homePhone} pendingValue={pendingValues?.home_phone ?? null} pendingRequested={pendingValues?.home_phone_requested ?? false} rejectedNotice={rejectedNotices.home_phone ?? null} editing={!!editingFields.home_phone} name="home_phone" placeholder="Your home phone number" onEdit={() => enableField('home_phone')} />
           </div>
         </div>
 
-        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--divider)' }}>
-          <div className="qv-detail-label">Home address</div>
-          <div className="qv-detail-value">{addressHelpText}</div>
-        </div>
+        {addressHelpText ? (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--divider)' }}>
+            <div className="qv-detail-label">Home address</div>
+            <div className="qv-detail-value">{addressHelpText}</div>
+          </div>
+        ) : null}
 
         {state.status !== 'idle' ? (
           <p className={state.status === 'error' ? 'qv-inline-error' : 'qv-inline-message'} style={{ marginTop: 14 }}>
@@ -228,16 +147,9 @@ export default function AccountSummarySection({
 
         {isEditing ? (
           <div className="qv-form-actions" style={{ marginTop: 18 }}>
-            <button
-              type="button"
-              className="qv-button-secondary"
-              onClick={() => setEditingFields({})}
-              disabled={isPending}
-            >
-              Cancel
-            </button>
+            <button type="button" className="qv-button-secondary" onClick={() => setEditingFields({})} disabled={isPending}>Cancel</button>
             <button type="submit" className="qv-button-primary" disabled={isPending}>
-              {isPending ? 'Sending for review...' : 'Confirm changes'}
+              {isPending ? 'Saving...' : 'Save'}
             </button>
           </div>
         ) : null}

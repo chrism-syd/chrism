@@ -12,24 +12,10 @@ export type CouncilClaimLookupOption = {
   searchText: string
 }
 
-type CouncilRow = {
-  id: string
-  name: string
-  council_number: string
-  organization_id: string
-}
-
-type OrganizationRow = {
-  id: string
-  display_name: string | null
-  preferred_name: string | null
-}
-
-type OrganizationKofcProfileRow = {
-  organization_id: string
-  lookup_city: string | null
-  parish_associations: string[] | null
-}
+type CouncilRow = { id: string; name: string; council_number: string; organization_id: string }
+type OrganizationRow = { id: string; display_name: string | null; preferred_name: string | null }
+type OrganizationKofcProfileRow = { organization_id: string; lookup_city: string | null; parish_associations: string[] | null }
+type ExistingPendingClaimRow = { id: string }
 
 export function normalizeClaimText(value: string | null | undefined) {
   const trimmed = value?.trim()
@@ -47,57 +33,28 @@ export function formatParishSummary(parishes: string[]) {
 
 export function formatLookupLocation(city: string | null, parishes: string[]) {
   const parishSummary = formatParishSummary(parishes)
-  if (city && parishSummary) {
-    return `${city} (${parishSummary})`
-  }
-
+  if (city && parishSummary) return `${city} (${parishSummary})`
   return city ?? parishSummary ?? ''
 }
 
 export async function listCouncilClaimLookupOptions() {
   const admin = createAdminClient()
-
-  const { data: councilData, error: councilError } = await admin
-    .from('councils')
-    .select('id, name, council_number, organization_id')
-    .order('council_number', { ascending: true })
-
-  if (councilError) {
-    throw new Error(councilError.message)
-  }
+  const { data: councilData, error: councilError } = await admin.from('councils').select('id, name, council_number, organization_id').order('council_number', { ascending: true })
+  if (councilError) throw new Error(councilError.message)
 
   const councils = (councilData as CouncilRow[] | null) ?? []
   const organizationIds = [...new Set(councils.map((row) => row.organization_id).filter(Boolean))]
-
   const organizationsById = new Map<string, OrganizationRow>()
   const kofcProfilesByOrganizationId = new Map<string, OrganizationKofcProfileRow>()
 
   if (organizationIds.length > 0) {
-    const { data: organizationData, error: organizationError } = await admin
-      .from('organizations')
-      .select('id, display_name, preferred_name')
-      .in('id', organizationIds)
+    const { data: organizationData, error: organizationError } = await admin.from('organizations').select('id, display_name, preferred_name').in('id', organizationIds)
+    if (organizationError) throw new Error(organizationError.message)
+    for (const row of ((organizationData as OrganizationRow[] | null) ?? [])) organizationsById.set(row.id, row)
 
-    if (organizationError) {
-      throw new Error(organizationError.message)
-    }
-
-    for (const row of ((organizationData as OrganizationRow[] | null) ?? [])) {
-      organizationsById.set(row.id, row)
-    }
-
-    const { data: kofcProfileData, error: kofcProfileError } = await admin
-      .from('organization_kofc_profiles')
-      .select('organization_id, lookup_city, parish_associations')
-      .in('organization_id', organizationIds)
-
-    if (kofcProfileError) {
-      throw new Error(kofcProfileError.message)
-    }
-
-    for (const row of ((kofcProfileData as OrganizationKofcProfileRow[] | null) ?? [])) {
-      kofcProfilesByOrganizationId.set(row.organization_id, row)
-    }
+    const { data: kofcProfileData, error: kofcProfileError } = await admin.from('organization_kofc_profiles').select('organization_id, lookup_city, parish_associations').in('organization_id', organizationIds)
+    if (kofcProfileError) throw new Error(kofcProfileError.message)
+    for (const row of ((kofcProfileData as OrganizationKofcProfileRow[] | null) ?? [])) kofcProfilesByOrganizationId.set(row.organization_id, row)
   }
 
   return councils.map<CouncilClaimLookupOption>((row) => {
@@ -108,10 +65,7 @@ export async function listCouncilClaimLookupOptions() {
     const organizationName = getEffectiveOrganizationName(organization)
     const councilName = normalizeClaimText(row.name) ?? organizationName ?? 'Council'
     const displayName = `${councilName} (${row.council_number})`
-    const searchText = [row.council_number, councilName, organizationName, city, ...parishAssociations]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
+    const searchText = [row.council_number, councilName, organizationName, city, ...parishAssociations].filter(Boolean).join(' ').toLowerCase()
 
     return {
       councilId: row.id,
@@ -159,15 +113,34 @@ export async function insertOrganizationClaimRequest(args: InsertClaimRequestArg
     status_code: 'pending',
   }
 
-  const { data, error } = await admin
-    .from('organization_claim_requests')
-    .insert(payload)
-    .select('id')
-    .single()
+  if (args.organizationId && args.requestedByAuthUserId) {
+    const { data: existingPending, error: existingPendingError } = await admin
+      .from('organization_claim_requests')
+      .select('id')
+      .eq('organization_id', args.organizationId)
+      .eq('requested_by_auth_user_id', args.requestedByAuthUserId)
+      .eq('status_code', 'pending')
+      .maybeSingle<ExistingPendingClaimRow>()
 
-  if (error) {
-    throw new Error(error.message)
+    if (existingPendingError) throw new Error(existingPendingError.message)
+
+    if (existingPending?.id) {
+      const { error: updateError } = await admin
+        .from('organization_claim_requests')
+        .update({
+          ...payload,
+          reviewed_at: null,
+          reviewed_by_auth_user_id: null,
+          review_notes: null,
+        })
+        .eq('id', existingPending.id)
+
+      if (updateError) throw new Error(updateError.message)
+      return existingPending.id
+    }
   }
 
+  const { data, error } = await admin.from('organization_claim_requests').insert(payload).select('id').single()
+  if (error) throw new Error(error.message)
   return data.id as string
 }

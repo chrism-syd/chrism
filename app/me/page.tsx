@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import AccountSummarySection from '@/app/me/account-summary-section'
+import ClaimReviewNoticeCard from '@/app/me/claim-review-notice-card'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names'
@@ -19,10 +20,7 @@ type LinkedPersonRow = {
   nickname: string | null
 }
 
-type CouncilRow = {
-  name: string | null
-  council_number: string | null
-}
+type CouncilRow = { name: string | null; council_number: string | null }
 
 type OrganizationProfileRow = OrganizationNameRecord & {
   logo_storage_path: string | null
@@ -38,28 +36,29 @@ type PendingProfileChangeRow = {
   home_phone_change_requested: boolean
 }
 
-type RejectedProfileChangeRow = PendingProfileChangeRow & {
+type ReviewedProfileChangeRow = PendingProfileChangeRow & {
   reviewed_at: string | null
+  status_code: 'approved' | 'rejected'
 }
 
-type RejectedFieldNotice = {
-  reviewedAt: string | null
+type PendingClaimNoticeRow = {
+  id: string
+  status_code: 'approved' | 'rejected'
+  review_notes: string | null
+  reviewed_at: string | null
+  requested_council_name: string | null
+  requested_council_number: string | null
+  requested_city: string | null
 }
 
+type RejectedFieldNotice = { reviewedAt: string | null }
 type RejectedFieldNoticeMap = Partial<Record<'email' | 'cell_phone' | 'home_phone', RejectedFieldNotice>>
 
 function formatDateTimeRange(startsAt: string, endsAt: string) {
   const start = new Date(startsAt)
   const end = new Date(endsAt)
   return (
-    new Intl.DateTimeFormat('en-CA', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(start) +
+    new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(start) +
     ' to ' +
     new Intl.DateTimeFormat('en-CA', { hour: 'numeric', minute: '2-digit' }).format(end)
   )
@@ -67,14 +66,7 @@ function formatDateTimeRange(startsAt: string, endsAt: string) {
 
 function formatDateTime(value?: string | null) {
   if (!value) return '—'
-  return new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(value))
+  return new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
 }
 
 function formatDisplayName(firstName: string, lastName: string, preferredName?: string | null) {
@@ -82,22 +74,29 @@ function formatDisplayName(firstName: string, lastName: string, preferredName?: 
   return `${leadName} ${lastName}`.trim()
 }
 
-function buildRejectedFieldNotices(rows: RejectedProfileChangeRow[] | null | undefined): RejectedFieldNoticeMap {
+function buildRejectedFieldNotices(rows: ReviewedProfileChangeRow[] | null | undefined): RejectedFieldNoticeMap {
   const notices: RejectedFieldNoticeMap = {}
+  const latestByField: Partial<Record<'email' | 'cell_phone' | 'home_phone', ReviewedProfileChangeRow>> = {}
 
   for (const row of rows ?? []) {
-    if (row.email_change_requested && !notices.email) {
-      notices.email = { reviewedAt: row.reviewed_at }
-    }
-    if (row.cell_phone_change_requested && !notices.cell_phone) {
-      notices.cell_phone = { reviewedAt: row.reviewed_at }
-    }
-    if (row.home_phone_change_requested && !notices.home_phone) {
-      notices.home_phone = { reviewedAt: row.reviewed_at }
-    }
+    if (row.email_change_requested && !latestByField.email) latestByField.email = row
+    if (row.cell_phone_change_requested && !latestByField.cell_phone) latestByField.cell_phone = row
+    if (row.home_phone_change_requested && !latestByField.home_phone) latestByField.home_phone = row
   }
 
+  if (latestByField.email?.status_code === 'rejected') notices.email = { reviewedAt: latestByField.email.reviewed_at }
+  if (latestByField.cell_phone?.status_code === 'rejected') notices.cell_phone = { reviewedAt: latestByField.cell_phone.reviewed_at }
+  if (latestByField.home_phone?.status_code === 'rejected') notices.home_phone = { reviewedAt: latestByField.home_phone.reviewed_at }
+
   return notices
+}
+
+function buildCouncilLabel(claim: PendingClaimNoticeRow | null) {
+  if (!claim) return null
+  if (claim.requested_council_name && claim.requested_council_number) {
+    return `${claim.requested_council_name} (${claim.requested_council_number})`
+  }
+  return claim.requested_council_name ?? claim.requested_council_number ?? claim.requested_city ?? null
 }
 
 export const dynamic = 'force-dynamic'
@@ -108,33 +107,18 @@ export default async function MyProfilePage() {
   if (!permissions.authUser) redirect('/login')
 
   const adminSupabase = createAdminClient()
-  const claimedRsvps = await listClaimedPersonRsvpsForUser({
-    supabase: adminSupabase,
-    userId: permissions.authUser.id,
-  })
+  const claimedRsvps = await listClaimedPersonRsvpsForUser({ supabase: adminSupabase, userId: permissions.authUser.id })
 
   const personPromise = permissions.personId
-    ? adminSupabase
-        .from('people')
-        .select('id, first_name, last_name, email, cell_phone, home_phone, nickname')
-        .eq('id', permissions.personId)
-        .maybeSingle<LinkedPersonRow>()
+    ? adminSupabase.from('people').select('id, first_name, last_name, email, cell_phone, home_phone, nickname').eq('id', permissions.personId).maybeSingle<LinkedPersonRow>()
     : Promise.resolve({ data: null as LinkedPersonRow | null })
 
   const councilPromise = permissions.councilId
-    ? adminSupabase
-        .from('councils')
-        .select('name, council_number')
-        .eq('id', permissions.councilId)
-        .maybeSingle<CouncilRow>()
+    ? adminSupabase.from('councils').select('name, council_number').eq('id', permissions.councilId).maybeSingle<CouncilRow>()
     : Promise.resolve({ data: null as CouncilRow | null })
 
   const organizationPromise = permissions.organizationId
-    ? adminSupabase
-        .from('organizations')
-        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
-        .eq('id', permissions.organizationId)
-        .maybeSingle<OrganizationProfileRow>()
+    ? adminSupabase.from('organizations').select('display_name, preferred_name, logo_storage_path, logo_alt_text').eq('id', permissions.organizationId).maybeSingle<OrganizationProfileRow>()
     : Promise.resolve({ data: null as OrganizationProfileRow | null })
 
   const pendingChangesPromise = permissions.personId
@@ -148,23 +132,29 @@ export default async function MyProfilePage() {
         .maybeSingle<PendingProfileChangeRow>()
     : Promise.resolve({ data: null as PendingProfileChangeRow | null })
 
-  const rejectedChangesPromise = permissions.personId
+  const reviewedChangesPromise = permissions.personId
     ? adminSupabase
         .from('person_profile_change_requests')
-        .select('proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested, reviewed_at')
+        .select('proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested, reviewed_at, status_code')
         .eq('person_id', permissions.personId)
-        .eq('status_code', 'rejected')
+        .in('status_code', ['approved', 'rejected'])
         .order('reviewed_at', { ascending: false })
-        .limit(12)
-        .returns<RejectedProfileChangeRow[]>()
-    : Promise.resolve({ data: [] as RejectedProfileChangeRow[] })
+        .limit(20)
+        .returns<ReviewedProfileChangeRow[]>()
+    : Promise.resolve({ data: [] as ReviewedProfileChangeRow[] })
 
-  const [personResult, councilResult, organizationResult, pendingResult, rejectedResult] = await Promise.all([
-    personPromise,
-    councilPromise,
-    organizationPromise,
-    pendingChangesPromise,
-    rejectedChangesPromise,
+  const claimNoticePromise = adminSupabase
+    .from('organization_claim_requests')
+    .select('id, status_code, review_notes, reviewed_at, requested_council_name, requested_council_number, requested_city')
+    .eq('requested_by_auth_user_id', permissions.authUser.id)
+    .in('status_code', ['approved', 'rejected'])
+    .is('requester_notice_dismissed_at', null)
+    .order('reviewed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<PendingClaimNoticeRow>()
+
+  const [personResult, councilResult, organizationResult, pendingResult, reviewedResult, claimNoticeResult] = await Promise.all([
+    personPromise, councilPromise, organizationPromise, pendingChangesPromise, reviewedChangesPromise, claimNoticePromise,
   ])
 
   const linkedPerson = personResult.data ? decryptPeopleRecord(personResult.data) : null
@@ -172,8 +162,9 @@ export default async function MyProfilePage() {
   const currentOrganization = organizationResult.data ?? null
   const pendingProfileChanges = pendingResult.data ? decryptProfileChangeRequestRecord(pendingResult.data) : null
   const rejectedFieldNotices = buildRejectedFieldNotices(
-    decryptProfileChangeRequestRecords((rejectedResult.data as RejectedProfileChangeRow[] | null) ?? [])
+    decryptProfileChangeRequestRecords((reviewedResult.data as ReviewedProfileChangeRow[] | null) ?? []) as ReviewedProfileChangeRow[]
   )
+  const claimNotice = claimNoticeResult.data ?? null
 
   const organizationLabel = permissions.organizationId
     ? getOrganizationContextLabel({
@@ -183,13 +174,10 @@ export default async function MyProfilePage() {
       })
     : null
 
-  const profileName = linkedPerson
-    ? formatDisplayName(linkedPerson.first_name, linkedPerson.last_name, linkedPerson.nickname)
-    : permissions.email ?? 'Signed in'
-  const officialRecordName = linkedPerson
-    ? `${linkedPerson.first_name} ${linkedPerson.last_name}`.trim()
-    : 'Not linked yet'
-  const addressHelpText = 'If you have an update to your home address, please inform your local council.'
+  const profileName = linkedPerson ? formatDisplayName(linkedPerson.first_name, linkedPerson.last_name, linkedPerson.nickname) : permissions.email ?? 'Signed in'
+  const officialRecordName = linkedPerson ? `${linkedPerson.first_name} ${linkedPerson.last_name}`.trim() : 'Your personal profile'
+  const addressHelpText = permissions.organizationId ? 'If you have an update to your home address, please inform your local council.' : null
+  const adminClaimHeading = organizationLabel ? `Need admin access for ${organizationLabel}?` : 'Already with an organization on Chrism?'
 
   return (
     <main className="qv-page">
@@ -217,6 +205,8 @@ export default async function MyProfilePage() {
 
         <AccountSummarySection
           officialName={officialRecordName}
+          firstName={linkedPerson?.first_name ?? null}
+          lastName={linkedPerson?.last_name ?? null}
           preferredName={linkedPerson?.nickname ?? null}
           email={linkedPerson?.email ?? permissions.email ?? null}
           cellPhone={linkedPerson?.cell_phone ?? null}
@@ -236,69 +226,61 @@ export default async function MyProfilePage() {
               : null
           }
           rejectedNotices={rejectedFieldNotices}
+          allowStandaloneIdentityEdit={!permissions.organizationId}
         />
+
+        {claimNotice ? (
+          <ClaimReviewNoticeCard
+            claimId={claimNotice.id}
+            status={claimNotice.status_code}
+            reviewedAt={claimNotice.reviewed_at}
+            reviewNotes={claimNotice.review_notes}
+            councilLabel={buildCouncilLabel(claimNotice)}
+          />
+        ) : null}
 
         {permissions.isCouncilAdmin ? (
           <div className="qv-form-actions" style={{ marginTop: 20 }}>
-            <Link href="/me/council" className="qv-link-button qv-button-primary">
-              Organization settings
-            </Link>
+            <Link href="/me/council" className="qv-link-button qv-button-primary">Organization settings</Link>
           </div>
-        ) : permissions.organizationId && permissions.councilId ? (
+        ) : (
           <section className="qv-card" style={{ marginTop: 20 }}>
             <div className="qv-directory-section-head">
               <div>
-                <h2 className="qv-section-title">Need council admin access?</h2>
+                <h2 className="qv-section-title">{adminClaimHeading}</h2>
                 <p className="qv-section-subtitle">
-                  Submit a claim for review and we will verify it against the state database before granting access.
+                  {permissions.organizationId
+                    ? 'Submit a claim for review and we will verify it against the state database before granting access.'
+                    : 'Look up your organization and request access if your local group is already using Chrism.'}
                 </p>
               </div>
             </div>
             <div className="qv-form-actions">
               <Link href="/me/claim-organization" className="qv-link-button qv-button-primary">
-                Claim organization access
+                {permissions.organizationId ? 'Claim organization access' : 'Find your organization'}
               </Link>
             </div>
           </section>
-        ) : null}
+        )}
 
         {claimedRsvps.length > 0 ? (
           <section className="qv-card">
             <div className="qv-directory-section-head">
               <div>
                 <h2 className="qv-section-title">My RSVPs</h2>
-                <p className="qv-section-subtitle">
-                  These are RSVPs to events where you were invited to, using your registered email address.
-                </p>
+                <p className="qv-section-subtitle">These are RSVPs to events where you were invited to, using your registered email address.</p>
               </div>
             </div>
             <div style={{ display: 'grid', gap: 16 }}>
               {claimedRsvps.map((submission) => (
-                <div
-                  key={submission.id}
-                  style={{
-                    border: '1px solid var(--divider)',
-                    borderRadius: 16,
-                    padding: 16,
-                    background: 'var(--bg-sunken)',
-                    display: 'grid',
-                    gap: 10,
-                  }}
-                >
+                <div key={submission.id} style={{ border: '1px solid var(--divider)', borderRadius: 16, padding: 16, background: 'var(--bg-sunken)', display: 'grid', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div>
-                      <h2 className="qv-section-title" style={{ fontSize: 22 }}>
-                        {submission.event_title}
-                      </h2>
-                      <p className="qv-section-subtitle" style={{ marginTop: 6 }}>
-                        {formatDateTimeRange(submission.starts_at, submission.ends_at)}
-                      </p>
+                      <h2 className="qv-section-title" style={{ fontSize: 22 }}>{submission.event_title}</h2>
+                      <p className="qv-section-subtitle" style={{ marginTop: 6 }}>{formatDateTimeRange(submission.starts_at, submission.ends_at)}</p>
                     </div>
                     {submission.host_token ? (
-                      <Link
-                        href={`/rsvp/${submission.host_token}/manage?submission=${encodeURIComponent(submission.id)}`}
-                        className="qv-link-button qv-button-primary"
-                      >
+                      <Link href={`/rsvp/${submission.host_token}/manage?submission=${encodeURIComponent(submission.id)}`} className="qv-link-button qv-button-primary">
                         Manage RSVP
                       </Link>
                     ) : null}
@@ -308,9 +290,7 @@ export default async function MyProfilePage() {
                     {submission.primary_email ? <p>{submission.primary_email}</p> : null}
                     {submission.primary_phone ? <p>{submission.primary_phone}</p> : null}
                   </div>
-                  <p style={{ color: 'var(--text-secondary)' }}>
-                    Last updated {formatDateTime(submission.last_responded_at)}
-                  </p>
+                  <p style={{ color: 'var(--text-secondary)' }}>Last updated {formatDateTime(submission.last_responded_at)}</p>
                 </div>
               ))}
             </div>

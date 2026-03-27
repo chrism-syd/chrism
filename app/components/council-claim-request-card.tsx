@@ -1,12 +1,17 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useActionState, useMemo, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { CouncilClaimLookupOption } from '@/lib/organizations/claim-requests'
+import type { ClaimOrganizationActionState } from '@/app/me/claim-organization/actions'
+import { initialClaimOrganizationActionState } from '@/app/me/claim-organization/actions'
 
 type CouncilClaimRequestCardProps = {
   options: CouncilClaimLookupOption[]
-  action: (formData: FormData) => void | Promise<void>
+  action: (
+    prevState: ClaimOrganizationActionState,
+    formData: FormData
+  ) => Promise<ClaimOrganizationActionState>
   title: string
   description: string
   submitLabel: string
@@ -25,7 +30,6 @@ function normalize(value: string) {
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus()
-
   return (
     <button type="submit" className="qv-button-primary" disabled={pending}>
       {pending ? 'Sending...' : label}
@@ -34,24 +38,20 @@ function SubmitButton({ label }: { label: string }) {
 }
 
 export default function CouncilClaimRequestCard({
-  options,
-  action,
-  title,
-  description,
-  submitLabel,
-  audience,
-  requesterNameDefault,
-  requesterEmailDefault,
-  requesterPhoneDefault,
-  initialCouncilNumberQuery,
-  initialCouncilNameQuery,
-  initialCityQuery,
+  options, action, title, description, submitLabel, audience, requesterNameDefault,
+  requesterEmailDefault, requesterPhoneDefault, initialCouncilNumberQuery, initialCouncilNameQuery, initialCityQuery,
 }: CouncilClaimRequestCardProps) {
+  const [state, formAction] = useActionState(action, initialClaimOrganizationActionState)
   const [councilNumberQuery, setCouncilNumberQuery] = useState(initialCouncilNumberQuery ?? '')
   const [councilNameQuery, setCouncilNameQuery] = useState(initialCouncilNameQuery ?? '')
   const [cityQuery, setCityQuery] = useState(initialCityQuery ?? '')
   const [selectedCouncilId, setSelectedCouncilId] = useState<string | null>(null)
   const [requestAccessMode, setRequestAccessMode] = useState(false)
+
+  const hasSearchQuery =
+    councilNumberQuery.trim().length > 0 ||
+    councilNameQuery.trim().length > 0 ||
+    cityQuery.trim().length > 0
 
   const filteredOptions = useMemo(() => {
     const councilNumber = normalize(councilNumberQuery)
@@ -59,18 +59,9 @@ export default function CouncilClaimRequestCard({
     const city = normalize(cityQuery)
 
     return options.filter((option) => {
-      if (councilNumber && !option.councilNumber.toLowerCase().includes(councilNumber)) {
-        return false
-      }
-
-      if (councilName && !option.councilName.toLowerCase().includes(councilName)) {
-        return false
-      }
-
-      if (city && !(option.city ?? '').toLowerCase().includes(city)) {
-        return false
-      }
-
+      if (councilNumber && !option.councilNumber.toLowerCase().includes(councilNumber)) return false
+      if (councilName && !option.councilName.toLowerCase().includes(councilName)) return false
+      if (city && !(option.city ?? '').toLowerCase().includes(city)) return false
       return true
     })
   }, [cityQuery, councilNameQuery, councilNumberQuery, options])
@@ -92,23 +83,14 @@ export default function CouncilClaimRequestCard({
     setRequestAccessMode(true)
   }
 
-  const showResults = !selectedCouncil && !requestAccessMode
+  const showResults = !selectedCouncil && !requestAccessMode && hasSearchQuery
   const showManualFields = requestAccessMode
   const showSelectedSummary = Boolean(selectedCouncil)
 
   return (
     <section className="qv-card" style={{ display: 'grid', gap: 18 }}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <h1 className="qv-section-title" style={{ margin: 0 }}>{title}</h1>
-          <span
-            className="qv-mini-pill"
-            title="Council not listed? Type in Request Access."
-            aria-label="Council not listed? Type in Request Access."
-          >
-            i
-          </span>
-        </div>
+        <h1 className="qv-section-title" style={{ margin: 0 }}>{title}</h1>
         <p className="qv-section-subtitle" style={{ marginTop: 8 }}>{description}</p>
       </div>
 
@@ -168,15 +150,11 @@ export default function CouncilClaimRequestCard({
                   style={{ justifyContent: 'space-between', textAlign: 'left', width: '100%' }}
                   onClick={() => chooseCouncil(option)}
                 >
-                  <span>
-                    <strong>{option.councilName}</strong> ({option.councilNumber})
-                  </span>
+                  <span><strong>{option.councilName}</strong> ({option.councilNumber})</span>
                   <span style={{ color: 'var(--text-secondary)' }}>{option.city ?? 'GTA'}</span>
                 </button>
               ))}
-              {filteredOptions.length === 0 ? (
-                <div className="qv-inline-message">No listed councils matched those filters.</div>
-              ) : null}
+              {filteredOptions.length === 0 ? <div className="qv-inline-message">No listed councils matched those filters.</div> : null}
             </div>
 
             <button type="button" className="qv-link-button qv-button-secondary" onClick={enableRequestAccessMode}>
@@ -185,7 +163,7 @@ export default function CouncilClaimRequestCard({
           </div>
         ) : null}
 
-        <form action={action} style={{ display: 'grid', gap: 14 }}>
+        <form action={formAction} style={{ display: 'grid', gap: 14 }}>
           <input type="hidden" name="selected_council_id" value={selectedCouncil?.councilId ?? ''} />
           <input type="hidden" name="selected_organization_id" value={selectedCouncil?.organizationId ?? ''} />
 
@@ -244,16 +222,23 @@ export default function CouncilClaimRequestCard({
                 <input name="requester_phone" defaultValue={requesterPhoneDefault ?? ''} />
               </label>
             </div>
-          ) : null}
+          ) : (
+            <label className="qv-control">
+              <span className="qv-label">Your name</span>
+              <input name="requester_name" defaultValue={requesterNameDefault ?? ''} placeholder="Your name for the reviewer" />
+            </label>
+          )}
 
           <label className="qv-control">
             <span className="qv-label">Notes {audience === 'public' ? '(optional)' : '(helps with review)'}</span>
-            <textarea
-              name="request_notes"
-              rows={4}
-              placeholder="Tell us what role you hold or why you need access."
-            />
+            <textarea name="request_notes" rows={4} placeholder="Tell us what role you hold or why you need access." />
           </label>
+
+          {state.status !== 'idle' ? (
+            <p className={state.status === 'error' ? 'qv-inline-error' : 'qv-inline-message'} style={{ margin: 0 }}>
+              {state.message}
+            </p>
+          ) : null}
 
           {(showSelectedSummary || showManualFields) ? (
             <div className="qv-form-actions">

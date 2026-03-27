@@ -4,12 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendOrganizationClaimReviewEmail } from '@/lib/email/organization-claim-review'
 import { normalizeClaimEmail, normalizeClaimText } from '@/lib/organizations/claim-requests'
 
-function redirectToQueue(args: { error?: string | null; notice?: string | null }): never {
+function redirectToQueue(args: { error?: string | null }): never {
   const params = new URLSearchParams()
   if (args.error) params.set('error', args.error)
-  if (args.notice) params.set('notice', args.notice)
   redirect(params.size > 0 ? `/super-admin/organization-claims?${params.toString()}` : '/super-admin/organization-claims')
 }
 
@@ -21,34 +21,34 @@ async function requireSuperAdmin() {
   return permissions
 }
 
+function buildCouncilLabel(claim: {
+  requested_council_name?: string | null
+  requested_council_number?: string | null
+  requested_city?: string | null
+}) {
+  if (claim.requested_council_name && claim.requested_council_number) {
+    return `${claim.requested_council_name} (${claim.requested_council_number})`
+  }
+  return claim.requested_council_name ?? claim.requested_council_number ?? claim.requested_city ?? null
+}
+
 export async function approveOrganizationClaimAction(formData: FormData) {
   const permissions = await requireSuperAdmin()
   const claimId = normalizeClaimText(formData.get('claim_id') as string | null)
   const reviewNotes = normalizeClaimText(formData.get('review_notes') as string | null)
 
-  if (!claimId) {
-    redirectToQueue({ error: 'Missing claim id for approval.' })
-  }
+  if (!claimId) redirectToQueue({ error: 'Missing claim id for approval.' })
 
   const admin = createAdminClient()
   const { data: claim, error: claimError } = await admin
     .from('organization_claim_requests')
-    .select('id, organization_id, council_id, requested_by_auth_user_id, requested_by_person_id, requester_email, status_code')
+    .select('id, organization_id, council_id, requested_by_auth_user_id, requested_by_person_id, requester_name, requester_email, requested_council_name, requested_council_number, requested_city, status_code')
     .eq('id', claimId)
     .maybeSingle()
 
-  if (claimError) {
-    redirectToQueue({ error: claimError.message })
-  }
-
-  if (!claim) {
-    redirectToQueue({ error: 'Claim request not found.' })
-  }
-
-  if (claim.status_code !== 'pending') {
-    redirectToQueue({ error: 'That claim is no longer pending.' })
-  }
-
+  if (claimError) redirectToQueue({ error: claimError.message })
+  if (!claim) redirectToQueue({ error: 'Claim request not found.' })
+  if (claim.status_code !== 'pending') redirectToQueue({ error: 'That claim is no longer pending.' })
   if (!claim.organization_id) {
     redirectToQueue({ error: 'This request is not tied to a listed council yet. Seed the council first, then review again.' })
   }
@@ -67,9 +67,7 @@ export async function approveOrganizationClaimAction(formData: FormData) {
     .or(filters.join(','))
     .limit(5)
 
-  if (lookupError) {
-    redirectToQueue({ error: lookupError.message })
-  }
+  if (lookupError) redirectToQueue({ error: lookupError.message })
 
   const payload = {
     organization_id: claim.organization_id,
@@ -93,9 +91,7 @@ export async function approveOrganizationClaimAction(formData: FormData) {
     : admin.from('organization_admin_assignments').insert(payload)
 
   const { error: saveError } = await mutation
-  if (saveError) {
-    redirectToQueue({ error: saveError.message })
-  }
+  if (saveError) redirectToQueue({ error: saveError.message })
 
   const { error: updateError } = await admin
     .from('organization_claim_requests')
@@ -104,18 +100,33 @@ export async function approveOrganizationClaimAction(formData: FormData) {
       review_notes: reviewNotes,
       reviewed_at: new Date().toISOString(),
       reviewed_by_auth_user_id: permissions.authUser!.id,
+      requester_notice_dismissed_at: null,
+      requester_notice_dismissed_by_auth_user_id: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', claim.id)
 
-  if (updateError) {
-    redirectToQueue({ error: updateError.message })
+  if (updateError) redirectToQueue({ error: updateError.message })
+
+  if (normalizedEmail) {
+    try {
+      await sendOrganizationClaimReviewEmail({
+        toEmail: normalizedEmail,
+        toName: claim.requester_name,
+        status: 'approved',
+        councilLabel: buildCouncilLabel(claim),
+        reviewNotes,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Email send failed.'
+      redirectToQueue({ error: `Claim approved, but the email could not be sent. ${message}` })
+    }
   }
 
   revalidatePath('/super-admin/organization-claims')
   revalidatePath('/me')
   revalidatePath('/me/council')
-  redirectToQueue({ notice: 'Claim approved and admin access granted.' })
+  redirect('/super-admin/organization-claims')
 }
 
 export async function rejectOrganizationClaimAction(formData: FormData) {
@@ -123,11 +134,20 @@ export async function rejectOrganizationClaimAction(formData: FormData) {
   const claimId = normalizeClaimText(formData.get('claim_id') as string | null)
   const reviewNotes = normalizeClaimText(formData.get('review_notes') as string | null)
 
-  if (!claimId) {
-    redirectToQueue({ error: 'Missing claim id for rejection.' })
-  }
+  if (!claimId) redirectToQueue({ error: 'Missing claim id for rejection.' })
 
   const admin = createAdminClient()
+  const { data: claim, error: claimError } = await admin
+    .from('organization_claim_requests')
+    .select('id, requester_name, requester_email, requested_council_name, requested_council_number, requested_city')
+    .eq('id', claimId)
+    .maybeSingle()
+
+  if (claimError) redirectToQueue({ error: claimError.message })
+  if (!claim) redirectToQueue({ error: 'Claim request not found.' })
+
+  const normalizedEmail = normalizeClaimEmail(claim.requester_email)
+
   const { error } = await admin
     .from('organization_claim_requests')
     .update({
@@ -135,14 +155,30 @@ export async function rejectOrganizationClaimAction(formData: FormData) {
       review_notes: reviewNotes,
       reviewed_at: new Date().toISOString(),
       reviewed_by_auth_user_id: permissions.authUser!.id,
+      requester_notice_dismissed_at: null,
+      requester_notice_dismissed_by_auth_user_id: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', claimId)
 
-  if (error) {
-    redirectToQueue({ error: error.message })
+  if (error) redirectToQueue({ error: error.message })
+
+  if (normalizedEmail) {
+    try {
+      await sendOrganizationClaimReviewEmail({
+        toEmail: normalizedEmail,
+        toName: claim.requester_name,
+        status: 'rejected',
+        councilLabel: buildCouncilLabel(claim),
+        reviewNotes,
+      })
+    } catch (emailError) {
+      const message = emailError instanceof Error ? emailError.message : 'Email send failed.'
+      redirectToQueue({ error: `Claim rejected, but the email could not be sent. ${message}` })
+    }
   }
 
   revalidatePath('/super-admin/organization-claims')
-  redirectToQueue({ notice: 'Claim rejected.' })
+  revalidatePath('/me')
+  redirect('/super-admin/organization-claims')
 }
