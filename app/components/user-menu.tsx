@@ -13,6 +13,7 @@ type UserMenuLink = {
 type UserMenuProps = {
   links: UserMenuLink[]
   email?: string | null
+  currentViewLabel?: string | null
   devMode?: {
     selectedMode: 'normal' | 'admin' | 'member'
     selectedOrganizationId: string | null
@@ -20,7 +21,7 @@ type UserMenuProps = {
   } | null
 }
 
-export default function UserMenu({ links, email, devMode }: UserMenuProps) {
+export default function UserMenu({ links, email, currentViewLabel, devMode }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -42,6 +43,7 @@ export default function UserMenu({ links, email, devMode }: UserMenuProps) {
       {open ? (
         <div className="qv-user-menu-panel" role="menu">
           {email ? <p className="qv-user-menu-email">{email}</p> : null}
+          {currentViewLabel ? <p className="qv-user-menu-email">{currentViewLabel}</p> : null}
 
           {links.map((link) => (
             <Link key={`${link.label}-${link.href}`} href={link.href} className="qv-user-menu-link" role="menuitem" onClick={() => setOpen(false)}>

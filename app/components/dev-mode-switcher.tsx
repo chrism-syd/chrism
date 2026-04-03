@@ -27,12 +27,20 @@ export default function DevModeSwitcher({ organizations, selectedOrganizationId,
       body: JSON.stringify({ mode, organizationId: mode === 'normal' ? null : organizationId || null }),
     })
     if (!response.ok) return
-    startTransition(() => router.refresh())
+
+    startTransition(() => {
+      if (mode === 'member') {
+        router.push('/spiritual')
+      } else {
+        router.push('/')
+      }
+      router.refresh()
+    })
   }
 
   return (
     <div className="qv-dev-mode-panel">
-      <h3 className="qv-dev-mode-title">Dev mode</h3>
+      <h3 className="qv-dev-mode-title">Organization view</h3>
       <label className="qv-control">
         <span className="qv-label">Organization</span>
         <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="qv-dev-mode-select">
@@ -50,12 +58,12 @@ export default function DevModeSwitcher({ organizations, selectedOrganizationId,
           Admin view
         </button>
         <button type="button" className={selectedMode === 'member' ? 'qv-button-primary' : 'qv-button-secondary'} disabled={isPending || !organizationId} onClick={() => void apply('member')}>
-          Member view
+          Spiritual only
         </button>
       </div>
 
       <button type="button" className={selectedMode === 'normal' ? 'qv-button-primary' : 'qv-button-secondary'} disabled={isPending} onClick={() => void apply('normal')}>
-        My normal access
+        Return to my normal access
       </button>
     </div>
   )

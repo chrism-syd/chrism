@@ -6,6 +6,7 @@ import { hasSharedCustomListsForUser } from '@/lib/custom-lists'
 import { getPublicMeetingsHref, listMemberInvitedEvents } from '@/lib/member-navigation'
 import UserMenu from './components/user-menu'
 import PrimaryNav from './components/primary-nav'
+import AccessContextSwitcher from './components/access-context-switcher'
 import type { SuperAdminOrganizationOption } from './components/dev-mode-switcher'
 
 type OrganizationRow = {
@@ -42,9 +43,9 @@ export default async function AppHeader() {
 
   const staffMembersChildren = [
     { label: 'Member directory', href: '/members' },
-    ...(permissions.isCouncilAdmin ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
-    ...(permissions.isCouncilAdmin ? [{ label: 'Reviews', href: '/members/reviews' }] : []),
-    ...(permissions.isCouncilAdmin ? [{ label: 'Imports', href: '/imports/supreme' }] : []),
+    ...(permissions.canManageCustomLists ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
+    ...(permissions.canReviewMemberChanges ? [{ label: 'Reviews', href: '/members/reviews' }] : []),
+    ...(permissions.canImportMembers ? [{ label: 'Imports', href: '/imports/supreme' }] : []),
   ]
 
   const navItems = permissions.hasStaffAccess
@@ -54,7 +55,7 @@ export default async function AppHeader() {
           href: '/members',
           items: staffMembersChildren.length > 1 ? staffMembersChildren : undefined,
         },
-        { label: 'Events', href: '/events' },
+        ...(permissions.canManageEvents ? [{ label: 'Events', href: '/events' }] : []),
       ]
     : [
         { label: 'Profile', href: '/me' },
@@ -62,6 +63,10 @@ export default async function AppHeader() {
         ...(memberInvitedEvents.length > 0 ? [{ label: 'Events', href: '/events' }] : []),
         ...(publicMeetingsHref ? [{ label: 'Public meetings', href: publicMeetingsHref }] : []),
       ]
+
+  const showAccessContextSwitcher = permissions.isSignedIn && !permissions.isDevMode
+  const showSectionToggle = permissions.isSignedIn && permissions.hasStaffAccess && !permissions.isDevMode
+  const activeSection = permissions.hasStaffAccess ? 'operations' : 'spiritual'
 
   return (
     <header className="qv-app-header">
@@ -81,6 +86,30 @@ export default async function AppHeader() {
       </div>
 
       <div className="qv-app-header-right">
+        {showAccessContextSwitcher && permissions.availableContexts.length > 1 ? (
+          <AccessContextSwitcher
+            contexts={permissions.availableContexts}
+            selectedContextKey={permissions.activeContextKey}
+          />
+        ) : null}
+
+        {showSectionToggle ? (
+          <div className="qv-dev-header-flags">
+            <Link
+              href="/spiritual"
+              className={activeSection === 'spiritual' ? 'qv-mini-pill qv-mini-pill-accent' : 'qv-mini-pill'}
+            >
+              Spiritual
+            </Link>
+            <Link
+              href="/"
+              className={activeSection === 'operations' ? 'qv-mini-pill qv-mini-pill-accent' : 'qv-mini-pill'}
+            >
+              Operations
+            </Link>
+          </div>
+        ) : null}
+
         {permissions.isDevMode ? (
           <div className="qv-dev-header-flags">
             <span className="qv-mini-pill qv-mini-pill-accent">Dev mode</span>
@@ -92,11 +121,12 @@ export default async function AppHeader() {
           <UserMenu
             links={[
               { href: '/me', label: 'Profile' },
-              ...(permissions.isCouncilAdmin ? [{ href: '/me/council', label: 'Organization settings' }] : []),
-              ...(permissions.hasStaffAccess ? [{ href: '/members/officers', label: 'Officers' }] : []),
+              ...(permissions.canAccessOrganizationSettings ? [{ href: '/me/council', label: 'Organization settings' }] : []),
+              ...(permissions.canAccessOfficerDirectory ? [{ href: '/members/officers', label: 'Officers' }] : []),
               ...(permissions.isSuperAdmin ? [{ href: '/super-admin/organization-claims', label: 'Claim queue' }] : []),
             ]}
             email={permissions.email}
+            currentViewLabel={permissions.isDevMode ? permissions.currentViewLabel : null}
             devMode={
               permissions.isSuperAdmin
                 ? {

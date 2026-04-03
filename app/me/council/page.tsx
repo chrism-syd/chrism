@@ -7,19 +7,22 @@ import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import {
   addOfficerTermAction,
-  grantCouncilAdminAction,
   inviteCouncilAdminByEmailAction,
+  grantCouncilAdminAction,
   removeOfficerTermAction,
   revokeCouncilAdminAction,
   revokeCouncilAdminInvitationAction,
   saveOfficerRoleEmailAction,
   updateCouncilDetailsAction,
 } from './actions'
+import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
   formatOfficerLabel,
+  getAutomaticCouncilAdminRoleLabels,
   isAutomaticCouncilAdminTerm,
   OFFICER_ROLE_OPTIONS,
-  type OfficerScopeCode,
+  type OfficerRoleOption,
 } from '@/lib/members/officer-roles'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import { getOrganizationAdminManagerAccess } from '@/lib/organizations/admin-managers'
@@ -49,36 +52,32 @@ type MemberRow = {
 type AdminAssignmentRow = {
   id: string
   person_id: string | null
-  user_id: string | null
   grantee_email: string | null
-  source_code: 'manual_assignment' | 'approved_claim' | 'admin_invitation' | null
+  source_code: string | null
   grant_notes: string | null
 }
 
-type PendingInvitationRow = {
+type AdminInvitationRow = {
   id: string
-  invitee_email: string
   invitee_name: string | null
+  invitee_email: string
   notes: string | null
-  status_code: 'pending' | 'accepted' | 'revoked' | 'expired'
   expires_at: string
 }
 
 type OfficerTermRow = {
   id: string
   person_id: string
-  office_scope_code: OfficerScopeCode
+  office_scope_code: string
   office_code: string
   office_rank: number | null
   service_start_year: number
   service_end_year: number | null
-  office_label: string
+  office_label: string | null
 }
 
 type OfficerRoleEmailRow = {
-  id: string
-  council_id: string
-  office_scope_code: OfficerScopeCode
+  office_scope_code: string
   office_code: string
   office_rank: number | null
   email: string
@@ -109,8 +108,8 @@ function memberName(member: MemberRow) {
 }
 
 function normalizeEmail(value: string | null | undefined) {
-  const trimmed = value?.trim().toLowerCase() ?? ''
-  return trimmed.length > 0 ? trimmed : null
+  const trimmed = value?.trim().toLowerCase()
+  return trimmed && trimmed.length > 0 ? trimmed : null
 }
 
 function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
@@ -118,28 +117,44 @@ function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'of
   switch (key) {
     case 'council:grand_knight':
       return 1
-    case 'council:financial_secretary':
-      return 2
     case 'council:deputy_grand_knight':
+      return 2
+    case 'council:financial_secretary':
       return 3
     case 'council:chancellor':
       return 4
     case 'council:recorder':
       return 5
-    case 'council:treasurer':
-      return 6
-    case 'council:advocate':
-      return 7
     case 'council:warden':
+      return 6
+    case 'council:treasurer':
+      return 7
+    case 'council:advocate':
       return 8
-    case 'council:inside_guard':
-      return 9
-    case 'council:outside_guard':
-      return 10
     case 'council:trustee':
-      return 20 + (term.office_rank ?? 0)
+      return 9 + (term.office_rank ?? 0)
+    case 'assembly:faithful_navigator':
+      return 30
+    case 'assembly:faithful_captain':
+      return 31
+    case 'assembly:faithful_purser':
+      return 32
+    case 'assembly:faithful_admiral':
+      return 33
+    case 'assembly:faithful_pilot':
+      return 34
+    case 'assembly:faithful_scribe':
+      return 35
+    case 'assembly:faithful_comptroller':
+      return 36
+    case 'assembly:faithful_trustee':
+      return 37 + (term.office_rank ?? 0)
+    case 'state:district_master':
+      return 60
+    case 'state:district_deputy':
+      return 61
     default:
-      return 100
+      return 999
   }
 }
 
@@ -153,7 +168,7 @@ function adminSortPriority(labels: string[]) {
 
 function assignmentSourceLabel(sourceCode: AdminAssignmentRow['source_code']) {
   if (sourceCode === 'approved_claim') return 'Approved claim'
-  if (sourceCode === 'admin_invitation') return 'Admin invite'
+  if (sourceCode === 'admin_invitation') return 'Accepted invite'
   return 'Manual assignment'
 }
 
@@ -165,12 +180,16 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function CouncilDetailsPage({ searchParams }: PageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {}
-  const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
-  const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const permissions = await getCurrentUserPermissions()
+  const admin = createAdminClient()
+  const params = searchParams ? await searchParams : {}
+  const errorMessage = typeof params.error === 'string' ? params.error : null
+  const noticeMessage = typeof params.notice === 'string' ? params.notice : null
 
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
-    requireAdmin: true,
+  const context = await getCurrentActingCouncilContext({
+    permissions,
+    supabaseAdmin: admin,
+    requireAdmin: false,
     redirectTo: '/me',
   })
 
@@ -178,7 +197,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   const adminManagerAccess = await getOrganizationAdminManagerAccess({
     permissions,
-    councilId: council.id,
+    councilId: context.council.id,
   })
 
   if (!adminManagerAccess.canManageAdmins) redirect('/me')
@@ -186,44 +205,44 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
   const [
     { data: memberData },
     { data: assignmentData },
-    { data: officerData },
+    { data: invitationData },
+    { data: officerTermData },
     { data: officerRoleEmailData },
-    { data: pendingInvitationData },
     { data: organizationData },
   ] = await Promise.all([
     admin
       .from('people')
       .select('id, first_name, last_name, preferred_name, email')
-      .eq('council_id', council.id)
+      .eq('council_id', context.council.id)
       .eq('primary_relationship_code', 'member')
       .is('archived_at', null)
-      .is('merged_into_person_id', null)
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true }),
     admin
       .from('organization_admin_assignments')
-      .select('id, person_id, user_id, grantee_email, source_code, grant_notes')
+      .select('id, person_id, grantee_email, source_code, grant_notes')
       .eq('organization_id', permissions.organizationId)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
     admin
+      .from('organization_admin_invitations')
+      .select('id, invitee_name, invitee_email, notes, expires_at')
+      .eq('organization_id', permissions.organizationId)
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false }),
+    admin
       .from('person_officer_terms')
       .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, office_label')
-      .eq('council_id', council.id)
+      .eq('council_id', context.council.id)
       .is('service_end_year', null)
       .order('service_start_year', { ascending: false }),
     admin
       .from('officer_role_emails')
-      .select('id, council_id, office_scope_code, office_code, office_rank, email')
-      .eq('council_id', council.id)
-      .eq('is_active', true)
-      .order('office_scope_code', { ascending: true }),
-    admin
-      .from('organization_admin_invitations')
-      .select('id, invitee_email, invitee_name, notes, status_code, expires_at')
-      .eq('organization_id', permissions.organizationId)
-      .eq('status_code', 'pending')
-      .order('created_at', { ascending: false }),
+      .select('office_scope_code, office_code, office_rank, email')
+      .eq('council_id', context.council.id)
+      .eq('is_active', true),
     admin
       .from('organizations')
       .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
@@ -231,25 +250,24 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .maybeSingle(),
   ])
 
-  const members = decryptPeopleRecords((memberData as MemberRow[] | null) ?? [])
+  const members = decryptPeopleRecords((memberData as MemberRow[] | null) ?? []) as MemberRow[]
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
-  const officerTerms = (officerData as OfficerTermRow[] | null) ?? []
+  const pendingInvitations = (invitationData as AdminInvitationRow[] | null) ?? []
+  const officerTerms = (officerTermData as OfficerTermRow[] | null) ?? []
   const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
-  const pendingInvitations = (pendingInvitationData as PendingInvitationRow[] | null) ?? []
   const organization = (organizationData as OrganizationRow | null) ?? null
 
   const memberById = new Map(members.map((member) => [member.id, member]))
   const memberByEmail = new Map(
     members
       .map((member) => [normalizeEmail(member.email), member] as const)
-      .filter((entry): entry is [string, MemberRow] => Boolean(entry[0]))
+      .filter(([email]): email is string => Boolean(email))
   )
 
-  const memberOptions = members.map((member) => ({
+  const memberOptions = sortMemberOptions(members.map((member) => ({
     id: member.id,
-    name: memberName(member),
-    email: member.email,
-  }))
+    label: memberName(member),
+  })))
 
   const officerRoleEmailByKey = new Map(
     officerRoleEmails.map((row) => [
@@ -277,21 +295,30 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     const matchedMember = assignment.person_id
       ? memberById.get(assignment.person_id) ?? null
       : memberByEmail.get(normalizeEmail(assignment.grantee_email) ?? '') ?? null
-    const automaticAdminLabels = matchedMember ? automaticAdminLabelsByPersonId.get(matchedMember.id) ?? [] : []
-    const currentOfficerLabels = matchedMember ? currentOfficerLabelsByPersonId.get(matchedMember.id) ?? [] : []
+
+    const automaticAdminLabels = assignment.person_id
+      ? getAutomaticCouncilAdminRoleLabels({
+          currentOfficerLabels: automaticAdminLabelsByPersonId.get(assignment.person_id) ?? [],
+        })
+      : []
+
+    const currentOfficerLabels = assignment.person_id
+      ? currentOfficerLabelsByPersonId.get(assignment.person_id) ?? []
+      : []
 
     return {
       id: assignment.id,
       assignmentId: assignment.id,
-      personId: matchedMember?.id ?? assignment.person_id ?? null,
-      label: matchedMember ? memberName(matchedMember) : assignment.grantee_email ?? 'Manual admin grant',
+      personId: assignment.person_id,
+      label:
+        matchedMember
+          ? memberName(matchedMember)
+          : assignment.grantee_email ?? 'Unknown admin',
       automaticAdminLabels,
       currentOfficerLabels,
       sourceBadge: assignmentSourceLabel(assignment.source_code),
       grantNotes: assignment.grant_notes,
-      sortPriority: matchedMember
-        ? adminSortPriority(currentOfficerLabels.length > 0 ? currentOfficerLabels : automaticAdminLabels)
-        : 100,
+      sortPriority: adminSortPriority([...automaticAdminLabels, ...currentOfficerLabels]),
     }
   })
 
@@ -304,19 +331,19 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
         return memberEmail !== null && normalizeEmail(assignment.grantee_email) === memberEmail
       })
     })
-    .map(([personId, automaticAdminLabels]) => {
-      const person = memberById.get(personId)
-      return person
+    .map(([personId, labels]) => {
+      const member = memberById.get(personId)
+      return member
         ? {
-            id: `implicit-${personId}`,
+            id: `auto-${personId}`,
             assignmentId: null,
             personId,
-            label: memberName(person),
-            automaticAdminLabels,
+            label: memberName(member),
+            automaticAdminLabels: labels,
             currentOfficerLabels: currentOfficerLabelsByPersonId.get(personId) ?? [],
             sourceBadge: 'Officer role',
             grantNotes: null,
-            sortPriority: adminSortPriority(currentOfficerLabelsByPersonId.get(personId) ?? automaticAdminLabels),
+            sortPriority: adminSortPriority(labels),
           }
         : null
     })
@@ -378,8 +405,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     }
   })
 
-  const organizationName = getOrganizationName(organization, council.name)
-  const eyebrow = `${organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
+  const organizationName = getOrganizationName(organization, context.council.name)
+  const eyebrow = `${organizationName}${context.council.council_number ? ` (${context.council.council_number})` : ''}`
 
   return (
     <main className="qv-page">
@@ -560,13 +587,13 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
               >
                 <label className="qv-control">
                   <span className="qv-label">Council number</span>
-                  <input value={council.council_number ?? ''} readOnly disabled />
+                  <input value={context.council.council_number ?? ''} readOnly disabled />
                 </label>
                 <label className="qv-control">
                   <span className="qv-label">Formal organization name</span>
                   <input
                     name="display_name"
-                    defaultValue={organization?.display_name ?? council.name ?? ''}
+                    defaultValue={organization?.display_name ?? context.council.name ?? ''}
                     required
                     placeholder="Formal organization name"
                   />
