@@ -19,10 +19,25 @@ export default async function SpiritualLandingPage() {
 
         <section className={`${sharedStyles.hero} ${styles.hero}`}>
           <div className={styles.heroCopy}>
-            <h1 className={`${sharedStyles.heroTitle} ${styles.heroTitle}`}>Spiritual landing.</h1>
-            <p className={`${sharedStyles.heroSubtitle} ${styles.heroSubtitle}`}>
-              A calmer place for prayer, daily readings, and the spiritual companion side of Chrism.
-            </p>
+            <h1 className={`${sharedStyles.heroTitle} ${styles.heroTitle}`}>Spiritual Search</h1>
+
+            <form action="/spiritual" method="get" className={styles.searchForm} role="search">
+              <label htmlFor="spiritual-search-input" className={styles.searchLabel}>
+                Search the spiritual companion
+              </label>
+              <div className={styles.searchRow}>
+                <input
+                  id="spiritual-search-input"
+                  name="q"
+                  type="search"
+                  className={styles.searchInput}
+                  placeholder="Search prayers, saints, topics, or catechism"
+                />
+                <button type="submit" className={`qv-button-primary ${styles.searchButton}`}>
+                  Search
+                </button>
+              </div>
+            </form>
           </div>
         </section>
 

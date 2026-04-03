@@ -24,12 +24,47 @@
   max-width: 10ch;
 }
 
-.heroSubtitle {
-  margin: 14px 0 0;
-  max-width: 48ch;
-  font-size: 16px;
-  line-height: 1.45;
+.searchForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  max-width: 860px;
+}
+
+.searchLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.searchInput {
+  min-width: 0;
+  min-height: 54px;
+  padding: 0 18px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 16px;
+  box-shadow: 0 12px 28px rgba(46, 42, 52, 0.05);
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+}
+
+.searchButton {
+  white-space: nowrap;
 }
 
 .cardGrid {
@@ -115,6 +150,10 @@
   .heroTitle {
     font-size: clamp(42px, 16vw, 58px);
     max-width: 8ch;
+  }
+
+  .searchRow {
+    grid-template-columns: 1fr;
   }
 
   .cardGrid {
