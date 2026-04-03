@@ -29,6 +29,7 @@ type EventFormInitialValues = {
   scope_code?: 'home_council_only' | 'multi_council'
   event_kind_code?: 'standard' | 'general_meeting' | 'executive_meeting'
   requires_rsvp?: boolean
+  needs_volunteers?: boolean
   rsvp_deadline_at?: string | null
   reminder_enabled?: boolean
   reminder_scheduled_for?: string | null
@@ -164,6 +165,7 @@ export default function EventForm({
 }: EventFormProps) {
   const [eventType, setEventType] = useState<EventTypeOption>(deriveEventType(initialValues))
   const [requiresRsvp, setRequiresRsvp] = useState<boolean>(initialValues?.requires_rsvp ?? false)
+  const [needsVolunteers, setNeedsVolunteers] = useState<boolean>(initialValues?.needs_volunteers ?? false)
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(
     initialValues?.reminder_enabled ?? false
   )
@@ -263,6 +265,14 @@ export default function EventForm({
     setRequiresRsvp(false)
   }
 
+  function enableVolunteers() {
+    setNeedsVolunteers(true)
+  }
+
+  function disableVolunteers() {
+    setNeedsVolunteers(false)
+  }
+
   function collapseExternalInvitees() {
     setShowExternalInvitees(false)
     setExternalInvitees([emptyExternalInviteeRow()])
@@ -304,7 +314,7 @@ export default function EventForm({
     const title = String(formData.get('title') ?? '').trim()
     const startsAt = String(formData.get('starts_at') ?? '').trim()
     const endsAt = String(formData.get('ends_at') ?? '').trim()
-    const rsvpDeadlineAt = String(formData.get('rsvp_deadline_at') ?? '').trim()
+    const responseDeadlineAt = String(formData.get('rsvp_deadline_at') ?? '').trim()
     const reminderScheduledFor = String(formData.get('reminder_scheduled_for') ?? '').trim()
     const reminderDaysBefore = String(formData.get('reminder_days_before') ?? '').trim()
 
@@ -327,12 +337,14 @@ export default function EventForm({
       nextFieldErrors.ends_at = 'Please choose an end time that comes after the start time.'
     }
 
-    if (requiresRsvp && rsvpDeadlineAt) {
-      const deadline = parseLocalDate(rsvpDeadlineAt)
+    const responseCollectionEnabled = requiresRsvp || needsVolunteers
+
+    if (responseCollectionEnabled && responseDeadlineAt) {
+      const deadline = parseLocalDate(responseDeadlineAt)
       if (!deadline) {
-        nextFieldErrors.rsvp_deadline_at = 'Please choose a valid RSVP deadline.'
+        nextFieldErrors.rsvp_deadline_at = 'Please choose a valid response deadline.'
       } else if (startDate && deadline.getTime() >= startDate.getTime()) {
-        nextFieldErrors.rsvp_deadline_at = 'Please choose an RSVP deadline that comes before the event starts.'
+        nextFieldErrors.rsvp_deadline_at = 'Please choose a response deadline that comes before the event starts.'
       }
     }
 
@@ -403,6 +415,7 @@ export default function EventForm({
       <input type="hidden" name="scope_code" value={resolvedFields.scope_code} />
       <input type="hidden" name="event_kind_code" value={resolvedFields.event_kind_code} />
       <input type="hidden" name="requires_rsvp" value={requiresRsvp ? 'true' : 'false'} />
+      <input type="hidden" name="needs_volunteers" value={needsVolunteers ? 'true' : 'false'} />
       <input type="hidden" name="reminder_enabled" value={reminderEnabled ? 'true' : 'false'} />
 
       {submitError ? (
@@ -487,17 +500,18 @@ export default function EventForm({
               ) : null}
             </label>
             <label className="qv-control">
-              <span className="qv-label">Ends</span>
+              <span className="qv-label">Ends <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(optional)</span></span>
               <input
                 type="datetime-local"
                 name="ends_at"
                 defaultValue={toDateTimeLocalValue(initialValues?.ends_at)}
-                required
                 aria-invalid={fieldErrors.ends_at ? 'true' : 'false'}
               />
               {fieldErrors.ends_at ? (
                 <p style={{ ...fieldNoteStyle(), color: 'var(--danger-soft)' }}>{fieldErrors.ends_at}</p>
-              ) : null}
+              ) : (
+                <p style={fieldNoteStyle()}>Leave blank if the event does not have a fixed end time.</p>
+              )}
             </label>
           </div>
 
@@ -527,26 +541,33 @@ export default function EventForm({
       <section className="qv-card">
         <div className="qv-directory-section-head">
           <div>
-            <h2 className="qv-section-title">RSVP</h2>
-          </div>
-          <div className="qv-directory-actions">
-            {requiresRsvp ? (
-              <button type="button" onClick={disableRsvp} className="qv-button-secondary">
-                Remove RSVP
-              </button>
-            ) : (
-              <button type="button" onClick={enableRsvp} className="qv-button-secondary">
-                Enable RSVP
-              </button>
-            )}
+            <h2 className="qv-section-title">Participation</h2>
           </div>
         </div>
 
-        {requiresRsvp ? (
-          <div className="qv-form-grid">
+        <div className="qv-form-grid">
+          <div className="qv-directory-section-head">
+            <div>
+              <h3 className="qv-section-title" style={{ fontSize: 18 }}>RSVP</h3>
+              <p className="qv-section-subtitle">Let people respond that they are attending.</p>
+            </div>
+            <div className="qv-directory-actions">
+              {requiresRsvp ? (
+                <button type="button" onClick={disableRsvp} className="qv-button-secondary">
+                  Remove RSVP
+                </button>
+              ) : (
+                <button type="button" onClick={enableRsvp} className="qv-button-secondary">
+                  Add RSVP
+                </button>
+              )}
+            </div>
+          </div>
+
+          {requiresRsvp || needsVolunteers ? (
             <div className="qv-form-row">
               <label className="qv-control">
-                <span className="qv-label">RSVP by</span>
+                <span className="qv-label">Response by</span>
                 <input
                   type="datetime-local"
                   name="rsvp_deadline_at"
@@ -558,10 +579,32 @@ export default function EventForm({
                 ) : null}
               </label>
             </div>
+          ) : (
+            <input type="hidden" name="rsvp_deadline_at" value="" />
+          )}
+
+          <div className="qv-directory-section-head" style={{ marginTop: 12 }}>
+            <div>
+              <h3 className="qv-section-title" style={{ fontSize: 18 }}>Volunteers</h3>
+              <p className="qv-section-subtitle">Let people add themselves as volunteers on the event page.</p>
+            </div>
+            <div className="qv-directory-actions">
+              {needsVolunteers ? (
+                <button type="button" onClick={disableVolunteers} className="qv-button-secondary">
+                  Remove Volunteers
+                </button>
+              ) : (
+                <button type="button" onClick={enableVolunteers} className="qv-button-secondary">
+                  Need Volunteers
+                </button>
+              )}
+            </div>
           </div>
-        ) : (
-          <input type="hidden" name="rsvp_deadline_at" value="" />
-        )}
+
+          {needsVolunteers ? (
+            <p style={fieldNoteStyle()}>Volunteers can add their name, contact details, and notes from the public response page.</p>
+          ) : null}
+        </div>
       </section>
 
       {shouldShowInviteSection ? (

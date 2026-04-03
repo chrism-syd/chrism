@@ -42,6 +42,8 @@ export default async function ReviewDecisionArchivePage() {
   const { admin, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
   const [archivedDecisions, organizationData] = await Promise.all([

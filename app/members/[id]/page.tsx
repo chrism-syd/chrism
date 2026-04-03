@@ -23,6 +23,8 @@ type PersonRow = {
   state_province: string | null
   postal_code: string | null
   primary_relationship_code: string | null
+  council_id?: string | null
+  nickname?: string | null
   council_activity_level_code: string | null
   council_activity_context_code: string | null
   council_reengagement_status_code: string | null
@@ -58,7 +60,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const { id } = await params
   const { admin: supabase, council, permissions } = await getCurrentActingCouncilContext({ redirectTo: '/members' })
 
-  const [{ data: personData, error }, { data: officerTerms }, { data: customListMembershipsData }] = await Promise.all([
+  const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] = await Promise.all([
     supabase
       .from('people')
       .select(
@@ -103,7 +105,50 @@ export default async function MemberDetailPage({ params }: PageProps) {
     )
   }
 
+  let externalAdminPersonData: PersonRow | null = null
+
+  if (!memberScopedPersonData && permissions.canManageAdmins) {
+    const { data: externalPersonData, error: externalPersonError } = await supabase
+      .from('people')
+      .select(
+        'id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code, council_id'
+      )
+      .eq('id', id)
+      .is('archived_at', null)
+      .maybeSingle<PersonRow>()
+
+    if (externalPersonError) {
+      throw new Error(`Could not load external admin profile. ${externalPersonError.message}`)
+    }
+
+    if (externalPersonData) {
+      const { data: orgAdminRow } = await supabase
+        .from('organization_admin_assignments')
+        .select('id')
+        .eq('organization_id', permissions.organizationId)
+        .eq('person_id', id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+
+      const { data: councilAdminRow } = await supabase
+        .from('council_admin_assignments')
+        .select('id')
+        .eq('council_id', council.id)
+        .eq('person_id', id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (orgAdminRow || councilAdminRow) {
+        externalAdminPersonData = externalPersonData
+      }
+    }
+  }
+
+  const personData = memberScopedPersonData ?? externalAdminPersonData
   const person = personData ? decryptPeopleRecord(personData) : null
+  const isExternalAdminProfile = Boolean(externalAdminPersonData && !memberScopedPersonData)
 
   if (!person) {
     notFound()
@@ -177,7 +222,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
               </h1>
               <p className="qv-subtitle">Organization-facing contact and profile details.</p>
               <div className="qv-detail-badges">
-                <span className="qv-badge">Member</span>
+                <span className="qv-badge">{isExternalAdminProfile ? 'Admin contact' : 'Member'}</span>
                 {person.council_activity_level_code ? (
                   <span className="qv-badge qv-badge-soft">{labelize(person.council_activity_level_code)}</span>
                 ) : null}
@@ -191,12 +236,14 @@ export default async function MemberDetailPage({ params }: PageProps) {
               <Link href="/members" className="qv-button-secondary qv-link-button">
                 Back to members
               </Link>
-              <Link href={`/members/${person.id}/edit`} className="qv-button-primary qv-link-button">
-                Edit member
-              </Link>
+              {!isExternalAdminProfile ? (
+                <Link href={`/members/${person.id}/edit`} className="qv-button-primary qv-link-button">
+                  Edit member
+                </Link>
+              ) : null}
             </div>
 
-            {permissions.isCouncilAdmin ? (
+            {permissions.isCouncilAdmin && !isExternalAdminProfile ? (
               <DeleteMemberIconButton
                 memberId={person.id}
                 memberName={`${person.first_name} ${person.last_name}`.trim()}

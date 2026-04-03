@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context'
 import AppHeader from '@/app/app-header'
 import EventForm from '../../event-form'
 import DeleteEventButton from '../../delete-event-button'
@@ -36,7 +36,7 @@ type ExternalInviteeRow = {
 
 export default async function EditEventPage({ params }: EditEventPageProps) {
   const { id } = await params
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({ requireAdmin: true, redirectTo: '/events' })
+  const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' })
 
   let organization: OrganizationRow | null = null
   if (council.organization_id) {
@@ -47,7 +47,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   const { data: event, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
     .eq('council_id', council.id)
@@ -127,6 +127,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
             scope_code: event.scope_code,
             event_kind_code: event.event_kind_code,
             requires_rsvp: event.requires_rsvp,
+            needs_volunteers: event.needs_volunteers,
             rsvp_deadline_at: event.rsvp_deadline_at,
             reminder_enabled: event.reminder_enabled,
             reminder_scheduled_for: event.reminder_scheduled_for,

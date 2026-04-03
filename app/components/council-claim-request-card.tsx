@@ -3,8 +3,10 @@
 import { useActionState, useMemo, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { CouncilClaimLookupOption } from '@/lib/organizations/claim-requests'
-import type { ClaimOrganizationActionState } from '@/app/me/claim-organization/actions'
-import { initialClaimOrganizationActionState } from '@/app/me/claim-organization/actions'
+import {
+  initialClaimOrganizationActionState,
+  type ClaimOrganizationActionState,
+} from '@/app/me/claim-organization/action-state'
 
 type CouncilClaimRequestCardProps = {
   options: CouncilClaimLookupOption[]
@@ -120,7 +122,7 @@ export default function CouncilClaimRequestCard({
                 setSelectedCouncilId(null)
                 if (requestAccessMode) setRequestAccessMode(false)
               }}
-              placeholder="e.g. Toronto Council"
+              placeholder="e.g. St. Patrick's"
             />
           </label>
 
@@ -134,117 +136,107 @@ export default function CouncilClaimRequestCard({
                 setSelectedCouncilId(null)
                 if (requestAccessMode) setRequestAccessMode(false)
               }}
-              placeholder="GTA only for now"
+              placeholder="e.g. Markham"
             />
           </label>
         </div>
 
         {showResults ? (
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ display: 'grid', gap: 8 }}>
-              {filteredOptions.slice(0, 10).map((option) => (
-                <button
-                  key={option.councilId}
-                  type="button"
-                  className="qv-link-button qv-button-secondary"
-                  style={{ justifyContent: 'space-between', textAlign: 'left', width: '100%' }}
-                  onClick={() => chooseCouncil(option)}
-                >
-                  <span><strong>{option.councilName}</strong> ({option.councilNumber})</span>
-                  <span style={{ color: 'var(--text-secondary)' }}>{option.city ?? 'GTA'}</span>
-                </button>
-              ))}
-              {filteredOptions.length === 0 ? <div className="qv-inline-message">No listed councils matched those filters.</div> : null}
-            </div>
-
-            <button type="button" className="qv-link-button qv-button-secondary" onClick={enableRequestAccessMode}>
-              Council not listed? Request Access
-            </button>
+          <div className="qv-list" style={{ display: 'grid', gap: 10 }}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => {
+                const location = [option.city, option.stateOrProvince].filter(Boolean).join(', ')
+                return (
+                  <button
+                    key={option.councilId}
+                    type="button"
+                    className="qv-list-item"
+                    onClick={() => chooseCouncil(option)}
+                    style={{ textAlign: 'left' }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{option.councilName} ({option.councilNumber})</div>
+                    {location ? <div className="qv-text-muted">{location}</div> : null}
+                  </button>
+                )
+              })
+            ) : (
+              <div className="qv-text-muted">No council matched your search yet.</div>
+            )}
           </div>
         ) : null}
 
-        <form action={formAction} style={{ display: 'grid', gap: 14 }}>
+        {!requestAccessMode && !selectedCouncil ? (
+          <button type="button" className="qv-button-secondary" onClick={enableRequestAccessMode}>
+            Request Access
+          </button>
+        ) : null}
+
+        <form action={formAction} className="qv-form" style={{ display: 'grid', gap: 14 }}>
           <input type="hidden" name="selected_council_id" value={selectedCouncil?.councilId ?? ''} />
           <input type="hidden" name="selected_organization_id" value={selectedCouncil?.organizationId ?? ''} />
 
           {showSelectedSummary ? (
-            <div className="qv-card" style={{ background: 'var(--bg-sunken)', gap: 10, display: 'grid' }}>
-              <div>
-                <div className="qv-eyebrow">Selected council</div>
-                <div style={{ fontWeight: 700 }}>{selectedCouncil?.councilName} ({selectedCouncil?.councilNumber})</div>
-                <div style={{ color: 'var(--text-secondary)' }}>{selectedCouncil?.city ?? 'GTA'}</div>
-                {selectedCouncil && selectedCouncil.parishAssociations.length > 0 ? (
-                  <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-                    Parishes: {selectedCouncil.parishAssociations.join(', ')}
-                  </div>
-                ) : null}
-              </div>
-              <button type="button" className="qv-link-button" onClick={() => setSelectedCouncilId(null)}>
-                Choose a different council
-              </button>
+            <div className="qv-card-subtle" style={{ display: 'grid', gap: 6 }}>
+              <strong>{selectedCouncil?.councilName} ({selectedCouncil?.councilNumber})</strong>
+              {[selectedCouncil?.city, selectedCouncil?.stateOrProvince].filter(Boolean).join(', ') ? (
+                <span className="qv-text-muted">{[selectedCouncil?.city, selectedCouncil?.stateOrProvince].filter(Boolean).join(', ')}</span>
+              ) : null}
             </div>
           ) : null}
 
           {showManualFields ? (
-            <div className="qv-card" style={{ background: 'var(--bg-sunken)', display: 'grid', gap: 14 }}>
-              <div className="qv-inline-message">
-                We will queue this request for manual review. Fill in the council details as best you can.
-              </div>
-              <div className="qv-form-row" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-                <label className="qv-control">
-                  <span className="qv-label">Council name</span>
-                  <input name="requested_council_name" defaultValue={councilNameQuery} required />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">Council number</span>
-                  <input name="requested_council_number" defaultValue={councilNumberQuery} />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">City</span>
-                  <input name="requested_city" defaultValue={cityQuery} required />
-                </label>
-              </div>
-            </div>
+            <>
+              <label className="qv-control">
+                <span className="qv-label">Council number</span>
+                <input type="text" name="requested_council_number" defaultValue={councilNumberQuery} />
+              </label>
+
+              <label className="qv-control">
+                <span className="qv-label">Council name</span>
+                <input type="text" name="requested_council_name" defaultValue={councilNameQuery} required />
+              </label>
+
+              <label className="qv-control">
+                <span className="qv-label">City</span>
+                <input type="text" name="requested_city" defaultValue={cityQuery} required />
+              </label>
+            </>
           ) : null}
 
-          {audience === 'public' ? (
-            <div className="qv-form-row" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-              <label className="qv-control">
-                <span className="qv-label">Your name</span>
-                <input name="requester_name" defaultValue={requesterNameDefault ?? ''} required />
-              </label>
-              <label className="qv-control">
-                <span className="qv-label">Email</span>
-                <input type="email" name="requester_email" defaultValue={requesterEmailDefault ?? ''} required />
-              </label>
-              <label className="qv-control">
-                <span className="qv-label">Phone (optional)</span>
-                <input name="requester_phone" defaultValue={requesterPhoneDefault ?? ''} />
-              </label>
-            </div>
-          ) : (
+          {audience === 'signed_in' ? (
             <label className="qv-control">
               <span className="qv-label">Your name</span>
-              <input name="requester_name" defaultValue={requesterNameDefault ?? ''} placeholder="Your name for the reviewer" />
+              <input type="text" name="requester_name" defaultValue={requesterNameDefault ?? ''} />
             </label>
+          ) : (
+            <>
+              <label className="qv-control">
+                <span className="qv-label">Your name</span>
+                <input type="text" name="requester_name" defaultValue={requesterNameDefault ?? ''} required />
+              </label>
+
+              <label className="qv-control">
+                <span className="qv-label">Your email</span>
+                <input type="email" name="requester_email" defaultValue={requesterEmailDefault ?? ''} required />
+              </label>
+
+              <label className="qv-control">
+                <span className="qv-label">Your phone</span>
+                <input type="tel" name="requester_phone" defaultValue={requesterPhoneDefault ?? ''} />
+              </label>
+            </>
           )}
 
           <label className="qv-control">
-            <span className="qv-label">Notes {audience === 'public' ? '(optional)' : '(helps with review)'}</span>
-            <textarea name="request_notes" rows={4} placeholder="Tell us what role you hold or why you need access." />
+            <span className="qv-label">Notes</span>
+            <textarea name="request_notes" rows={4} placeholder="Add any details that will help us verify your request." />
           </label>
 
           {state.status !== 'idle' ? (
-            <p className={state.status === 'error' ? 'qv-inline-error' : 'qv-inline-message'} style={{ margin: 0 }}>
-              {state.message}
-            </p>
+            <p className={state.status === 'success' ? 'qv-success-text' : 'qv-error-text'}>{state.message}</p>
           ) : null}
 
-          {(showSelectedSummary || showManualFields) ? (
-            <div className="qv-form-actions">
-              <SubmitButton label={submitLabel} />
-            </div>
-          ) : null}
+          <SubmitButton label={submitLabel} />
         </form>
       </div>
     </section>

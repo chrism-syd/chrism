@@ -1,0 +1,16 @@
+{
+  "group_tag_scopes": {
+    "knights_of_columbus": {
+      "scope_kind": "organization_family",
+      "organization_family_code": "knights_of_columbus"
+    },
+    "franciscan": {
+      "scope_kind": "organization_family",
+      "organization_family_code": "franciscan"
+    },
+    "secular_franciscan": {
+      "scope_kind": "organization_family",
+      "organization_family_code": "secular_franciscan"
+    }
+  }
+}

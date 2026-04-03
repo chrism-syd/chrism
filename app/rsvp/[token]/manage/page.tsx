@@ -9,6 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { listClaimablePersonRsvps } from '@/lib/rsvp/claim';
 import { loadPublicInviteContext } from '@/lib/rsvp/public';
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -27,33 +28,6 @@ type AttendeeRow = {
   is_primary: boolean;
   sort_order: number;
 };
-
-function formatDateTimeRange(startsAt: string, endsAt: string) {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  if (sameDay) {
-    return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`;
-  }
-
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${dateFormatter.format(end)} ${timeFormatter.format(end)}`;
-}
 
 function formatDateTime(value?: string | null) {
   if (!value) return '—';
@@ -223,7 +197,7 @@ export default async function ManagePage({ params, searchParams }: ManagePagePro
         <section className="qv-hero-card">
           <p className="qv-eyebrow">Manage your RSVP</p>
           <h1 className="qv-title">{context.event.title}</h1>
-          <p className="qv-subtitle">{formatDateTimeRange(context.event.starts_at, context.event.ends_at)}</p>
+          <p className="qv-subtitle">{formatEventDateTimeRange(context.event.starts_at, context.event.ends_at)}</p>
           <p style={{ marginTop: 12, color: 'var(--text-secondary)' }}>
             Signed in as {user.email ?? 'your email address'}
           </p>

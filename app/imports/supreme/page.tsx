@@ -78,6 +78,8 @@ export default async function SupremeImportPage() {
   const { admin, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/imports/supreme',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   });
 
   const typedCouncil = council as CouncilRow;

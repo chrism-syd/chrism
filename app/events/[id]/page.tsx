@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context';
 import AppHeader from '@/app/app-header';
 import {
   addEventExternalInvitee,
@@ -13,6 +13,7 @@ import {
 import HostManualVolunteerForm from '../host-manual-volunteer-form';
 import RemoveVolunteerButton from '../remove-volunteer-button';
 import { decryptPeopleRecords } from '@/lib/security/pii';
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -32,11 +33,12 @@ type EventRow = {
   location_name: string | null;
   location_address: string | null;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   status_code: string;
   scope_code: 'home_council_only' | 'multi_council';
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting';
   requires_rsvp: boolean;
+  needs_volunteers: boolean;
   rsvp_deadline_at: string | null;
   reminder_enabled: boolean;
   reminder_scheduled_for: string | null;
@@ -170,36 +172,6 @@ type ExternalInviteeRow = {
   created_at: string;
 };
 
-function formatDateTimeRange(startsAt: string, endsAt: string) {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  if (sameDay) {
-    return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`;
-  }
-
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${timeFormatter.format(
-    end
-  )} ${timeFormatter.format(end)}`;
-}
-
 function formatDateTime(value?: string | null) {
   if (!value) return '—';
 
@@ -310,7 +282,7 @@ function tokenPathStyle(): CSSProperties {
 
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = await params;
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({ redirectTo: '/events' });
+  const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' });
 
   let organization: OrganizationRow | null = null;
 
@@ -327,7 +299,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
     .eq('council_id', council.id)
@@ -342,7 +314,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const isSingleCouncil = event.scope_code === 'home_council_only';
   const isMeeting = event.event_kind_code !== 'standard';
   const isDraft = event.status_code === 'draft';
-  const shouldShowVolunteerPanels = !isMeeting && event.requires_rsvp && !isDraft;
+  const shouldShowVolunteerPanels = !isMeeting && event.needs_volunteers && !isDraft;
   const shouldShowResponsesPanel = !isSingleCouncil;
   const shouldShowAddVolunteerPanel = shouldShowVolunteerPanels && isSingleCouncil;
   const shouldShowExternalInviteesPanel = isMeeting;
@@ -635,7 +607,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </p>
 
                 <h1 className="qv-title">{event.title}</h1>
-                <p className="qv-subtitle">{formatDateTimeRange(event.starts_at, event.ends_at)}</p>
+                <p className="qv-subtitle">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</p>
 
                 {!isSingleCouncil ? (
                   <div style={mutedTextStyle()}>
@@ -647,6 +619,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                   <span className={getEventStatusBadgeClass(event.status_code)}>{getEventStatusLabel(event.status_code)}</span>
                   <span className="qv-badge">{getScopeLabel(event.scope_code)}</span>
                   <span className="qv-badge">{event.requires_rsvp ? 'RSVP required' : 'No RSVP'}</span>
+                  <span className="qv-badge">{event.needs_volunteers ? 'Volunteers needed' : 'No volunteers needed'}</span>
                   {event.event_kind_code !== 'standard' ? (
                     <span className="qv-badge">
                       {event.event_kind_code === 'executive_meeting'
@@ -1178,7 +1151,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">When</div>
                   <div className="qv-detail-value">
-                    {formatDateTimeRange(event.starts_at, event.ends_at)}
+                    {formatEventDateTimeRange(event.starts_at, event.ends_at)}
                   </div>
                 </div>
 

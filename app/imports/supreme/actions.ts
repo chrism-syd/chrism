@@ -170,6 +170,8 @@ export async function applySupremeImportAction(payload: ApplyImportPayload) {
   const { admin, permissions, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/imports/supreme',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   });
 
   if (!permissions.authUser) {

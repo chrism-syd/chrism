@@ -2,123 +2,140 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import type { PrayerListItem } from '@/lib/spiritual/prayers'
 import styles from './prayer-library.module.css'
 
-type PrayerCard = {
-  slug: string
-  title: string
-  summary: string | null
-  prayerTypeCode: string | null
-}
-
 type Props = {
-  prayers: PrayerCard[]
+  prayers: PrayerListItem[]
 }
 
-const FILTERS = [
-  { value: 'all', label: 'All prayers' },
-  { value: 'traditional', label: 'Traditional' },
-  { value: 'litany', label: 'Litanies' },
-  { value: 'novena', label: 'Novenas' },
-  { value: 'chaplet', label: 'Chaplets' },
-  { value: 'blessing', label: 'Blessings' },
-  { value: 'devotion', label: 'Devotions' },
-  { value: 'intercession', label: 'Intercessions' },
-]
-
-function matchesType(prayerTypeCode: string | null, filter: string) {
-  if (filter === 'all') return true
-  return (prayerTypeCode ?? 'traditional') === filter
-}
-
-function typeLabel(prayerTypeCode: string | null) {
-  switch (prayerTypeCode) {
-    case 'litany':
-      return 'Litany'
-    case 'novena':
-      return 'Novena'
-    case 'chaplet':
-      return 'Chaplet'
-    case 'blessing':
-      return 'Blessing'
-    case 'collect':
-      return 'Collect'
-    case 'intercession':
-      return 'Intercession'
-    case 'devotion':
-      return 'Devotion'
-    case 'other':
-      return 'Prayer'
-    default:
-      return 'Traditional prayer'
-  }
+function groupKey(prayer: PrayerListItem) {
+  return prayer.prayerType ?? 'other'
 }
 
 export default function PrayerLibraryClient({ prayers }: Props) {
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('all')
+  const [prayerType, setPrayerType] = useState<'all' | string>('all')
+  const [isLibraryOpen, setLibraryOpen] = useState(false)
+
+  const prayerTypes = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          prayers.map((prayer) => [groupKey(prayer), { value: groupKey(prayer), label: prayer.prayerTypeLabel }])
+        ).values()
+      ),
+    [prayers]
+  )
+
+  const normalizedQuery = query.trim().toLowerCase()
 
   const filteredPrayers = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-
     return prayers.filter((prayer) => {
-      if (!matchesType(prayer.prayerTypeCode, filter)) return false
-      if (!normalizedQuery) return true
-
-      const haystack = [prayer.title, prayer.summary ?? '', typeLabel(prayer.prayerTypeCode)]
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(normalizedQuery)
+      const matchesType = prayerType === 'all' || groupKey(prayer) === prayerType
+      const matchesQuery = normalizedQuery.length === 0 || prayer.title.toLowerCase().includes(normalizedQuery)
+      return matchesType && matchesQuery
     })
-  }, [filter, prayers, query])
+  }, [normalizedQuery, prayerType, prayers])
+
+  const groupedPrayers = useMemo(() => {
+    const grouped = new Map<string, { label: string; prayers: PrayerListItem[] }>()
+
+    for (const prayer of filteredPrayers) {
+      const key = groupKey(prayer)
+      const current: { label: string; prayers: PrayerListItem[] } =
+        grouped.get(key) ?? { label: prayer.prayerTypeLabel, prayers: [] }
+      current.prayers.push(prayer)
+      grouped.set(key, current)
+    }
+
+    return Array.from(grouped.entries())
+      .map(([key, value]) => ({ key, ...value }))
+      .sort((left, right) => left.label.localeCompare(right.label))
+  }, [filteredPrayers])
+
+  const resultCountLabel = `${filteredPrayers.length} prayer${filteredPrayers.length === 1 ? '' : 's'}`
 
   return (
-    <section className={styles.librarySection}>
-      <div className={styles.controlsRow}>
-        <label className={styles.searchControl}>
-          <span className={styles.controlLabel}>Search</span>
-          <input
-            className={styles.searchInput}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search prayers, devotions, blessings…"
-          />
-        </label>
+    <div className={styles.libraryStack}>
+      <section className={styles.libraryIntro} aria-label="Prayer library controls">
+        <div className={styles.libraryIntroRow}>
+          <button
+            type="button"
+            className={styles.libraryToggle}
+            aria-expanded={isLibraryOpen}
+            aria-controls="prayer-library-panel"
+            onClick={() => setLibraryOpen((current) => !current)}
+          >
+            {isLibraryOpen ? 'Hide prayer library' : 'Browse prayers'}
+          </button>
 
-        <label className={styles.filterControl}>
-          <span className={styles.controlLabel}>Type</span>
-          <select className={styles.filterSelect} value={filter} onChange={(event) => setFilter(event.target.value)}>
-            {FILTERS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {filteredPrayers.length === 0 ? (
-        <div className={styles.emptyState}>
-          <h2>No prayers match this view yet.</h2>
-          <p>Try a different filter or search term.</p>
+          {isLibraryOpen ? <p className={styles.filterMeta}>{resultCountLabel}</p> : null}
         </div>
-      ) : (
-        <div className={styles.cardGrid}>
-          {filteredPrayers.map((prayer) => (
-            <Link key={prayer.slug} href={`/spiritual/prayers/${prayer.slug}`} className={styles.cardLink}>
-              <article className={styles.prayerCard}>
-                <div className={styles.cardHeader}>
-                  <span className={styles.cardBadge}>{typeLabel(prayer.prayerTypeCode)}</span>
+      </section>
+
+      {isLibraryOpen ? (
+        <div id="prayer-library-panel" className={styles.libraryPanel}>
+          <section className={styles.filterCard}>
+            <div className={styles.filterControls}>
+              <input
+                type="search"
+                name="search"
+                aria-label="Search prayer names"
+                value={query}
+                placeholder="Search prayer names"
+                className={styles.searchInput}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+
+              <select
+                value={prayerType}
+                aria-label="Filter by prayer type"
+                className={styles.typeSelect}
+                onChange={(event) => setPrayerType(event.target.value)}
+              >
+                <option value="all">All prayer types</option>
+                {prayerTypes.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          {groupedPrayers.length === 0 ? (
+            <section className={styles.emptyCard} aria-live="polite">
+              <h2 className={styles.emptyTitle}>No prayers match that search.</h2>
+              <p className={styles.emptyCopy}>Try a broader search or switch back to all prayer types.</p>
+            </section>
+          ) : (
+            groupedPrayers.map((group) => (
+              <section key={group.key} className={styles.groupSection} aria-labelledby={`group-${group.key}`}>
+                <div className={styles.groupHeader}>
+                  <h2 id={`group-${group.key}`} className={styles.groupTitle}>
+                    {group.label}
+                  </h2>
+                  <p className={styles.groupMeta}>
+                    {group.prayers.length} prayer{group.prayers.length === 1 ? '' : 's'}
+                  </p>
                 </div>
-                <h2 className={styles.cardTitle}>{prayer.title}</h2>
-                <p className={styles.cardBody}>{prayer.summary ?? 'Open this prayer to read the full text.'}</p>
-                <span className={styles.cardAction}>Open prayer</span>
-              </article>
-            </Link>
-          ))}
+
+                <div className={styles.cardGrid}>
+                  {group.prayers.map((prayer) => (
+                    <Link key={prayer.slug} href={`/spiritual/prayers/${prayer.slug}`} className={styles.prayerCard}>
+                      <span className={styles.cardTitle}>{prayer.title}</span>
+                      <span className={styles.cardArrow} aria-hidden="true">
+                        →
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))
+          )}
         </div>
-      )}
-    </section>
+      ) : null}
+    </div>
   )
 }

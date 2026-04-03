@@ -3,7 +3,12 @@ import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
 import MemberForm from '../member-form';
 
 export default async function NewMemberPage() {
-  await getCurrentActingCouncilContext({ requireAdmin: true, redirectTo: '/members' });
+  await getCurrentActingCouncilContext({
+    requireAdmin: true,
+    redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
+  });
 
   return (
     <main className="qv-page">

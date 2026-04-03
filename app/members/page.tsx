@@ -1,48 +1,65 @@
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import AppHeader from '@/app/app-header'
-import MemberRowCard from '@/app/members/member-row-card'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import AppHeader from '@/app/app-header'
+import MembersList from '@/app/members-list'
+import OrganizationAvatar from '@/app/components/organization-avatar'
+import SectionMenuBar from '@/app/components/section-menu-bar'
+import PageOrgSwitcher from '@/app/components/page-org-switcher'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
-import { decryptPeopleRecords } from '@/lib/security/pii'
-
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
-type PersonRow = {
-  id: string
-  first_name: string
-  last_name: string
-  email: string | null
-  nickname: string | null
-  primary_relationship_code: string | null
-}
+import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { loadCouncilMemberDirectoryData } from '@/lib/members/directory-data'
 
 export default async function MembersPage() {
   const permissions = await getCurrentUserPermissions()
-  if (!permissions.canAccessMemberData) {
-    redirect('/me')
-  }
-
-  const admin = createAdminClient()
-  const context = await getCurrentActingCouncilContext({
-    permissions,
-    supabaseAdmin: admin,
-    requireAdmin: false,
+  const { admin: supabase, council } = await getCurrentActingCouncilContext({
     redirectTo: '/me',
-    requireArea: { area: 'members', level: 'edit_manage' },
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
-  const { data } = await admin
-    .from('people')
-    .select('id, first_name, last_name, email, nickname, primary_relationship_code')
-    .eq('council_id', context.council.id)
-    .is('archived_at', null)
-    .order('last_name', { ascending: true })
-    .order('first_name', { ascending: true })
+  let directoryData: Awaited<ReturnType<typeof loadCouncilMemberDirectoryData>>
 
-  const members = decryptPeopleRecords((data as PersonRow[] | null) ?? []) as PersonRow[]
+  try {
+    directoryData = await loadCouncilMemberDirectoryData({ admin: supabase, councilId: council.id })
+  } catch (error) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader />
+          <div className="qv-error">
+            <strong>Could not load members.</strong>
+            <p>{error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  const { data: organizationData } = council.organization_id
+    ? await supabase
+        .from('organizations')
+        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .eq('id', council.organization_id)
+        .maybeSingle()
+    : { data: null }
+
+  const organization = organizationData as {
+    display_name: string | null
+    preferred_name: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
+
+  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+
+  const {
+    members,
+    prospects,
+    volunteers,
+    currentOfficerLabelsById,
+    executiveOfficerLabelsById,
+    officerCount,
+  } = directoryData
+  const activeMembers = members.filter((person) => person.council_activity_level_code === 'active')
 
   return (
     <main className="qv-page">
@@ -50,34 +67,69 @@ export default async function MembersPage() {
         <AppHeader />
 
         <section className="qv-hero-card">
-          <p className="qv-eyebrow">Members</p>
-          <h1 className="qv-title">Directory for {context.council.name}</h1>
-          <p className="qv-subtitle">
-            Browse members, open profiles, and manage outreach lists.
-          </p>
-          <div className="qv-form-actions" style={{ marginTop: 20 }}>
-            <Link href="/members/officers" className="qv-link-button qv-button-secondary">
-              Officer directory
-            </Link>
-            <Link href="/custom-lists" className="qv-link-button qv-button-secondary">
-              Custom lists
-            </Link>
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
+              <p className="qv-eyebrow">
+                {organizationName}
+                {council.council_number ? ` (${council.council_number})` : ''}
+              </p>
+              <div className="qv-directory-title-row" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <h1 className="qv-directory-name">Member directory</h1>
+                <PageOrgSwitcher
+                  contexts={permissions.availableContexts}
+                  selectedContextKey={permissions.activeContextKey}
+                  selectedOrganizationId={permissions.organizationId}
+                  isSuperAdmin={permissions.isSuperAdmin}
+                  actingMode={permissions.actingMode}
+                  fallbackHref="/members"
+                />
+              </div>
+              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
+                Browse and manage members for your council.
+              </p>
+            </div>
+            <div className="qv-org-avatar-wrap">
+              <OrganizationAvatar
+                displayName={organizationName}
+                logoStoragePath={organization?.logo_storage_path ?? null}
+                logoAltText={organization?.logo_alt_text ?? organizationName}
+                size={72}
+              />
+            </div>
+          </div>
+          <div className="qv-stats">
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{members.length}</div>
+              <div className="qv-stat-label">Members</div>
+            </div>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{activeMembers.length}</div>
+              <div className="qv-stat-label">Active members</div>
+            </div>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{officerCount}</div>
+              <div className="qv-stat-label">Current officers</div>
+            </div>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{volunteers.length + prospects.length}</div>
+              <div className="qv-stat-label">Prospects + volunteers</div>
+            </div>
           </div>
         </section>
 
-        <section className="qv-card" style={{ marginTop: 24 }}>
-          {members.length === 0 ? (
-            <div className="qv-empty">
-              <p className="qv-empty-text">No members are available for this council yet.</p>
-            </div>
-          ) : (
-            <div className="qv-member-list">
-              {members.map((member) => (
-                <MemberRowCard key={member.id} member={member} />
-              ))}
-            </div>
-          )}
-        </section>
+        <SectionMenuBar
+          items={[
+            { label: 'Add member', href: '/members/new' },
+            { label: 'Import Supreme list', href: '/imports/supreme' },
+            { label: 'Archived members', href: '/members/archive' },
+          ]}
+        />
+
+        <MembersList
+          members={members}
+          currentOfficerLabelsById={currentOfficerLabelsById}
+          executiveOfficerLabelsById={executiveOfficerLabelsById}
+        />
       </div>
     </main>
   )

@@ -8,6 +8,7 @@ import {
   submitCouncilRsvpByToken,
 } from '@/app/events/actions';
 import RevokePersonRsvpButton from '@/app/rsvp/revoke-person-rsvp-button';
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -40,9 +41,10 @@ type EventRow = {
   location_name: string | null;
   location_address: string | null;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   scope_code: 'home_council_only' | 'multi_council';
   requires_rsvp: boolean;
+  needs_volunteers: boolean;
   rsvp_deadline_at: string | null;
   status_code: string;
 };
@@ -99,36 +101,6 @@ type EventPersonRsvpAttendeeRow = {
 
 function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() || null;
-}
-
-function formatDateTimeRange(startsAt: string, endsAt: string) {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  if (sameDay) {
-    return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`;
-  }
-
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${dateFormatter.format(
-    end
-  )} ${timeFormatter.format(end)}`;
 }
 
 function formatDateTime(value?: string | null) {
@@ -234,7 +206,7 @@ export default async function PublicRsvpPage({
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, title, description, location_name, location_address, starts_at, ends_at, scope_code, requires_rsvp, rsvp_deadline_at, status_code'
+      'id, title, description, location_name, location_address, starts_at, ends_at, scope_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, status_code'
     )
     .eq('id', invite.event_id)
     .single();
@@ -357,11 +329,14 @@ export default async function PublicRsvpPage({
             <div>
               <p className="qv-eyebrow">{isSingleCouncil ? 'Volunteer RSVP' : 'Event RSVP'}</p>
               <h1 className="qv-title">{event.title}</h1>
-              <p className="qv-subtitle">{formatDateTimeRange(event.starts_at, event.ends_at)}</p>
+              <p className="qv-subtitle">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</p>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
                 <span className="qv-badge">
                   {event.requires_rsvp ? 'RSVP required' : 'Open event'}
+                </span>
+                <span className="qv-badge">
+                  {event.needs_volunteers ? 'Volunteers needed' : 'No volunteers needed'}
                 </span>
                 <span className="qv-badge">
                   {isSingleCouncil
@@ -753,20 +728,21 @@ export default async function PublicRsvpPage({
               </div>
             </section>
 
-            <section className="qv-card">
-              <div className="qv-directory-section-head">
-                <div>
-                  <h2 className="qv-section-title">Volunteers</h2>
-                  <p className="qv-section-subtitle">
-                    Add the volunteers your council expects to send. In v1 this is a flat list, not role
-                    slots. External volunteers remain event-scoped only.
-                  </p>
+            {event.needs_volunteers ? (
+              <section className="qv-card">
+                <div className="qv-directory-section-head">
+                  <div>
+                    <h2 className="qv-section-title">Volunteers</h2>
+                    <p className="qv-section-subtitle">
+                      Add the volunteers your council expects to send. In v1 this is a flat list, not role
+                      slots. External volunteers remain event-scoped only.
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="qv-form-grid">
-                {volunteerSlots.map((volunteer, index) => (
-                  <div key={volunteer.id} style={cardInsetStyle()}>
+                <div className="qv-form-grid">
+                  {volunteerSlots.map((volunteer, index) => (
+                    <div key={volunteer.id} style={cardInsetStyle()}>
                     <div className="qv-directory-section-head">
                       <div>
                         <h3 className="qv-section-title" style={{ fontSize: 18 }}>
@@ -839,10 +815,11 @@ export default async function PublicRsvpPage({
                 ))}
               </div>
 
-              <p style={smallNoteStyle()}>
-                This first pass renders three volunteer rows by default. Save logic ignores blank rows.
-              </p>
-            </section>
+                <p style={smallNoteStyle()}>
+                  This first pass renders three volunteer rows by default. Save logic ignores blank rows.
+                </p>
+              </section>
+            ) : null}
 
             <div className="qv-form-actions">
               <Link href={`/rsvp/${token}/event`} className="qv-link-button qv-button-secondary">

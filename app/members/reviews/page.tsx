@@ -51,6 +51,8 @@ export default async function MemberReviewsPage() {
   const { admin, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
   const [pendingReviews, recentDecisions, organizationData] = await Promise.all([

@@ -1,11 +1,14 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import ConfirmActionButton from '@/app/components/confirm-action-button'
 import CustomListDetailClient from '@/app/custom-lists/[id]/detail-client'
+import { archiveCustomListAction } from '@/app/custom-lists/actions'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import {
   canManageCustomList,
   canViewCustomList,
+  hasStrictCustomListLifecycleAccess,
   type CustomListAccessRow,
   type CustomListMemberRow,
   type CustomListRow,
@@ -51,7 +54,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   const admin = createAdminClient()
   const { data: listData, error: listError } = await admin
     .from('custom_lists')
-    .select('id, council_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .eq('id', id)
     .maybeSingle<CustomListRow>()
 
@@ -68,7 +71,10 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     redirect('/me')
   }
 
-  const canManage = canManageCustomList(permissions, listData)
+  const [canManage, canManageLifecycle] = await Promise.all([
+    canManageCustomList(permissions, listData, admin),
+    hasStrictCustomListLifecycleAccess({ admin, permissions, list: listData }),
+  ])
 
   const [membersResult, accessResult, eligiblePeopleResult] = await Promise.all([
     admin
@@ -188,9 +194,20 @@ export default async function CustomListDetailPage({ params }: PageProps) {
               Back to custom lists
             </Link>
             {canManage ? (
-              <Link href="/members" className="qv-button-secondary qv-link-button">
+              <Link href="/custom-lists?showMemberDirectory=1#member-directory-section" className="qv-button-secondary qv-link-button">
                 Member directory
               </Link>
+            ) : null}
+            {canManageLifecycle ? (
+              <ConfirmActionButton
+                action={archiveCustomListAction}
+                hiddenFields={[{ name: 'custom_list_id', value: listData.id }]}
+                triggerLabel="Archive list"
+                confirmTitle="Archive this custom list?"
+                confirmDescription="This removes the list from the active custom-lists view but keeps its members and sharing intact so you can restore it or delete it permanently later from the archive."
+                confirmLabel="Archive list"
+                danger
+              />
             ) : null}
           </div>
         </section>

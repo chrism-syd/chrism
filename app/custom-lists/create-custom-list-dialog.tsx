@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 import { createCustomListFromMembersAction, type CreateCustomListState } from './actions'
 
 const INITIAL_STATE: CreateCustomListState = { error: null }
@@ -10,6 +10,8 @@ type Props = {
   memberIds: string[]
   previewNames: string[]
   onClose: () => void
+  sourceLabel?: string
+  sourceBadge?: string
 }
 
 type CreateFormStepProps = {
@@ -68,28 +70,41 @@ function CreateCustomListFormStep({ memberIds, memberCount, onBack, onCancel }: 
   )
 }
 
-export default function CreateCustomListDialog({ open, memberIds, previewNames, onClose }: Props) {
+export default function CreateCustomListDialog({
+  open,
+  memberIds,
+  previewNames,
+  onClose,
+  sourceLabel = 'the current filtered view',
+  sourceBadge = 'Current filters applied',
+}: Props) {
   const [step, setStep] = useState<'review' | 'details'>('review')
+
+  const handleClose = useCallback(() => {
+    setStep('review')
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     if (!open) return undefined
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        onClose()
+        handleClose()
       }
     }
 
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [onClose, open])
+  }, [handleClose, open])
+
 
   if (!open || memberIds.length === 0) {
     return null
   }
 
   return (
-    <div className="qv-dialog-backdrop" role="presentation" onClick={onClose}>
+    <div className="qv-dialog-backdrop" role="presentation" onClick={handleClose}>
       <div
         className="qv-dialog-card"
         role="dialog"
@@ -104,7 +119,7 @@ export default function CreateCustomListDialog({ open, memberIds, previewNames, 
                 <p className="qv-inline-message">Step 1 of 2</p>
                 <h2 id="create-custom-list-title" className="qv-section-title">Review this list</h2>
                 <p className="qv-section-subtitle">
-                  The custom list will include <strong>{memberIds.length}</strong> member{memberIds.length === 1 ? '' : 's'} from the current filtered view.
+                  The custom list will include <strong>{memberIds.length}</strong> member{memberIds.length === 1 ? '' : 's'} from <strong>{sourceLabel}</strong>.
                 </p>
               </div>
             </div>
@@ -112,7 +127,7 @@ export default function CreateCustomListDialog({ open, memberIds, previewNames, 
             <div className="qv-custom-list-review-box">
               <div className="qv-detail-badges">
                 <span className="qv-badge">{memberIds.length} selected</span>
-                <span className="qv-badge qv-badge-soft">Current filters applied</span>
+                <span className="qv-badge qv-badge-soft">{sourceBadge}</span>
               </div>
               <div className="qv-custom-list-preview-grid">
                 {previewNames.map((name) => (
@@ -127,7 +142,7 @@ export default function CreateCustomListDialog({ open, memberIds, previewNames, 
             </div>
 
             <div className="qv-form-actions">
-              <button type="button" className="qv-button-secondary" onClick={onClose}>
+              <button type="button" className="qv-button-secondary" onClick={handleClose}>
                 Cancel
               </button>
               <button type="button" className="qv-button-primary" onClick={() => setStep('details')}>
@@ -143,7 +158,7 @@ export default function CreateCustomListDialog({ open, memberIds, previewNames, 
             memberIds={memberIds}
             memberCount={memberIds.length}
             onBack={() => setStep('review')}
-            onCancel={onClose}
+            onCancel={handleClose}
           />
         ) : null}
       </div>

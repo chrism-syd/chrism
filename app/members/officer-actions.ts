@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getCurrentUserPermissions } from '@/lib/auth/permissions';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
 import {
   formatOfficerLabel,
   getOfficerRoleOption,
@@ -35,17 +34,17 @@ function redirectToPath(path: string, args: { error?: string | null; notice?: st
 }
 
 async function requireCouncilAdmin() {
-  const permissions = await getCurrentUserPermissions();
+  const { permissions, council, admin } = await getCurrentActingCouncilContext({
+    requireAdmin: true,
+    redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
+  });
 
-  if (!permissions.authUser) {
-    redirect('/login');
-  }
-
-  if (!permissions.isCouncilAdmin || !permissions.councilId) {
-    redirect('/me');
-  }
-
-  return permissions;
+  return {
+    permissions: { ...permissions, councilId: council.id },
+    admin,
+  };
 }
 
 function rangesOverlap(
@@ -92,7 +91,7 @@ function buildCouncilOfficerActionFormData(formData: FormData) {
 }
 
 export async function addOfficerTermAction(formData: FormData) {
-  const permissions = await requireCouncilAdmin();
+  const { permissions, admin } = await requireCouncilAdmin();
   const nextFormData = buildCouncilOfficerActionFormData(formData);
   const personId = textEntry(nextFormData, 'person_id');
   const officeScopeCode = textEntry(nextFormData, 'office_scope_code') as OfficerScopeCode | null;
@@ -110,7 +109,6 @@ export async function addOfficerTermAction(formData: FormData) {
   const endYear = endYearValue ? Number(endYearValue) : null;
   const rank = rankValue ? Number(rankValue) : null;
   const option = getOfficerRoleOption(officeScopeCode as OfficerScopeCode, officeCode as string);
-  const admin = createAdminClient();
 
   const { data: existingTerms, error: existingTermsError } = await admin
     .from('person_officer_terms')
@@ -167,7 +165,7 @@ export async function addOfficerTermAction(formData: FormData) {
 }
 
 export async function deleteOfficerTermAction(formData: FormData) {
-  const permissions = await requireCouncilAdmin();
+  const { permissions, admin } = await requireCouncilAdmin();
   const termId = textEntry(formData, 'term_id');
   const personId = textEntry(formData, 'person_id');
   const returnTo = textEntry(formData, 'return_to') ?? (personId ? `/members/${personId}/edit` : '/members');
@@ -176,7 +174,6 @@ export async function deleteOfficerTermAction(formData: FormData) {
     redirectToPath(returnTo, { error: 'We could not tell which officer term to remove.' });
   }
 
-  const admin = createAdminClient();
   const { error } = await admin
     .from('person_officer_terms')
     .delete()

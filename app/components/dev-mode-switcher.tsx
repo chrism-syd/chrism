@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useRouter } from 'next/navigation'
@@ -15,7 +14,11 @@ type Props = {
   selectedMode: 'normal' | 'admin' | 'member'
 }
 
-export default function DevModeSwitcher({ organizations, selectedOrganizationId, selectedMode }: Props) {
+export default function DevModeSwitcher({
+  organizations,
+  selectedOrganizationId,
+  selectedMode,
+}: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [organizationId, setOrganizationId] = useState(selectedOrganizationId ?? '')
@@ -24,26 +27,32 @@ export default function DevModeSwitcher({ organizations, selectedOrganizationId,
     const response = await fetch('/super-admin/context', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, organizationId: mode === 'normal' ? null : organizationId || null }),
+      body: JSON.stringify({
+        mode,
+        organizationId: mode === 'normal' ? null : organizationId || null,
+      }),
     })
+
     if (!response.ok) return
 
+    const destination = mode === 'member' ? '/spiritual' : '/'
     startTransition(() => {
-      if (mode === 'member') {
-        router.push('/spiritual')
-      } else {
-        router.push('/')
-      }
+      router.push(destination)
       router.refresh()
     })
   }
 
   return (
     <div className="qv-dev-mode-panel">
-      <h3 className="qv-dev-mode-title">Organization view</h3>
+      <h3 className="qv-dev-mode-title">Dev mode</h3>
       <label className="qv-control">
-        <span className="qv-label">Organization</span>
-        <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="qv-dev-mode-select">
+        <span className="qv-label">Preview organization</span>
+        <select
+          value={organizationId}
+          onChange={(event) => setOrganizationId(event.target.value)}
+          className="qv-dev-mode-select"
+          disabled={isPending}
+        >
           <option value="">Choose an organization</option>
           {organizations.map((organization) => (
             <option key={organization.id} value={organization.id}>
@@ -54,15 +63,30 @@ export default function DevModeSwitcher({ organizations, selectedOrganizationId,
       </label>
 
       <div className="qv-dev-mode-actions">
-        <button type="button" className={selectedMode === 'admin' ? 'qv-button-primary' : 'qv-button-secondary'} disabled={isPending || !organizationId} onClick={() => void apply('admin')}>
+        <button
+          type="button"
+          className={selectedMode === 'admin' ? 'qv-button-primary' : 'qv-button-secondary'}
+          disabled={isPending || !organizationId}
+          onClick={() => void apply('admin')}
+        >
           Admin view
         </button>
-        <button type="button" className={selectedMode === 'member' ? 'qv-button-primary' : 'qv-button-secondary'} disabled={isPending || !organizationId} onClick={() => void apply('member')}>
+        <button
+          type="button"
+          className={selectedMode === 'member' ? 'qv-button-primary' : 'qv-button-secondary'}
+          disabled={isPending || !organizationId}
+          onClick={() => void apply('member')}
+        >
           Spiritual only
         </button>
       </div>
 
-      <button type="button" className={selectedMode === 'normal' ? 'qv-button-primary' : 'qv-button-secondary'} disabled={isPending} onClick={() => void apply('normal')}>
+      <button
+        type="button"
+        className={selectedMode === 'normal' ? 'qv-button-primary' : 'qv-button-secondary'}
+        disabled={isPending}
+        onClick={() => void apply('normal')}
+      >
         Return to my normal access
       </button>
     </div>

@@ -44,6 +44,8 @@ export default async function ProfileChangeReviewDetailPage({
   const { admin, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
   const summary = await getProfileChangeReviewSummary({

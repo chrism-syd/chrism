@@ -10,6 +10,10 @@ type Props = {
   revokeAction: (formData: FormData) => Promise<void>
 }
 
+function canLinkToMemberProfile(item: AdminCarouselItem) {
+  return Boolean(item.personId && item.profileHref)
+}
+
 export default function AdminCarousel({ items, revokeAction }: Props) {
   const [index, setIndex] = useState(0)
   const total = items.length
@@ -37,14 +41,16 @@ export default function AdminCarousel({ items, revokeAction }: Props) {
             borderRadius: 16,
             background: 'var(--bg-sunken)',
             padding: 16,
-            display: 'grid',
+            display: 'flex',
+            flexDirection: 'column',
             gap: 10,
+            minHeight: 264,
           }}
         >
           <div className="qv-detail-label">{current.roleLabel}</div>
           <div className="qv-detail-value">
-            {current.personId ? (
-              <Link href={`/members/${current.personId}`} className="qv-member-link" style={{ display: 'inline' }}>
+            {canLinkToMemberProfile(current) ? (
+              <Link href={current.profileHref as string} className="qv-member-link" style={{ display: 'inline' }}>
                 {current.label}
               </Link>
             ) : (
@@ -54,7 +60,7 @@ export default function AdminCarousel({ items, revokeAction }: Props) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <span className="qv-mini-pill">{current.sourceBadge}</span>
           </div>
-          {current.grantNotes ? <p className="qv-member-meta" style={{ margin: 0 }}>{current.grantNotes}</p> : null}
+          <div style={{ flex: 1, minHeight: 10 }} />
           {current.assignmentId ? (
             <ConfirmActionButton
               triggerLabel="Remove admin"
@@ -63,9 +69,14 @@ export default function AdminCarousel({ items, revokeAction }: Props) {
               confirmLabel="Remove admin"
               danger
               action={revokeAction}
-              hiddenFields={[{ name: 'assignment_id', value: current.assignmentId }]}
+              hiddenFields={[
+                { name: 'assignment_id', value: current.assignmentId },
+                { name: 'assignment_table', value: current.assignmentTable ?? 'organization' },
+              ]}
             />
-          ) : null}
+          ) : (
+            <div style={{ minHeight: 44 }} />
+          )}
         </div>
       ) : null}
 

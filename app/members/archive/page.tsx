@@ -26,7 +26,11 @@ function formatDateTime(value: string | null) {
 }
 
 export default async function ArchivedMembersPage() {
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({ redirectTo: '/members' })
+  const { admin: supabase, council } = await getCurrentActingCouncilContext({
+    redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
+  })
 
   const { data, error } = await supabase
     .from('people')

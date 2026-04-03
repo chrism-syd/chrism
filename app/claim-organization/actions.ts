@@ -1,27 +1,16 @@
 'use server'
 
-import { redirect } from 'next/navigation'
 import {
   insertOrganizationClaimRequest,
   normalizeClaimEmail,
   normalizeClaimText,
 } from '@/lib/organizations/claim-requests'
+import type { ClaimOrganizationActionState } from '@/app/me/claim-organization/action-state'
 
-function redirectToClaimLanding(args: { error?: string | null; notice?: string | null }): never {
-  const params = new URLSearchParams()
-
-  if (args.error) {
-    params.set('error', args.error)
-  }
-
-  if (args.notice) {
-    params.set('notice', args.notice)
-  }
-
-  redirect(params.size > 0 ? `/claim-organization?${params.toString()}` : '/claim-organization')
-}
-
-export async function submitPublicOrganizationClaimAction(formData: FormData) {
+export async function submitPublicOrganizationClaimAction(
+  _previousState: ClaimOrganizationActionState,
+  formData: FormData
+): Promise<ClaimOrganizationActionState> {
   const selectedCouncilId = normalizeClaimText(formData.get('selected_council_id') as string | null)
   const selectedOrganizationId = normalizeClaimText(formData.get('selected_organization_id') as string | null)
   const requestedCouncilNumber = normalizeClaimText(formData.get('requested_council_number') as string | null)
@@ -33,11 +22,11 @@ export async function submitPublicOrganizationClaimAction(formData: FormData) {
   const requestNotes = normalizeClaimText(formData.get('request_notes') as string | null)
 
   if (!requesterName || !requesterEmail) {
-    redirectToClaimLanding({ error: 'Enter your name and email before sending the request.' })
+    return { status: 'error', message: 'Enter your name and email before sending the request.' }
   }
 
   if (!selectedCouncilId && !(requestedCouncilName && requestedCity)) {
-    redirectToClaimLanding({ error: 'Choose a listed council or switch to Request Access before submitting.' })
+    return { status: 'error', message: 'Choose a listed council or switch to Request Access before submitting.' }
   }
 
   try {
@@ -55,8 +44,11 @@ export async function submitPublicOrganizationClaimAction(formData: FormData) {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'We could not submit the request right now.'
-    redirectToClaimLanding({ error: message })
+    return { status: 'error', message }
   }
 
-  redirectToClaimLanding({ notice: 'Request submitted. We will review it before granting access.' })
+  return {
+    status: 'success',
+    message: 'Request submitted. We will review it before granting access.',
+  }
 }

@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context';
 import AppHeader from '@/app/app-header';
 import {
   removeVolunteerSubmission,
   updateHostManualVolunteer,
 } from '@/app/events/actions';
 import RemoveVolunteerButton from '@/app/events/remove-volunteer-button';
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 type VolunteersPageProps = {
   params: Promise<{ id: string }>;
@@ -26,7 +27,7 @@ type EventRow = {
   location_name: string | null;
   location_address: string | null;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   scope_code: 'home_council_only' | 'multi_council';
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting';
   requires_rsvp: boolean;
@@ -99,36 +100,6 @@ type VolunteerRow = {
   sort_order: number;
 };
 
-function formatDateTimeRange(startsAt: string, endsAt: string) {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  if (sameDay) {
-    return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`;
-  }
-
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${dateFormatter.format(
-    end
-  )} ${timeFormatter.format(end)}`;
-}
-
 function formatDateTime(value?: string | null) {
   if (!value) return '—';
 
@@ -180,7 +151,10 @@ function groupDisplayName(name: string, number?: string | null) {
 
 export default async function EventVolunteersPage({ params }: VolunteersPageProps) {
   const { id } = await params;
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({ redirectTo: '/events' });
+  const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({
+    eventId: id,
+    redirectTo: '/events',
+  });
 
   let organization: OrganizationRow | null = null;
 
@@ -309,7 +283,7 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
                 <h1 className="qv-title">Volunteer roster</h1>
                 <p className="qv-subtitle">{event.title}</p>
                 <div style={mutedTextStyle()}>
-                  {formatDateTimeRange(event.starts_at, event.ends_at)}
+                  {formatEventDateTimeRange(event.starts_at, event.ends_at)}
                 </div>
               </div>
 
@@ -571,7 +545,7 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
               <h1 className="qv-title">Volunteer roster</h1>
               <p className="qv-subtitle">{event.title}</p>
               <div style={mutedTextStyle()}>
-                {formatDateTimeRange(event.starts_at, event.ends_at)}
+                {formatEventDateTimeRange(event.starts_at, event.ends_at)}
               </div>
             </div>
 

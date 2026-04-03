@@ -88,6 +88,8 @@ async function getCurrentMemberAdminContext() {
   const { admin: supabase, permissions, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   });
 
   if (!permissions.authUser) {

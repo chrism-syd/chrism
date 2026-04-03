@@ -29,6 +29,8 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
   const { admin, permissions, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
   if (!permissions.authUser) {
@@ -123,6 +125,8 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
   const { admin, permissions, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
   if (!permissions.authUser) {

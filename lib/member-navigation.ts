@@ -21,7 +21,7 @@ type EventRow = {
   id: string
   title: string
   starts_at: string
-  ends_at: string
+  ends_at: string | null
   location_name: string | null
   status_code: string
 }
@@ -39,7 +39,7 @@ export type MemberInvitedEvent = {
   event_id: string
   event_title: string
   starts_at: string
-  ends_at: string
+  ends_at: string | null
   location_name: string | null
   source_label: string
   host_token: string | null
@@ -142,6 +142,10 @@ export async function getPublicMeetingsHref(args: {
   return councilNumber ? `/councils/${councilNumber}/meetings` : null
 }
 
+export function getMemberInvitedEventHref(event: Pick<MemberInvitedEvent, 'host_token'>) {
+  return event.host_token ? `/rsvp/${event.host_token}/event` : null
+}
+
 export async function listMemberInvitedEvents(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
@@ -149,7 +153,7 @@ export async function listMemberInvitedEvents(args: {
 }) {
   const { admin, permissions, limit = 12 } = args
 
-  if (!permissions.authUser || permissions.hasStaffAccess) {
+  if (!permissions.authUser || permissions.canAccessMemberData) {
     return [] as MemberInvitedEvent[]
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
+import FormSubmitButton from '@/app/components/form-submit-button';
 
 type DeleteEventButtonProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -96,14 +97,14 @@ export default function DeleteEventButton({ action }: DeleteEventButtonProps) {
                 Cancel
               </button>
 
-              <button
-                type="submit"
-                formAction={action}
-                className="qv-button-secondary"
-                style={dangerButtonStyle()}
-              >
-                Confirm archive
-              </button>
+              <form action={action}>
+                <FormSubmitButton
+                  idleLabel="Confirm archive"
+                  pendingLabel="Archiving…"
+                  className="qv-button-secondary"
+                  style={dangerButtonStyle()}
+                />
+              </form>
             </div>
           </div>
         </div>

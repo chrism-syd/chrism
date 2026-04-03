@@ -1,177 +1,189 @@
-import { cookies } from 'next/headers'
+export type AccessContextLevel = 'member' | 'admin' | 'manager'
+export type AccessContextSource =
+  | 'linked_person'
+  | 'app_user'
+  | 'council_admin_assignment'
+  | 'organization_admin_assignment'
+  | 'officer_term'
+  | 'parallel_area_access'
+  | 'parallel_event_access'
 
-export const ACTIVE_ACCESS_CONTEXT_COOKIE = 'chrism_active_access_context'
-
-export type CurrentUserAccessContext = {
+export type AccessContextOption = {
   key: string
-  shortLabel: string
-  fullLabel: string
-  accessLevel: 'member' | 'staff'
   organizationId: string | null
   organizationName: string | null
   councilId: string | null
-  localUnitId: string | null
+  councilName: string | null
+  councilNumber: string | null
+  accessLevel: AccessContextLevel
+  label: string
+  shortLabel: string
+  description: string
+  sources: AccessContextSource[]
 }
 
-type PermissionsLike = {
-  isOrganizationMember?: boolean
-  personId?: string | null
-  organizationId?: string | null
-  organizationName?: string | null
-  councilId?: string | null
-  hasStaffAccess?: boolean
-}
-
-type ParallelAccessLike = {
+type CouncilProfile = {
+  id: string
   organization_id: string | null
-  local_unit_id: string | null
-  local_unit_name: string | null
-  can_manage_members: boolean | null
-  can_manage_events: boolean | null
-  can_manage_custom_lists: boolean | null
-  can_manage_claims: boolean | null
-  can_manage_admins: boolean | null
-  can_manage_local_unit_settings: boolean | null
+  name: string | null
+  council_number: string | null
 }
 
-function hasStaffPrivileges(row: ParallelAccessLike) {
-  return Boolean(
-    row.can_manage_members ||
-      row.can_manage_events ||
-      row.can_manage_custom_lists ||
-      row.can_manage_claims ||
-      row.can_manage_admins ||
-      row.can_manage_local_unit_settings
-  )
+type OrganizationProfile = {
+  id: string
+  display_name: string | null
+  preferred_name: string | null
 }
 
-function makeMemberContext(permissions: PermissionsLike): CurrentUserAccessContext | null {
-  if (!permissions.isOrganizationMember && !permissions.personId) {
-    return null
-  }
-
-  const organizationId = permissions.organizationId ?? null
-  const organizationName = permissions.organizationName ?? null
-  const councilId = permissions.councilId ?? null
-
-  return {
-    key: `member:${organizationId ?? councilId ?? 'self'}`,
-    shortLabel: 'Spiritual',
-    fullLabel: organizationName
-      ? `${organizationName} spiritual view`
-      : 'Spiritual view',
-    accessLevel: 'member',
-    organizationId,
-    organizationName,
-    councilId,
-    localUnitId: null,
-  }
+type AccessContextSeed = {
+  organizationId: string | null
+  councilId: string | null
+  accessLevel: AccessContextLevel
+  source: AccessContextSource
 }
 
-function makeStaffContexts(args: {
-  permissions: PermissionsLike
-  rows: ParallelAccessLike[]
-}): CurrentUserAccessContext[] {
-  const { permissions, rows } = args
-  const contexts = new Map<string, CurrentUserAccessContext>()
-
-  for (const row of rows) {
-    if (!hasStaffPrivileges(row)) continue
-
-    const organizationId = row.organization_id ?? permissions.organizationId ?? null
-    const organizationName =
-      row.organization_id && row.organization_id === permissions.organizationId
-        ? permissions.organizationName ?? row.local_unit_name ?? null
-        : row.local_unit_name ?? permissions.organizationName ?? null
-
-    const key = `staff:${organizationId ?? 'org'}:${row.local_unit_id ?? 'unit'}`
-    if (contexts.has(key)) continue
-
-    contexts.set(key, {
-      key,
-      shortLabel: row.local_unit_name?.trim() || organizationName || 'Organization',
-      fullLabel:
-        row.local_unit_name?.trim() || organizationName
-          ? `${row.local_unit_name?.trim() || organizationName} admin view`
-          : 'Organization admin view',
-      accessLevel: 'staff',
-      organizationId,
-      organizationName,
-      councilId:
-        organizationId && organizationId === permissions.organizationId
-          ? permissions.councilId ?? null
-          : null,
-      localUnitId: row.local_unit_id ?? null,
-    })
-  }
-
-  if (contexts.size === 0 && permissions.hasStaffAccess) {
-    const organizationId = permissions.organizationId ?? null
-    const organizationName = permissions.organizationName ?? null
-    const councilId = permissions.councilId ?? null
-    const key = `staff:${organizationId ?? councilId ?? 'default'}:default`
-
-    contexts.set(key, {
-      key,
-      shortLabel: organizationName || 'Organization',
-      fullLabel: organizationName ? `${organizationName} admin view` : 'Organization admin view',
-      accessLevel: 'staff',
-      organizationId,
-      organizationName,
-      councilId,
-      localUnitId: null,
-    })
-  }
-
-  return [...contexts.values()]
+const ACCESS_LEVEL_PRIORITY: Record<AccessContextLevel, number> = {
+  manager: 3,
+  admin: 2,
+  member: 1,
 }
 
-export function buildAvailableAccessContexts(args: {
-  permissions: PermissionsLike
-  rows: ParallelAccessLike[]
-}): CurrentUserAccessContext[] {
-  const memberContext = makeMemberContext(args.permissions)
-  const staffContexts = makeStaffContexts(args)
-
-  return memberContext ? [memberContext, ...staffContexts] : staffContexts
+function clean(value?: string | null) {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
 }
 
-export function getDefaultAccessContext(args: {
-  contexts: CurrentUserAccessContext[]
-  preferredKey?: string | null
-}): CurrentUserAccessContext | null {
-  const { contexts, preferredKey } = args
-
-  if (preferredKey) {
-    const preferred = contexts.find((context) => context.key === preferredKey)
-    if (preferred) return preferred
-  }
-
-  return contexts[0] ?? null
+function organizationLabel(organization?: Pick<OrganizationProfile, 'preferred_name' | 'display_name'> | null) {
+  return clean(organization?.preferred_name) ?? clean(organization?.display_name) ?? null
 }
 
-export async function getStoredAccessContextKey() {
-  const cookieStore = await cookies()
-  return cookieStore.get(ACTIVE_ACCESS_CONTEXT_COOKIE)?.value ?? null
+function councilLabel(council?: Pick<CouncilProfile, 'name' | 'council_number'> | null) {
+  if (!council) return null
+  const name = clean(council.name)
+  const councilNumber = clean(council.council_number)
+  if (name && councilNumber) return `${name} (${councilNumber})`
+  return name ?? (councilNumber ? `Council ${councilNumber}` : null)
 }
 
-export async function setStoredAccessContextKey(contextKey: string | null) {
-  const cookieStore = await cookies()
+function accessLevelLabel(accessLevel: AccessContextLevel) {
+  if (accessLevel === 'manager') return 'Manager'
+  if (accessLevel === 'admin') return 'Admin'
+  return 'Member'
+}
 
-  if (!contextKey) {
-    cookieStore.delete(ACTIVE_ACCESS_CONTEXT_COOKIE)
-    return
-  }
+export function buildAccessContextKey(args: {
+  organizationId?: string | null
+  councilId?: string | null
+  accessLevel: AccessContextLevel
+}) {
+  return [args.organizationId ?? 'org:none', args.councilId ?? 'council:none', args.accessLevel].join('::')
+}
 
-  cookieStore.set(ACTIVE_ACCESS_CONTEXT_COOKIE, contextKey, {
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: false,
+export function describeAccessContext(option: {
+  organizationName?: string | null
+  councilName?: string | null
+  councilNumber?: string | null
+  accessLevel: AccessContextLevel
+}) {
+  const role = accessLevelLabel(option.accessLevel)
+  const council = councilLabel({ name: option.councilName ?? null, council_number: option.councilNumber ?? null })
+  const organization = clean(option.organizationName)
+
+  if (council && organization) return `${role} • ${organization} • ${council}`
+  if (council) return `${role} • ${council}`
+  if (organization) return `${role} • ${organization}`
+  return role
+}
+
+export function sortAccessContexts(contexts: AccessContextOption[]) {
+  return [...contexts].sort((left, right) => {
+    const levelDelta = ACCESS_LEVEL_PRIORITY[right.accessLevel] - ACCESS_LEVEL_PRIORITY[left.accessLevel]
+    if (levelDelta !== 0) return levelDelta
+
+    const orgCompare = (left.organizationName ?? '').localeCompare(right.organizationName ?? '')
+    if (orgCompare !== 0) return orgCompare
+
+    const councilCompare = (left.councilNumber ?? left.councilName ?? '').localeCompare(
+      right.councilNumber ?? right.councilName ?? ''
+    )
+    if (councilCompare !== 0) return councilCompare
+
+    return left.key.localeCompare(right.key)
   })
 }
 
-export async function getCurrentAreaContextCookieValues() {
-  return {
-    currentAccessContextKey: await getStoredAccessContextKey(),
+export function pickDefaultAccessContext(contexts: AccessContextOption[]) {
+  return sortAccessContexts(contexts)[0] ?? null
+}
+
+export function buildAccessContexts(args: {
+  seeds: AccessContextSeed[]
+  councils: CouncilProfile[]
+  organizations: OrganizationProfile[]
+}) {
+  const councilMap = new Map(args.councils.map((council) => [council.id, council]))
+  const organizationMap = new Map(args.organizations.map((organization) => [organization.id, organization]))
+  const merged = new Map<string, Omit<AccessContextOption, 'label' | 'shortLabel' | 'description'>>()
+
+  for (const seed of args.seeds) {
+    const council = seed.councilId ? councilMap.get(seed.councilId) ?? null : null
+    const organizationId = seed.organizationId ?? council?.organization_id ?? null
+    const organization = organizationId ? organizationMap.get(organizationId) ?? null : null
+    const key = buildAccessContextKey({
+      organizationId,
+      councilId: seed.councilId ?? council?.id ?? null,
+      accessLevel: seed.accessLevel,
+    })
+
+    const existing = merged.get(key)
+    if (existing) {
+      if (!existing.sources.includes(seed.source)) existing.sources.push(seed.source)
+      continue
+    }
+
+    merged.set(key, {
+      key,
+      organizationId,
+      organizationName: organizationLabel(organization),
+      councilId: seed.councilId ?? council?.id ?? null,
+      councilName: clean(council?.name),
+      councilNumber: clean(council?.council_number),
+      accessLevel: seed.accessLevel,
+      sources: [seed.source],
+    })
   }
+
+  const deduped = new Map<string, Omit<AccessContextOption, 'label' | 'shortLabel' | 'description'>>()
+
+  for (const option of merged.values()) {
+    const identityKey = [option.organizationId ?? 'org:none', option.councilId ?? 'council:none'].join('::')
+    const existing = deduped.get(identityKey)
+
+    if (!existing || ACCESS_LEVEL_PRIORITY[option.accessLevel] > ACCESS_LEVEL_PRIORITY[existing.accessLevel]) {
+      deduped.set(identityKey, option)
+      continue
+    }
+
+    if (ACCESS_LEVEL_PRIORITY[option.accessLevel] === ACCESS_LEVEL_PRIORITY[existing.accessLevel]) {
+      for (const source of option.sources) {
+        if (!existing.sources.includes(source)) existing.sources.push(source)
+      }
+    }
+  }
+
+  return sortAccessContexts(
+    [...deduped.values()].map((option) => {
+      const label = describeAccessContext(option)
+      const shortLabel = option.organizationName ?? councilLabel({ name: option.councilName, council_number: option.councilNumber }) ?? accessLevelLabel(option.accessLevel)
+      const scopeLabel = option.councilId
+        ? councilLabel({ name: option.councilName, council_number: option.councilNumber })
+        : option.organizationName
+      return {
+        ...option,
+        label,
+        shortLabel,
+        description: scopeLabel ? `${accessLevelLabel(option.accessLevel)} access for ${scopeLabel}` : label,
+      }
+    })
+  )
 }

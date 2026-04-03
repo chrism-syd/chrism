@@ -6,6 +6,7 @@ import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendOrganizationClaimReviewEmail } from '@/lib/email/organization-claim-review'
 import { normalizeClaimEmail, normalizeClaimText } from '@/lib/organizations/claim-requests'
+import { saveOrganizationAdminAssignment } from '@/lib/organizations/admin-assignments'
 
 function redirectToQueue(args: { error?: string | null }): never {
   const params = new URLSearchParams()
@@ -49,49 +50,70 @@ export async function approveOrganizationClaimAction(formData: FormData) {
   if (claimError) redirectToQueue({ error: claimError.message })
   if (!claim) redirectToQueue({ error: 'Claim request not found.' })
   if (claim.status_code !== 'pending') redirectToQueue({ error: 'That claim is no longer pending.' })
-  if (!claim.organization_id) {
+
+  const { data: councilContext, error: councilContextError } = claim.council_id
+    ? await admin.from('councils').select('organization_id').eq('id', claim.council_id).maybeSingle()
+    : { data: null, error: null }
+
+  if (councilContextError) redirectToQueue({ error: councilContextError.message })
+
+  const effectiveOrganizationId = councilContext?.organization_id ?? claim.organization_id ?? null
+
+  if (!effectiveOrganizationId) {
     redirectToQueue({ error: 'This request is not tied to a listed council yet. Seed the council first, then review again.' })
   }
 
   const normalizedEmail = normalizeClaimEmail(claim.requester_email)
-  const filters = [
+  const identityFilters = [
     claim.requested_by_auth_user_id ? `user_id.eq.${claim.requested_by_auth_user_id}` : '',
     claim.requested_by_person_id ? `person_id.eq.${claim.requested_by_person_id}` : '',
     normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
   ].filter(Boolean)
 
-  const { data: existingAssignments, error: lookupError } = await admin
-    .from('organization_admin_assignments')
-    .select('id')
-    .eq('organization_id', claim.organization_id)
-    .or(filters.join(','))
-    .limit(5)
+  const [existingOrganizationAssignments, existingCouncilAssignments] = await Promise.all([
+    identityFilters.length > 0
+      ? admin
+          .from('organization_admin_assignments')
+          .select('id, is_active')
+          .eq('organization_id', effectiveOrganizationId)
+          .or(identityFilters.join(','))
+          .limit(5)
+      : Promise.resolve({ data: [] as { id: string; is_active: boolean }[] | null, error: null }),
+    claim.council_id && identityFilters.length > 0
+      ? admin
+          .from('council_admin_assignments')
+          .select('id, is_active')
+          .eq('council_id', claim.council_id)
+          .or(identityFilters.join(','))
+          .limit(5)
+      : Promise.resolve({ data: [] as { id: string; is_active: boolean }[] | null, error: null }),
+  ])
 
-  if (lookupError) redirectToQueue({ error: lookupError.message })
+  if (existingOrganizationAssignments.error) redirectToQueue({ error: existingOrganizationAssignments.error.message })
+  if (existingCouncilAssignments.error) redirectToQueue({ error: existingCouncilAssignments.error.message })
 
-  const payload = {
-    organization_id: claim.organization_id,
-    user_id: claim.requested_by_auth_user_id,
-    person_id: claim.requested_by_person_id,
-    grantee_email: normalizedEmail,
-    is_active: true,
-    source_code: 'approved_claim',
-    organization_claim_request_id: claim.id,
-    grant_notes: reviewNotes,
-    revoked_at: null,
-    revoked_by_user_id: null,
-    revoked_notes: null,
-    created_by_user_id: permissions.authUser!.id,
-    updated_by_user_id: permissions.authUser!.id,
+  const alreadyHasOrganizationAdmin = (existingOrganizationAssignments.data ?? []).some((assignment) => assignment.is_active)
+  const alreadyHasCouncilAdmin = (existingCouncilAssignments.data ?? []).some((assignment) => assignment.is_active)
+
+  if (alreadyHasOrganizationAdmin || alreadyHasCouncilAdmin) {
+    redirectToQueue({ error: 'This requester already has admin access for that organization.' })
   }
 
-  const targetId = existingAssignments?.[0]?.id ?? null
-  const mutation = targetId
-    ? admin.from('organization_admin_assignments').update(payload).eq('id', targetId)
-    : admin.from('organization_admin_assignments').insert(payload)
-
-  const { error: saveError } = await mutation
-  if (saveError) redirectToQueue({ error: saveError.message })
+  try {
+    await saveOrganizationAdminAssignment({
+      organizationId: effectiveOrganizationId,
+      actorUserId: permissions.authUser!.id,
+      personId: claim.requested_by_person_id,
+      userId: claim.requested_by_auth_user_id,
+      granteeEmail: normalizedEmail,
+      sourceCode: 'approved_claim',
+      claimRequestId: claim.id,
+      grantNotes: reviewNotes,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not save admin access.'
+    redirectToQueue({ error: message })
+  }
 
   const { error: updateError } = await admin
     .from('organization_claim_requests')

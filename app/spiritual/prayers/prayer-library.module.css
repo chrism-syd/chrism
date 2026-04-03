@@ -1,197 +1,202 @@
-.page {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(202, 167, 102, 0.16), transparent 34%),
-    linear-gradient(180deg, #faf8f4 0%, #f3ece3 52%, #efe7dc 100%);
-  color: #342a24;
-}
-
 .shell {
-  width: min(1100px, calc(100vw - 40px));
-  margin: 0 auto;
-  padding: 24px 0 72px;
+  gap: 28px;
 }
 
-.heroCard {
-  display: grid;
-  gap: 14px;
-  margin-top: 28px;
-  padding: clamp(28px, 4vw, 44px);
-  border-radius: 30px;
-  border: 1px solid rgba(132, 108, 79, 0.18);
-  background: linear-gradient(180deg, rgba(255, 251, 245, 0.95), rgba(247, 239, 228, 0.9));
-  box-shadow: 0 22px 60px rgba(52, 42, 36, 0.08);
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.82rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #8d6b42;
+.hero {
+  gap: 0;
 }
 
 .heroTitle {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  max-width: 8ch;
 }
 
-.heroBody {
-  margin: 0;
-  max-width: 760px;
-  font-size: 1.02rem;
-  line-height: 1.8;
-  color: #5a4a3f;
-}
-
-.librarySection {
-  margin-top: 28px;
+.libraryStack {
   display: grid;
-  gap: 22px;
+  gap: 28px;
 }
 
-.controlsRow {
+.libraryIntro,
+.filterCard,
+.emptyCard,
+.groupSection {
+  min-width: 0;
+}
+
+.libraryIntro,
+.filterCard,
+.emptyCard {
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--spiritual-rule);
+}
+
+.libraryIntroRow,
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.libraryToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.libraryToggle:hover {
+  border-color: color-mix(in srgb, var(--spiritual-accent) 40%, var(--spiritual-rule));
+  color: var(--spiritual-accent);
+  background: color-mix(in srgb, var(--spiritual-paper-strong) 72%, white);
+}
+
+.libraryPanel {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.7fr);
+  gap: 34px;
+}
+
+.filterControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
   gap: 16px;
-  align-items: end;
-}
-
-.searchControl,
-.filterControl {
-  display: grid;
-  gap: 8px;
-}
-
-.controlLabel {
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #7d6a5b;
 }
 
 .searchInput,
-.filterSelect {
-  height: 48px;
-  border-radius: 16px;
-  border: 1px solid rgba(132, 108, 79, 0.2);
-  background: rgba(255, 255, 255, 0.88);
+.typeSelect {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 999px;
+  background: var(--spiritual-paper-strong);
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-sans);
+  font-size: 15px;
   padding: 0 16px;
-  color: #342a24;
-  font-size: 0.98rem;
 }
 
 .searchInput::placeholder {
-  color: #9b8a7b;
+  color: color-mix(in srgb, var(--spiritual-muted) 78%, transparent);
 }
 
-.cardGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+.filterMeta,
+.groupMeta,
+.emptyCopy {
+  margin: 0;
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
 }
 
-.cardLink {
-  text-decoration: none;
-  color: inherit;
-}
-
-.prayerCard {
-  display: grid;
-  gap: 12px;
-  height: 100%;
-  padding: 24px;
-  border-radius: 24px;
-  border: 1px solid rgba(132, 108, 79, 0.14);
-  background: rgba(255, 252, 247, 0.92);
-  box-shadow: 0 18px 50px rgba(52, 42, 36, 0.06);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-}
-
-.prayerCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 60px rgba(52, 42, 36, 0.1);
-  border-color: rgba(141, 107, 66, 0.28);
-}
-
-.cardHeader {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.cardBadge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(196, 159, 103, 0.18);
-  color: #7c5b32;
-  font-size: 0.78rem;
+.filterMeta {
+  font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
+.groupSection {
+  display: grid;
+  gap: 14px;
+}
+
+.groupTitle,
+.emptyTitle,
 .cardTitle {
   margin: 0;
-  font-size: 1.35rem;
-  line-height: 1.2;
+  color: var(--spiritual-ink);
 }
 
-.cardBody {
-  margin: 0;
-  color: #5d4b40;
-  line-height: 1.7;
+.groupTitle {
+  font-family: var(--spiritual-serif);
+  font-size: clamp(1.72rem, 1.58rem + 0.2vw, 1.96rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
 }
 
-.cardAction {
-  margin-top: auto;
-  color: #7c5b32;
-  font-weight: 600;
+.groupMeta {
+  font-size: 13px;
 }
 
-.emptyState {
+.cardGrid {
   display: grid;
-  gap: 8px;
-  padding: 36px;
-  border-radius: 24px;
-  border: 1px dashed rgba(132, 108, 79, 0.24);
-  background: rgba(255, 252, 247, 0.72);
-  text-align: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
 }
 
-.emptyState h2,
-.emptyState p {
-  margin: 0;
+.prayerCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--spiritual-rule);
+  color: inherit;
+  text-decoration: none;
+  transition: color 120ms ease, transform 120ms ease;
 }
 
-.emptyState p {
-  color: #5d4b40;
+.prayerCard:hover {
+  color: var(--spiritual-accent);
+  transform: translateX(2px);
 }
 
-@media (max-width: 960px) {
+.cardTitle {
+  font-family: var(--spiritual-serif);
+  font-size: clamp(1.35rem, 1.22rem + 0.2vw, 1.55rem);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+.cardArrow {
+  flex: none;
+  color: var(--spiritual-accent);
+  font-size: 18px;
+}
+
+.emptyTitle {
+  font-family: var(--spiritual-serif);
+  font-size: 2rem;
+  line-height: 1.08;
+}
+
+.emptyCopy {
+  margin-top: 10px;
+  max-width: 40ch;
+  line-height: 1.68;
+}
+
+@media (max-width: 920px) {
   .cardGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 720px) {
   .shell {
-    width: min(100vw - 24px, 100%);
-    padding-bottom: 48px;
+    gap: 24px;
   }
 
-  .heroCard {
-    border-radius: 24px;
+  .libraryIntroRow,
+  .groupHeader {
+    flex-direction: column;
+    align-items: start;
   }
 
-  .controlsRow {
+  .filterControls {
     grid-template-columns: 1fr;
   }
 
-  .cardGrid {
-    grid-template-columns: 1fr;
+  .cardTitle {
+    font-size: 1.28rem;
   }
 }

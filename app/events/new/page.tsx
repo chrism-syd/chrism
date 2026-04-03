@@ -11,8 +11,9 @@ type OrganizationRow = {
 
 export default async function NewEventPage() {
   const { admin, council } = await getCurrentActingCouncilContext({
-    requireAdmin: true,
     redirectTo: '/events',
+    areaCode: 'events',
+    minimumAccessLevel: 'manage',
   })
 
   let organization: OrganizationRow | null = null
@@ -46,6 +47,7 @@ export default async function NewEventPage() {
             scope_code: 'home_council_only',
             event_kind_code: 'standard',
             requires_rsvp: false,
+            needs_volunteers: false,
             reminder_enabled: false,
             invited_councils: [{ invited_council_name: '', invited_council_number: '', invite_email: '', invite_contact_name: '' }],
             external_invitees: [{ invitee_name: '', invitee_email: '', invitee_phone: '', invitee_role_label: '', invitee_notes: '' }],

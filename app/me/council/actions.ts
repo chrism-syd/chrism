@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
-import { getOrganizationAdminManagerAccess } from '@/lib/organizations/admin-managers'
+import { isParallelAreaAccessEnabled } from '@/lib/auth/feature-flags'
 import {
   deactivateOrganizationAdminAssignment,
   normalizeAdminGrantEmail,
@@ -45,13 +45,15 @@ function redirectToCouncilPage(args: { error?: string | null; notice?: string | 
   redirect(params.size > 0 ? `/me/council?${params.toString()}` : '/me/council')
 }
 
-async function requireCouncilAdmin() {
+async function requireOrganizationSettingsAccess() {
   const context = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/me',
+    areaCode: 'local_unit_settings',
+    minimumAccessLevel: 'manage',
   })
 
-  if (!context.permissions.organizationId) {
+  if (!context.permissions.organizationId || !context.permissions.canAccessOrganizationSettings) {
     redirect('/me')
   }
 
@@ -59,13 +61,26 @@ async function requireCouncilAdmin() {
 }
 
 async function requireOrganizationAdminManager() {
-  const context = await requireCouncilAdmin()
-  const adminManagerAccess = await getOrganizationAdminManagerAccess({
-    permissions: context.permissions,
-    councilId: context.council.id,
-  })
+  if (isParallelAreaAccessEnabled({ areaCode: 'admins', minimumAccessLevel: 'manage' })) {
+    const adminContext = await getCurrentActingCouncilContext({
+      requireAdmin: true,
+      redirectTo: '/me/council',
+      areaCode: 'admins',
+      minimumAccessLevel: 'manage',
+    })
 
-  if (!adminManagerAccess.canManageAdmins) {
+    if (!adminContext.permissions.organizationId || !adminContext.permissions.canManageAdmins) {
+      redirectToCouncilPage({
+        error: 'Only the current Grand Knight, Financial Secretary, or super admin can manage manual admin access.',
+      })
+    }
+
+    return adminContext
+  }
+
+  const context = await requireOrganizationSettingsAccess()
+
+  if (!context.permissions.canManageAdmins) {
     redirectToCouncilPage({
       error: 'Only the current Grand Knight, Financial Secretary, or super admin can manage manual admin access.',
     })
@@ -139,7 +154,7 @@ async function saveOfficerRoleEmail(args: {
 }
 
 export async function saveOfficerRoleEmailAction(formData: FormData) {
-  const context = await requireCouncilAdmin()
+  const context = await requireOrganizationSettingsAccess()
   const termId = textValue(formData, 'term_id')
   const email = normalizeAdminGrantEmail(textValue(formData, 'official_email'))
 
@@ -220,7 +235,7 @@ function revalidateOfficerSurfaces(personId: string | null) {
 }
 
 export async function updateCouncilDetailsAction(formData: FormData) {
-  const context = await requireCouncilAdmin()
+  const context = await requireOrganizationSettingsAccess()
   const displayName = textValue(formData, 'display_name')
   const preferredName = textValue(formData, 'preferred_name')
 
@@ -353,17 +368,35 @@ export async function revokeCouncilAdminInvitationAction(formData: FormData) {
 export async function revokeCouncilAdminAction(formData: FormData) {
   const context = await requireOrganizationAdminManager()
   const assignmentId = textValue(formData, 'assignment_id')
+  const assignmentTable = textValue(formData, 'assignment_table')
 
   if (!assignmentId) {
     redirectToCouncilPage({ error: 'We could not tell which admin assignment to remove.' })
   }
 
   try {
-    await deactivateOrganizationAdminAssignment({
-      assignmentId,
-      organizationId: context.permissions.organizationId!,
-      actorUserId: context.permissions.authUser!.id,
-    })
+    if (assignmentTable === 'council') {
+      const admin = createAdminClient()
+      const { error } = await admin
+        .from('council_admin_assignments')
+        .update({
+          is_active: false,
+          updated_by_user_id: context.permissions.authUser!.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', assignmentId)
+        .eq('council_id', context.council.id)
+
+      if (error) {
+        throw new Error(error.message)
+      }
+    } else {
+      await deactivateOrganizationAdminAssignment({
+        assignmentId,
+        organizationId: context.permissions.organizationId!,
+        actorUserId: context.permissions.authUser!.id,
+      })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'We could not remove that admin access right now.'
     redirectToCouncilPage({ error: message })
@@ -374,7 +407,7 @@ export async function revokeCouncilAdminAction(formData: FormData) {
 }
 
 export async function addOfficerTermAction(formData: FormData) {
-  const context = await requireCouncilAdmin()
+  const context = await requireOrganizationSettingsAccess()
   const personId = textValue(formData, 'person_id')
   const roleKey = textValue(formData, 'role_key')
   let officeScopeCode = textValue(formData, 'office_scope_code') as OfficerScopeCode | null
@@ -494,7 +527,7 @@ export async function addOfficerTermAction(formData: FormData) {
 }
 
 export async function removeOfficerTermAction(formData: FormData) {
-  const context = await requireCouncilAdmin()
+  const context = await requireOrganizationSettingsAccess()
   const termId = textValue(formData, 'term_id')
 
   if (!termId) {

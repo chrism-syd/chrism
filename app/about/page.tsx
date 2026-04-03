@@ -1,88 +1,177 @@
+import Image from 'next/image'
 import Link from 'next/link'
-import AppHeader from '@/app/app-header'
+import styles from './about.module.css'
 
 export default function AboutPage() {
   return (
     <main className="qv-page">
-      <div className="qv-shell">
-        <AppHeader />
+      <div className={`qv-shell ${styles.aboutShell}`}>
+        <header className={styles.topBar}>
+          <Link href="/" className={styles.brandLink} aria-label="Chrism home">
+            <Image
+              src="/Chrism_horiz.svg"
+              alt="Chrism"
+              width={419}
+              height={98}
+              priority
+              className={styles.brandImage}
+            />
+          </Link>
 
-        <section className="qv-hero-card">
-          <p className="qv-eyebrow">About Chrism</p>
-          <h1 className="qv-title">Built for Catholic ministry</h1>
-          <p className="qv-subtitle">
-            Practical, respectful software for the people doing the work of member care, outreach, and faith formation.
-          </p>
+          <Link href="/login" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
+            Sign in
+          </Link>
+        </header>
+
+        <section className={styles.heroBlock}>
+          <h1 className={styles.heroTitle}>
+            A formation platform
+            <br />
+            with ministry, fellowship,
+            <br />
+            and faith at its core.
+          </h1>
+
+          <div className={styles.heroCopy}>
+            <p className={styles.heroLead}>
+              <strong>Ministries run on care:</strong> volunteers who show up, leaders who remember names,
+              and members who stay connected across seasons of life.
+            </p>
+            <p className={styles.heroBody}>
+              What they rarely have is a simple, affordable tool built to support that work. Enterprise
+              CRM software wasn&apos;t designed for parish life. Spreadsheets don&apos;t scale. And the
+              people doing this work deserve better than cobbled-together workarounds.
+            </p>
+          </div>
         </section>
 
-        <section className="qv-card">
-          <div className="qv-prose-block">
-            <p>Chrism is a member engagement platform built for Catholic ministry.</p>
-            <p>
-              Most ministries run on care: volunteers who show up, leaders who remember names, members who stay connected
-              across seasons of life. What they rarely have is a simple, affordable tool built to support that work.
-              Enterprise CRM software wasn&apos;t designed for parish life. Spreadsheets don&apos;t scale. And the people doing
-              this work deserve better than cobbled-together workarounds.
-            </p>
-            <p>
-              Chrism is being built around two pillars that sit at the heart of Catholic ministry life: community and
-              faith.
-            </p>
-            <p>
-              On the community side, Chrism gives organizations a practical way to manage members, organize events,
-              coordinate volunteers, and stay connected to the people who make ministry work — including those who are
-              active, those who are less able to participate, and those who have drifted away.
-            </p>
-            <p>
-              On the faith side, Chrism is being built to grow into a spiritual companion: a place for prayer, devotion,
-              and guided faith content that can serve both members and the broader parish community.
-            </p>
-            <p>
-              Core member functionality will be free for organizations. The essential tools of member care and
-              engagement should be accessible to every ministry, not just the ones with budget.
-            </p>
-            <p>
-              Over time, Chrism will also become a tool for re-engagement and outreach — helping ministries welcome new
-              people, reconnect with inactive members, and build stronger pathways into parish life.
-            </p>
-
-            <div>
-              <h2 className="qv-section-title">Chrism is designed for real ministry use:</h2>
-              <ul className="qv-prose-list">
-                <li>member directories and records</li>
-                <li>events and volunteer coordination</li>
-                <li>outreach and follow-up through custom lists</li>
-                <li>tools that help ministries care for people who are active, disengaged, homebound, or simply harder to reach</li>
-              </ul>
+        <section className={styles.pillarsSection}>
+          <div className={styles.imageColumn}>
+            <div className={styles.imageFrame}>
+              <Image
+                src="/jonny-gios-QMesAlxmi6g-unsplash.jpg"
+                alt="Large mural text reading you and me"
+                fill
+                className={styles.aboutImage}
+                sizes="(max-width: 900px) 100vw, 42vw"
+              />
             </div>
+            <p className={styles.photoCredit}>
+              Photo by{' '}
+              <a
+                href="https://unsplash.com/@supergios?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Jonny Gios
+              </a>{' '}
+              on{' '}
+              <a
+                href="https://unsplash.com/photos/a-black-and-white-sign-that-says-you-and-me-and-you-and-me-QMesAlxmi6g?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Unsplash
+              </a>
+            </p>
+          </div>
 
+          <div className={styles.pillarsColumn}>
+            <p className={styles.pillarsIntro}>
+              <strong>Chrism is built around pillars that sit at the heart of Catholic ministry life:</strong>
+            </p>
+
+            <div className={styles.pillarStack}>
+              <section className={styles.pillar}>
+                <h2 className={styles.pillarTitle}>Community</h2>
+                <p>
+                  Chrism gives organizations a practical way to manage members, organize events,
+                  coordinate volunteers, and stay connected to the people who make ministry work,
+                  including those who are active, those who are less able to participate, and those
+                  who have drifted away.
+                </p>
+              </section>
+
+              <section className={styles.pillar}>
+                <h2 className={styles.pillarTitle}>Faith</h2>
+                <p>
+                  Chrism is being built to grow into a spiritual companion: a place for prayer,
+                  devotion, and guided faith content that can serve both members and the broader
+                  parish community.
+                </p>
+              </section>
+
+              <section className={styles.pillar}>
+                <h2 className={styles.pillarTitle}>Service</h2>
+                <p>
+                  Chrism supports the charitable work that defines Catholic life: coordinating
+                  volunteers, tracking outreach efforts, and mobilizing members to serve their neighbors.
+                </p>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.freeBand}>
+          <div>
+            <h2 className={styles.freeBandTitle}>
+              Chrism&apos;s core
+              <br />
+              functionality will
+              <br />
+              always be FREE.
+            </h2>
+          </div>
+
+          <div className={styles.freeBandCopy}>
             <p>
-              We are building Chrism to be practical, respectful, and humane: software that supports ministry without
-              trying to replace it.
+              The essential tools of member engagement and care should be accessible to every ministry,
+              not just the ones with a budget.
+            </p>
+            <p>
+              Spiritual practice through daily prayer and devotions shouldn&apos;t start with a paywall.
             </p>
           </div>
         </section>
 
-        <section className="qv-card">
-          <div className="qv-prose-block">
-            <h2 className="qv-section-title">Security and Privacy</h2>
-            <p>Church communities trust us with personal information, and we take that seriously.</p>
-            <p>
-              Chrism is built with secure modern infrastructure, with strong access controls, authenticated access, and
-              careful separation of organizational data. Sensitive member information is only visible to the people who
-              need it to carry out their role.
+        <section className={styles.bottomGrid}>
+          <section className={styles.bottomColumn}>
+            <h2 className={styles.bottomTitle}>
+              Stronger pathways
+              <br />
+              into parish life
+            </h2>
+            <p className={styles.bottomLead}>
+              <strong>
+                Helping ministries welcome new people, reconnect with inactive members, and build
+                stronger pathways into parish life.
+              </strong>
             </p>
-            <p>
-              Privacy isn&apos;t just a policy in Chrism — it&apos;s part of the product itself: limited access, purpose-based
-              visibility, and a strong bias toward protecting member information from unnecessary exposure.
-            </p>
-          </div>
+            <ul className={styles.bulletList}>
+              <li>Member directories and records</li>
+              <li>Event calendars, RSVP and volunteer coordination</li>
+              <li>Outreach and follow-up through custom shareable lists</li>
+            </ul>
+          </section>
 
-          <div className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 20 }}>
-            <Link href="/login" className="qv-button-secondary qv-link-button">
-              Back to sign in
-            </Link>
-          </div>
+          <section className={styles.bottomColumn}>
+            <h2 className={styles.bottomTitle}>
+              Deeper connection
+              <br />
+              with faith
+            </h2>
+            <p className={styles.bottomLead}>
+              <strong>
+                A spiritual companion that helps members build a daily rhythm of prayer and devotion.
+              </strong>
+            </p>
+            <ul className={styles.bulletList}>
+              <li>Daily scripture and reflections</li>
+              <li>Guided Rosary with meditations</li>
+              <li>Spiritual guidance</li>
+              <li>Personal prayer book and prayer intentions</li>
+            </ul>
+          </section>
         </section>
       </div>
     </main>

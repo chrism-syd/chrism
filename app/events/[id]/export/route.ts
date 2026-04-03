@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context';
 
 type RouteContext = {
   params: Promise<{
@@ -12,7 +12,7 @@ type EventRow = {
   council_id: string;
   title: string;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   location_name: string | null;
   location_address: string | null;
   scope_code: 'home_council_only' | 'multi_council';
@@ -131,7 +131,7 @@ function buildBaseRow(event: EventRow): Omit<
   return {
     event_title: event.title,
     event_start: event.starts_at,
-    event_end: event.ends_at,
+    event_end: event.ends_at ?? '',
     location_name: event.location_name ?? '',
     location_address: event.location_address ?? '',
     scope: event.scope_code,
@@ -166,7 +166,8 @@ function exportHeader(): Array<keyof ExportRow> {
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const { admin, council } = await getCurrentActingCouncilContext({
+  const { admin, council } = await getCurrentActingCouncilContextForEvent({
+    eventId: id,
     redirectTo: '/me',
   });
 

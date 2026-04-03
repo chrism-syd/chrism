@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import FormSubmitButton from '@/app/components/form-submit-button';
 
 type HiddenField = {
   name: string;
@@ -152,13 +153,12 @@ export default function ConfirmActionButton(props: ConfirmActionButtonProps) {
                   {hiddenFields.map((field) => (
                     <input key={`${field.name}:${field.value}`} type="hidden" name={field.name} value={field.value} />
                   ))}
-                  <button
-                    type="submit"
+                  <FormSubmitButton
+                    idleLabel={confirmLabel}
+                    pendingLabel="Working…"
                     className={confirmClassName}
                     style={{ ...(toneStyle ?? {}), ...(props.confirmStyle ?? {}) }}
-                  >
-                    {confirmLabel}
-                  </button>
+                  />
                 </form>
               ) : (
                 <button

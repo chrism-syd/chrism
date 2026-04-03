@@ -7,27 +7,24 @@ import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import {
   addOfficerTermAction,
-  inviteCouncilAdminByEmailAction,
   grantCouncilAdminAction,
+  inviteCouncilAdminByEmailAction,
   removeOfficerTermAction,
   revokeCouncilAdminAction,
   revokeCouncilAdminInvitationAction,
   saveOfficerRoleEmailAction,
   updateCouncilDetailsAction,
 } from './actions'
-import { getCurrentUserPermissions } from '@/lib/auth/permissions'
-import { createAdminClient } from '@/lib/supabase/admin'
 import {
   formatOfficerLabel,
-  getAutomaticCouncilAdminRoleLabels,
   isAutomaticCouncilAdminTerm,
   OFFICER_ROLE_OPTIONS,
-  type OfficerRoleOption,
+  type OfficerScopeCode,
 } from '@/lib/members/officer-roles'
 import { decryptPeopleRecords } from '@/lib/security/pii'
-import { getOrganizationAdminManagerAccess } from '@/lib/organizations/admin-managers'
 import AdminCarousel from './admin-carousel'
 import OfficerCarousel from './officer-carousel'
+import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -41,43 +38,57 @@ type OrganizationRow = {
   logo_alt_text: string | null
 }
 
-type MemberRow = {
+type PersonRow = {
   id: string
   first_name: string
   last_name: string
-  preferred_name: string | null
+  nickname: string | null
   email: string | null
+  primary_relationship_code: string
+  council_id: string | null
 }
 
 type AdminAssignmentRow = {
   id: string
   person_id: string | null
+  user_id: string | null
   grantee_email: string | null
-  source_code: string | null
+  source_code: 'manual_assignment' | 'approved_claim' | 'admin_invitation' | null
   grant_notes: string | null
 }
 
-type AdminInvitationRow = {
+type LegacyCouncilAdminAssignmentRow = {
   id: string
-  invitee_name: string | null
-  invitee_email: string
+  person_id: string | null
+  user_id: string | null
+  grantee_email: string | null
   notes: string | null
+}
+
+type PendingInvitationRow = {
+  id: string
+  invitee_email: string
+  invitee_name: string | null
+  notes: string | null
+  status_code: 'pending' | 'accepted' | 'revoked' | 'expired'
   expires_at: string
 }
 
 type OfficerTermRow = {
   id: string
   person_id: string
-  office_scope_code: string
+  office_scope_code: OfficerScopeCode
   office_code: string
   office_rank: number | null
   service_start_year: number
   service_end_year: number | null
-  office_label: string | null
+  office_label: string
 }
 
 type OfficerRoleEmailRow = {
-  office_scope_code: string
+  id: string
+  council_id: string
+  office_scope_code: OfficerScopeCode
   office_code: string
   office_rank: number | null
   email: string
@@ -86,11 +97,12 @@ type OfficerRoleEmailRow = {
 export type AdminCarouselItem = {
   id: string
   assignmentId: string | null
+  assignmentTable: 'organization' | 'council' | null
   personId: string | null
+  profileHref: string | null
   label: string
   roleLabel: string
   sourceBadge: string
-  grantNotes: string | null
   removeDescription: string
 }
 
@@ -103,13 +115,25 @@ export type OfficerCarouselItem = {
   officeEmail: string
 }
 
-function memberName(member: MemberRow) {
-  return member.preferred_name?.trim() || `${member.first_name} ${member.last_name}`.trim()
+function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'>) {
+  const preferred = member.nickname?.trim()
+  const lastName = member.last_name.trim()
+  const firstName = member.first_name.trim()
+
+  if (preferred) {
+    return `${preferred} ${lastName}`.trim()
+  }
+
+  return `${firstName} ${lastName}`.trim()
 }
 
 function normalizeEmail(value: string | null | undefined) {
-  const trimmed = value?.trim().toLowerCase()
-  return trimmed && trimmed.length > 0 ? trimmed : null
+  const trimmed = value?.trim().toLowerCase() ?? ''
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function isLocalMemberProfile(person: PersonRow | null | undefined, councilId: string) {
+  return Boolean(person && person.council_id === councilId && person.primary_relationship_code === 'member')
 }
 
 function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
@@ -117,44 +141,28 @@ function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'of
   switch (key) {
     case 'council:grand_knight':
       return 1
-    case 'council:deputy_grand_knight':
-      return 2
     case 'council:financial_secretary':
+      return 2
+    case 'council:deputy_grand_knight':
       return 3
     case 'council:chancellor':
       return 4
     case 'council:recorder':
       return 5
-    case 'council:warden':
-      return 6
     case 'council:treasurer':
-      return 7
+      return 6
     case 'council:advocate':
+      return 7
+    case 'council:warden':
       return 8
+    case 'council:inside_guard':
+      return 9
+    case 'council:outside_guard':
+      return 10
     case 'council:trustee':
-      return 9 + (term.office_rank ?? 0)
-    case 'assembly:faithful_navigator':
-      return 30
-    case 'assembly:faithful_captain':
-      return 31
-    case 'assembly:faithful_purser':
-      return 32
-    case 'assembly:faithful_admiral':
-      return 33
-    case 'assembly:faithful_pilot':
-      return 34
-    case 'assembly:faithful_scribe':
-      return 35
-    case 'assembly:faithful_comptroller':
-      return 36
-    case 'assembly:faithful_trustee':
-      return 37 + (term.office_rank ?? 0)
-    case 'state:district_master':
-      return 60
-    case 'state:district_deputy':
-      return 61
+      return 20 + (term.office_rank ?? 0)
     default:
-      return 999
+      return 100
   }
 }
 
@@ -168,7 +176,7 @@ function adminSortPriority(labels: string[]) {
 
 function assignmentSourceLabel(sourceCode: AdminAssignmentRow['source_code']) {
   if (sourceCode === 'approved_claim') return 'Approved claim'
-  if (sourceCode === 'admin_invitation') return 'Accepted invite'
+  if (sourceCode === 'admin_invitation') return 'Admin invite'
   return 'Manual assignment'
 }
 
@@ -180,69 +188,68 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function CouncilDetailsPage({ searchParams }: PageProps) {
-  const permissions = await getCurrentUserPermissions()
-  const admin = createAdminClient()
-  const params = searchParams ? await searchParams : {}
-  const errorMessage = typeof params.error === 'string' ? params.error : null
-  const noticeMessage = typeof params.notice === 'string' ? params.notice : null
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
+  const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
 
-  const context = await getCurrentActingCouncilContext({
-    permissions,
-    supabaseAdmin: admin,
-    requireAdmin: false,
+  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+    requireAdmin: true,
     redirectTo: '/me',
+    areaCode: 'local_unit_settings',
+    minimumAccessLevel: 'manage',
   })
 
   if (!permissions.organizationId) redirect('/me')
 
-  const adminManagerAccess = await getOrganizationAdminManagerAccess({
-    permissions,
-    councilId: context.council.id,
-  })
-
-  if (!adminManagerAccess.canManageAdmins) redirect('/me')
+  if (!permissions.canAccessOrganizationSettings) redirect('/me')
 
   const [
-    { data: memberData },
+    { data: peopleData },
     { data: assignmentData },
-    { data: invitationData },
-    { data: officerTermData },
+    { data: legacyCouncilAssignmentData },
+    { data: officerData },
     { data: officerRoleEmailData },
+    { data: pendingInvitationData },
     { data: organizationData },
   ] = await Promise.all([
     admin
       .from('people')
-      .select('id, first_name, last_name, preferred_name, email')
-      .eq('council_id', context.council.id)
-      .eq('primary_relationship_code', 'member')
+      .select('id, first_name, last_name, nickname, email, primary_relationship_code, council_id')
+      .eq('council_id', council.id)
       .is('archived_at', null)
+      .is('merged_into_person_id', null)
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true }),
     admin
       .from('organization_admin_assignments')
-      .select('id, person_id, grantee_email, source_code, grant_notes')
+      .select('id, person_id, user_id, grantee_email, source_code, grant_notes')
       .eq('organization_id', permissions.organizationId)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
     admin
-      .from('organization_admin_invitations')
-      .select('id, invitee_name, invitee_email, notes, expires_at')
-      .eq('organization_id', permissions.organizationId)
-      .is('accepted_at', null)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false }),
+      .from('council_admin_assignments')
+      .select('id, person_id, user_id, grantee_email, notes')
+      .eq('council_id', council.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true }),
     admin
       .from('person_officer_terms')
       .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, office_label')
-      .eq('council_id', context.council.id)
+      .eq('council_id', council.id)
       .is('service_end_year', null)
       .order('service_start_year', { ascending: false }),
     admin
       .from('officer_role_emails')
-      .select('office_scope_code, office_code, office_rank, email')
-      .eq('council_id', context.council.id)
-      .eq('is_active', true),
+      .select('id, council_id, office_scope_code, office_code, office_rank, email')
+      .eq('council_id', council.id)
+      .eq('is_active', true)
+      .order('office_scope_code', { ascending: true }),
+    admin
+      .from('organization_admin_invitations')
+      .select('id, invitee_email, invitee_name, notes, status_code, expires_at')
+      .eq('organization_id', permissions.organizationId)
+      .eq('status_code', 'pending')
+      .order('created_at', { ascending: false }),
     admin
       .from('organizations')
       .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
@@ -250,24 +257,40 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .maybeSingle(),
   ])
 
-  const members = decryptPeopleRecords((memberData as MemberRow[] | null) ?? []) as MemberRow[]
+  const people = decryptPeopleRecords((peopleData as PersonRow[] | null) ?? [])
+  const members = people.filter((person) => person.primary_relationship_code === 'member')
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
-  const pendingInvitations = (invitationData as AdminInvitationRow[] | null) ?? []
-  const officerTerms = (officerTermData as OfficerTermRow[] | null) ?? []
+  const legacyCouncilAssignments = (legacyCouncilAssignmentData as LegacyCouncilAdminAssignmentRow[] | null) ?? []
+  const officerTerms = (officerData as OfficerTermRow[] | null) ?? []
   const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
+  const pendingInvitations = (pendingInvitationData as PendingInvitationRow[] | null) ?? []
   const organization = (organizationData as OrganizationRow | null) ?? null
 
-  const memberById = new Map(members.map((member) => [member.id, member]))
-  const memberByEmail = new Map(
-    members
-      .map((member) => [normalizeEmail(member.email), member] as const)
-      .filter(([email]): email is string => Boolean(email))
+  const externalAdminPersonIds = [...new Set([
+    ...assignments.map((assignment) => assignment.person_id).filter((value): value is string => Boolean(value)),
+    ...legacyCouncilAssignments.map((assignment) => assignment.person_id).filter((value): value is string => Boolean(value)),
+  ])].filter((personId) => !people.some((person) => person.id === personId))
+
+  const externalAdminPeopleResult = externalAdminPersonIds.length > 0
+    ? await admin
+        .from('people')
+        .select('id, first_name, last_name, nickname, email, primary_relationship_code, council_id')
+        .in('id', externalAdminPersonIds)
+        .is('archived_at', null)
+    : { data: [] as PersonRow[] }
+
+  const externalAdminPeople = decryptPeopleRecords((externalAdminPeopleResult.data as PersonRow[] | null) ?? [])
+
+  const allKnownPeople = [...people, ...externalAdminPeople].filter(
+    (person, index, rows) => rows.findIndex((candidate) => candidate.id === person.id) === index
   )
 
-  const memberOptions = sortMemberOptions(members.map((member) => ({
-    id: member.id,
-    label: memberName(member),
-  })))
+  const personById = new Map(allKnownPeople.map((person) => [person.id, person]))
+  const personByEmail = new Map(
+    allKnownPeople
+      .map((person) => [normalizeEmail(person.email), person] as const)
+      .filter((entry): entry is [string, PersonRow] => Boolean(entry[0]))
+  )
 
   const officerRoleEmailByKey = new Map(
     officerRoleEmails.map((row) => [
@@ -291,63 +314,132 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     if (!existing.includes(nextLabel)) automaticAdminLabelsByPersonId.set(term.person_id, [...existing, nextLabel])
   }
 
-  const currentAdmins = assignments.map((assignment) => {
-    const matchedMember = assignment.person_id
-      ? memberById.get(assignment.person_id) ?? null
-      : memberByEmail.get(normalizeEmail(assignment.grantee_email) ?? '') ?? null
+  function resolveAssignedPerson(args: {
+    personId?: string | null
+    granteeEmail?: string | null
+  }) {
+    if (args.personId) {
+      return personById.get(args.personId) ?? null
+    }
 
-    const automaticAdminLabels = assignment.person_id
-      ? getAutomaticCouncilAdminRoleLabels({
-          currentOfficerLabels: automaticAdminLabelsByPersonId.get(assignment.person_id) ?? [],
-        })
-      : []
+    const normalizedEmail = normalizeEmail(args.granteeEmail)
+    return normalizedEmail ? personByEmail.get(normalizedEmail) ?? null : null
+  }
 
-    const currentOfficerLabels = assignment.person_id
-      ? currentOfficerLabelsByPersonId.get(assignment.person_id) ?? []
-      : []
+  const manualAdmins = [
+    ...assignments.map((assignment) => ({
+      id: assignment.id,
+      assignmentId: assignment.id,
+      assignmentTable: 'organization' as const,
+      personId: assignment.person_id,
+      userId: assignment.user_id,
+      granteeEmail: assignment.grantee_email,
+      sourceBadge: assignmentSourceLabel(assignment.source_code),
+    })),
+    ...legacyCouncilAssignments.map((assignment) => ({
+      id: `legacy-${assignment.id}`,
+      assignmentId: assignment.id,
+      assignmentTable: 'council' as const,
+      personId: assignment.person_id,
+      userId: assignment.user_id,
+      granteeEmail: assignment.grantee_email,
+      sourceBadge: 'Manual assignment',
+    })),
+  ]
+
+  function manualAdminIdentityKey(assignment: {
+    personId: string | null
+    userId: string | null
+    granteeEmail: string | null
+  }) {
+    if (assignment.personId) return `person:${assignment.personId}`
+    if (assignment.userId) return `user:${assignment.userId}`
+
+    const normalizedEmail = normalizeEmail(assignment.granteeEmail)
+    return normalizedEmail ? `email:${normalizedEmail}` : null
+  }
+
+  const dedupedManualAdmins = new Map<string, (typeof manualAdmins)[number]>()
+  const unkeyedManualAdmins: (typeof manualAdmins)[number][] = []
+
+  for (const assignment of manualAdmins) {
+    const identityKey = manualAdminIdentityKey(assignment)
+    if (!identityKey) {
+      unkeyedManualAdmins.push(assignment)
+      continue
+    }
+
+    const existing = dedupedManualAdmins.get(identityKey)
+    if (!existing) {
+      dedupedManualAdmins.set(identityKey, assignment)
+      continue
+    }
+
+    if (assignment.assignmentTable === 'council' && existing.assignmentTable !== 'council') {
+      dedupedManualAdmins.set(identityKey, assignment)
+      continue
+    }
+
+    if (assignment.assignmentTable === existing.assignmentTable && assignment.assignmentTable === 'organization') {
+      dedupedManualAdmins.set(identityKey, assignment)
+    }
+  }
+
+  const currentAdmins = [...dedupedManualAdmins.values(), ...unkeyedManualAdmins].map((assignment) => {
+    const matchedPerson = resolveAssignedPerson({
+      personId: assignment.personId,
+      granteeEmail: assignment.granteeEmail,
+    })
+    const automaticAdminLabels = matchedPerson ? automaticAdminLabelsByPersonId.get(matchedPerson.id) ?? [] : []
+    const currentOfficerLabels = matchedPerson ? currentOfficerLabelsByPersonId.get(matchedPerson.id) ?? [] : []
 
     return {
       id: assignment.id,
-      assignmentId: assignment.id,
-      personId: assignment.person_id,
-      label:
-        matchedMember
-          ? memberName(matchedMember)
-          : assignment.grantee_email ?? 'Unknown admin',
+      assignmentId: assignment.assignmentId,
+      assignmentTable: assignment.assignmentTable,
+      personId: matchedPerson?.id ?? assignment.personId ?? null,
+      label: matchedPerson ? memberName(matchedPerson) : assignment.granteeEmail ?? 'Manual admin grant',
       automaticAdminLabels,
       currentOfficerLabels,
-      sourceBadge: assignmentSourceLabel(assignment.source_code),
-      grantNotes: assignment.grant_notes,
-      sortPriority: adminSortPriority([...automaticAdminLabels, ...currentOfficerLabels]),
+      sourceBadge: assignment.sourceBadge,
+      sortPriority: matchedPerson
+        ? adminSortPriority(currentOfficerLabels.length > 0 ? currentOfficerLabels : automaticAdminLabels)
+        : 100,
     }
   })
 
+  const manuallyAssignedIdentityKeys = new Set<string>()
+  for (const assignment of [...assignments, ...legacyCouncilAssignments]) {
+    if (assignment.person_id) manuallyAssignedIdentityKeys.add(`person:${assignment.person_id}`)
+    if (assignment.user_id) manuallyAssignedIdentityKeys.add(`user:${assignment.user_id}`)
+
+    const normalizedEmail = normalizeEmail(assignment.grantee_email)
+    if (normalizedEmail) manuallyAssignedIdentityKeys.add(`email:${normalizedEmail}`)
+  }
+
   const implicitAutomaticAdmins = [...automaticAdminLabelsByPersonId.entries()]
     .filter(([personId]) => {
-      const member = memberById.get(personId)
-      const memberEmail = normalizeEmail(member?.email)
-      return !assignments.some((assignment) => {
-        if (assignment.person_id === personId) return true
-        return memberEmail !== null && normalizeEmail(assignment.grantee_email) === memberEmail
-      })
+      const person = personById.get(personId)
+      const normalizedEmail = normalizeEmail(person?.email)
+      if (manuallyAssignedIdentityKeys.has(`person:${personId}`)) return false
+      return normalizedEmail ? !manuallyAssignedIdentityKeys.has(`email:${normalizedEmail}`) : true
     })
-    .map(([personId, labels]) => {
-      const member = memberById.get(personId)
-      return member
-        ? {
-            id: `auto-${personId}`,
-            assignmentId: null,
-            personId,
-            label: memberName(member),
-            automaticAdminLabels: labels,
-            currentOfficerLabels: currentOfficerLabelsByPersonId.get(personId) ?? [],
-            sourceBadge: 'Officer role',
-            grantNotes: null,
-            sortPriority: adminSortPriority(labels),
-          }
-        : null
+    .flatMap(([personId, automaticAdminLabels]) => {
+      const person = personById.get(personId)
+      if (!person) return []
+
+      return [{
+        id: `implicit-${personId}`,
+        assignmentId: null,
+        assignmentTable: null,
+        personId,
+        label: memberName(person),
+        automaticAdminLabels,
+        currentOfficerLabels: currentOfficerLabelsByPersonId.get(personId) ?? [],
+        sourceBadge: 'Officer role',
+        sortPriority: adminSortPriority(currentOfficerLabelsByPersonId.get(personId) ?? automaticAdminLabels),
+      }]
     })
-    .filter(Boolean)
 
   const sortedAdmins = [...currentAdmins, ...implicitAutomaticAdmins].sort((left, right) => {
     if (left.sortPriority !== right.sortPriority) return left.sortPriority - right.sortPriority
@@ -365,36 +457,58 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       ? `This removes the manual assignment for ${adminRow.label}, but their current officer role will still keep admin access active.`
       : `This will remove admin access for ${adminRow.label}.`
 
+    const profilePerson = adminRow.personId ? personById.get(adminRow.personId) ?? null : null
+    const profileHref = profilePerson
+      ? isLocalMemberProfile(profilePerson, council.id)
+        ? `/members/${adminRow.personId}`
+        : `/me/council/admins/${adminRow.personId}`
+      : null
+
     return {
       id: adminRow.id,
       assignmentId: adminRow.assignmentId,
+      assignmentTable: adminRow.assignmentTable,
       personId: adminRow.personId,
+      profileHref,
       label: adminRow.label,
       roleLabel,
       sourceBadge: adminRow.sourceBadge,
-      grantNotes: adminRow.grantNotes,
       removeDescription,
     }
   })
 
-  const fallbackMember: MemberRow = {
+  const adminPersonIds = new Set(
+    adminCards.map((adminRow) => adminRow.personId).filter((personId): personId is string => Boolean(personId))
+  )
+
+  const memberOptions = members
+    .filter((member) => !adminPersonIds.has(member.id))
+    .map((member) => ({
+      id: member.id,
+      name: memberName(member),
+      email: member.email,
+    }))
+
+  const fallbackMember: PersonRow = {
     id: '',
     first_name: 'Unknown',
     last_name: 'Member',
-    preferred_name: null,
+    nickname: null,
+    primary_relationship_code: 'member',
+    council_id: council.id,
     email: null,
   }
 
   const sortedOfficerTerms = [...officerTerms].sort((left, right) => {
     const priorityDifference = officeSortPriority(left) - officeSortPriority(right)
     if (priorityDifference !== 0) return priorityDifference
-    const leftName = memberName(memberById.get(left.person_id) ?? fallbackMember)
-    const rightName = memberName(memberById.get(right.person_id) ?? fallbackMember)
+    const leftName = memberName(personById.get(left.person_id) ?? fallbackMember)
+    const rightName = memberName(personById.get(right.person_id) ?? fallbackMember)
     return leftName.localeCompare(rightName)
   })
 
   const officerCards: OfficerCarouselItem[] = sortedOfficerTerms.map((term) => {
-    const member = memberById.get(term.person_id) ?? fallbackMember
+    const member = personById.get(term.person_id) ?? fallbackMember
     return {
       id: term.id,
       personId: member.id || null,
@@ -405,8 +519,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     }
   })
 
-  const organizationName = getOrganizationName(organization, context.council.name)
-  const eyebrow = `${organizationName}${context.council.council_number ? ` (${context.council.council_number})` : ''}`
+  const organizationName = getOrganizationName(organization, council.name)
+  const eyebrow = `${organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
   return (
     <main className="qv-page">
@@ -435,31 +549,24 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        <details style={{ marginTop: 18 }}>
+        <details>
           <summary
-            className="qv-section-menu-shell"
             style={{
               listStyle: 'none',
               cursor: 'pointer',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 16,
-                flexWrap: 'wrap',
-                width: '100%',
-              }}
-            >
-              <span className="qv-section-menu-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                <span>Add admin access</span>
-                <span aria-hidden="true">▾</span>
-              </span>
+            <div className="qv-section-menu-shell">
+              <div className="qv-section-menu-desktop">
+                <span className="qv-section-menu-link">Add admin access</span>
+              </div>
+              <div className="qv-section-menu-mobile">
+                <span className="qv-section-menu-trigger">Add admin access</span>
+              </div>
             </div>
           </summary>
 
-          <section className="qv-card" style={{ marginTop: 18 }}>
+          <section id="add-admin-access-panel" className="qv-card" style={{ marginTop: 18 }}>
             <div
               style={{
                 display: 'grid',
@@ -548,15 +655,21 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
         </details>
 
         {noticeMessage ? (
-          <section className="qv-card" style={{ borderColor: 'var(--divider-strong)', marginTop: 18 }}>
-            <p style={{ margin: 0, color: 'var(--text-primary)' }}>{noticeMessage}</p>
-          </section>
+          <AutoDismissingQueryMessage
+            kind="notice"
+            message={noticeMessage}
+            className="qv-card"
+            style={{ borderColor: 'var(--divider-strong)', marginTop: 18, color: 'var(--text-primary)' }}
+          />
         ) : null}
 
         {errorMessage ? (
-          <section className="qv-card qv-error" style={{ marginTop: 18 }}>
-            <p style={{ margin: 0 }}>{errorMessage}</p>
-          </section>
+          <AutoDismissingQueryMessage
+            kind="error"
+            message={errorMessage}
+            className="qv-card qv-error"
+            style={{ marginTop: 18 }}
+          />
         ) : null}
 
         <div
@@ -587,13 +700,13 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
               >
                 <label className="qv-control">
                   <span className="qv-label">Council number</span>
-                  <input value={context.council.council_number ?? ''} readOnly disabled />
+                  <input value={council.council_number ?? ''} readOnly disabled />
                 </label>
                 <label className="qv-control">
                   <span className="qv-label">Formal organization name</span>
                   <input
                     name="display_name"
-                    defaultValue={organization?.display_name ?? context.council.name ?? ''}
+                    defaultValue={organization?.display_name ?? council.name ?? ''}
                     required
                     placeholder="Formal organization name"
                   />

@@ -7,6 +7,7 @@ export type CouncilClaimLookupOption = {
   councilNumber: string
   councilName: string
   city: string | null
+  stateOrProvince?: string | null
   parishAssociations: string[]
   displayName: string
   searchText: string
@@ -73,6 +74,7 @@ export async function listCouncilClaimLookupOptions() {
       councilNumber: row.council_number,
       councilName,
       city,
+      stateOrProvince: null,
       parishAssociations,
       displayName,
       searchText,

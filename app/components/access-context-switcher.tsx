@@ -1,69 +1,53 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import type { CurrentUserAccessContext } from '@/lib/auth/access-contexts'
+import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
+import type { AccessContextOption } from '@/lib/auth/access-contexts'
 
 type Props = {
-  contexts: CurrentUserAccessContext[]
+  contexts: AccessContextOption[]
   selectedContextKey: string | null
 }
 
 export default function AccessContextSwitcher({ contexts, selectedContextKey }: Props) {
-  const [value, setValue] = useState(selectedContextKey ?? '')
-  const [isPending, setIsPending] = useState(false)
-  const mountedRef = useRef(false)
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [contextKey, setContextKey] = useState(selectedContextKey ?? '')
 
-  useEffect(() => {
-    setValue(selectedContextKey ?? '')
-  }, [selectedContextKey])
+  async function apply(nextContextKey: string) {
+    const response = await fetch('/account/context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contextKey: nextContextKey || null }),
+    })
 
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
+    if (!response.ok) return
 
-  async function apply(nextValue: string) {
-    setValue(nextValue)
-    setIsPending(true)
-    try {
-      const response = await fetch('/account/context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contextKey: nextValue || null }),
-      })
-
-      if (!response.ok) {
-        return
-      }
-
-      window.location.reload()
-    } finally {
-      if (mountedRef.current) {
-        setIsPending(false)
-      }
-    }
+    startTransition(() => router.refresh())
   }
 
   return (
-    <label className="qv-control" style={{ minWidth: 240 }}>
-      <span className="qv-label">Current organization view</span>
-      <select
-        className="qv-dev-mode-select"
-        value={value}
-        disabled={isPending}
-        onChange={(event) => {
-          const nextValue = event.target.value
-          void apply(nextValue)
-        }}
-      >
-        {contexts.map((context) => (
-          <option key={context.key} value={context.key}>
-            {context.shortLabel}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="qv-dev-mode-panel">
+      <h3 className="qv-dev-mode-title">Organization view</h3>
+      <label className="qv-control">
+        <span className="qv-label">Current organization view</span>
+        <select
+          value={contextKey}
+          onChange={(event) => {
+            const nextValue = event.target.value
+            setContextKey(nextValue)
+            void apply(nextValue)
+          }}
+          className="qv-dev-mode-select"
+          disabled={isPending}
+        >
+          {contexts.map((context) => (
+            <option key={context.key} value={context.key}>
+              {context.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
   )
 }

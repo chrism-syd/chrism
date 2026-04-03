@@ -13,9 +13,11 @@ type PendingValues = {
   home_phone_requested?: boolean;
 } | null;
 
+type RejectedFieldKey = 'email' | 'cell_phone' | 'home_phone';
+
 type RejectedNotices = Partial<
   Record<
-    'email' | 'cell_phone' | 'home_phone',
+    RejectedFieldKey,
     {
       reviewedAt: string | null;
     }
@@ -28,6 +30,7 @@ type ActionState = {
 };
 
 const initialState: ActionState = { status: 'idle', message: '' };
+const DISMISSED_REVIEW_NOTICES_KEY = 'chrism-dismissed-review-notices';
 
 function displayValue(value: string | null) {
   return value && value.trim().length > 0 ? value : 'Not added yet';
@@ -42,21 +45,55 @@ function rejectionMessage(label: string) {
   return `${label} edit you submitted was rejected. Please contact your organization to process the change.`;
 }
 
+function buildDismissKey(field: RejectedFieldKey, reviewedAt: string | null | undefined) {
+  return `${field}:${reviewedAt ?? 'unknown'}`;
+}
+
+function loadDismissedRejectedNotices() {
+  if (typeof window === 'undefined') return new Set<string>();
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_REVIEW_NOTICES_KEY);
+    if (!raw) return new Set<string>();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set<string>();
+    return new Set(parsed.filter((value): value is string => typeof value === 'string'));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function persistDismissedRejectedNotices(keys: Set<string>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(DISMISSED_REVIEW_NOTICES_KEY, JSON.stringify([...keys]));
+}
+
 function Row({
-  label, value, pendingValue, pendingRequested, rejectedNotice, editing, name, onEdit, placeholder,
+  label,
+  value,
+  pendingValue,
+  pendingRequested,
+  rejectedNotice,
+  rejectedDismissed,
+  onDismissRejected,
+  editing,
+  name,
+  onEdit,
+  placeholder,
 }: {
   label: string;
   value: string | null;
   pendingValue?: string | null;
   pendingRequested?: boolean;
   rejectedNotice?: { reviewedAt: string | null } | null;
+  rejectedDismissed?: boolean;
+  onDismissRejected?: () => void;
   editing?: boolean;
   name?: string;
   onEdit?: () => void;
   placeholder?: string;
 }) {
   const showPending = pendingRequested || (pendingValue !== undefined && pendingValue !== null && pendingValue !== value);
-  const showRejected = !showPending && Boolean(rejectedNotice);
+  const showRejected = !showPending && Boolean(rejectedNotice) && !rejectedDismissed;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start', padding: '14px 0', borderTop: '1px solid var(--divider)' }}>
@@ -68,7 +105,16 @@ function Row({
           <div className="qv-detail-value" style={{ marginTop: 4 }}>{displayValue(value)}</div>
         )}
         {showPending ? <p className="qv-inline-message" style={{ marginTop: 8 }}>Pending review: {pendingDisplayValue(pendingValue ?? null, pendingRequested)}</p> : null}
-        {showRejected ? <p className="qv-inline-error" style={{ marginTop: 8 }}>{rejectionMessage(label)}</p> : null}
+        {showRejected ? (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+            <p className="qv-inline-error" style={{ margin: 0 }}>{rejectionMessage(label)}</p>
+            {onDismissRejected ? (
+              <button type="button" className="qv-button-secondary" onClick={onDismissRejected}>
+                Dismiss
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {onEdit ? (
         <button type="button" onClick={onEdit} className="qv-button-secondary" aria-label={`Edit ${label.toLowerCase()}`} style={{ minWidth: 44, paddingInline: 14 }}>
@@ -80,8 +126,19 @@ function Row({
 }
 
 export default function AccountSummarySection({
-  officialName, firstName, lastName, preferredName, email, cellPhone, homePhone, addressHelpText,
-  pendingValues, rejectedNotices, allowStandaloneIdentityEdit = false,
+  officialName,
+  firstName,
+  lastName,
+  preferredName,
+  email,
+  cellPhone,
+  homePhone,
+  addressHelpText,
+  pendingValues,
+  rejectedNotices,
+  allowStandaloneIdentityEdit = false,
+  readOnly = false,
+  readOnlyMessage = null,
 }: {
   officialName: string;
   firstName?: string | null;
@@ -94,66 +151,132 @@ export default function AccountSummarySection({
   pendingValues: PendingValues;
   rejectedNotices: RejectedNotices;
   allowStandaloneIdentityEdit?: boolean;
+  readOnly?: boolean;
+  readOnlyMessage?: string | null;
 }) {
   const [state, action, isPending] = useActionState(submitProfileChangeRequest, initialState);
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
+  const [dismissedRejectedNoticeKeys, setDismissedRejectedNoticeKeys] = useState<Set<string>>(() => loadDismissedRejectedNotices());
 
   const isEditing = useMemo(() => Object.values(editingFields).some(Boolean), [editingFields]);
+
   function enableField(field: string) {
     setEditingFields((current) => ({ ...current, [field]: true }));
   }
 
+  function dismissRejectedNotice(field: RejectedFieldKey, reviewedAt: string | null) {
+    const next = new Set(dismissedRejectedNoticeKeys);
+    next.add(buildDismissKey(field, reviewedAt));
+    setDismissedRejectedNoticeKeys(next);
+    persistDismissedRejectedNotices(next);
+  }
+
+  function isRejectedNoticeDismissed(field: RejectedFieldKey, reviewedAt: string | null) {
+    return dismissedRejectedNoticeKeys.has(buildDismissKey(field, reviewedAt));
+  }
+
+  const content = (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
+        <div>
+          <div className="qv-detail-item" style={{ marginBottom: 16 }}>
+            <div className="qv-detail-label">Official record name</div>
+            <div className="qv-detail-value">{officialName}</div>
+          </div>
+
+          {allowStandaloneIdentityEdit && !readOnly ? (
+            <>
+              <Row label="First name" value={firstName ?? null} editing={!!editingFields.first_name} name="first_name" placeholder="Your first name" onEdit={() => enableField('first_name')} />
+              <Row label="Last name" value={lastName ?? null} editing={!!editingFields.last_name} name="last_name" placeholder="Your last name" onEdit={() => enableField('last_name')} />
+            </>
+          ) : null}
+
+          <Row
+            label="Preferred name"
+            value={preferredName}
+            pendingValue={pendingValues?.preferred_name ?? null}
+            editing={!!editingFields.preferred_name}
+            name="preferred_name"
+            placeholder="How you would like your name to appear"
+            onEdit={readOnly ? undefined : () => enableField('preferred_name')}
+          />
+        </div>
+
+        <div>
+          <Row
+            label="Email"
+            value={email}
+            pendingValue={pendingValues?.email ?? null}
+            pendingRequested={pendingValues?.email_requested ?? false}
+            rejectedNotice={rejectedNotices.email ?? null}
+            rejectedDismissed={isRejectedNoticeDismissed('email', rejectedNotices.email?.reviewedAt ?? null)}
+            onDismissRejected={rejectedNotices.email ? () => dismissRejectedNotice('email', rejectedNotices.email?.reviewedAt ?? null) : undefined}
+            editing={!!editingFields.email}
+            name="email"
+            placeholder="Your preferred email address"
+            onEdit={readOnly ? undefined : () => enableField('email')}
+          />
+          <Row
+            label="Cell phone"
+            value={cellPhone}
+            pendingValue={pendingValues?.cell_phone ?? null}
+            pendingRequested={pendingValues?.cell_phone_requested ?? false}
+            rejectedNotice={rejectedNotices.cell_phone ?? null}
+            rejectedDismissed={isRejectedNoticeDismissed('cell_phone', rejectedNotices.cell_phone?.reviewedAt ?? null)}
+            onDismissRejected={rejectedNotices.cell_phone ? () => dismissRejectedNotice('cell_phone', rejectedNotices.cell_phone?.reviewedAt ?? null) : undefined}
+            editing={!!editingFields.cell_phone}
+            name="cell_phone"
+            placeholder="Your cell phone number"
+            onEdit={readOnly ? undefined : () => enableField('cell_phone')}
+          />
+          <Row
+            label="Home phone"
+            value={homePhone}
+            pendingValue={pendingValues?.home_phone ?? null}
+            pendingRequested={pendingValues?.home_phone_requested ?? false}
+            rejectedNotice={rejectedNotices.home_phone ?? null}
+            rejectedDismissed={isRejectedNoticeDismissed('home_phone', rejectedNotices.home_phone?.reviewedAt ?? null)}
+            onDismissRejected={rejectedNotices.home_phone ? () => dismissRejectedNotice('home_phone', rejectedNotices.home_phone?.reviewedAt ?? null) : undefined}
+            editing={!!editingFields.home_phone}
+            name="home_phone"
+            placeholder="Your home phone number"
+            onEdit={readOnly ? undefined : () => enableField('home_phone')}
+          />
+        </div>
+      </div>
+
+      {addressHelpText ? (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--divider)' }}>
+          <div className="qv-detail-label">Home address</div>
+          <div className="qv-detail-value">{addressHelpText}</div>
+        </div>
+      ) : null}
+
+      {readOnlyMessage ? (
+        <p className="qv-inline-message" style={{ marginTop: 14 }}>{readOnlyMessage}</p>
+      ) : null}
+
+      {!readOnly && state.status !== 'idle' ? (
+        <p className={state.status === 'error' ? 'qv-inline-error' : 'qv-inline-message'} style={{ marginTop: 14 }}>
+          {state.message}
+        </p>
+      ) : null}
+
+      {!readOnly && isEditing ? (
+        <div className="qv-form-actions" style={{ marginTop: 18 }}>
+          <button type="button" className="qv-button-secondary" onClick={() => setEditingFields({})} disabled={isPending}>Cancel</button>
+          <button type="submit" className="qv-button-primary" disabled={isPending}>
+            {isPending ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <section className="qv-card">
       <div className="qv-directory-section-head"><div><h2 className="qv-section-title">Account summary</h2></div></div>
-
-      <form action={action}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
-          <div>
-            <div className="qv-detail-item" style={{ marginBottom: 16 }}>
-              <div className="qv-detail-label">Official record name</div>
-              <div className="qv-detail-value">{officialName}</div>
-            </div>
-
-            {allowStandaloneIdentityEdit ? (
-              <>
-                <Row label="First name" value={firstName ?? null} editing={!!editingFields.first_name} name="first_name" placeholder="Your first name" onEdit={() => enableField('first_name')} />
-                <Row label="Last name" value={lastName ?? null} editing={!!editingFields.last_name} name="last_name" placeholder="Your last name" onEdit={() => enableField('last_name')} />
-              </>
-            ) : null}
-
-            <Row label="Preferred name" value={preferredName} pendingValue={pendingValues?.preferred_name ?? null} editing={!!editingFields.preferred_name} name="preferred_name" placeholder="How you would like your name to appear" onEdit={() => enableField('preferred_name')} />
-          </div>
-
-          <div>
-            <Row label="Email" value={email} pendingValue={pendingValues?.email ?? null} pendingRequested={pendingValues?.email_requested ?? false} rejectedNotice={rejectedNotices.email ?? null} editing={!!editingFields.email} name="email" placeholder="Your preferred email address" onEdit={() => enableField('email')} />
-            <Row label="Cell phone" value={cellPhone} pendingValue={pendingValues?.cell_phone ?? null} pendingRequested={pendingValues?.cell_phone_requested ?? false} rejectedNotice={rejectedNotices.cell_phone ?? null} editing={!!editingFields.cell_phone} name="cell_phone" placeholder="Your cell phone number" onEdit={() => enableField('cell_phone')} />
-            <Row label="Home phone" value={homePhone} pendingValue={pendingValues?.home_phone ?? null} pendingRequested={pendingValues?.home_phone_requested ?? false} rejectedNotice={rejectedNotices.home_phone ?? null} editing={!!editingFields.home_phone} name="home_phone" placeholder="Your home phone number" onEdit={() => enableField('home_phone')} />
-          </div>
-        </div>
-
-        {addressHelpText ? (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--divider)' }}>
-            <div className="qv-detail-label">Home address</div>
-            <div className="qv-detail-value">{addressHelpText}</div>
-          </div>
-        ) : null}
-
-        {state.status !== 'idle' ? (
-          <p className={state.status === 'error' ? 'qv-inline-error' : 'qv-inline-message'} style={{ marginTop: 14 }}>
-            {state.message}
-          </p>
-        ) : null}
-
-        {isEditing ? (
-          <div className="qv-form-actions" style={{ marginTop: 18 }}>
-            <button type="button" className="qv-button-secondary" onClick={() => setEditingFields({})} disabled={isPending}>Cancel</button>
-            <button type="submit" className="qv-button-primary" disabled={isPending}>
-              {isPending ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        ) : null}
-      </form>
+      {readOnly ? <div>{content}</div> : <form action={action}>{content}</form>}
     </section>
   );
 }

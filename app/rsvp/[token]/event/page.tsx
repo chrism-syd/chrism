@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import AppHeader from '@/app/app-header';
 import CopyLinkPill from '../copy-link-pill';
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -32,8 +33,9 @@ type EventRow = {
   location_name: string | null;
   location_address: string | null;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   requires_rsvp: boolean;
+  needs_volunteers: boolean;
   rsvp_deadline_at: string | null;
   status_code: string;
   scope_code: 'home_council_only' | 'multi_council';
@@ -106,36 +108,6 @@ function buildInviteUrl(token: string) {
   return baseUrl ? `${baseUrl}/rsvp/${token}` : `/rsvp/${token}`;
 }
 
-function formatDateTimeRange(startsAt: string, endsAt: string) {
-  const start = new Date(startsAt);
-  const end = new Date(endsAt);
-
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  if (sameDay) {
-    return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`;
-  }
-
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${dateFormatter.format(
-    end
-  )} ${timeFormatter.format(end)}`;
-}
-
 function formatDateTime(value?: string | null) {
   if (!value) return '—';
 
@@ -202,7 +174,7 @@ export default async function PublicEventOverviewPage({
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, title, description, location_name, location_address, starts_at, ends_at, requires_rsvp, rsvp_deadline_at, status_code, scope_code'
+      'id, title, description, location_name, location_address, starts_at, ends_at, requires_rsvp, needs_volunteers, rsvp_deadline_at, status_code, scope_code'
     )
     .eq('id', invite.event_id)
     .single();
@@ -355,7 +327,7 @@ export default async function PublicEventOverviewPage({
             <div>
               <p className="qv-eyebrow">Event overview</p>
               <h1 className="qv-title">{event.title}</h1>
-              <p className="qv-subtitle">{formatDateTimeRange(event.starts_at, event.ends_at)}</p>
+              <p className="qv-subtitle">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</p>
 
               {!isSingleCouncil ? (
                 <div style={mutedTextStyle()}>
@@ -372,6 +344,9 @@ export default async function PublicEventOverviewPage({
               <div className="qv-detail-badges">
                 <span className="qv-badge">
                   {event.requires_rsvp ? 'RSVP required' : 'Open event'}
+                </span>
+                <span className="qv-badge">
+                  {event.needs_volunteers ? 'Volunteers needed' : 'No volunteers needed'}
                 </span>
 
                 {!isSingleCouncil ? (
@@ -551,7 +526,7 @@ export default async function PublicEventOverviewPage({
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">When</div>
                   <div className="qv-detail-value">
-                    {formatDateTimeRange(event.starts_at, event.ends_at)}
+                    {formatEventDateTimeRange(event.starts_at, event.ends_at)}
                   </div>
                 </div>
 

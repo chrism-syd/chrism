@@ -170,7 +170,12 @@ function escapeHtml(value: string) {
 }
 
 function buildAdminInvitationAuthPath(args: { baseUrl: string; invitePath: string; tokenHash: string; type?: string | null }) {
-  const confirmUrl = new URL(buildAuthConfirmRedirectUrl(args.baseUrl, args.invitePath))
+  const confirmUrl = new URL('/admin-invite/confirm', args.baseUrl)
+  const safeNextPath = buildAuthConfirmRedirectUrl(args.baseUrl, args.invitePath)
+  const nextPath = new URL(safeNextPath).searchParams.get('next')
+  if (nextPath) {
+    confirmUrl.searchParams.set('next', nextPath)
+  }
   confirmUrl.searchParams.set('token_hash', args.tokenHash)
   confirmUrl.searchParams.set('type', args.type || 'magiclink')
   return confirmUrl.toString()

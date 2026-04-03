@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { getCurrentActingCouncilContext, getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context';
 import { savePersonRsvpSubmission } from '@/lib/rsvp/person-rsvp';
 import { decryptPeopleRecord, protectPeoplePayload } from '@/lib/security/pii';
 
@@ -29,6 +29,7 @@ type EventRow = {
   scope_code: 'home_council_only' | 'multi_council';
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting';
   requires_rsvp: boolean;
+  needs_volunteers: boolean;
   rsvp_deadline_at: string | null;
   reminder_enabled: boolean;
   reminder_scheduled_for: string | null;
@@ -429,6 +430,7 @@ function buildEventPayload(formData: FormData) {
         ? 'executive_meeting'
         : 'standard';
   const requiresRsvp = parseBoolean(formData.get('requires_rsvp'));
+  const needsVolunteers = parseBoolean(formData.get('needs_volunteers'));
   const reminderEnabled = parseBoolean(formData.get('reminder_enabled'));
   const reminderDaysBeforeValue = nullableString(formData.get('reminder_days_before'));
   const reminderDaysBefore = reminderDaysBeforeValue ? Number(reminderDaysBeforeValue) : null;
@@ -489,6 +491,7 @@ function buildEventPayload(formData: FormData) {
     scope_code: scopeCode as 'home_council_only' | 'multi_council',
     event_kind_code: eventKindCode as 'standard' | 'general_meeting' | 'executive_meeting',
     requires_rsvp: requiresRsvp,
+    needs_volunteers: needsVolunteers,
     rsvp_deadline_at: rsvpDeadlineAt,
     reminder_enabled: reminderEnabled,
     reminder_scheduled_for: reminderScheduledFor,
@@ -497,10 +500,17 @@ function buildEventPayload(formData: FormData) {
   };
 }
 
-async function getCurrentAppContext() {
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
-    redirectTo: '/me',
-  });
+async function getCurrentAppContext(options?: { eventId?: string; redirectTo?: string }) {
+  const { admin, permissions, council } = options?.eventId
+    ? await getCurrentActingCouncilContextForEvent({
+        eventId: options.eventId,
+        redirectTo: options.redirectTo ?? '/events',
+      })
+    : await getCurrentActingCouncilContext({
+        redirectTo: options?.redirectTo ?? '/me',
+        areaCode: 'events',
+        minimumAccessLevel: 'manage',
+      });
 
   if (!permissions.appUser?.id || !permissions.authUser) {
     throw new Error('Could not load your council context.');
@@ -1005,6 +1015,7 @@ async function createDraftEventFromSeed(args: {
     scope_code: 'home_council_only' | 'multi_council';
     event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting';
     requires_rsvp: boolean;
+    needs_volunteers: boolean;
     rsvp_deadline_at: string | null;
     reminder_enabled: boolean;
     reminder_scheduled_for: string | null;
@@ -1038,6 +1049,7 @@ async function createDraftEventFromSeed(args: {
     scope_code: seed.scope_code,
     event_kind_code: seed.event_kind_code,
     requires_rsvp: seed.requires_rsvp,
+    needs_volunteers: seed.needs_volunteers,
     rsvp_deadline_at: seed.rsvp_deadline_at,
     reminder_enabled: seed.reminder_enabled,
     reminder_scheduled_for: seed.reminder_scheduled_for,
@@ -1239,7 +1251,7 @@ async function loadOwnedEvent(args: {
   const { data, error } = await supabase
     .from('events')
     .select(
-      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .eq('id', eventId)
     .eq('council_id', councilId)
@@ -1362,7 +1374,7 @@ async function submitPersonRsvpByToken(args: {
 }
 
 export async function createEvent(formData: FormData) {
-  const { supabase, appUser, council } = await getCurrentAppContext();
+  const { supabase, appUser, council } = await getCurrentAppContext({ redirectTo: '/events' });
   const eventInput = buildEventPayload(formData);
   const invitedCouncils =
     eventInput.scope_code === 'multi_council' ? parseInvitedCouncils(formData) : [];
@@ -1385,6 +1397,7 @@ export async function createEvent(formData: FormData) {
     scope_code: eventInput.scope_code,
     event_kind_code: eventInput.event_kind_code,
     requires_rsvp: eventInput.requires_rsvp,
+    needs_volunteers: eventInput.needs_volunteers,
     rsvp_deadline_at: eventInput.rsvp_deadline_at,
     reminder_enabled: eventInput.reminder_enabled,
     reminder_scheduled_for: eventInput.reminder_scheduled_for,
@@ -1405,6 +1418,7 @@ export async function createEvent(formData: FormData) {
     scope_code: eventInput.scope_code,
     event_kind_code: eventInput.event_kind_code,
     requires_rsvp: eventInput.requires_rsvp,
+    needs_volunteers: eventInput.needs_volunteers,
     rsvp_deadline_at: eventInput.rsvp_deadline_at,
     reminder_enabled: eventInput.reminder_enabled,
     reminder_scheduled_for: eventInput.reminder_scheduled_for,
@@ -1454,7 +1468,7 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function updateEvent(eventId: string, formData: FormData) {
-  const { supabase, appUser, council } = await getCurrentAppContext();
+  const { supabase, appUser, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const existingEvent = await loadOwnedEvent({
     supabase,
@@ -1488,6 +1502,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
       scope_code: eventInput.scope_code,
       event_kind_code: eventInput.event_kind_code,
       requires_rsvp: eventInput.requires_rsvp,
+      needs_volunteers: eventInput.needs_volunteers,
       rsvp_deadline_at: eventInput.rsvp_deadline_at,
       reminder_enabled: eventInput.reminder_enabled,
       reminder_scheduled_for: eventInput.reminder_scheduled_for,
@@ -1497,7 +1512,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
     .eq('id', eventId)
     .eq('council_id', council.id)
     .select(
-      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .single();
 
@@ -1548,7 +1563,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
 
 
 export async function duplicateEventAsDraft(eventId: string) {
-  const { supabase, appUser, council } = await getCurrentAppContext();
+  const { supabase, appUser, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
@@ -1591,6 +1606,7 @@ export async function duplicateEventAsDraft(eventId: string) {
       scope_code: event.scope_code,
       event_kind_code: event.event_kind_code,
       requires_rsvp: event.requires_rsvp,
+      needs_volunteers: event.needs_volunteers,
       rsvp_deadline_at: event.rsvp_deadline_at,
       reminder_enabled: event.reminder_enabled,
       reminder_scheduled_for: event.reminder_scheduled_for,
@@ -1616,12 +1632,12 @@ export async function duplicateEventAsDraft(eventId: string) {
 }
 
 export async function duplicateArchivedEventAsDraft(archiveId: string) {
-  const { supabase, appUser, council } = await getCurrentAppContext();
+  const { supabase, appUser, council } = await getCurrentAppContext({ redirectTo: '/events/archive' });
 
   const { data, error } = await supabase
     .from('event_archives')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .eq('id', archiveId)
     .eq('council_id', council.id)
@@ -1647,6 +1663,7 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
       scope_code: archive.scope_code,
       event_kind_code: archive.event_kind_code,
       requires_rsvp: archive.requires_rsvp,
+      needs_volunteers: archive.needs_volunteers,
       rsvp_deadline_at: archive.rsvp_deadline_at,
       reminder_enabled: archive.reminder_enabled,
       reminder_scheduled_for: archive.reminder_scheduled_for,
@@ -1658,7 +1675,7 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
 }
 
 export async function deleteEvent(eventId: string) {
-  const { supabase, appUser, council } = await getCurrentAppContext();
+  const { supabase, appUser, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
@@ -1711,7 +1728,7 @@ export async function addHostManualVolunteer(
   returnTo: 'detail' | 'volunteers' = 'detail',
   formData: FormData
 ) {
-  const { supabase, council, appUser } = await getCurrentAppContext();
+  const { supabase, council, appUser } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
@@ -1854,7 +1871,7 @@ export async function updateHostManualVolunteer(
   submissionId: string,
   formData: FormData
 ) {
-  const { supabase, council } = await getCurrentAppContext();
+  const { supabase, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
@@ -1978,7 +1995,7 @@ export async function removeVolunteerSubmission(
   submissionId: string,
   returnTo: 'detail' | 'volunteers' = 'volunteers'
 ) {
-  const { supabase, council, appUser } = await getCurrentAppContext();
+  const { supabase, council, appUser } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
@@ -2168,7 +2185,7 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
-    .select('id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before')
+.select('id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before')
     .eq('id', invite.event_id)
     .single();
 
@@ -2300,7 +2317,7 @@ type EventExternalInviteeRow = {
 };
 
 export async function addEventExternalInvitee(eventId: string, formData: FormData) {
-  const { supabase, user, council } = await getCurrentAppContext();
+  const { supabase, user, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
   const event = await loadOwnedEvent({
     supabase,
     eventId,
@@ -2343,7 +2360,7 @@ export async function addEventExternalInvitee(eventId: string, formData: FormDat
 }
 
 export async function removeEventExternalInvitee(eventId: string, formData: FormData) {
-  const { supabase, council } = await getCurrentAppContext();
+  const { supabase, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
   const event = await loadOwnedEvent({
     supabase,
     eventId,

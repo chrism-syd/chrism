@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import SignOutButton from '@/app/sign-out-button'
 import DevModeSwitcher, { type SuperAdminOrganizationOption } from '@/app/components/dev-mode-switcher'
+import AccessContextSwitcher from '@/app/components/access-context-switcher'
+import ParallelAreaAccessSwitcher from '@/app/components/parallel-area-access-switcher'
+import type { AccessContextOption } from '@/lib/auth/access-contexts'
 
 type UserMenuLink = {
   href: string
@@ -13,15 +16,24 @@ type UserMenuLink = {
 type UserMenuProps = {
   links: UserMenuLink[]
   email?: string | null
-  currentViewLabel?: string | null
+  accessContext?: {
+    selectedContextKey: string | null
+    contexts: AccessContextOption[]
+  } | null
   devMode?: {
     selectedMode: 'normal' | 'admin' | 'member'
     selectedOrganizationId: string | null
     organizations: SuperAdminOrganizationOption[]
   } | null
+  parallelAreaSwitcher?: {
+    members?: boolean
+    events?: boolean
+    custom_lists?: boolean
+    local_unit_settings?: boolean
+  } | null
 }
 
-export default function UserMenu({ links, email, currentViewLabel, devMode }: UserMenuProps) {
+export default function UserMenu({ links, email, accessContext, devMode, parallelAreaSwitcher }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -43,7 +55,6 @@ export default function UserMenu({ links, email, currentViewLabel, devMode }: Us
       {open ? (
         <div className="qv-user-menu-panel" role="menu">
           {email ? <p className="qv-user-menu-email">{email}</p> : null}
-          {currentViewLabel ? <p className="qv-user-menu-email">{currentViewLabel}</p> : null}
 
           {links.map((link) => (
             <Link key={`${link.label}-${link.href}`} href={link.href} className="qv-user-menu-link" role="menuitem" onClick={() => setOpen(false)}>
@@ -51,10 +62,26 @@ export default function UserMenu({ links, email, currentViewLabel, devMode }: Us
             </Link>
           ))}
 
+          {parallelAreaSwitcher ? <ParallelAreaAccessSwitcher switchableAreas={parallelAreaSwitcher} /> : null}
+
+          {accessContext && accessContext.contexts.length > 1 && (!devMode || devMode.selectedMode === 'normal') ? (
+            <>
+              <div className="qv-user-menu-divider" />
+              <AccessContextSwitcher
+                contexts={accessContext.contexts}
+                selectedContextKey={accessContext.selectedContextKey}
+              />
+            </>
+          ) : null}
+
           {devMode ? (
             <>
               <div className="qv-user-menu-divider" />
-              <DevModeSwitcher organizations={devMode.organizations} selectedOrganizationId={devMode.selectedOrganizationId} selectedMode={devMode.selectedMode} />
+              <DevModeSwitcher
+                organizations={devMode.organizations}
+                selectedOrganizationId={devMode.selectedOrganizationId}
+                selectedMode={devMode.selectedMode}
+              />
             </>
           ) : null}
 

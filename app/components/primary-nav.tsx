@@ -71,7 +71,22 @@ export default function PrimaryNav({ items }: Props) {
               onClick={() => setOpenLabel((current) => (current === item.label ? null : item.label))}
             >
               <span>{item.label}</span>
-              <span className="qv-nav-dropdown-chevron" aria-hidden="true">{isOpen ? '▴' : '▾'}</span>
+                <span
+                  className="qv-nav-dropdown-chevron"
+                  aria-hidden="true"
+                  data-open={isOpen ? 'true' : 'false'}
+                >
+                  <svg viewBox="0 0 20 20" className="qv-nav-dropdown-chevron-icon">
+                    <path
+                      d="M5.25 7.5 10 12.25 14.75 7.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
             </button>
 
             {isOpen ? (

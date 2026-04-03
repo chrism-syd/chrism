@@ -1,9 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CurrentUserPermissions } from '@/lib/auth/permissions'
+import { findLocalUnitByLegacyCouncilId, hasAreaAccess } from '@/lib/auth/area-access'
+import { hasResourceAccess } from '@/lib/auth/resource-access'
 
 export type CustomListRow = {
   id: string
-  council_id: string
+  council_id: string | null
+  local_unit_id: string | null
   name: string
   description: string | null
   archived_at: string | null
@@ -52,58 +55,276 @@ export function buildCustomListAccessMatch(permissions: CurrentUserPermissions) 
   return parts.length > 0 ? parts.join(',') : null
 }
 
+export async function listManageableLocalUnitIdsForCustomLists(args: {
+  admin: SupabaseClient
+  permissions: CurrentUserPermissions
+}) {
+  const authUserId = args.permissions.authUser?.id
+  if (!authUserId) return [] as string[]
+
+  const { data: relationshipRows, error: relationshipError } = await args.admin
+    .from('user_unit_relationships')
+    .select('local_unit_id, member_record_id')
+    .eq('user_id', authUserId)
+    .eq('status', 'active')
+
+  if (relationshipError) {
+    throw new Error(`Could not load custom list relationships: ${relationshipError.message}`)
+  }
+
+  const relationshipData =
+    ((relationshipRows as Array<{ local_unit_id: string; member_record_id: string | null }> | null) ?? []).filter(
+      (row) => Boolean(row.member_record_id),
+    )
+
+  const memberRecordIds = relationshipData
+    .map((row) => row.member_record_id)
+    .filter((value): value is string => Boolean(value))
+
+  if (memberRecordIds.length === 0) {
+    return [] as string[]
+  }
+
+  const { data: grantRows, error: grantError } = await args.admin
+    .from('area_access_grants')
+    .select('local_unit_id')
+    .eq('area_code', 'custom_lists')
+    .eq('access_level', 'manage')
+    .is('revoked_at', null)
+    .in('member_record_id', memberRecordIds)
+
+  if (grantError) {
+    throw new Error(`Could not load custom list management grants: ${grantError.message}`)
+  }
+
+  return [
+    ...new Set(
+      ((grantRows as Array<{ local_unit_id: string }> | null) ?? [])
+        .map((row) => row.local_unit_id)
+        .filter(Boolean),
+    ),
+  ]
+}
+
+async function listLinkedMemberRecordIds(args: {
+  admin: SupabaseClient
+  permissions: CurrentUserPermissions
+  localUnitId?: string | null
+}) {
+  const authUserId = args.permissions.authUser?.id
+  if (!authUserId) return [] as string[]
+
+  let query = args.admin
+    .from('user_unit_relationships')
+    .select('member_record_id')
+    .eq('user_id', authUserId)
+    .eq('status', 'active')
+
+  if (args.localUnitId) {
+    query = query.eq('local_unit_id', args.localUnitId)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    throw new Error(`Could not load linked member records: ${error.message}`)
+  }
+
+  return (((data as Array<{ member_record_id: string | null }> | null) ?? [])
+    .map((row) => row.member_record_id)
+    .filter((value): value is string => Boolean(value)))
+}
+
+export async function resolveCustomListLocalUnitId(args: {
+  admin: SupabaseClient
+  list: Pick<CustomListRow, 'local_unit_id' | 'council_id'>
+}) {
+  if (args.list.local_unit_id) {
+    return args.list.local_unit_id
+  }
+
+  if (!args.list.council_id) {
+    return null
+  }
+
+  const localUnit = await findLocalUnitByLegacyCouncilId({
+    admin: args.admin,
+    councilId: args.list.council_id,
+  })
+
+  return localUnit?.id ?? null
+}
+
+export async function hasStrictCustomListLifecycleAccess(args: {
+  admin: SupabaseClient
+  permissions: CurrentUserPermissions
+  list: Pick<CustomListRow, 'id' | 'local_unit_id' | 'council_id'>
+}) {
+  const userId = args.permissions.authUser?.id
+  if (!userId) {
+    return false
+  }
+
+  const localUnitId = await resolveCustomListLocalUnitId({
+    admin: args.admin,
+    list: args.list,
+  })
+
+  if (!localUnitId) {
+    return false
+  }
+
+  const hasAreaManageAccess = await hasAreaAccess({
+    admin: args.admin,
+    userId,
+    localUnitId,
+    areaCode: 'custom_lists',
+    minimumAccessLevel: 'manage',
+  })
+
+  if (hasAreaManageAccess) {
+    return true
+  }
+
+  return hasResourceAccess({
+    admin: args.admin,
+    userId,
+    localUnitId,
+    resourceType: 'custom_list',
+    resourceKey: args.list.id,
+    minimumAccessLevel: 'manage',
+  })
+}
+
 export async function listSharedCustomListIdsForUser(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
 }) {
+  const ids = new Set<string>()
+
+  const memberRecordIds = await listLinkedMemberRecordIds({
+    admin: args.admin,
+    permissions: args.permissions,
+  })
+
+  if (memberRecordIds.length > 0) {
+    const { data: resourceRows, error: resourceError } = await args.admin
+      .from('resource_access_grants')
+      .select('resource_key')
+      .eq('resource_type', 'custom_list')
+      .is('revoked_at', null)
+      .in('member_record_id', memberRecordIds)
+
+    if (resourceError) {
+      throw new Error(`Could not load custom list resource grants: ${resourceError.message}`)
+    }
+
+    for (const row of ((resourceRows as Array<{ resource_key: string | null }> | null) ?? [])) {
+      if (row.resource_key) ids.add(row.resource_key)
+    }
+  }
+
   const accessMatch = buildCustomListAccessMatch(args.permissions)
+  if (accessMatch) {
+    const { data, error } = await args.admin
+      .from('custom_list_access')
+      .select('custom_list_id')
+      .or(accessMatch)
 
-  if (!accessMatch) {
-    return [] as string[]
+    if (error) {
+      throw new Error(`Could not load custom list access: ${error.message}`)
+    }
+
+    for (const row of ((data as Array<{ custom_list_id: string }> | null) ?? [])) {
+      ids.add(row.custom_list_id)
+    }
   }
 
-  const { data, error } = await args.admin
-    .from('custom_list_access')
-    .select('custom_list_id')
-    .or(accessMatch)
-
-  if (error) {
-    throw new Error(`Could not load custom list access: ${error.message}`)
-  }
-
-  return [...new Set(((data as Array<{ custom_list_id: string }> | null) ?? []).map((row) => row.custom_list_id))]
+  return [...ids]
 }
 
 export async function hasSharedCustomListsForUser(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
 }) {
-  const accessMatch = buildCustomListAccessMatch(args.permissions)
+  const ids = await listSharedCustomListIdsForUser(args)
+  return ids.length > 0
+}
 
-  if (!accessMatch) {
+export async function canManageCustomList(
+  permissions: CurrentUserPermissions,
+  list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
+  admin: SupabaseClient
+) {
+  if (permissions.canManageCustomLists && permissions.councilId && list.council_id === permissions.councilId) {
+    return true
+  }
+
+  if (!list.local_unit_id) {
     return false
   }
 
-  const { data, error } = await args.admin
-    .from('custom_list_access')
-    .select('id')
-    .or(accessMatch)
-    .limit(1)
+  const memberRecordIds = await listLinkedMemberRecordIds({
+    admin,
+    permissions,
+    localUnitId: list.local_unit_id,
+  })
 
-  if (error) {
-    throw new Error(`Could not load custom list access: ${error.message}`)
+  if (memberRecordIds.length === 0) {
+    return false
   }
 
-  return Boolean(data && data.length > 0)
+  const { data: grantRows, error: grantError } = await admin
+    .from('area_access_grants')
+    .select('id')
+    .eq('local_unit_id', list.local_unit_id)
+    .eq('area_code', 'custom_lists')
+    .eq('access_level', 'manage')
+    .is('revoked_at', null)
+    .in('member_record_id', memberRecordIds)
+    .limit(1)
+
+  if (grantError) {
+    throw new Error(`Could not verify custom list management access: ${grantError.message}`)
+  }
+
+  return Boolean(grantRows && grantRows.length > 0)
 }
 
 export async function canViewCustomList(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'id' | 'council_id'>
+  list: Pick<CustomListRow, 'id' | 'council_id' | 'local_unit_id'>
 }) {
-  if (args.permissions.isCouncilAdmin && args.permissions.councilId === args.list.council_id) {
+  if (await canManageCustomList(args.permissions, args.list, args.admin)) {
     return true
+  }
+
+  if (args.list.local_unit_id) {
+    const memberRecordIds = await listLinkedMemberRecordIds({
+      admin: args.admin,
+      permissions: args.permissions,
+      localUnitId: args.list.local_unit_id,
+    })
+
+    if (memberRecordIds.length > 0) {
+      const { data: resourceRows, error: resourceError } = await args.admin
+        .from('resource_access_grants')
+        .select('id')
+        .eq('resource_type', 'custom_list')
+        .eq('resource_key', args.list.id)
+        .is('revoked_at', null)
+        .in('member_record_id', memberRecordIds)
+        .limit(1)
+
+      if (resourceError) {
+        throw new Error(`Could not verify custom list resource access: ${resourceError.message}`)
+      }
+
+      if (resourceRows && resourceRows.length > 0) {
+        return true
+      }
+    }
   }
 
   const accessMatch = buildCustomListAccessMatch(args.permissions)
@@ -124,11 +345,6 @@ export async function canViewCustomList(args: {
 
   return Boolean(data && data.length > 0)
 }
-
-export function canManageCustomList(permissions: CurrentUserPermissions, list: Pick<CustomListRow, 'council_id'>) {
-  return Boolean(permissions.isCouncilAdmin && permissions.councilId === list.council_id)
-}
-
 
 export function formatDate(value?: string | null) {
   if (!value) return '—'

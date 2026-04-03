@@ -1,15 +1,25 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import styles from './home.module.css'
 
-function pickOperationsLanding(permissions: Awaited<ReturnType<typeof getCurrentUserPermissions>>) {
-  if (permissions.canAccessMemberData) return '/members'
-  if (permissions.canManageEvents) return '/events'
-  if (permissions.canManageCustomLists) return '/custom-lists'
-  if (permissions.canAccessOrganizationSettings) return '/me/council'
-  return '/spiritual'
+type CouncilRow = {
+  id: string
+  name: string | null
+  council_number: string | null
+  organization_id: string | null
 }
+
+type OrganizationRow = {
+  display_name: string | null
+  preferred_name: string | null
+  logo_storage_path: string | null
+  logo_alt_text: string | null
+} | null
 
 export default async function HomePage() {
   const permissions = await getCurrentUserPermissions()
@@ -18,78 +28,132 @@ export default async function HomePage() {
     redirect('/login')
   }
 
-  if (!permissions.hasStaffAccess || permissions.actingMode === 'member') {
-    if (!permissions.personId) {
-      redirect('/me')
-    }
+  if (permissions.isSuperAdmin && permissions.actingMode === 'member') {
     redirect('/spiritual')
   }
 
-  const cards = [
-    permissions.canAccessMemberData
-      ? {
-          href: '/members',
-          eyebrow: 'Members',
-          title: 'Member directory',
-          description: 'Open the roster, review profiles, and keep your organization records current.',
-        }
-      : null,
-    permissions.canManageEvents
-      ? {
-          href: '/events',
-          eyebrow: 'Events',
-          title: 'Plan and manage events',
-          description: 'Create events, invite councils, and manage volunteer or RSVP flows.',
-        }
-      : null,
-    permissions.canManageCustomLists
-      ? {
-          href: '/custom-lists',
-          eyebrow: 'Custom lists',
-          title: 'Organize outreach lists',
-          description: 'Build small working lists for follow-up, recruiting, or campaigns.',
-        }
-      : null,
-    permissions.canAccessOrganizationSettings
-      ? {
-          href: '/me/council',
-          eyebrow: 'Organization',
-          title: 'Organization settings',
-          description: 'Manage officers, admin access, and the organization identity shown in Chrism.',
-        }
-      : null,
-  ].filter(Boolean) as Array<{
-    href: string
-    eyebrow: string
-    title: string
-    description: string
-  }>
-
-  if (cards.length === 0) {
-    redirect(pickOperationsLanding(permissions))
+  if (!permissions.hasStaffAccess) {
+    const needsProfileLanding = !permissions.personId
+    redirect(needsProfileLanding ? '/me' : '/spiritual')
   }
+
+  const admin = createAdminClient()
+
+  const { data: councilData } = permissions.councilId
+    ? await admin
+        .from('councils')
+        .select('id, name, council_number, organization_id')
+        .eq('id', permissions.councilId)
+        .maybeSingle<CouncilRow>()
+    : { data: null }
+
+  const council = councilData ?? null
+
+  if (!council?.id) {
+    if (permissions.canManageEvents) redirect('/events')
+    if (permissions.canAccessMemberData) redirect('/members')
+    if (permissions.canManageCustomLists) redirect('/custom-lists')
+    if (permissions.canAccessOrganizationSettings || permissions.canManageAdmins) redirect('/me/council')
+    redirect('/spiritual')
+  }
+
+  const { data: organizationData } = council.organization_id
+    ? await admin
+        .from('organizations')
+        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .eq('id', council.organization_id)
+        .maybeSingle<Exclude<OrganizationRow, null>>()
+    : { data: null }
+
+  const organization = (organizationData ?? null) as OrganizationRow
+  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const unitName = council.name?.trim() || organizationName
+  const publicMeetingsHref = council.council_number
+    ? `/councils/${council.council_number}/meetings`
+    : '/events'
 
   return (
     <main className="qv-page">
-      <div className="qv-shell">
+      <div className={`qv-shell ${styles.shell}`}>
         <AppHeader />
 
-        <section className="qv-hero-card">
-          <p className="qv-eyebrow">Operations</p>
-          <h1 className="qv-title">Welcome back</h1>
-          <p className="qv-subtitle">
-            Choose the area you want to work in today.
-          </p>
+        <section className={styles.hero}>
+          <div className={styles.heroCopy}>
+            <h1 className={styles.heroTitle}>
+              Your ministry,
+              <br />
+              organized.
+            </h1>
+          </div>
+
+          <div className={styles.heroLogo}>
+            <OrganizationAvatar
+              displayName={organizationName}
+              logoStoragePath={organization?.logo_storage_path ?? null}
+              fallbackLogoPath="/organizations/knights-of-columbus-logo.png"
+              logoAltText={organization?.logo_alt_text ?? `${organizationName} logo`}
+              size={96}
+              title={unitName}
+            />
+          </div>
         </section>
 
-        <section className="qv-grid" style={{ marginTop: 24 }}>
-          {cards.map((card) => (
-            <Link key={card.href} href={card.href} className="qv-card qv-card-link">
-              <p className="qv-eyebrow">{card.eyebrow}</p>
-              <h2 className="qv-section-title" style={{ marginTop: 4 }}>{card.title}</h2>
-              <p className="qv-section-subtitle" style={{ marginTop: 12 }}>{card.description}</p>
-            </Link>
-          ))}
+        <section className={styles.cardGrid} aria-label="Operations shortcuts">
+          {permissions.canAccessMemberData || permissions.canManageCustomLists ? (
+            <article className={styles.areaCard}>
+              <div className={styles.cardInner}>
+                <h2 className={styles.cardTitle}>Members</h2>
+                <p className={styles.cardIntro}>
+                  Your members are your strength. Keep their information close and make follow-up work easier.
+                </p>
+
+                {permissions.canAccessMemberData ? (
+                  <div className={styles.cardSection}>
+                    <p className={styles.cardSectionTitle}>Your members&apos; contact details always at hand.</p>
+                    <Link href="/members" className={`qv-button-secondary qv-link-button ${styles.cardButton}`}>
+                      Member Directory
+                    </Link>
+                  </div>
+                ) : null}
+
+                {permissions.canManageCustomLists ? (
+                  <div className={styles.cardSection}>
+                    <p className={styles.cardSectionTitle}>Targeted groups for outreach, follow-up, and planning.</p>
+                    <Link href="/custom-lists" className={`qv-button-secondary qv-link-button ${styles.cardButton}`}>
+                      Custom Lists
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+              <div className={styles.cardBanner} aria-hidden="true" />
+            </article>
+          ) : null}
+
+          {permissions.canManageEvents ? (
+            <article className={styles.areaCard}>
+              <div className={styles.cardInner}>
+                <h2 className={styles.cardTitle}>Events</h2>
+                <p className={styles.cardIntro}>
+                  Ministry work takes organizing and planning. And it all starts with a good calendar.
+                </p>
+
+                <div className={styles.cardSection}>
+                  <p className={styles.cardSectionTitle}>Keep members informed of upcoming meeting dates.</p>
+                  <Link href={publicMeetingsHref} className={`qv-button-secondary qv-link-button ${styles.cardButton}`}>
+                    Public Meeting Calendar
+                  </Link>
+                </div>
+
+                <div className={styles.cardSection}>
+                  <p className={styles.cardSectionTitle}>Schedule events, collect RSVPs, and line up volunteers.</p>
+                  <Link href="/events" className={`qv-button-secondary qv-link-button ${styles.cardButton}`}>
+                    Events Scheduler
+                  </Link>
+                </div>
+              </div>
+              <div className={styles.cardBanner} aria-hidden="true" />
+            </article>
+          ) : null}
         </section>
       </div>
     </main>

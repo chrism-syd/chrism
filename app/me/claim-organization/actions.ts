@@ -8,16 +8,7 @@ import {
   insertOrganizationClaimRequest,
   normalizeClaimText,
 } from '@/lib/organizations/claim-requests'
-
-export type ClaimOrganizationActionState = {
-  status: 'idle' | 'success' | 'error'
-  message: string
-}
-
-export const initialClaimOrganizationActionState: ClaimOrganizationActionState = {
-  status: 'idle',
-  message: '',
-}
+import type { ClaimOrganizationActionState } from './action-state'
 
 function fallbackNameFromEmail(email: string | null) {
   const local = email?.split('@')[0]?.replace(/[._-]+/g, ' ')?.trim()

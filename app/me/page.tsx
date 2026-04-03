@@ -5,10 +5,12 @@ import AccountSummarySection from '@/app/me/account-summary-section'
 import ClaimReviewNoticeCard from '@/app/me/claim-review-notice-card'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { getParallelAreaAccessSummary } from '@/lib/auth/parallel-access-summary'
 import { getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names'
 import { listClaimedPersonRsvpsForUser } from '@/lib/rsvp/claim'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord, decryptProfileChangeRequestRecord, decryptProfileChangeRequestRecords } from '@/lib/security/pii'
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 type LinkedPersonRow = {
   id: string
@@ -54,16 +56,6 @@ type PendingClaimNoticeRow = {
 type RejectedFieldNotice = { reviewedAt: string | null }
 type RejectedFieldNoticeMap = Partial<Record<'email' | 'cell_phone' | 'home_phone', RejectedFieldNotice>>
 
-function formatDateTimeRange(startsAt: string, endsAt: string) {
-  const start = new Date(startsAt)
-  const end = new Date(endsAt)
-  return (
-    new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(start) +
-    ' to ' +
-    new Intl.DateTimeFormat('en-CA', { hour: 'numeric', minute: '2-digit' }).format(end)
-  )
-}
-
 function formatDateTime(value?: string | null) {
   if (!value) return '—'
   return new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
@@ -107,6 +99,7 @@ export default async function MyProfilePage() {
   if (!permissions.authUser) redirect('/login')
 
   const adminSupabase = createAdminClient()
+  const parallelAreaAccess = await getParallelAreaAccessSummary({ admin: adminSupabase, permissions })
   const claimedRsvps = await listClaimedPersonRsvpsForUser({ supabase: adminSupabase, userId: permissions.authUser.id })
 
   const personPromise = permissions.personId
@@ -178,6 +171,21 @@ export default async function MyProfilePage() {
   const officialRecordName = linkedPerson ? `${linkedPerson.first_name} ${linkedPerson.last_name}`.trim() : 'Your personal profile'
   const addressHelpText = permissions.organizationId ? 'If you have an update to your home address, please inform your local council.' : null
   const adminClaimHeading = organizationLabel ? `Need admin access for ${organizationLabel}?` : 'Already with an organization on Chrism?'
+  const isAlreadyOrganizationAdmin =
+    permissions.canAccessMemberData ||
+    permissions.canReviewMemberChanges ||
+    permissions.canManageCustomLists ||
+    permissions.canManageAdmins ||
+    permissions.canAccessOrganizationSettings ||
+    parallelAreaAccess.membersManage ||
+    parallelAreaAccess.eventsManage ||
+    parallelAreaAccess.customListsManage ||
+    parallelAreaAccess.localUnitSettingsManage ||
+    permissions.availableContexts.some(
+      (context) =>
+        context.organizationId === permissions.organizationId &&
+        context.accessLevel !== 'member'
+    )
 
   return (
     <main className="qv-page">
@@ -239,11 +247,11 @@ export default async function MyProfilePage() {
           />
         ) : null}
 
-        {permissions.isCouncilAdmin ? (
+        {permissions.canAccessOrganizationSettings || parallelAreaAccess.localUnitSettingsManage ? (
           <div className="qv-form-actions" style={{ marginTop: 20 }}>
             <Link href="/me/council" className="qv-link-button qv-button-primary">Organization settings</Link>
           </div>
-        ) : (
+        ) : isAlreadyOrganizationAdmin ? null : (
           <section className="qv-card" style={{ marginTop: 20 }}>
             <div className="qv-directory-section-head">
               <div>
@@ -277,7 +285,7 @@ export default async function MyProfilePage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div>
                       <h2 className="qv-section-title" style={{ fontSize: 22 }}>{submission.event_title}</h2>
-                      <p className="qv-section-subtitle" style={{ marginTop: 6 }}>{formatDateTimeRange(submission.starts_at, submission.ends_at)}</p>
+                      <p className="qv-section-subtitle" style={{ marginTop: 6 }}>{formatEventDateTimeRange(submission.starts_at, submission.ends_at)}</p>
                     </div>
                     {submission.host_token ? (
                       <Link href={`/rsvp/${submission.host_token}/manage?submission=${encodeURIComponent(submission.id)}`} className="qv-link-button qv-button-primary">

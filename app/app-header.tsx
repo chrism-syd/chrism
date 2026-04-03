@@ -6,7 +6,7 @@ import { hasSharedCustomListsForUser } from '@/lib/custom-lists'
 import { getPublicMeetingsHref, listMemberInvitedEvents } from '@/lib/member-navigation'
 import UserMenu from './components/user-menu'
 import PrimaryNav from './components/primary-nav'
-import AccessContextSwitcher from './components/access-context-switcher'
+import ModeSwitcher from './components/mode-switcher'
 import type { SuperAdminOrganizationOption } from './components/dev-mode-switcher'
 
 type OrganizationRow = {
@@ -15,7 +15,11 @@ type OrganizationRow = {
   preferred_name: string | null
 }
 
-export default async function AppHeader() {
+type AppHeaderProps = {
+  brandVariant?: 'auto' | 'operations' | 'spiritual'
+}
+
+export default async function AppHeader({ brandVariant = 'auto' }: AppHeaderProps) {
   const permissions = await getCurrentUserPermissions()
   const admin = createAdminClient()
 
@@ -32,17 +36,24 @@ export default async function AppHeader() {
     })))
   }
 
+  const suppressPersonalizedMemberLinks =
+    permissions.isSuperAdmin && permissions.actingMode === 'member'
+
   const [memberInvitedEvents, publicMeetingsHref, hasSharedCustomLists] =
     permissions.isSignedIn && !permissions.hasStaffAccess
       ? await Promise.all([
-          listMemberInvitedEvents({ admin, permissions, limit: 6 }),
+          suppressPersonalizedMemberLinks
+            ? Promise.resolve([])
+            : listMemberInvitedEvents({ admin, permissions, limit: 6 }),
           getPublicMeetingsHref({ admin, councilId: permissions.councilId }),
-          hasSharedCustomListsForUser({ admin, permissions }),
+          suppressPersonalizedMemberLinks
+            ? Promise.resolve(false)
+            : hasSharedCustomListsForUser({ admin, permissions }),
         ])
       : [[], null, false]
 
-  const staffMembersChildren = [
-    { label: 'Member directory', href: '/members' },
+  const memberNavChildren = [
+    ...(permissions.canAccessMemberData ? [{ label: 'Member directory', href: '/members' }] : []),
     ...(permissions.canManageCustomLists ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
     ...(permissions.canReviewMemberChanges ? [{ label: 'Reviews', href: '/members/reviews' }] : []),
     ...(permissions.canImportMembers ? [{ label: 'Imports', href: '/imports/supreme' }] : []),
@@ -50,11 +61,16 @@ export default async function AppHeader() {
 
   const navItems = permissions.hasStaffAccess
     ? [
-        {
-          label: 'Members',
-          href: '/members',
-          items: staffMembersChildren.length > 1 ? staffMembersChildren : undefined,
-        },
+        ...(memberNavChildren.length > 0
+          ? [{
+              label: 'Members',
+              href: memberNavChildren[0]?.href ?? '/members',
+              items: memberNavChildren.length > 1 ? memberNavChildren : undefined,
+            }]
+          : []),
+        ...(!permissions.canAccessMemberData && permissions.canManageCustomLists
+          ? [{ label: 'Custom lists', href: '/custom-lists' }]
+          : []),
         ...(permissions.canManageEvents ? [{ label: 'Events', href: '/events' }] : []),
       ]
     : [
@@ -64,69 +80,58 @@ export default async function AppHeader() {
         ...(publicMeetingsHref ? [{ label: 'Public meetings', href: publicMeetingsHref }] : []),
       ]
 
-  const showAccessContextSwitcher = permissions.isSignedIn && !permissions.isDevMode
-  const showSectionToggle = permissions.isSignedIn && permissions.hasStaffAccess && !permissions.isDevMode
-  const activeSection = permissions.hasStaffAccess ? 'operations' : 'spiritual'
+  const logoSrc =
+    brandVariant === 'spiritual'
+      ? '/Chrism_horiz.svg'
+      : brandVariant === 'operations'
+        ? '/Chrism-ops.svg'
+        : permissions.hasStaffAccess
+          ? '/Chrism-ops.svg'
+          : '/Chrism_horiz.svg'
 
   return (
     <header className="qv-app-header">
       <div className="qv-app-header-left">
         <Link href="/" className="qv-brand">
           <Image
-            src={permissions.hasStaffAccess ? '/Chrism-ops.svg' : '/Chrism_horiz.svg'}
+            src={logoSrc}
             alt="Chrism"
-            width={240}
-            height={80}
+            width={280}
+            height={94}
             className="qv-brand-logo"
             priority
           />
         </Link>
 
-        {permissions.isSignedIn ? <PrimaryNav items={navItems} /> : null}
+        {permissions.isSignedIn && navItems.length > 0 ? <PrimaryNav items={navItems} /> : null}
+
+        {permissions.isSignedIn && permissions.hasStaffAccess ? (
+          <ModeSwitcher operationsHref="/" spiritualHref="/spiritual" />
+        ) : null}
       </div>
 
       <div className="qv-app-header-right">
-        {showAccessContextSwitcher && permissions.availableContexts.length > 1 ? (
-          <AccessContextSwitcher
-            contexts={permissions.availableContexts}
-            selectedContextKey={permissions.activeContextKey}
-          />
-        ) : null}
-
-        {showSectionToggle ? (
-          <div className="qv-dev-header-flags">
-            <Link
-              href="/spiritual"
-              className={activeSection === 'spiritual' ? 'qv-mini-pill qv-mini-pill-accent' : 'qv-mini-pill'}
-            >
-              Spiritual
-            </Link>
-            <Link
-              href="/"
-              className={activeSection === 'operations' ? 'qv-mini-pill qv-mini-pill-accent' : 'qv-mini-pill'}
-            >
-              Operations
-            </Link>
-          </div>
-        ) : null}
-
-        {permissions.isDevMode ? (
-          <div className="qv-dev-header-flags">
-            <span className="qv-mini-pill qv-mini-pill-accent">Dev mode</span>
-            {permissions.currentViewLabel ? <span className="qv-mini-pill">{permissions.currentViewLabel}</span> : null}
-          </div>
+        {permissions.isDevMode && permissions.currentViewLabel ? (
+          <span className="qv-mini-pill">{permissions.currentViewLabel}</span>
         ) : null}
 
         {permissions.isSignedIn ? (
           <UserMenu
             links={[
               { href: '/me', label: 'Profile' },
-              ...(permissions.canAccessOrganizationSettings ? [{ href: '/me/council', label: 'Organization settings' }] : []),
+              ...(permissions.canManageCustomLists && !memberNavChildren.some((item) => item.href === '/custom-lists')
+                ? [{ href: '/custom-lists', label: 'Custom lists' }]
+                : []),
+              ...(permissions.canAccessOrganizationSettings || permissions.canManageAdmins
+                ? [{ href: '/me/council', label: 'Organization settings' }]
+                : []),
               ...(permissions.canAccessOfficerDirectory ? [{ href: '/members/officers', label: 'Officers' }] : []),
-              ...(permissions.isSuperAdmin ? [{ href: '/super-admin/organization-claims', label: 'Claim queue' }] : []),
             ]}
             email={permissions.email}
-            currentViewLabel={permissions.isDevMode ? permissions.currentViewLabel : null}
+            accessContext={{
+              selectedContextKey: permissions.activeContextKey,
+              contexts: permissions.availableContexts,
+            }}
             devMode={
               permissions.isSuperAdmin
                 ? {

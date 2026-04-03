@@ -17,6 +17,8 @@ export default async function MemberOfficerTermsPage({ params }: PageProps) {
   const { admin: supabase, council } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
 
   const { data: person } = await supabase

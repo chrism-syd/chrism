@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { duplicateArchivedEventAsDraft } from '../../actions'
+import { formatEventDateTimeRange } from '@/lib/events/display'
 
 type ArchivedEventRow = {
   id: string
   original_event_id: string | null
   council_id: string
+  local_unit_id?: string | null
   title: string
   description: string | null
   location_name: string | null
@@ -23,28 +25,6 @@ type ArchivedEventRow = {
   reminder_scheduled_for: string | null
   reminder_days_before: number | null
   deleted_at: string
-}
-
-function formatDateTimeRange(startsAt: string | null, endsAt: string | null) {
-  if (!startsAt || !endsAt) return 'Date not available'
-  const start = new Date(startsAt)
-  const end = new Date(endsAt)
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate()
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-  if (sameDay) return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${dateFormatter.format(end)} ${timeFormatter.format(end)}`
 }
 
 function formatDateTime(value?: string | null) {
@@ -69,15 +49,19 @@ function getStatusLabel(statusCode?: string | null) {
 
 export default async function ArchivedEventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({ redirectTo: '/events/archive' })
+  const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContext({
+    redirectTo: '/events/archive',
+    areaCode: 'events',
+    minimumAccessLevel: 'manage',
+  })
 
   const { data, error } = await supabase
     .from('event_archives')
     .select(
-      'id, original_event_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before, deleted_at'
+      'id, original_event_id, council_id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before, deleted_at'
     )
     .eq('id', id)
-    .eq('council_id', council.id)
+    .eq(localUnitId ? 'local_unit_id' : 'council_id', localUnitId ?? council.id)
     .single()
 
   const event = data as ArchivedEventRow | null
@@ -101,7 +85,7 @@ export default async function ArchivedEventDetailPage({ params }: { params: Prom
                 {council.council_number ? ` (${council.council_number})` : ''}
               </p>
               <h1 className="qv-title">{event.title}</h1>
-              <p className="qv-subtitle">{formatDateTimeRange(event.starts_at, event.ends_at)}</p>
+              <p className="qv-subtitle">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</p>
               <div className="qv-detail-badges">
                 <span className="qv-badge">{getStatusLabel(event.status_code)}</span>
                 <span className="qv-badge">Archived</span>
@@ -132,7 +116,7 @@ export default async function ArchivedEventDetailPage({ params }: { params: Prom
             <div className="qv-detail-list">
               <div className="qv-detail-item">
                 <div className="qv-detail-label">When</div>
-                <div className="qv-detail-value">{formatDateTimeRange(event.starts_at, event.ends_at)}</div>
+                <div className="qv-detail-value">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
               </div>
               <div className="qv-detail-item">
                 <div className="qv-detail-label">Location</div>

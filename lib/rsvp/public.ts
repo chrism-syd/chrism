@@ -20,8 +20,9 @@ export type PublicInviteContext = {
     location_name: string | null;
     location_address: string | null;
     starts_at: string;
-    ends_at: string;
+    ends_at: string | null;
     requires_rsvp: boolean;
+    needs_volunteers: boolean;
     rsvp_deadline_at: string | null;
     status_code: string;
     scope_code: 'home_council_only' | 'multi_council';
@@ -49,7 +50,7 @@ export async function loadPublicInviteContext(
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, requires_rsvp, rsvp_deadline_at, status_code, scope_code'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, requires_rsvp, needs_volunteers, rsvp_deadline_at, status_code, scope_code'
     )
     .eq('id', invite.event_id)
     .maybeSingle();
@@ -70,6 +71,7 @@ export async function loadPublicInviteContext(
     starts_at: rawEvent.starts_at,
     ends_at: rawEvent.ends_at,
     requires_rsvp: rawEvent.requires_rsvp,
+    needs_volunteers: rawEvent.needs_volunteers,
     rsvp_deadline_at: rawEvent.rsvp_deadline_at,
     status_code: rawEvent.status_code,
     scope_code: rawEvent.scope_code,

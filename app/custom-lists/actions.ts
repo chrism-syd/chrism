@@ -3,603 +3,620 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
-import { assertCanManageCustomListsInContext } from '@/lib/auth/area-access'
+import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import {
-  buildAccessibleCustomListQuery,
-  getCurrentActingLocalUnitId,
+  canManageCustomList,
+  canViewCustomList,
+  hasStrictCustomListLifecycleAccess,
+  normalizeEmail,
+  resolveCustomListLocalUnitId,
+  type CustomListRow,
 } from '@/lib/custom-lists'
-import { getCurrentAreaContextCookieValues } from '@/lib/auth/access-contexts'
-import {
-  parseContactDateValue,
-  parseOptionalDateValue,
-  parseOptionalIntegerValue,
-  protectCustomListMemberInsertPayload,
-  protectCustomListMemberUpdatePayload,
-} from '@/lib/security/pii'
+import { decryptPeopleRecords } from '@/lib/security/pii'
 
-function normalizeText(value: FormDataEntryValue | string | null | undefined) {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
+export type CreateCustomListState = {
+  error: string | null
 }
 
-function normalizeLabel(value: string | null, fallback: string) {
-  return value ?? fallback
-}
+async function loadCustomListForAction(customListId: string) {
+  const admin = createAdminClient()
+  const permissions = await getCurrentUserPermissions()
 
-function countValue(value: string | null) {
-  return value ?? '0'
-}
-
-async function getAccessibleListOrRedirect(args: {
-  admin: ReturnType<typeof createAdminClient>
-  permissions: Awaited<ReturnType<typeof getCurrentUserPermissions>>
-  listId: string
-  redirectTo: string
-}) {
-  const localUnitId = await getCurrentActingLocalUnitId({
-    admin: args.admin,
-    permissions: args.permissions,
-  })
-
-  if (!localUnitId) {
-    redirect(args.redirectTo)
+  if (!permissions.authUser) {
+    redirect('/login')
   }
 
-  const query = buildAccessibleCustomListQuery({
-    admin: args.admin,
-    permissions: args.permissions,
-    localUnitId,
-  })
+  const { data, error } = await admin
+    .from('custom_lists')
+    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .eq('id', customListId)
+    .maybeSingle<CustomListRow>()
 
-  const { data, error } = await query
-    .eq('id', args.listId)
-    .maybeSingle<{ id: string; name: string; local_unit_id: string | null }>()
+  if (error || !data || data.archived_at) {
+    redirect('/custom-lists')
+  }
+
+  const canView = await canViewCustomList({ admin, permissions, list: data })
+  if (!canView) {
+    redirect('/me')
+  }
+
+  return {
+    admin,
+    permissions,
+    list: data,
+    canManage: await canManageCustomList(permissions, data, admin),
+  }
+}
+
+async function loadCustomListForLifecycleAction(args: {
+  customListId: string
+  requireArchived?: boolean
+}) {
+  const admin = createAdminClient()
+  const permissions = await getCurrentUserPermissions()
+
+  if (!permissions.authUser) {
+    redirect('/login')
+  }
+
+  const { data, error } = await admin
+    .from('custom_lists')
+    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .eq('id', args.customListId)
+    .maybeSingle<CustomListRow>()
 
   if (error || !data) {
-    redirect(args.redirectTo)
+    redirect(args.requireArchived ? '/custom-lists/archive' : '/custom-lists')
   }
 
-  if (!data.local_unit_id) {
-    redirect(args.redirectTo)
+  const isArchived = Boolean(data.archived_at)
+  if (args.requireArchived ? !isArchived : isArchived) {
+    redirect(args.requireArchived ? `/custom-lists/${args.customListId}` : '/custom-lists/archive')
   }
 
-  return {
-    id: data.id,
-    name: data.name,
-    localUnitId: data.local_unit_id,
-  }
-}
-
-async function resolveCurrentListContext(args: {
-  admin: ReturnType<typeof createAdminClient>
-  permissions: Awaited<ReturnType<typeof getCurrentUserPermissions>>
-}) {
-  const context = await getCurrentActingCouncilContext({
-    permissions: args.permissions,
-    supabaseAdmin: args.admin,
-    requireAdmin: false,
-    redirectTo: '/custom-lists',
+  const hasLifecycleAccess = await hasStrictCustomListLifecycleAccess({
+    admin,
+    permissions,
+    list: data,
   })
 
-  const localUnitId = await getCurrentActingLocalUnitId({
-    admin: args.admin,
-    permissions: args.permissions,
-  })
+  if (!hasLifecycleAccess) {
+    redirect('/me')
+  }
 
+  const localUnitId = await resolveCustomListLocalUnitId({ admin, list: data })
   if (!localUnitId) {
-    redirect('/custom-lists')
+    throw new Error('This custom list is missing a local unit link, so we could not complete that lifecycle action.')
   }
-
-  await assertCanManageCustomListsInContext({
-    admin: args.admin,
-    permissions: args.permissions,
-    localUnitId,
-    redirectTo: '/custom-lists',
-  })
 
   return {
+    admin,
+    permissions,
+    list: data,
     localUnitId,
-    councilId: context.council.id,
   }
 }
 
-function sortMemberOptions(options: Array<{ id: string; label: string }>) {
-  return [...options].sort((left, right) => left.label.localeCompare(right.label))
-}
+export async function createCustomListFromMembersAction(
+  _previousState: CreateCustomListState,
+  formData: FormData
+): Promise<CreateCustomListState> {
+  const name = String(formData.get('name') ?? '').trim()
+  const descriptionValue = String(formData.get('description') ?? '').trim()
+  const selectedMemberIds = String(formData.get('member_ids') ?? '[]')
 
-export async function createCustomListAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
+  if (!name) {
+    return { error: 'Give this custom list a name before saving it.' }
   }
 
-  const admin = createAdminClient()
-  const listName = normalizeText(formData.get('name'))
-  const listDescription = normalizeText(formData.get('description'))
-  const selectedMemberIds = formData.getAll('selected_member_ids').flatMap((value) => {
-    if (typeof value !== 'string') return []
-    return value
-      .split(',')
-      .map((part) => part.trim())
-      .filter(Boolean)
+  let parsedIds: string[] = []
+  try {
+    const decoded = JSON.parse(selectedMemberIds)
+    parsedIds = Array.isArray(decoded) ? decoded.filter((value): value is string => typeof value === 'string') : []
+  } catch {
+    return { error: 'We could not read the members in this filtered view. Please try again.' }
+  }
+
+  const memberIds = [...new Set(parsedIds)]
+  if (memberIds.length === 0) {
+    return { error: 'There are no members in this filtered view to save into a custom list.' }
+  }
+
+  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+    requireAdmin: true,
+    redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
   })
+  const authUserId = permissions.authUser?.id ?? null
 
-  const { localUnitId, councilId } = await resolveCurrentListContext({ admin, permissions })
+  const { data: localUnitData } = await admin
+    .from('local_units')
+    .select('id')
+    .eq('legacy_council_id', council.id)
+    .limit(1)
+    .maybeSingle<{ id: string }>()
 
-  if (!listName) {
-    redirect('/custom-lists?error=Enter%20a%20name%20for%20the%20list.')
+  const localUnitId = localUnitData?.id ?? null
+
+  const { data: validMembers, error: membersError } = await admin
+    .from('people')
+    .select('id')
+    .in('id', memberIds)
+    .eq('council_id', council.id)
+    .eq('primary_relationship_code', 'member')
+    .is('archived_at', null)
+
+  if (membersError) {
+    return { error: `Could not load the members for this list. ${membersError.message}` }
   }
 
-  const { data: createdList, error: listError } = await admin
+  const validMemberIds = ((validMembers as Array<{ id: string }> | null) ?? []).map((member) => member.id)
+  if (validMemberIds.length === 0) {
+    return { error: 'The selected members are no longer available in the active directory.' }
+  }
+
+  const { data: customListData, error: createError } = await admin
     .from('custom_lists')
     .insert({
-      name: listName,
-      description: listDescription,
+      council_id: council.id,
       local_unit_id: localUnitId,
-      council_id: councilId,
-      created_by_auth_user_id: permissions.authUser?.id ?? null,
-      updated_by_auth_user_id: permissions.authUser?.id ?? null,
+      name,
+      description: descriptionValue || null,
+      created_by_auth_user_id: authUserId,
+      updated_by_auth_user_id: authUserId,
     })
     .select('id')
     .maybeSingle<{ id: string }>()
 
-  if (listError || !createdList?.id) {
-    redirect('/custom-lists?error=Could%20not%20create%20the%20list.')
+  if (createError || !customListData?.id) {
+    return { error: `Could not create this custom list. ${createError?.message ?? 'Please try again.'}` }
   }
 
-  if (selectedMemberIds.length > 0) {
-    const memberRows = selectedMemberIds.map((personId, index) =>
-      protectCustomListMemberInsertPayload({
-        custom_list_id: createdList.id,
-        person_id: personId,
-        added_by_auth_user_id: permissions.authUser?.id ?? null,
-        added_source_code: 'bulk_selection',
-        sort_order: index,
-      })
-    )
+  const { error: memberInsertError } = await admin.from('custom_list_members').insert(
+    validMemberIds.map((personId) => ({
+      custom_list_id: customListData.id,
+      person_id: personId,
+      added_by_auth_user_id: authUserId,
+    }))
+  )
 
-    const { error: membersError } = await admin
-      .from('custom_list_members')
-      .insert(memberRows)
-
-    if (membersError) {
-      redirect(`/custom-lists/${createdList.id}?error=List%20created%2C%20but%20some%20members%20could%20not%20be%20added.`)
-    }
+  if (memberInsertError) {
+    return { error: `The custom list was created, but we could not add the members. ${memberInsertError.message}` }
   }
 
+  revalidatePath('/members')
   revalidatePath('/custom-lists')
-  redirect(`/custom-lists/${createdList.id}`)
-}
-
-export async function updateCustomListDetailsAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
-  }
-
-  const admin = createAdminClient()
-  const listId = normalizeText(formData.get('list_id'))
-  const listName = normalizeText(formData.get('name'))
-  const listDescription = normalizeText(formData.get('description'))
-
-  if (!listId) {
-    redirect('/custom-lists')
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
-
-  if (!listName) {
-    redirect(`/custom-lists/${listId}?error=Enter%20a%20name%20for%20the%20list.`)
-  }
-
-  const { error } = await admin
-    .from('custom_lists')
-    .update({
-      name: listName,
-      description: listDescription,
-      updated_by_auth_user_id: permissions.authUser?.id ?? null,
-    })
-    .eq('id', listId)
-
-  if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20save%20the%20list%20details.`)
-  }
-
-  revalidatePath(`/custom-lists/${listId}`)
-  revalidatePath('/custom-lists')
-  redirect(`/custom-lists/${listId}`)
-}
-
-export async function addCustomListMemberAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
-  }
-
-  const admin = createAdminClient()
-  const listId = normalizeText(formData.get('list_id'))
-  const personId = normalizeText(formData.get('person_id'))
-  const sourceCode = normalizeText(formData.get('added_source_code')) ?? 'manual_add'
-
-  if (!listId) {
-    redirect('/custom-lists')
-  }
-
-  if (!personId) {
-    redirect(`/custom-lists/${listId}?error=Choose%20a%20member%20to%20add.`)
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
-
-  const { data: existingRows } = await admin
-    .from('custom_list_members')
-    .select('sort_order')
-    .eq('custom_list_id', listId)
-
-  const nextSortOrder = ((existingRows as Array<{ sort_order: number | null }> | null) ?? [])
-    .reduce((highest, row) => Math.max(highest, row.sort_order ?? -1), -1) + 1
-
-  const payload = protectCustomListMemberInsertPayload({
-    custom_list_id: listId,
-    person_id: personId,
-    added_by_auth_user_id: permissions.authUser?.id ?? null,
-    added_source_code: sourceCode,
-    sort_order: nextSortOrder,
-  })
-
-  const { error } = await admin
-    .from('custom_list_members')
-    .insert(payload)
-
-  if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20add%20that%20member%20to%20the%20list.`)
-  }
-
-  revalidatePath(`/custom-lists/${listId}`)
-  redirect(`/custom-lists/${listId}`)
-}
-
-export async function updateCustomListMemberAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
-  }
-
-  const admin = createAdminClient()
-  const memberId = normalizeText(formData.get('member_id'))
-  const listId = normalizeText(formData.get('list_id'))
-  const notes = normalizeText(formData.get('notes'))
-  const statusCode = normalizeText(formData.get('status_code'))
-  const priorityCode = normalizeText(formData.get('priority_code'))
-  const lastContactDate = parseContactDateValue(formData.get('last_contact_date'))
-  const followUpOn = parseOptionalDateValue(formData.get('follow_up_on'))
-  const contactAttempts = parseOptionalIntegerValue(formData.get('contact_attempt_count'))
-
-  if (!memberId || !listId) {
-    redirect('/custom-lists')
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
-
-  const payload = protectCustomListMemberUpdatePayload({
-    notes,
-    status_code: statusCode,
-    priority_code: priorityCode,
-    last_contact_date: lastContactDate,
-    follow_up_on: followUpOn,
-    contact_attempt_count: contactAttempts,
-    updated_at: new Date().toISOString(),
-  })
-
-  const { error } = await admin
-    .from('custom_list_members')
-    .update(payload)
-    .eq('id', memberId)
-    .eq('custom_list_id', listId)
-
-  if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20save%20that%20entry.`)
-  }
-
-  revalidatePath(`/custom-lists/${listId}`)
-  redirect(`/custom-lists/${listId}`)
-}
-
-export async function removeCustomListMemberAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
-  }
-
-  const admin = createAdminClient()
-  const memberId = normalizeText(formData.get('member_id'))
-  const listId = normalizeText(formData.get('list_id'))
-
-  if (!memberId || !listId) {
-    redirect('/custom-lists')
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
-
-  const { error } = await admin
-    .from('custom_list_members')
-    .delete()
-    .eq('id', memberId)
-    .eq('custom_list_id', listId)
-
-  if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20remove%20that%20member.`)
-  }
-
-  revalidatePath(`/custom-lists/${listId}`)
-  redirect(`/custom-lists/${listId}`)
-}
-
-export async function duplicateCustomListAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
-  }
-
-  const admin = createAdminClient()
-  const listId = normalizeText(formData.get('list_id'))
-
-  if (!listId) {
-    redirect('/custom-lists')
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
-
-  const { data: listRow } = await admin
-    .from('custom_lists')
-    .select('name, description, council_id, local_unit_id')
-    .eq('id', listId)
-    .maybeSingle<{ name: string; description: string | null; council_id: string | null; local_unit_id: string | null }>()
-
-  if (!listRow?.local_unit_id) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20duplicate%20that%20list.`)
-  }
-
-  const { data: createdList, error: createError } = await admin
-    .from('custom_lists')
-    .insert({
-      name: `${listRow.name} copy`,
-      description: listRow.description,
-      council_id: listRow.council_id,
-      local_unit_id: listRow.local_unit_id,
-      created_by_auth_user_id: permissions.authUser?.id ?? null,
-      updated_by_auth_user_id: permissions.authUser?.id ?? null,
-    })
-    .select('id')
-    .maybeSingle<{ id: string }>()
-
-  if (createError || !createdList?.id) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20duplicate%20that%20list.`)
-  }
-
-  const { data: existingMembers } = await admin
-    .from('custom_list_members')
-    .select('*')
-    .eq('custom_list_id', listId)
-    .order('sort_order', { ascending: true })
-
-  const rows = (existingMembers as Array<Record<string, unknown>> | null) ?? []
-  if (rows.length > 0) {
-    const duplicatedRows = rows.map((row) => {
-      const payload = { ...row }
-      delete payload.id
-      payload.custom_list_id = createdList.id
-      payload.added_by_auth_user_id = permissions.authUser?.id ?? null
-      return payload
-    })
-
-    const { error: memberCopyError } = await admin
-      .from('custom_list_members')
-      .insert(duplicatedRows)
-
-    if (memberCopyError) {
-      redirect(`/custom-lists/${createdList.id}?error=The%20list%20was%20copied%2C%20but%20some%20members%20could%20not%20be%20duplicated.`)
-    }
-  }
-
-  revalidatePath('/custom-lists')
-  redirect(`/custom-lists/${createdList.id}`)
+  redirect(`/custom-lists/${customListData.id}`)
 }
 
 export async function archiveCustomListAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
-    redirect('/login')
-  }
+  const customListId = String(formData.get('custom_list_id') ?? '')
 
-  const admin = createAdminClient()
-  const listId = normalizeText(formData.get('list_id'))
-
-  if (!listId) {
+  if (!customListId) {
     redirect('/custom-lists')
   }
 
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
+  const { admin, permissions, list } = await loadCustomListForLifecycleAction({
+    customListId,
+    requireArchived: false,
   })
 
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
+  const userId = permissions.authUser?.id
+  if (!userId) {
+    redirect('/login')
+  }
 
+  const now = new Date().toISOString()
   const { error } = await admin
     .from('custom_lists')
     .update({
-      archived_at: new Date().toISOString(),
-      archived_by_auth_user_id: permissions.authUser?.id ?? null,
-      updated_by_auth_user_id: permissions.authUser?.id ?? null,
+      archived_at: now,
+      archived_by_auth_user_id: userId,
+      updated_at: now,
+      updated_by_auth_user_id: userId,
     })
-    .eq('id', listId)
+    .eq('id', list.id)
 
   if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20archive%20that%20list.`)
+    throw new Error(`Could not archive this custom list. ${error.message}`)
   }
 
   revalidatePath('/custom-lists')
-  redirect('/custom-lists')
+  revalidatePath('/custom-lists/archive')
+  revalidatePath(`/custom-lists/${customListId}`)
+  redirect('/custom-lists/archive')
 }
 
-export async function unarchiveCustomListAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
+export async function restoreCustomListAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+
+  if (!customListId) {
+    redirect('/custom-lists/archive')
+  }
+
+  const { admin, permissions, list } = await loadCustomListForLifecycleAction({
+    customListId,
+    requireArchived: true,
+  })
+
+  const userId = permissions.authUser?.id
+  if (!userId) {
     redirect('/login')
   }
 
-  const admin = createAdminClient()
-  const listId = normalizeText(formData.get('list_id'))
-
-  if (!listId) {
-    redirect('/custom-lists')
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
-
+  const now = new Date().toISOString()
   const { error } = await admin
     .from('custom_lists')
     .update({
       archived_at: null,
       archived_by_auth_user_id: null,
-      updated_by_auth_user_id: permissions.authUser?.id ?? null,
+      updated_at: now,
+      updated_by_auth_user_id: userId,
     })
-    .eq('id', listId)
+    .eq('id', list.id)
 
   if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20restore%20that%20list.`)
+    throw new Error(`Could not restore this custom list. ${error.message}`)
   }
 
   revalidatePath('/custom-lists')
-  redirect(`/custom-lists/${listId}`)
+  revalidatePath('/custom-lists/archive')
+  revalidatePath(`/custom-lists/${customListId}`)
+  redirect(`/custom-lists/${customListId}`)
 }
 
 export async function deleteCustomListAction(formData: FormData) {
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.isSignedIn) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+
+  if (!customListId) {
+    redirect('/custom-lists/archive')
+  }
+
+  const { admin, permissions, list } = await loadCustomListForLifecycleAction({
+    customListId,
+    requireArchived: true,
+  })
+
+  const userId = permissions.authUser?.id
+  if (!userId) {
     redirect('/login')
   }
-
-  const admin = createAdminClient()
-  const listId = normalizeText(formData.get('list_id'))
-
-  if (!listId) {
-    redirect('/custom-lists')
-  }
-
-  const accessibleList = await getAccessibleListOrRedirect({
-    admin,
-    permissions,
-    listId,
-    redirectTo: '/custom-lists',
-  })
-
-  await assertCanManageCustomListsInContext({
-    admin,
-    permissions,
-    localUnitId: accessibleList.localUnitId,
-    redirectTo: `/custom-lists/${listId}`,
-  })
 
   const { error } = await admin
     .from('custom_lists')
     .delete()
-    .eq('id', listId)
+    .eq('id', list.id)
 
   if (error) {
-    redirect(`/custom-lists/${listId}?error=Could%20not%20delete%20that%20list.`)
+    throw new Error(`Could not permanently delete this custom list. ${error.message}`)
   }
 
   revalidatePath('/custom-lists')
-  redirect('/custom-lists')
+  revalidatePath('/custom-lists/archive')
+  revalidatePath(`/custom-lists/${customListId}`)
+  redirect('/custom-lists/archive')
 }
 
-export async function rememberCustomListAreaContextAction() {
-  const values = await getCurrentAreaContextCookieValues()
-  if (values.currentAccessContextKey) {
-    revalidatePath('/custom-lists')
+export async function shareCustomListAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const singlePersonId = String(formData.get('person_id') ?? '').trim()
+  const personIds = [
+    ...formData.getAll('person_ids').filter((value): value is string => typeof value === 'string'),
+    ...(singlePersonId ? [singlePersonId] : []),
+  ]
+
+  if (!customListId || personIds.length === 0) {
+    redirect(customListId ? `/custom-lists/${customListId}` : '/custom-lists')
   }
+
+  const { admin, permissions, list, canManage } = await loadCustomListForAction(customListId)
+  if (!canManage) {
+    redirect(`/custom-lists/${customListId}`)
+  }
+
+  const uniquePersonIds = [...new Set(personIds)]
+  const { data: peopleRows, error: peopleError } = await admin
+    .from('people')
+    .select('id, email')
+    .in('id', uniquePersonIds)
+    .eq('council_id', list.council_id)
+    .eq('primary_relationship_code', 'member')
+    .is('archived_at', null)
+
+  if (peopleError) {
+    throw new Error(`Could not load members to share with. ${peopleError.message}`)
+  }
+
+  const payload = decryptPeopleRecords((peopleRows as Array<{ id: string; email: string | null }> | null) ?? []).map((person) => ({
+    custom_list_id: customListId,
+    person_id: person.id,
+    grantee_email: normalizeEmail(person.email),
+    granted_by_auth_user_id: permissions.authUser?.id ?? null,
+  }))
+
+  if (payload.length > 0) {
+    const { error } = await admin
+      .from('custom_list_access')
+      .upsert(payload, { onConflict: 'custom_list_id,person_id' })
+
+    if (error) {
+      throw new Error(`Could not share this custom list right now. ${error.message}`)
+    }
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  redirect(`/custom-lists/${customListId}`)
+}
+
+export async function revokeCustomListAccessAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const accessId = String(formData.get('access_id') ?? '')
+
+  if (!customListId || !accessId) {
+    redirect('/custom-lists')
+  }
+
+  const { admin, canManage } = await loadCustomListForAction(customListId)
+  if (!canManage) {
+    redirect(`/custom-lists/${customListId}`)
+  }
+
+  const { error } = await admin.from('custom_list_access').delete().eq('id', accessId).eq('custom_list_id', customListId)
+  if (error) {
+    throw new Error(`Could not remove access to this custom list. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  redirect(`/custom-lists/${customListId}`)
+}
+
+export async function claimCustomListMemberAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const customListMemberId = String(formData.get('custom_list_member_id') ?? '')
+
+  if (!customListId || !customListMemberId) {
+    redirect('/custom-lists')
+  }
+
+  const { admin, permissions, canManage } = await loadCustomListForAction(customListId)
+  if (!permissions.personId) {
+    throw new Error('Link your profile before claiming members on a custom list.')
+  }
+
+  const { data: memberRow, error: memberError } = await admin
+    .from('custom_list_members')
+    .select('id, claimed_by_person_id')
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+    .maybeSingle<{ id: string; claimed_by_person_id: string | null }>()
+
+  if (memberError || !memberRow) {
+    throw new Error('We could not find that list member.')
+  }
+
+  if (memberRow.claimed_by_person_id && memberRow.claimed_by_person_id !== permissions.personId) {
+    throw new Error('This member has already been claimed by someone else on the list.')
+  }
+
+  const now = new Date().toISOString()
+  const { error } = await admin
+    .from('custom_list_members')
+    .update({
+      claimed_by_person_id: permissions.personId,
+      claimed_at: now,
+      updated_at: now,
+    })
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+
+  if (error) {
+    throw new Error(`Could not claim this member right now. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  if (canManage) {
+    revalidatePath('/members')
+  }
+  redirect(`/custom-lists/${customListId}`)
+}
+
+export async function releaseCustomListClaimAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const customListMemberId = String(formData.get('custom_list_member_id') ?? '')
+
+  if (!customListId || !customListMemberId) {
+    redirect('/custom-lists')
+  }
+
+  const { admin, permissions } = await loadCustomListForAction(customListId)
+  if (!permissions.personId) {
+    throw new Error('Link your profile before changing list claims.')
+  }
+
+  const { data: memberRow, error: memberError } = await admin
+    .from('custom_list_members')
+    .select('id, claimed_by_person_id')
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+    .maybeSingle<{ id: string; claimed_by_person_id: string | null }>()
+
+  if (memberError || !memberRow) {
+    throw new Error('We could not find that list member.')
+  }
+
+  if (memberRow.claimed_by_person_id !== permissions.personId) {
+    throw new Error('Only the person who claimed this member can release that claim.')
+  }
+
+  const now = new Date().toISOString()
+  const { error } = await admin
+    .from('custom_list_members')
+    .update({
+      claimed_by_person_id: null,
+      claimed_at: null,
+      updated_at: now,
+    })
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+
+  if (error) {
+    throw new Error(`Could not release this claim right now. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  redirect(`/custom-lists/${customListId}`)
+}
+
+function parseContactDateInput(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return new Date().toISOString()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    throw new Error('Choose a valid contact date before saving.')
+  }
+  return `${trimmed}T12:00:00.000Z`
+}
+
+export async function logCustomListContactAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const customListMemberId = String(formData.get('custom_list_member_id') ?? '')
+
+  if (!customListId || !customListMemberId) {
+    redirect('/custom-lists')
+  }
+
+  const { admin, permissions } = await loadCustomListForAction(customListId)
+  if (!permissions.personId) {
+    throw new Error('Link your profile before logging contact on a custom list.')
+  }
+
+  const { data: memberRow, error: memberError } = await admin
+    .from('custom_list_members')
+    .select('id, claimed_by_person_id')
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+    .maybeSingle<{ id: string; claimed_by_person_id: string | null }>()
+
+  if (memberError || !memberRow) {
+    throw new Error('We could not find that list member.')
+  }
+
+  if (memberRow.claimed_by_person_id && memberRow.claimed_by_person_id !== permissions.personId) {
+    throw new Error('This member is already claimed by someone else on the list.')
+  }
+
+  const now = new Date().toISOString()
+  const contactDate = parseContactDateInput(String(formData.get('contact_date') ?? ''))
+  const payload: {
+    claimed_by_person_id: string
+    claimed_at?: string
+    last_contact_at: string
+    last_contact_by_person_id: string
+    updated_at: string
+  } = {
+    claimed_by_person_id: permissions.personId,
+    last_contact_at: contactDate,
+    last_contact_by_person_id: permissions.personId,
+    updated_at: now,
+  }
+
+  if (!memberRow.claimed_by_person_id) {
+    payload.claimed_at = now
+  }
+
+  const { error } = await admin
+    .from('custom_list_members')
+    .update(payload)
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+
+  if (error) {
+    throw new Error(`Could not log that contact right now. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  revalidatePath('/members')
+  redirect(`/custom-lists/${customListId}`)
+}
+
+export async function removeCustomListMemberAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const customListMemberId = String(formData.get('custom_list_member_id') ?? '')
+
+  if (!customListId || !customListMemberId) {
+    redirect(customListId ? `/custom-lists/${customListId}` : '/custom-lists')
+  }
+
+  const { admin, canManage } = await loadCustomListForAction(customListId)
+  if (!canManage) {
+    redirect(`/custom-lists/${customListId}`)
+  }
+
+  const { error } = await admin
+    .from('custom_list_members')
+    .delete()
+    .eq('id', customListMemberId)
+    .eq('custom_list_id', customListId)
+
+  if (error) {
+    throw new Error(`Could not remove that member from this custom list. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  revalidatePath('/members')
+  redirect(`/custom-lists/${customListId}`)
+}
+
+export async function addCustomListMemberAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '')
+  const personId = String(formData.get('person_id') ?? '').trim()
+
+  if (!customListId || !personId) {
+    redirect(customListId ? `/custom-lists/${customListId}` : '/custom-lists')
+  }
+
+  const { admin, permissions, list, canManage } = await loadCustomListForAction(customListId)
+  if (!canManage) {
+    redirect(`/custom-lists/${customListId}`)
+  }
+
+  const { data: personRow, error: personError } = await admin
+    .from('people')
+    .select('id')
+    .eq('id', personId)
+    .eq('council_id', list.council_id)
+    .eq('primary_relationship_code', 'member')
+    .is('archived_at', null)
+    .maybeSingle<{ id: string }>()
+
+  if (personError || !personRow) {
+    throw new Error('We could not find that member in this directory.')
+  }
+
+  const { error } = await admin.from('custom_list_members').upsert(
+    {
+      custom_list_id: customListId,
+      person_id: personId,
+      added_by_auth_user_id: permissions.authUser?.id ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'custom_list_id,person_id' }
+  )
+
+  if (error) {
+    throw new Error(`Could not add that member to this custom list. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  revalidatePath('/members')
+  redirect(`/custom-lists/${customListId}`)
 }

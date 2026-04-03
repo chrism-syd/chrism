@@ -38,6 +38,8 @@
 
 html {
   color-scheme: light;
+  background: linear-gradient(180deg, #faf6f2 0%, #f3edf7 100%);
+  background-attachment: fixed;
 }
 
 html,
@@ -48,7 +50,7 @@ body {
 }
 
 body {
-  background: var(--bg);
+  background: transparent;
   color: var(--text-primary);
   font-family:
     var(--font-body), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -191,8 +193,8 @@ button:focus-visible {
 }
 
 .qv-logo-slot {
-  width: 240px;
-  height: 80px;
+  width: 256px;
+  height: 86px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -203,14 +205,14 @@ button:focus-visible {
 
 .qv-logo-image {
   width: auto;
-  height: 48px;
+  height: 56px;
   object-fit: contain;
   display: block;
 }
 
 .qv-brand-logo {
   width: auto;
-  height: 52px;
+  height: 58px;
   object-fit: contain;
   display: block;
   flex-shrink: 0;
@@ -307,7 +309,7 @@ button:focus-visible {
 .qv-nav-dropdown-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 10px 12px;
   border-radius: 999px;
   border: 1px solid var(--divider);
@@ -325,16 +327,34 @@ button:focus-visible {
   border-color: color-mix(in srgb, var(--interactive) 18%, var(--divider-strong));
 }
 
-.qv-nav-dropdown-chevron {
-  font-size: 11px;
-  line-height: 1;
+.qv-nav-dropdown-chevron,
+.qv-view-menu-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: currentColor;
+  flex: 0 0 auto;
+}
+
+.qv-nav-dropdown-chevron-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  transition: transform 140ms ease;
+}
+
+.qv-nav-dropdown-chevron[data-open='true'] .qv-nav-dropdown-chevron-icon,
+.qv-view-menu[open] .qv-view-menu-chevron .qv-nav-dropdown-chevron-icon {
+  transform: rotate(180deg);
 }
 
 .qv-nav-submenu {
   position: absolute;
   left: 0;
   top: calc(100% + 8px);
-  min-width: 220px;
+  min-width: 180px;
   padding: 10px;
   border-radius: 18px;
   border: 1px solid var(--divider);
@@ -450,13 +470,6 @@ button:focus-visible {
   padding-bottom: 32px;
 }
 
-.qv-auth-card {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 28px;
-}
-
-
 .qv-auth-page {
   min-height: 100vh;
   display: grid;
@@ -464,16 +477,148 @@ button:focus-visible {
   padding: 32px 20px;
 }
 
-.qv-auth-shell {
-  width: 100%;
-  max-width: 380px;
+.qv-auth-page-split {
+  padding: 28px;
+}
+
+.qv-auth-split-shell {
+  width: min(1180px, 100%);
+  min-height: min(760px, calc(100vh - 56px));
   display: grid;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.72fr);
+  gap: 22px;
+  padding: 22px;
+  border-radius: 34px;
+  background: transparent;
+}
+
+.qv-auth-visual-panel {
+  position: relative;
+  min-height: 680px;
+  border-radius: 32px;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(76, 94, 121, 0.9), rgba(97, 86, 129, 0.52));
+  box-shadow: 0 24px 64px rgba(46, 42, 52, 0.14);
+}
+
+.qv-auth-visual-image,
+.qv-auth-visual-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.qv-auth-visual-image {
+  background-image: url('/akira-hojo-_86u_Y0oAaM-unsplash.jpg');
+  background-size: cover;
+  background-position: center center;
+  transform: scale(1.02);
+}
+
+.qv-auth-visual-overlay {
+  background:
+    linear-gradient(180deg, rgba(47, 55, 74, 0.28) 0%, rgba(47, 55, 74, 0.1) 24%, rgba(47, 55, 74, 0.38) 100%),
+    linear-gradient(135deg, rgba(77, 94, 119, 0.44) 0%, rgba(86, 76, 116, 0.36) 100%);
+}
+
+.qv-auth-carousel-stack {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  top: 34px;
+  height: min(320px, 46%);
+  display: grid;
+  align-items: start;
+  z-index: 2;
+}
+
+.qv-auth-carousel-card {
+  grid-area: 1 / 1;
+  width: min(100%, 760px);
+  padding: 34px 38px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(94, 86, 142, 0.46);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 42px rgba(33, 28, 46, 0.18);
+  color: #f5f0f8;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.qv-auth-carousel-card.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.qv-auth-carousel-eyebrow {
+  margin: 0 0 20px;
+  font-size: 16px;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: rgba(241, 234, 244, 0.84);
+}
+
+.qv-auth-carousel-title {
+  margin: 0;
+  max-width: 15ch;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(40px, 4.6vw, 62px);
+  line-height: 1.04;
+  color: #fcf8fb;
+}
+
+.qv-auth-carousel-body {
+  margin: 26px 0 0;
+  max-width: 22ch;
+  font-size: clamp(16px, 1.65vw, 22px);
+  line-height: 1.5;
+  color: rgba(246, 239, 248, 0.88);
+}
+
+.qv-auth-carousel-dots {
+  position: absolute;
+  left: 34px;
+  bottom: 28px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qv-auth-carousel-dot {
+  width: 52px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  padding: 0;
+}
+
+.qv-auth-carousel-dot.is-active {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.qv-auth-card {
+  margin: 0;
+  padding: 38px 42px;
+}
+
+.qv-auth-card-right {
+  align-self: center;
+  min-height: 560px;
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  background: rgba(253, 252, 249, 0.92);
+  box-shadow: 0 24px 64px rgba(46, 42, 52, 0.12);
 }
 
 .qv-auth-header {
   display: grid;
-  gap: 14px;
+  gap: 22px;
 }
 
 .qv-auth-logo-wrap {
@@ -481,19 +626,24 @@ button:focus-visible {
   justify-content: flex-start;
 }
 
+.qv-auth-logo-wrap-right {
+  justify-content: flex-start;
+}
+
+.qv-auth-logo-image {
+  display: block;
+  width: 248px;
+  max-width: 100%;
+  height: auto;
+}
+
 .qv-auth-heading-wrap {
   display: grid;
+  gap: 10px;
+}
+
+.qv-auth-heading-wrap-compact {
   gap: 8px;
-}
-
-.qv-auth-footer-link-row {
-  display: flex;
-  justify-content: center;
-}
-
-.qv-auth-footer-link {
-  font-size: 14px;
-  color: var(--text-secondary);
 }
 
 .qv-auth-success-state {
@@ -524,7 +674,7 @@ button:focus-visible {
 }
 
 .qv-auth-message {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .qv-floating-dialog {
@@ -873,23 +1023,27 @@ button:focus-visible {
 
 .qv-auth-title {
   margin: 0;
-  font-size: 21px;
-  line-height: 1.1;
+  font-size: clamp(34px, 3.3vw, 52px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
-  white-space: nowrap;
 }
 
 .qv-auth-text {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
   color: var(--text-secondary);
 }
 
 .qv-auth-form {
   display: grid;
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 8px;
+}
+
+.qv-auth-form-compact {
+  margin-top: 0;
 }
 
 .qv-top-actions {
@@ -1151,6 +1305,103 @@ button:focus-visible {
   }
 }
 
+@media (max-width: 1040px) {
+  .qv-auth-page-split {
+    padding: 20px;
+  }
+
+  .qv-auth-split-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 0;
+    gap: 18px;
+  }
+
+  .qv-auth-visual-panel {
+    min-height: 520px;
+  }
+
+  .qv-auth-carousel-stack {
+    left: 22px;
+    right: 22px;
+    top: 22px;
+    height: min(300px, 52%);
+  }
+
+  .qv-auth-carousel-card {
+    width: min(100%, 620px);
+    padding: 24px 26px;
+  }
+
+  .qv-auth-carousel-title {
+    max-width: 12ch;
+    font-size: clamp(34px, 8vw, 48px);
+  }
+
+  .qv-auth-carousel-body {
+    font-size: 18px;
+  }
+
+  .qv-auth-card-right {
+    min-height: auto;
+    padding: 30px 26px;
+  }
+}
+
+@media (max-width: 720px) {
+  .qv-auth-page-split {
+    padding: 16px;
+  }
+
+  .qv-auth-visual-panel {
+    min-height: 460px;
+    border-radius: 26px;
+  }
+
+  .qv-auth-carousel-stack {
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    height: min(270px, 50%);
+  }
+
+  .qv-auth-carousel-card {
+    padding: 20px 20px 22px;
+    border-radius: 24px;
+  }
+
+  .qv-auth-carousel-eyebrow {
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+
+  .qv-auth-carousel-title {
+    font-size: clamp(28px, 9vw, 38px);
+  }
+
+  .qv-auth-carousel-body {
+    margin-top: 16px;
+    font-size: 15px;
+  }
+
+  .qv-auth-carousel-dots {
+    left: 18px;
+    bottom: 18px;
+  }
+
+  .qv-auth-carousel-dot {
+    width: 38px;
+  }
+
+  .qv-auth-logo-image {
+    width: 216px;
+  }
+
+  .qv-auth-title {
+    font-size: 28px;
+  }
+}
+
 .qv-user-menu {
   position: relative;
 }
@@ -1327,7 +1578,7 @@ button:focus-visible {
 
 .qv-public-brand-logo {
   width: auto;
-  height: 38px;
+  height: 42px;
   object-fit: contain;
   opacity: 0.92;
 }
@@ -2005,15 +2256,6 @@ button:focus-visible {
   display: none;
 }
 
-.qv-view-menu-chevron {
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.qv-view-menu[open] .qv-view-menu-chevron {
-  transform: rotate(180deg);
-}
-
 .qv-view-menu-panel {
   position: absolute;
   right: 0;
@@ -2434,5 +2676,312 @@ button:focus-visible {
   .qv-meeting-filter-wrap .qv-view-menu-panel {
     min-width: 300px;
     max-width: calc(100vw - 64px);
+  }
+}
+
+
+
+/* --- Login layout overrides / restore --- */
+.qv-login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.qv-login-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.qv-login-surface {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.95fr);
+  border-radius: 34px;
+  overflow: hidden;
+  background: rgba(253, 252, 249, 0.68);
+  box-shadow: 0 24px 64px rgba(46, 42, 52, 0.12);
+}
+
+.qv-login-showcase {
+  position: relative;
+  min-height: 680px;
+  overflow: hidden;
+  background: #6f8594;
+}
+
+.qv-login-showcase-media,
+.qv-login-showcase-media > span {
+  position: absolute !important;
+  inset: 0;
+}
+
+.qv-login-showcase-image {
+  object-fit: cover;
+  object-position: center center;
+}
+
+.qv-login-showcase-overlay {
+  display: none;
+}
+
+.qv-login-carousel {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  top: 30px;
+  z-index: 2;
+}
+
+.qv-login-carousel-card {
+  width: min(560px, calc(100% - 6px));
+  padding: 26px 32px 30px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #666F8594;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 42px rgba(46, 42, 52, 0.16);
+  color: #fdfcf9;
+}
+
+.qv-login-carousel-eyebrow {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.qv-login-carousel-title {
+  margin: 0;
+  max-width: 11ch;
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(42px, 4.1vw, 66px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #fdfcf9;
+}
+
+.qv-login-carousel-body {
+  margin: 18px 0 0;
+  max-width: 22ch;
+  font-size: 18px;
+  line-height: 1.48;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.qv-login-showcase-footer {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  bottom: 22px;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.qv-login-carousel-indicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.qv-login-indicator {
+  width: 46px;
+  height: 6px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.qv-login-indicator.is-active {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.qv-login-photo-credit {
+  margin: 0;
+  max-width: 54%;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.86);
+  text-align: right;
+}
+
+.qv-login-photo-credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.qv-login-panel {
+  background: var(--bg-card);
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 42px 34px;
+}
+
+.qv-login-panel-logo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.qv-login-panel-logo-image {
+  display: block;
+  width: min(250px, 100%);
+  height: auto;
+}
+
+.qv-login-panel-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.qv-login-panel-title {
+  margin: 0;
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(34px, 2.55vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.qv-login-panel-text {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.qv-login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.qv-login-footer-link-row {
+  margin-top: 2px;
+}
+
+.qv-login-footer-link-row .qv-auth-footer-link {
+  font-size: 14px;
+}
+
+.qv-login-page .qv-auth-success-state {
+  margin-top: 6px;
+}
+
+@media (max-width: 1080px) {
+  .qv-login-surface {
+    grid-template-columns: 1fr;
+  }
+
+  .qv-login-showcase {
+    min-height: 520px;
+  }
+
+  .qv-login-panel {
+    padding: 34px 28px;
+  }
+}
+
+@media (max-width: 720px) {
+  .qv-login-page {
+    padding: 18px 16px;
+  }
+
+  .qv-login-showcase {
+    min-height: 440px;
+  }
+
+  .qv-login-carousel,
+  .qv-login-showcase-footer {
+    left: 18px;
+    right: 18px;
+  }
+
+  .qv-login-carousel {
+    top: 18px;
+  }
+
+  .qv-login-carousel-card {
+    width: min(100%, 420px);
+    padding: 20px 22px 22px;
+    border-radius: 24px;
+  }
+
+  .qv-login-carousel-title {
+    max-width: 12ch;
+    font-size: clamp(30px, 8.5vw, 42px);
+  }
+
+  .qv-login-carousel-body {
+    font-size: 15px;
+    margin-top: 14px;
+  }
+
+  .qv-login-showcase-footer {
+    bottom: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .qv-login-photo-credit {
+    max-width: 100%;
+    text-align: left;
+    font-size: 10px;
+  }
+
+  .qv-login-panel {
+    padding: 28px 22px;
+  }
+
+  .qv-login-panel-title {
+    white-space: normal;
+    font-size: 32px;
+  }
+    /* Global header sizing + chevron refinement overrides */
+
+}
+
+.qv-logo-slot {
+  width: 280px;
+  height: 94px;
+}
+
+.qv-logo-image {
+  width: auto;
+  height: 60px;
+}
+
+.qv-brand-logo {
+  width: auto;
+  height: 66px;
+}
+
+.qv-public-brand-logo {
+  width: auto;
+  height: 44px;
+}
+
+@media (max-width: 720px) {
+  .qv-logo-slot {
+    width: 248px;
+    height: 84px;
+  }
+
+  .qv-logo-image {
+    height: 54px;
+  }
+
+  .qv-brand-logo {
+    height: 60px;
   }
 }

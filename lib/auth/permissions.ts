@@ -1,20 +1,22 @@
 import { cookies } from 'next/headers'
 import type { User } from '@supabase/supabase-js'
+import {
+  buildAccessContextKey,
+  buildAccessContexts,
+  pickDefaultAccessContext,
+  type AccessContextOption,
+  type AccessContextSource,
+} from '@/lib/auth/access-contexts'
+import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
+import { listManageableEventIdsForUser } from '@/lib/auth/resource-access'
+import { isAutomaticCouncilAdminTerm } from '@/lib/members/officer-roles'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-import {
-  buildAvailableAccessContexts,
-  getCurrentAreaContextCookieValues,
-  getDefaultAccessContext,
-  getStoredAccessContextKey,
-  type CurrentUserAccessContext,
-} from '@/lib/auth/access-contexts'
-import { getParallelAccessSummary } from '@/lib/auth/parallel-access-summary'
-import { isParallelAccessEnabled } from '@/lib/auth/feature-flags'
 import {
   ACTING_COUNCIL_COOKIE,
   ACTING_MODE_COOKIE,
   ACTING_ORGANIZATION_COOKIE,
+  ACTIVE_ACCESS_CONTEXT_COOKIE,
   getSuperAdminViewLabel,
   isConfiguredSuperAdminEmail,
   normalizeActingMode,
@@ -51,36 +53,62 @@ export type CurrentUserPermissions = {
   councilId: string | null
   personId: string | null
   email: string | null
-  availableContexts: CurrentUserAccessContext[]
+  availableContexts: AccessContextOption[]
   activeContextKey: string | null
 }
 
 type AppUserRow = NonNullable<CurrentUserPermissions['appUser']> & {
   council_id?: string | null
 }
+type CouncilAdminAssignmentRow = { council_id: string | null; person_id: string | null }
+type OrganizationAdminAssignmentRow = { organization_id: string | null; person_id: string | null }
+type AutomaticCouncilAdminTermRow = {
+  council_id: string | null
+  office_scope_code: string
+  office_code: string
+}
 
-type PersonRow = {
-  id: string
+type LinkedPersonCouncilRow = {
   council_id: string | null
 }
 
-type OrganizationRow = {
+type CouncilProfileRow = {
+  id: string
+  organization_id: string | null
+  name: string | null
+  council_number: string | null
+}
+
+type OrganizationProfileRow = {
   id: string
   display_name: string | null
   preferred_name: string | null
 }
 
-type CouncilRow = {
-  id: string
-  name: string | null
-  council_number: string | null
-  organization_id: string | null
+type OfficerRoleEmailRow = {
+  council_id: string
+  office_scope_code: string
+  office_code: string
+  office_rank: number | null
 }
 
-type ParallelAccessRow = {
-  organization_id: string | null
-  local_unit_id: string | null
-  local_unit_name: string | null
+type OfficerEmailTermRow = {
+  person_id: string
+  council_id: string | null
+  office_scope_code: string
+  office_code: string
+  office_rank: number | null
+  service_end_year: number | null
+}
+
+type LocalUnitProfileRow = {
+  id: string
+  legacy_council_id: string | null
+  legacy_organization_id: string | null
+}
+
+type EffectiveAdminPackageRow = {
+  local_unit_id: string
   can_manage_members: boolean | null
   can_manage_events: boolean | null
   can_manage_custom_lists: boolean | null
@@ -89,8 +117,365 @@ type ParallelAccessRow = {
   can_manage_local_unit_settings: boolean | null
 }
 
+type EffectiveAreaAccessRow = {
+  local_unit_id: string
+  area_code: 'members' | 'events' | 'custom_lists' | 'claims' | 'admins' | 'local_unit_settings'
+  access_level: 'read_only' | 'edit_manage' | 'manage' | 'interact'
+  is_effective: boolean | null
+}
+
+type EffectiveEventManagementRow = {
+  local_unit_id: string
+  is_effective: boolean | null
+}
+
+type ParallelUnitCapabilities = {
+  members: boolean
+  events: boolean
+  eventResource: boolean
+  customLists: boolean
+  claims: boolean
+  admins: boolean
+  localUnitSettings: boolean
+}
+
+type ParallelAccessState = {
+  contextSeeds: Array<{
+    organizationId: string | null
+    councilId: string | null
+    accessLevel: 'member' | 'admin' | 'manager'
+    source: AccessContextSource
+  }>
+  councilProfiles: CouncilProfileRow[]
+  organizationProfiles: OrganizationProfileRow[]
+  capabilityByLocalUnitId: Map<string, ParallelUnitCapabilities>
+  localUnitIdByContextKey: Map<string, string>
+}
+
+const PARALLEL_AREA_RULES: Array<{
+  areaCode: 'members' | 'events' | 'custom_lists' | 'claims' | 'admins' | 'local_unit_settings'
+  minimumAccessLevel: 'edit_manage' | 'manage'
+  capabilityKey: keyof ParallelUnitCapabilities
+}> = [
+  { areaCode: 'members', minimumAccessLevel: 'edit_manage', capabilityKey: 'members' },
+  { areaCode: 'events', minimumAccessLevel: 'manage', capabilityKey: 'events' },
+  { areaCode: 'custom_lists', minimumAccessLevel: 'manage', capabilityKey: 'customLists' },
+  { areaCode: 'claims', minimumAccessLevel: 'manage', capabilityKey: 'claims' },
+  { areaCode: 'admins', minimumAccessLevel: 'manage', capabilityKey: 'admins' },
+  { areaCode: 'local_unit_settings', minimumAccessLevel: 'manage', capabilityKey: 'localUnitSettings' },
+]
+
 function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() || null
+}
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
+}
+
+function createEmptyParallelUnitCapabilities(): ParallelUnitCapabilities {
+  return {
+    members: false,
+    events: false,
+    eventResource: false,
+    customLists: false,
+    claims: false,
+    admins: false,
+    localUnitSettings: false,
+  }
+}
+
+async function loadParallelAccessState(args: {
+  admin: ReturnType<typeof createAdminClient>
+  userId: string
+}): Promise<ParallelAccessState> {
+  const { admin, userId } = args
+
+  const capabilityByLocalUnitId = new Map<string, ParallelUnitCapabilities>()
+
+  function remember(localUnitId: string) {
+    const existing = capabilityByLocalUnitId.get(localUnitId)
+    if (existing) return existing
+
+    const next = createEmptyParallelUnitCapabilities()
+    capabilityByLocalUnitId.set(localUnitId, next)
+    return next
+  }
+
+  let loadedFromAdminPackageView = false
+
+  try {
+    const { data, error } = await admin
+      .from('v_effective_admin_package_access')
+      .select([
+        'local_unit_id',
+        'can_manage_members',
+        'can_manage_events',
+        'can_manage_custom_lists',
+        'can_manage_claims',
+        'can_manage_admins',
+        'can_manage_local_unit_settings',
+      ].join(', '))
+      .eq('user_id', userId)
+
+    if (error) {
+      throw error
+    }
+
+    const rows = (data as unknown as EffectiveAdminPackageRow[] | null) ?? []
+    for (const row of rows) {
+      if (!row.local_unit_id) continue
+      const capabilities = remember(row.local_unit_id)
+      capabilities.members = capabilities.members || Boolean(row.can_manage_members)
+      capabilities.events = capabilities.events || Boolean(row.can_manage_events)
+      capabilities.customLists = capabilities.customLists || Boolean(row.can_manage_custom_lists)
+      capabilities.claims = capabilities.claims || Boolean(row.can_manage_claims)
+      capabilities.admins = capabilities.admins || Boolean(row.can_manage_admins)
+      capabilities.localUnitSettings = capabilities.localUnitSettings || Boolean(row.can_manage_local_unit_settings)
+    }
+
+    loadedFromAdminPackageView = true
+  } catch {
+    loadedFromAdminPackageView = false
+  }
+
+  if (!loadedFromAdminPackageView) {
+    let loadedFromEffectiveAreaView = false
+
+    try {
+      const { data, error } = await admin
+        .from('v_effective_area_access')
+        .select('local_unit_id, area_code, access_level, is_effective')
+        .eq('user_id', userId)
+        .eq('is_effective', true)
+
+      if (error) {
+        throw error
+      }
+
+      const rows = (data as unknown as EffectiveAreaAccessRow[] | null) ?? []
+      for (const row of rows) {
+        if (!row.local_unit_id || row.is_effective === false) continue
+        const capabilities = remember(row.local_unit_id)
+
+        if (row.area_code === 'members' && (row.access_level === 'edit_manage' || row.access_level === 'manage')) {
+          capabilities.members = true
+        }
+
+        if (row.area_code === 'events' && row.access_level === 'manage') {
+          capabilities.events = true
+        }
+
+        if (row.area_code === 'custom_lists' && row.access_level === 'manage') {
+          capabilities.customLists = true
+        }
+
+        if (row.area_code === 'claims' && row.access_level === 'manage') {
+          capabilities.claims = true
+        }
+
+        if (row.area_code === 'admins' && row.access_level === 'manage') {
+          capabilities.admins = true
+        }
+
+        if (row.area_code === 'local_unit_settings' && row.access_level === 'manage') {
+          capabilities.localUnitSettings = true
+        }
+      }
+
+      loadedFromEffectiveAreaView = rows.length > 0
+    } catch {
+      loadedFromEffectiveAreaView = false
+    }
+
+    if (!loadedFromEffectiveAreaView) {
+      const areaResults = await Promise.all(
+        PARALLEL_AREA_RULES.map(async (rule) => {
+          try {
+            const rows = await listAccessibleLocalUnitsForArea({
+              admin,
+              userId,
+              areaCode: rule.areaCode,
+              minimumAccessLevel: rule.minimumAccessLevel,
+            })
+
+            return { rule, rows }
+          } catch {
+            return { rule, rows: [] }
+          }
+        })
+      )
+
+      for (const result of areaResults) {
+        for (const row of result.rows) {
+          remember(row.local_unit_id)[result.rule.capabilityKey] = true
+        }
+      }
+    }
+  }
+
+  let loadedEventResourcesFromView = false
+
+  try {
+    const { data, error } = await admin
+      .from('v_effective_event_management_access')
+      .select('local_unit_id, is_effective')
+      .eq('user_id', userId)
+      .eq('is_effective', true)
+
+    if (error) {
+      throw error
+    }
+
+    const rows = (data as unknown as EffectiveEventManagementRow[] | null) ?? []
+    for (const row of rows) {
+      if (!row.local_unit_id || row.is_effective === false) continue
+      remember(row.local_unit_id).eventResource = true
+    }
+
+    loadedEventResourcesFromView = rows.length > 0
+  } catch {
+    loadedEventResourcesFromView = false
+  }
+
+  if (!loadedEventResourcesFromView) {
+    const manageableEvents = await listManageableEventIdsForUser({
+      admin,
+      userId,
+      localUnitId: null,
+    }).catch(() => [])
+
+    for (const row of manageableEvents) {
+      if (!row.local_unit_id) continue
+      remember(row.local_unit_id).eventResource = true
+    }
+  }
+
+  const localUnitIds = [...capabilityByLocalUnitId.keys()]
+  if (localUnitIds.length === 0) {
+    return {
+      contextSeeds: [],
+      councilProfiles: [],
+      organizationProfiles: [],
+      capabilityByLocalUnitId,
+      localUnitIdByContextKey: new Map<string, string>(),
+    }
+  }
+
+  const { data: localUnitData, error: localUnitError } = await admin
+    .from('local_units')
+    .select('id, legacy_council_id, legacy_organization_id')
+    .in('id', localUnitIds)
+
+  if (localUnitError) {
+    throw new Error(`Could not load parallel access local units: ${localUnitError.message}`)
+  }
+
+  const localUnits = (localUnitData as LocalUnitProfileRow[] | null) ?? []
+  const councilIds = uniqueStrings(localUnits.map((row) => row.legacy_council_id))
+
+  const councilProfiles =
+    councilIds.length > 0
+      ? ((
+          await admin
+            .from('councils')
+            .select('id, organization_id, name, council_number')
+            .in('id', councilIds)
+        ).data as CouncilProfileRow[] | null) ?? []
+      : []
+
+  const councilMap = new Map(councilProfiles.map((row) => [row.id, row]))
+  const organizationIds = uniqueStrings([
+    ...localUnits.map((row) => row.legacy_organization_id),
+    ...councilProfiles.map((row) => row.organization_id),
+  ])
+
+  const organizationProfiles =
+    organizationIds.length > 0
+      ? ((
+          await admin
+            .from('organizations')
+            .select('id, display_name, preferred_name')
+            .in('id', organizationIds)
+        ).data as OrganizationProfileRow[] | null) ?? []
+      : []
+
+  const contextSeeds: ParallelAccessState['contextSeeds'] = []
+  const localUnitIdByContextKey = new Map<string, string>()
+
+  for (const localUnit of localUnits) {
+    const capabilities = capabilityByLocalUnitId.get(localUnit.id)
+    if (!capabilities) continue
+
+    const council = localUnit.legacy_council_id ? councilMap.get(localUnit.legacy_council_id) ?? null : null
+    const organizationId = localUnit.legacy_organization_id ?? council?.organization_id ?? null
+    const accessLevel = capabilities.admins || capabilities.localUnitSettings ? 'manager' : 'admin'
+    const source: AccessContextSource = capabilities.eventResource && !capabilities.events
+      ? 'parallel_event_access'
+      : 'parallel_area_access'
+
+    contextSeeds.push({
+      organizationId,
+      councilId: localUnit.legacy_council_id,
+      accessLevel,
+      source,
+    })
+
+    const contextKey = buildAccessContextKey({
+      organizationId,
+      councilId: localUnit.legacy_council_id,
+      accessLevel,
+    })
+
+    if (!localUnitIdByContextKey.has(contextKey)) {
+      localUnitIdByContextKey.set(contextKey, localUnit.id)
+    }
+  }
+
+  return {
+    contextSeeds,
+    councilProfiles,
+    organizationProfiles,
+    capabilityByLocalUnitId,
+    localUnitIdByContextKey,
+  }
+}
+
+
+async function tryResolveActiveLocalUnitId(args: {
+  admin: ReturnType<typeof createAdminClient>
+  councilId?: string | null
+  organizationId?: string | null
+}) {
+  const { admin, councilId = null, organizationId = null } = args
+
+  try {
+    if (councilId) {
+      const { data } = await admin
+        .from('local_units')
+        .select('id')
+        .eq('legacy_council_id', councilId)
+        .limit(1)
+        .maybeSingle()
+      const row = data as { id: string } | null
+      if (row?.id) return row.id
+    }
+
+    if (organizationId) {
+      const { data } = await admin
+        .from('local_units')
+        .select('id, local_unit_kind')
+        .eq('legacy_organization_id', organizationId)
+        .order('local_unit_kind', { ascending: true })
+        .limit(1)
+      const rows = (data as Array<{ id: string; local_unit_kind?: string | null }> | null) ?? []
+      if (rows[0]?.id) return rows[0].id
+    }
+  } catch {
+    return null
+  }
+
+  return null
 }
 
 async function ensureAppUserRow(args: {
@@ -149,54 +534,6 @@ async function ensureAppUserRow(args: {
   }
 }
 
-async function getParallelAccessRows(args: {
-  admin: ReturnType<typeof createAdminClient>
-  authUserId: string
-}) {
-  const { admin, authUserId } = args
-
-  const { data } = await admin
-    .from('v_effective_admin_package_access')
-    .select(
-      'organization_id, local_unit_id, local_unit_name, can_manage_members, can_manage_events, can_manage_custom_lists, can_manage_claims, can_manage_admins, can_manage_local_unit_settings'
-    )
-    .eq('user_id', authUserId)
-
-  return (data as ParallelAccessRow[] | null) ?? []
-}
-
-async function lookupOrganization(args: {
-  admin: ReturnType<typeof createAdminClient>
-  organizationId: string | null
-}) {
-  const { admin, organizationId } = args
-  if (!organizationId) return null
-
-  const { data } = await admin
-    .from('organizations')
-    .select('id, display_name, preferred_name')
-    .eq('id', organizationId)
-    .maybeSingle<OrganizationRow>()
-
-  return data ?? null
-}
-
-async function lookupCouncil(args: {
-  admin: ReturnType<typeof createAdminClient>
-  councilId: string | null
-}) {
-  const { admin, councilId } = args
-  if (!councilId) return null
-
-  const { data } = await admin
-    .from('councils')
-    .select('id, name, council_number, organization_id')
-    .eq('id', councilId)
-    .maybeSingle<CouncilRow>()
-
-  return data ?? null
-}
-
 export async function getCurrentUserPermissions(): Promise<CurrentUserPermissions> {
   const supabase = await createClient()
   const {
@@ -246,139 +583,224 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   let appUser = (appUserData as AppUserRow | null) ?? null
   const explicitSuperAdmin = Boolean(appUser?.is_super_admin)
   const isSuperAdmin = explicitSuperAdmin || isConfiguredSuperAdminEmail(normalizedEmail)
+  const currentYear = new Date().getFullYear()
 
-  let personId = appUser?.person_id ?? null
-  if (!personId) {
-    const { data: personData } = await admin
-      .from('people')
-      .select('id, council_id')
-      .ilike('email_hash', '')
-      .limit(0)
-    void personData
-  }
+  let derivedOfficerEmailPersonId: string | null = null
+  let derivedOfficerEmailCouncilId: string | null = null
 
-  if (!personId && normalizedEmail) {
-    const { data: personMatch } = await admin
-      .from('people')
-      .select('id, council_id')
-      .eq('email_hash', null as unknown as string)
-      .limit(0)
-    void personMatch
-  }
+  if (normalizedEmail) {
+    const { data: officerRoleEmailData } = await admin
+      .from('officer_role_emails')
+      .select('council_id, office_scope_code, office_code, office_rank')
+      .eq('is_active', true)
+      .eq('login_enabled', true)
+      .ilike('email', normalizedEmail)
+      .limit(10)
 
-  if (!personId) {
-    const { data: personRow } = await admin
-      .from('people')
-      .select('id, council_id')
-      .eq('id', appUser?.person_id ?? '')
-      .maybeSingle<PersonRow>()
-    if (personRow?.id) {
-      personId = personRow.id
+    const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
+
+    if (officerRoleEmails.length > 0) {
+      const councilIds = [...new Set(officerRoleEmails.map((row) => row.council_id))]
+      const { data: officerTermData } = await admin
+        .from('person_officer_terms')
+        .select('person_id, council_id, office_scope_code, office_code, office_rank, service_end_year')
+        .in('council_id', councilIds)
+        .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
+        .limit(50)
+
+      const officerTerms = (officerTermData as OfficerEmailTermRow[] | null) ?? []
+      const matchingTerm = officerTerms.find((term) =>
+        officerRoleEmails.some(
+          (emailRow) =>
+            emailRow.council_id === term.council_id &&
+            emailRow.office_scope_code === term.office_scope_code &&
+            emailRow.office_code === term.office_code &&
+            (emailRow.office_rank ?? null) === (term.office_rank ?? null)
+        )
+      )
+
+      derivedOfficerEmailPersonId = matchingTerm?.person_id ?? null
+      derivedOfficerEmailCouncilId = matchingTerm?.council_id ?? null
     }
   }
 
-  let fallbackCouncilId = appUser?.council_id ?? null
-  if (!fallbackCouncilId && personId) {
-    const { data: personRow } = await admin
-      .from('people')
-      .select('id, council_id')
-      .eq('id', personId)
-      .maybeSingle<PersonRow>()
-    fallbackCouncilId = personRow?.council_id ?? null
+  let personId = appUser?.person_id ?? derivedOfficerEmailPersonId ?? null
+
+  const [councilAdminAssignmentResult, organizationAdminAssignmentResult, automaticCouncilAdminTermResult] =
+    await Promise.all([
+      admin
+        .from('council_admin_assignments')
+        .select('council_id, person_id')
+        .eq('is_active', true)
+        .or(
+          [
+            `user_id.eq.${user.id}`,
+            personId ? `person_id.eq.${personId}` : '',
+            normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
+          ]
+            .filter(Boolean)
+            .join(',')
+        )
+        .limit(25),
+      admin
+        .from('organization_admin_assignments')
+        .select('organization_id, person_id')
+        .eq('is_active', true)
+        .or(
+          [
+            `user_id.eq.${user.id}`,
+            personId ? `person_id.eq.${personId}` : '',
+            normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
+          ]
+            .filter(Boolean)
+            .join(',')
+        )
+        .limit(25),
+      personId
+        ? admin
+            .from('person_officer_terms')
+            .select('council_id, office_scope_code, office_code')
+            .eq('person_id', personId)
+            .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
+            .limit(25)
+        : Promise.resolve({ data: [] as AutomaticCouncilAdminTermRow[] }),
+    ])
+
+  const councilAdminAssignments =
+    (councilAdminAssignmentResult.data as CouncilAdminAssignmentRow[] | null)?.filter(
+      (row): row is CouncilAdminAssignmentRow & { council_id: string } => Boolean(row.council_id)
+    ) ?? []
+
+  const organizationAdminAssignments =
+    (organizationAdminAssignmentResult.data as OrganizationAdminAssignmentRow[] | null)?.filter(
+      (row): row is OrganizationAdminAssignmentRow & { organization_id: string } =>
+        Boolean(row.organization_id)
+    ) ?? []
+
+  const automaticCouncilAdminTerms =
+    (automaticCouncilAdminTermResult.data as AutomaticCouncilAdminTermRow[] | null)?.filter(
+      (term): term is AutomaticCouncilAdminTermRow & { council_id: string } =>
+        Boolean(term.council_id) && isAutomaticCouncilAdminTerm(term)
+    ) ?? []
+
+  if (!personId) {
+    personId =
+      councilAdminAssignments.find((assignment) => assignment.person_id)?.person_id ??
+      organizationAdminAssignments.find((assignment) => assignment.person_id)?.person_id ??
+      null
   }
 
-  const parallelEnabled = isParallelAccessEnabled()
-  const parallelRows = parallelEnabled
-    ? await getParallelAccessRows({ admin, authUserId: user.id })
-    : []
-  const parallelSummary = getParallelAccessSummary({ rows: parallelRows })
+  const linkedPersonRow = personId
+    ? ((
+        await admin.from('people').select('council_id').eq('id', personId).maybeSingle()
+      ).data as LinkedPersonCouncilRow | null)
+    : null
 
-  let organizationId = parallelSummary.organizationId ?? null
-  let councilId = fallbackCouncilId
-  let organizationName: string | null = null
+  const memberCouncilId = linkedPersonRow?.council_id ?? appUser?.council_id ?? null
+  const parallelAccessState = await loadParallelAccessState({
+    admin,
+    userId: user.id,
+  })
 
-  if (parallelSummary.organizationId) {
-    const organization = await lookupOrganization({
-      admin,
-      organizationId: parallelSummary.organizationId,
+  const directCouncilIds = uniqueStrings([
+    memberCouncilId,
+    derivedOfficerEmailCouncilId,
+    ...councilAdminAssignments.map((assignment) => assignment.council_id),
+    ...automaticCouncilAdminTerms.map((term) => term.council_id),
+  ])
+
+  const directOrganizationIds = uniqueStrings(
+    organizationAdminAssignments.map((assignment) => assignment.organization_id)
+  )
+
+  const [directCouncilProfilesResult, organizationCouncilProfilesResult] = await Promise.all([
+    directCouncilIds.length > 0
+      ? admin
+          .from('councils')
+          .select('id, organization_id, name, council_number')
+          .in('id', directCouncilIds)
+      : Promise.resolve({ data: [] as CouncilProfileRow[] }),
+    directOrganizationIds.length > 0
+      ? admin
+          .from('councils')
+          .select('id, organization_id, name, council_number')
+          .in('organization_id', directOrganizationIds)
+      : Promise.resolve({ data: [] as CouncilProfileRow[] }),
+  ])
+
+  const councilProfiles = [
+    ...((directCouncilProfilesResult.data as CouncilProfileRow[] | null) ?? []),
+    ...((organizationCouncilProfilesResult.data as CouncilProfileRow[] | null) ?? []),
+    ...parallelAccessState.councilProfiles,
+  ].filter((row, index, rows) => rows.findIndex((candidate) => candidate.id === row.id) === index)
+
+  const organizationIds = uniqueStrings([
+    ...directOrganizationIds,
+    ...councilProfiles.map((council) => council.organization_id),
+  ])
+
+  const organizationProfiles =
+    organizationIds.length > 0
+      ? (((
+          await admin
+            .from('organizations')
+            .select('id, display_name, preferred_name')
+            .in('id', organizationIds)
+        ).data as OrganizationProfileRow[] | null) ?? [])
+      : []
+
+  const mergedOrganizationProfiles = [
+    ...organizationProfiles,
+    ...parallelAccessState.organizationProfiles,
+  ].filter((row, index, rows) => rows.findIndex((candidate) => candidate.id === row.id) === index)
+
+  const accessSeeds: Array<{
+    organizationId: string | null
+    councilId: string | null
+    accessLevel: 'member' | 'admin' | 'manager'
+    source: AccessContextSource
+  }> = []
+
+  if (memberCouncilId) {
+    accessSeeds.push({
+      organizationId: null,
+      councilId: memberCouncilId,
+      accessLevel: 'member',
+      source: linkedPersonRow?.council_id ? 'linked_person' : 'app_user',
     })
-    organizationName = organization?.preferred_name ?? organization?.display_name ?? null
   }
 
-  if (!organizationName && councilId) {
-    const council = await lookupCouncil({ admin, councilId })
-    if (council?.organization_id) {
-      organizationId = council.organization_id
-      const organization = await lookupOrganization({
-        admin,
-        organizationId: council.organization_id,
-      })
-      organizationName = organization?.preferred_name ?? organization?.display_name ?? null
-    }
-  }
+  accessSeeds.push(...parallelAccessState.contextSeeds)
+
+
+  // TODO(multi-org): once a real memberships table exists, feed it here instead of relying on people.council_id and users.council_id.
+  const availableContexts = buildAccessContexts({
+    seeds: accessSeeds,
+    councils: councilProfiles,
+    organizations: mergedOrganizationProfiles,
+  })
+
+  const defaultContext = pickDefaultAccessContext(availableContexts)
+
+  const defaultCouncilId = defaultContext?.councilId ?? memberCouncilId ?? derivedOfficerEmailCouncilId ?? null
+  const defaultOrganizationId =
+    defaultContext?.organizationId ??
+    councilProfiles.find((council) => council.id === defaultCouncilId)?.organization_id ??
+    null
+  const defaultOrganizationName =
+    defaultContext?.organizationName ??
+    mergedOrganizationProfiles.find((organization) => organization.id === defaultOrganizationId)?.preferred_name ??
+    mergedOrganizationProfiles.find((organization) => organization.id === defaultOrganizationId)?.display_name ??
+    null
 
   appUser = await ensureAppUserRow({
     admin,
     authUserId: user.id,
     existingAppUser: appUser,
     personId,
-    councilId,
+    councilId: defaultCouncilId,
     isSuperAdmin,
   })
-
-  const availableContexts = buildAvailableAccessContexts({
-    permissions: {
-      authUser: user,
-      appUser,
-      isSignedIn: true,
-      isOrganizationMember: parallelSummary.isOrganizationMember || Boolean(personId),
-      hasStaffAccess: parallelSummary.hasStaffAccess,
-      isCouncilAdmin: parallelSummary.canManageAdmins,
-      canAccessMemberData: parallelSummary.canAccessMemberData,
-      canManageEvents: parallelSummary.canManageEvents,
-      canAccessOfficerDirectory: parallelSummary.canAccessMemberData,
-      canManageCustomLists: parallelSummary.canManageCustomLists,
-      canReviewMemberChanges: parallelSummary.canAccessMemberData,
-      canImportMembers: parallelSummary.canAccessMemberData,
-      canAccessOrganizationSettings: parallelSummary.canAccessOrganizationSettings,
-      canManageAdmins: parallelSummary.canManageAdmins,
-      canReviewClaims: parallelSummary.canReviewClaims,
-      isSuperAdmin,
-      actingMode: 'normal',
-      isDevMode: false,
-      currentViewLabel: null,
-      organizationId,
-      organizationName,
-      councilId,
-      personId,
-      email: normalizedEmail,
-      availableContexts: [],
-      activeContextKey: null,
-    },
-    rows: parallelRows,
-  })
-
-  const storedAccessContextKey = await getStoredAccessContextKey()
-  const defaultAccessContext = getDefaultAccessContext({
-    contexts: availableContexts,
-    preferredKey: storedAccessContextKey,
-  })
-
-  let activeContextKey = defaultAccessContext?.key ?? null
-  let effectiveHasStaffAccess = parallelSummary.hasStaffAccess
-  let effectiveOrganizationId = defaultAccessContext?.organizationId ?? organizationId
-  let effectiveOrganizationName = defaultAccessContext?.organizationName ?? organizationName
-  let effectiveCouncilId = defaultAccessContext?.councilId ?? councilId
-
-  if (defaultAccessContext && defaultAccessContext.accessLevel === 'member') {
-    const firstStaffContext = availableContexts.find((context) => context.accessLevel !== 'member')
-    if (firstStaffContext && !isSuperAdmin) {
-      activeContextKey = firstStaffContext.key
-      effectiveOrganizationId = firstStaffContext.organizationId
-      effectiveOrganizationName = firstStaffContext.organizationName
-      effectiveCouncilId = firstStaffContext.councilId
-    }
-  }
 
   const cookieStore = await cookies()
   const actingMode = isSuperAdmin
@@ -390,24 +812,173 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const requestedCouncilId = isSuperAdmin
     ? cookieStore.get(ACTING_COUNCIL_COOKIE)?.value ?? null
     : null
+  const requestedAccessContextKey = !isSuperAdmin
+    ? cookieStore.get(ACTIVE_ACCESS_CONTEXT_COOKIE)?.value ?? null
+    : null
+
+  const selectedAccessContext = !isSuperAdmin && requestedAccessContextKey
+    ? availableContexts.find((context) => context.key === requestedAccessContextKey) ?? null
+    : null
+  const highestStaffContext = !isSuperAdmin
+    ? pickDefaultAccessContext(availableContexts.filter((context) => context.accessLevel !== 'member'))
+    : null
+  const activeAccessContext = !isSuperAdmin && highestStaffContext && selectedAccessContext?.accessLevel === 'member'
+    ? highestStaffContext
+    : selectedAccessContext ?? defaultContext
+
+  let organizationId: string | null = activeAccessContext?.organizationId ?? defaultOrganizationId
+  let organizationName: string | null = activeAccessContext?.organizationName ?? defaultOrganizationName
+  let councilId: string | null = activeAccessContext?.councilId ?? defaultCouncilId
+  let isOrganizationMember = availableContexts.length > 0 || Boolean(defaultOrganizationId || defaultCouncilId)
+  let hasStaffAccess = false
+  let isCouncilAdmin = false
+  let canAccessMemberData = false
+  let canManageEvents = false
+  let canAccessOfficerDirectory = false
+  let canManageCustomLists = false
+  let canReviewMemberChanges = false
+  let canImportMembers = false
+  let canAccessOrganizationSettings = false
+  let canManageAdmins = false
+  const canReviewClaims = isSuperAdmin
 
   if (isSuperAdmin && actingMode !== 'normal') {
-    effectiveOrganizationId = requestedOrganizationId ?? effectiveOrganizationId
-    effectiveCouncilId = requestedCouncilId ?? effectiveCouncilId
-    if (effectiveOrganizationId) {
-      const actingOrganization = await lookupOrganization({
-        admin,
-        organizationId: effectiveOrganizationId,
-      })
-      effectiveOrganizationName =
-        actingOrganization?.preferred_name ?? actingOrganization?.display_name ?? effectiveOrganizationName
+    organizationId = requestedOrganizationId ?? defaultOrganizationId
+    councilId = requestedCouncilId ?? null
+
+    if (organizationId) {
+      const { data: orgData } = await admin
+        .from('organizations')
+        .select('display_name, preferred_name')
+        .eq('id', organizationId)
+        .maybeSingle()
+      const orgRow = orgData as { display_name: string | null; preferred_name: string | null } | null
+      organizationName = orgRow?.preferred_name ?? orgRow?.display_name ?? organizationName
     }
-    effectiveHasStaffAccess = actingMode === 'admin' ? true : false
+
+    if (!councilId && organizationId) {
+      const linkedCouncil = councilProfiles.find((council) => council.organization_id === organizationId)
+      councilId = linkedCouncil?.id ?? null
+    }
+
+    const actingAsAdmin = actingMode === 'admin' && Boolean(councilId || organizationId)
+    const actingWithOrganizationSettings = Boolean(organizationId || councilId) && actingMode !== 'member'
+
+    isOrganizationMember = Boolean(organizationId || councilId)
+    hasStaffAccess = actingAsAdmin
+    isCouncilAdmin = actingAsAdmin
+    canAccessMemberData = actingAsAdmin
+    canManageEvents = actingAsAdmin
+    canAccessOfficerDirectory = actingAsAdmin
+    canManageCustomLists = actingAsAdmin
+    canReviewMemberChanges = actingAsAdmin
+    canImportMembers = actingAsAdmin
+    canAccessOrganizationSettings = actingWithOrganizationSettings
+    canManageAdmins = actingAsAdmin
+  }
+
+  const aggregatedParallelCapabilities = [...parallelAccessState.capabilityByLocalUnitId.values()].reduce(
+    (accumulator, capabilities) => ({
+      members: accumulator.members || capabilities.members,
+      events: accumulator.events || capabilities.events,
+      eventResource: accumulator.eventResource || capabilities.eventResource,
+      customLists: accumulator.customLists || capabilities.customLists,
+      claims: accumulator.claims || capabilities.claims,
+      admins: accumulator.admins || capabilities.admins,
+      localUnitSettings: accumulator.localUnitSettings || capabilities.localUnitSettings,
+    }),
+    createEmptyParallelUnitCapabilities()
+  )
+
+  const activeLocalUnitId =
+    (activeAccessContext ? parallelAccessState.localUnitIdByContextKey.get(activeAccessContext.key) ?? null : null) ??
+    (await tryResolveActiveLocalUnitId({
+      admin,
+      councilId,
+      organizationId,
+    }))
+
+  if (activeLocalUnitId && !(isSuperAdmin && actingMode === 'member')) {
+    const activeCapabilities =
+      parallelAccessState.capabilityByLocalUnitId.get(activeLocalUnitId) ?? createEmptyParallelUnitCapabilities()
+
+    const resolvedMemberManage = activeCapabilities.members
+    const resolvedEventsManage = activeCapabilities.events
+    const resolvedClaimsManage = activeCapabilities.claims
+    const resolvedCustomListsManage = activeCapabilities.customLists
+    const resolvedAdminsManage = activeCapabilities.admins
+    const resolvedLocalUnitSettingsManage = activeCapabilities.localUnitSettings
+    const resolvedEventCapability = resolvedEventsManage || activeCapabilities.eventResource
+
+    canAccessMemberData = resolvedMemberManage
+    canManageEvents = resolvedEventCapability
+    canAccessOfficerDirectory = resolvedMemberManage
+    canReviewMemberChanges = resolvedMemberManage || resolvedClaimsManage
+    canImportMembers = resolvedMemberManage
+    canManageCustomLists = resolvedCustomListsManage
+    canAccessOrganizationSettings = resolvedLocalUnitSettingsManage || resolvedAdminsManage
+    canManageAdmins = resolvedAdminsManage
+
+    hasStaffAccess =
+      resolvedMemberManage ||
+      resolvedEventCapability ||
+      resolvedCustomListsManage ||
+      resolvedClaimsManage ||
+      resolvedAdminsManage ||
+      resolvedLocalUnitSettingsManage
+
+    isCouncilAdmin = resolvedMemberManage
+  }
+
+
+  if ((!activeLocalUnitId || !hasStaffAccess) && !(isSuperAdmin && actingMode === 'member')) {
+    const resolvedMemberManage = aggregatedParallelCapabilities.members
+    const resolvedEventsManage = aggregatedParallelCapabilities.events
+    const resolvedClaimsManage = aggregatedParallelCapabilities.claims
+    const resolvedCustomListsManage = aggregatedParallelCapabilities.customLists
+    const resolvedAdminsManage = aggregatedParallelCapabilities.admins
+    const resolvedLocalUnitSettingsManage = aggregatedParallelCapabilities.localUnitSettings
+    const resolvedEventCapability = resolvedEventsManage || aggregatedParallelCapabilities.eventResource
+
+    if (
+      resolvedMemberManage ||
+      resolvedEventCapability ||
+      resolvedCustomListsManage ||
+      resolvedClaimsManage ||
+      resolvedAdminsManage ||
+      resolvedLocalUnitSettingsManage
+    ) {
+      canAccessMemberData = resolvedMemberManage
+      canManageEvents = resolvedEventCapability
+      canAccessOfficerDirectory = resolvedMemberManage
+      canReviewMemberChanges = resolvedMemberManage || resolvedClaimsManage
+      canImportMembers = resolvedMemberManage
+      canManageCustomLists = resolvedCustomListsManage
+      canAccessOrganizationSettings = resolvedLocalUnitSettingsManage || resolvedAdminsManage
+      canManageAdmins = resolvedAdminsManage
+      hasStaffAccess = true
+      isCouncilAdmin = resolvedMemberManage
+    }
+  }
+
+  if (isSuperAdmin && actingMode === 'member') {
+    hasStaffAccess = false
+    isCouncilAdmin = false
+    canAccessMemberData = false
+    canManageEvents = false
+    canAccessOfficerDirectory = false
+    canManageCustomLists = false
+    canReviewMemberChanges = false
+    canImportMembers = false
+    canAccessOrganizationSettings = false
+    canManageAdmins = false
   }
 
   const currentViewLabel = isSuperAdmin
-    ? getSuperAdminViewLabel({ mode: actingMode, organizationName: effectiveOrganizationName })
-    : null
+    ? getSuperAdminViewLabel({ mode: actingMode, organizationName })
+    : activeAccessContext && defaultContext && activeAccessContext.key !== defaultContext.key
+      ? activeAccessContext.label
+      : null
 
   return {
     authUser: user,
@@ -420,28 +991,28 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
         }
       : null,
     isSignedIn: true,
-    isOrganizationMember: parallelSummary.isOrganizationMember || Boolean(personId),
-    hasStaffAccess: effectiveHasStaffAccess,
-    isCouncilAdmin: parallelSummary.canManageAdmins,
-    canAccessMemberData: parallelSummary.canAccessMemberData,
-    canManageEvents: parallelSummary.canManageEvents,
-    canAccessOfficerDirectory: parallelSummary.canAccessMemberData,
-    canManageCustomLists: parallelSummary.canManageCustomLists,
-    canReviewMemberChanges: parallelSummary.canAccessMemberData,
-    canImportMembers: parallelSummary.canAccessMemberData,
-    canAccessOrganizationSettings: parallelSummary.canAccessOrganizationSettings,
-    canManageAdmins: parallelSummary.canManageAdmins,
-    canReviewClaims: parallelSummary.canReviewClaims,
+    isOrganizationMember,
+    hasStaffAccess,
+    isCouncilAdmin,
+    canAccessMemberData,
+    canManageEvents,
+    canAccessOfficerDirectory,
+    canManageCustomLists,
+    canReviewMemberChanges,
+    canImportMembers,
+    canAccessOrganizationSettings,
+    canManageAdmins,
+    canReviewClaims,
     isSuperAdmin,
     actingMode,
     isDevMode: actingMode !== 'normal',
     currentViewLabel,
-    organizationId: effectiveOrganizationId,
-    organizationName: effectiveOrganizationName,
-    councilId: effectiveCouncilId,
+    organizationId,
+    organizationName,
+    councilId,
     personId,
     email: normalizedEmail,
     availableContexts,
-    activeContextKey,
+    activeContextKey: activeAccessContext?.key ?? null,
   }
 }

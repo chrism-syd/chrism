@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import FormSubmitButton from '@/app/components/form-submit-button';
 
 type RevokePersonRsvpButtonProps = {
   action: () => Promise<void>;
@@ -71,16 +72,15 @@ export default function RevokePersonRsvpButton({
             </button>
 
             <form action={action}>
-              <button
-                type="submit"
+              <FormSubmitButton
+                idleLabel="Confirm"
+                pendingLabel="Removing…"
                 className="qv-button-secondary"
                 style={{
                   borderColor: 'var(--danger-600, #b42318)',
                   color: 'var(--danger-700, #b42318)',
                 }}
-              >
-                Confirm
-              </button>
+              />
             </form>
           </div>
         </div>

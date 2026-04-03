@@ -1,61 +1,135 @@
-type ParallelAccessRow = {
-  organization_id: string | null
-  local_unit_id: string | null
-  local_unit_name: string | null
-  can_manage_members: boolean | null
-  can_manage_events: boolean | null
-  can_manage_custom_lists: boolean | null
-  can_manage_claims: boolean | null
-  can_manage_admins: boolean | null
-  can_manage_local_unit_settings: boolean | null
+import type { CurrentUserPermissions } from '@/lib/auth/permissions'
+import { createAdminClient } from '@/lib/supabase/admin'
+import {
+  findLocalUnitByLegacyCouncilId,
+  findLocalUnitByLegacyOrganizationId,
+  hasAreaAccess,
+  listAccessibleLocalUnitsForArea,
+} from '@/lib/auth/area-access'
+import { isParallelAreaAccessEnabled } from '@/lib/auth/feature-flags'
+
+async function countAreaUnits(args: {
+  admin: ReturnType<typeof createAdminClient>
+  permissions: CurrentUserPermissions
+  areaCode: Parameters<typeof listAccessibleLocalUnitsForArea>[0]['areaCode']
+  minimumAccessLevel: Parameters<typeof listAccessibleLocalUnitsForArea>[0]['minimumAccessLevel']
+}) {
+  if (!args.permissions.authUser) return 0
+  if (!isParallelAreaAccessEnabled({ areaCode: args.areaCode, minimumAccessLevel: args.minimumAccessLevel })) {
+    return 0
+  }
+
+  const units = await listAccessibleLocalUnitsForArea({
+    admin: args.admin,
+    userId: args.permissions.authUser.id,
+    areaCode: args.areaCode,
+    minimumAccessLevel: args.minimumAccessLevel,
+  })
+
+  return units.length
 }
 
-export type ParallelAccessSummary = {
-  organizationId: string | null
-  isOrganizationMember: boolean
-  hasStaffAccess: boolean
-  canManageAdmins: boolean
-  canAccessMemberData: boolean
-  canManageEvents: boolean
-  canManageCustomLists: boolean
-  canAccessOrganizationSettings: boolean
-  canReviewClaims: boolean
+async function resolveActiveLocalUnitId(args: {
+  admin: ReturnType<typeof createAdminClient>
+  permissions: CurrentUserPermissions
+}) {
+  const { admin, permissions } = args
+
+  if (permissions.councilId) {
+    const row = await findLocalUnitByLegacyCouncilId({
+      admin,
+      councilId: permissions.councilId,
+    })
+    if (row?.id) return row.id
+  }
+
+  if (permissions.organizationId) {
+    const row = await findLocalUnitByLegacyOrganizationId({
+      admin,
+      organizationId: permissions.organizationId,
+    })
+    if (row?.id) return row.id
+  }
+
+  return null
 }
 
-function anyRow(rows: ParallelAccessRow[], predicate: (row: ParallelAccessRow) => boolean) {
-  return rows.some(predicate)
+async function hasScopedAreaAccess(args: {
+  admin: ReturnType<typeof createAdminClient>
+  permissions: CurrentUserPermissions
+  localUnitId: string | null
+  areaCode: Parameters<typeof listAccessibleLocalUnitsForArea>[0]['areaCode']
+  minimumAccessLevel: Parameters<typeof listAccessibleLocalUnitsForArea>[0]['minimumAccessLevel']
+}) {
+  if (!args.permissions.authUser || !args.localUnitId) return false
+  if (!isParallelAreaAccessEnabled({ areaCode: args.areaCode, minimumAccessLevel: args.minimumAccessLevel })) {
+    return false
+  }
+
+  return hasAreaAccess({
+    admin: args.admin,
+    userId: args.permissions.authUser.id,
+    localUnitId: args.localUnitId,
+    areaCode: args.areaCode,
+    minimumAccessLevel: args.minimumAccessLevel,
+  })
 }
 
-export function getParallelAccessSummary(args: {
-  rows: ParallelAccessRow[]
-}): ParallelAccessSummary {
-  const rows = args.rows ?? []
+export async function getParallelAreaAccessSummary(args: {
+  admin?: ReturnType<typeof createAdminClient>
+  permissions: CurrentUserPermissions
+}) {
+  const admin = args.admin ?? createAdminClient()
+  const permissions = args.permissions
+  const activeLocalUnitId = await resolveActiveLocalUnitId({ admin, permissions })
 
-  const organizationId = rows.find((row) => row.organization_id)?.organization_id ?? null
-  const canAccessMemberData = anyRow(rows, (row) => Boolean(row.can_manage_members))
-  const canManageEvents = anyRow(rows, (row) => Boolean(row.can_manage_events))
-  const canManageCustomLists = anyRow(rows, (row) => Boolean(row.can_manage_custom_lists))
-  const canReviewClaims = anyRow(rows, (row) => Boolean(row.can_manage_claims))
-  const canManageAdmins = anyRow(rows, (row) => Boolean(row.can_manage_admins))
-  const canAccessOrganizationSettings = anyRow(rows, (row) => Boolean(row.can_manage_local_unit_settings))
-
-  const hasStaffAccess =
-    canAccessMemberData ||
-    canManageEvents ||
-    canManageCustomLists ||
-    canReviewClaims ||
-    canManageAdmins ||
-    canAccessOrganizationSettings
+  const [
+    membersManageCount,
+    eventsManageCount,
+    customListsManageCount,
+    claimsManageCount,
+    adminsManageCount,
+    localUnitSettingsManageCount,
+    membersManageActive,
+    eventsManageActive,
+    customListsManageActive,
+    claimsManageActive,
+    adminsManageActive,
+    localUnitSettingsManageActive,
+  ] = await Promise.all([
+    countAreaUnits({ admin, permissions, areaCode: 'members', minimumAccessLevel: 'edit_manage' }),
+    countAreaUnits({ admin, permissions, areaCode: 'events', minimumAccessLevel: 'manage' }),
+    countAreaUnits({ admin, permissions, areaCode: 'custom_lists', minimumAccessLevel: 'manage' }),
+    countAreaUnits({ admin, permissions, areaCode: 'claims', minimumAccessLevel: 'manage' }),
+    countAreaUnits({ admin, permissions, areaCode: 'admins', minimumAccessLevel: 'manage' }),
+    countAreaUnits({ admin, permissions, areaCode: 'local_unit_settings', minimumAccessLevel: 'manage' }),
+    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'members', minimumAccessLevel: 'edit_manage' }),
+    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'events', minimumAccessLevel: 'manage' }),
+    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'custom_lists', minimumAccessLevel: 'manage' }),
+    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'claims', minimumAccessLevel: 'manage' }),
+    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'admins', minimumAccessLevel: 'manage' }),
+    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'local_unit_settings', minimumAccessLevel: 'manage' }),
+  ])
 
   return {
-    organizationId,
-    isOrganizationMember: rows.length > 0,
-    hasStaffAccess,
-    canManageAdmins,
-    canAccessMemberData,
-    canManageEvents,
-    canManageCustomLists,
-    canAccessOrganizationSettings,
-    canReviewClaims,
+    activeLocalUnitId,
+    membersManage: membersManageCount > 0,
+    membersManageCount,
+    membersManageActive,
+    eventsManage: eventsManageCount > 0,
+    eventsManageCount,
+    eventsManageActive,
+    customListsManage: customListsManageCount > 0,
+    customListsManageCount,
+    customListsManageActive,
+    claimsManage: claimsManageCount > 0,
+    claimsManageCount,
+    claimsManageActive,
+    adminsManage: adminsManageCount > 0,
+    adminsManageCount,
+    adminsManageActive,
+    localUnitSettingsManage: localUnitSettingsManageCount > 0,
+    localUnitSettingsManageCount,
+    localUnitSettingsManageActive,
   }
 }

@@ -22,6 +22,83 @@ type ExistingAssignmentRow = {
   is_active: boolean
 }
 
+
+type LocalUnitLookupRow = {
+  id: string
+  local_unit_kind: string | null
+}
+
+async function pickPrimaryLocalUnitIdForOrganization(args: { organizationId: string }) {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('local_units')
+    .select('id, local_unit_kind')
+    .eq('legacy_organization_id', args.organizationId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const rows = ((data as LocalUnitLookupRow[] | null) ?? []).slice().sort((left, right) => {
+    const leftWeight = left.local_unit_kind === 'council' ? 0 : 1
+    const rightWeight = right.local_unit_kind === 'council' ? 0 : 1
+    if (leftWeight !== rightWeight) return leftWeight - rightWeight
+    return left.id.localeCompare(right.id)
+  })
+
+  return rows[0]?.id ?? null
+}
+
+async function syncParallelAdminPackageGrant(args: {
+  actorUserId: string
+  targetUserId: string | null
+  organizationId: string
+  note?: string | null
+}) {
+  if (!args.targetUserId) return
+
+  const localUnitId = await pickPrimaryLocalUnitIdForOrganization({ organizationId: args.organizationId })
+  if (!localUnitId) return
+
+  const admin = createAdminClient()
+  const { error } = await admin.rpc('grant_parallel_admin_package_to_user', {
+    p_actor_user_id: args.actorUserId,
+    p_target_user_id: args.targetUserId,
+    p_local_unit_id: localUnitId,
+    p_source_code: 'manual',
+    p_note: args.note ?? null,
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+async function syncParallelAdminPackageRevoke(args: {
+  actorUserId: string
+  targetUserId: string | null
+  organizationId: string
+  note?: string | null
+}) {
+  if (!args.targetUserId) return
+
+  const localUnitId = await pickPrimaryLocalUnitIdForOrganization({ organizationId: args.organizationId })
+  if (!localUnitId) return
+
+  const admin = createAdminClient()
+  const { error } = await admin.rpc('revoke_parallel_admin_package_from_user', {
+    p_actor_user_id: args.actorUserId,
+    p_target_user_id: args.targetUserId,
+    p_local_unit_id: localUnitId,
+    p_source_code: 'manual',
+    p_note: args.note ?? null,
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
 function normalizeEmail(value: string | null | undefined) {
   const trimmed = value?.trim().toLowerCase() ?? ''
   return trimmed.length > 0 ? trimmed : null
@@ -142,6 +219,13 @@ export async function saveOrganizationAdminAssignment(args: SaveOrganizationAdmi
     throw new Error(savedError.message)
   }
 
+  await syncParallelAdminPackageGrant({
+    actorUserId: args.actorUserId,
+    targetUserId: target.userId,
+    organizationId: args.organizationId,
+    note: args.grantNotes ?? null,
+  })
+
   return { id: (savedAssignment as { id: string } | null)?.id ?? targetAssignment?.id ?? null }
 }
 
@@ -152,6 +236,18 @@ export async function deactivateOrganizationAdminAssignment(args: {
   revokeNotes?: string | null
 }) {
   const admin = createAdminClient()
+
+  const { data: existingAssignment, error: lookupError } = await admin
+    .from('organization_admin_assignments')
+    .select('user_id')
+    .eq('id', args.assignmentId)
+    .eq('organization_id', args.organizationId)
+    .maybeSingle<{ user_id: string | null }>()
+
+  if (lookupError) {
+    throw new Error(lookupError.message)
+  }
+
   const { error } = await admin
     .from('organization_admin_assignments')
     .update({
@@ -167,6 +263,13 @@ export async function deactivateOrganizationAdminAssignment(args: {
   if (error) {
     throw new Error(error.message)
   }
+
+  await syncParallelAdminPackageRevoke({
+    actorUserId: args.actorUserId,
+    targetUserId: existingAssignment?.user_id ?? null,
+    organizationId: args.organizationId,
+    note: args.revokeNotes ?? null,
+  })
 }
 
 export function normalizeAdminGrantEmail(value: string | null | undefined) {
