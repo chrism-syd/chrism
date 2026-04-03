@@ -14,30 +14,41 @@ export default async function SpiritualCompanionPage() {
 
         <section className={styles.heroCard}>
           <div className={styles.heroIntro}>
-            <p className={styles.eyebrow}>Spiritual companion</p>
-            <h1 className={styles.heroTitle}>A quiet place to pray, reflect, and keep holy company.</h1>
-            <p className={styles.heroBody}>
-              Explore the prayer library, daily readings, saint reflections, and saved devotions built for the rhythms of Catholic life.
-            </p>
-            <div className={styles.heroActions}>
-              <Link href="/spiritual/prayers" className={styles.primaryAction}>
-                Prayer library
-              </Link>
-              {showOperationsLink ? (
+            <h1 className={styles.heroTitle}>Spiritual Search</h1>
+
+            <form className={styles.searchShell} role="search">
+              <label htmlFor="spiritual-search-input" className={styles.searchLabel}>
+                Search
+              </label>
+              <div className={styles.searchRow}>
+                <input
+                  id="spiritual-search-input"
+                  type="search"
+                  className={styles.searchInput}
+                  placeholder="Search prayers, saints, topics, or catechism"
+                />
+                <button type="button" className={styles.searchButton} disabled>
+                  Search
+                </button>
+              </div>
+            </form>
+
+            {showOperationsLink ? (
+              <div className={styles.heroActions}>
                 <Link href="/" className={styles.secondaryAction}>
                   Back to Operations
                 </Link>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         </section>
 
-        <section className={styles.libraryGrid} aria-label="Spiritual companion library sections">
+        <section className={styles.libraryGrid} aria-label="Spiritual search sections">
           <article className={styles.featureCard}>
             <div className={styles.featureHeader}>
               <div>
                 <p className={styles.featureEyebrow}>Prayer</p>
-                <h2 className={styles.featureTitle}>Prayer library</h2>
+                <h2 className={styles.featureTitle}>Prayers</h2>
               </div>
               <span className={styles.featureBadge}>Live</span>
             </div>
@@ -45,7 +56,7 @@ export default async function SpiritualCompanionPage() {
               Browse traditional prayers, litanies, devotions, blessings, and short prayers for everyday moments.
             </p>
             <Link href="/spiritual/prayers" className={styles.inlineLink}>
-              Open prayer library
+              Open prayers
             </Link>
           </article>
 
@@ -53,38 +64,12 @@ export default async function SpiritualCompanionPage() {
             <div className={styles.featureHeader}>
               <div>
                 <p className={styles.featureEyebrow}>Readings</p>
-                <h2 className={styles.featureTitle}>Daily readings</h2>
+                <h2 className={styles.featureTitle}>Daily Readings</h2>
               </div>
               <span className={styles.featureBadgeMuted}>Soon</span>
             </div>
             <p className={styles.featureBody}>
               A daily place for scripture, quiet reflection, and companion content tied to the liturgical day.
-            </p>
-          </article>
-
-          <article className={styles.featureCard}>
-            <div className={styles.featureHeader}>
-              <div>
-                <p className={styles.featureEyebrow}>Saints</p>
-                <h2 className={styles.featureTitle}>Saint companion</h2>
-              </div>
-              <span className={styles.featureBadgeMuted}>Soon</span>
-            </div>
-            <p className={styles.featureBody}>
-              Discover saints by story, patronage, and lived witness, with reflections that speak to your real life.
-            </p>
-          </article>
-
-          <article className={styles.featureCard}>
-            <div className={styles.featureHeader}>
-              <div>
-                <p className={styles.featureEyebrow}>Saved</p>
-                <h2 className={styles.featureTitle}>My devotions</h2>
-              </div>
-              <span className={styles.featureBadgeMuted}>Soon</span>
-            </div>
-            <p className={styles.featureBody}>
-              Keep the prayers, readings, and reflections you return to most often in one peaceful place.
             </p>
           </article>
         </section>
