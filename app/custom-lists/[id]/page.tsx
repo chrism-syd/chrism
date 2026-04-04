@@ -174,42 +174,90 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       <div className="qv-shell">
         <AppHeader />
 
-        <section className="qv-hero-card">
-          <div className="qv-detail-hero-main">
-            <div>
-              <p className="qv-eyebrow">Custom lists</p>
-              <h1 className="qv-title">{listData.name}</h1>
-              <p className="qv-subtitle">{listData.description || 'A shared member list for follow-up, care, prospects, or any other council use.'}</p>
-              <div className="qv-detail-badges">
-                <span className="qv-badge">{members.length} member{members.length === 1 ? '' : 's'}</span>
-                <span className="qv-badge qv-badge-soft">{claimedCount} claimed</span>
-                <span className="qv-badge qv-badge-soft">{contactedCount} contacted</span>
-                {canManage ? <span className="qv-badge qv-badge-soft">Shared with {sharedAccess.length}</span> : null}
+        <section>
+          <div className="qv-hero-card" style={{ paddingBottom: 16 }}>
+            <div style={{ display: 'grid', gap: 18 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Link
+                  href="/custom-lists"
+                  aria-label="Back to custom lists"
+                  className="qv-link-button"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    border: '1px solid var(--divider-strong)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--interactive)',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                >
+                  ‹
+                </Link>
+                <p className="qv-eyebrow" style={{ margin: 0 }}>
+                  Custom Lists
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gap: 12 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontFamily: 'var(--font-heading), Georgia, serif',
+                    fontSize: 'clamp(42px, 6vw, 58px)',
+                    lineHeight: 0.98,
+                    letterSpacing: '-0.035em',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {listData.name}
+                </h1>
+
+                <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: '40ch' }}>
+                  {listData.description || 'A shared member list for follow-up, care, prospects, or any other council use.'}
+                </p>
+
+                <div className="qv-detail-badges" style={{ marginTop: 2 }}>
+                  <span className="qv-badge">{members.length} member{members.length === 1 ? '' : 's'}</span>
+                  <span className="qv-badge qv-badge-soft">{claimedCount} claimed</span>
+                  <span className="qv-badge qv-badge-soft">{contactedCount} contacted</span>
+                  {canManage ? <span className="qv-badge qv-badge-soft">Shared with {sharedAccess.length}</span> : null}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="qv-detail-actions" style={{ marginTop: 20 }}>
-            <Link href="/custom-lists" className="qv-button-secondary qv-link-button">
-              Back to custom lists
-            </Link>
-            {canManage ? (
-              <Link href="/custom-lists?showMemberDirectory=1#member-directory-section" className="qv-button-secondary qv-link-button">
-                Member directory
-              </Link>
-            ) : null}
-            {canManageLifecycle ? (
-              <ConfirmActionButton
-                action={archiveCustomListAction}
-                hiddenFields={[{ name: 'custom_list_id', value: listData.id }]}
-                triggerLabel="Archive list"
-                confirmTitle="Archive this custom list?"
-                confirmDescription="This removes the list from the active custom-lists view but keeps its members and sharing intact so you can restore it or delete it permanently later from the archive."
-                confirmLabel="Archive list"
-                danger
-              />
-            ) : null}
-          </div>
+          {canManageLifecycle ? (
+            <div className="qv-section-menu-shell" style={{ marginTop: -22 }}>
+              <div
+                style={{
+                  minHeight: 58,
+                  paddingInline: 28,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Link href={`/custom-lists/${listData.id}/edit`} className="qv-button-secondary qv-link-button">
+                  Edit
+                </Link>
+                <ConfirmActionButton
+                  action={archiveCustomListAction}
+                  hiddenFields={[{ name: 'custom_list_id', value: listData.id }]}
+                  triggerLabel="Archive this list"
+                  confirmTitle="Archive this custom list?"
+                  confirmDescription="This removes the list from the active custom-lists view but keeps its members and sharing intact so you can restore it or delete it permanently later from the archive."
+                  confirmLabel="Archive this list"
+                  triggerClassName="qv-button-secondary"
+                  confirmClassName="qv-button-secondary"
+                />
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <CustomListDetailClient

@@ -157,7 +157,6 @@ function todayInputValue() {
   return new Date().toISOString().slice(0, 10)
 }
 
-
 function BootstrapIcon({
   name,
   className,
@@ -226,7 +225,10 @@ function ReviewMemberRow({
   }
 
   return (
-    <details className="qv-review-row">
+    <details
+      className="qv-review-row"
+      style={{ borderRadius: 24, overflow: 'hidden', background: 'var(--bg-card)' }}
+    >
       <summary className="qv-review-row-summary">
         <div className="qv-review-row-headline">
           <div className="qv-review-row-main">
@@ -511,9 +513,19 @@ export default function CustomListDetailClient({
               <p className="qv-empty-text">Add members from the directory or use the Add member button here.</p>
             </div>
           ) : (
-            <div className="qv-simple-list qv-simple-list-review" style={{ marginTop: 16 }}>
+            <div
+              className="qv-simple-list qv-simple-list-review"
+              style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
+            >
               {sortedMembers.map((member) => (
-                <ReviewMemberRow key={member.id} member={member} listId={listId} listName={listName} currentPersonId={currentPersonId} canManage={canManage} />
+                <ReviewMemberRow
+                  key={member.id}
+                  member={member}
+                  listId={listId}
+                  listName={listName}
+                  currentPersonId={currentPersonId}
+                  canManage={canManage}
+                />
               ))}
             </div>
           )}
@@ -541,9 +553,19 @@ export default function CustomListDetailClient({
           {recentContactMembers.length === 0 ? (
             <p className="qv-inline-message" style={{ marginTop: 16 }}>No contact has been logged on this list yet.</p>
           ) : (
-            <div className="qv-simple-list qv-simple-list-review" style={{ marginTop: 16 }}>
+            <div
+              className="qv-simple-list qv-simple-list-review"
+              style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
+            >
               {recentContactMembers.map((member) => (
-                <ReviewMemberRow key={`recent-${member.id}`} member={member} listId={listId} listName={listName} currentPersonId={currentPersonId} canManage={canManage} />
+                <ReviewMemberRow
+                  key={`recent-${member.id}`}
+                  member={member}
+                  listId={listId}
+                  listName={listName}
+                  currentPersonId={currentPersonId}
+                  canManage={canManage}
+                />
               ))}
             </div>
           )}

@@ -1,6 +1,7 @@
 export type MemberFormValues = {
   member_id: string;
   first_name: string;
+  middle_name: string;
   last_name: string;
   email: string;
   cell_phone: string;
@@ -28,6 +29,7 @@ export type DeleteMemberState = {
 const EMPTY_MEMBER_FORM_VALUES: MemberFormValues = {
   member_id: '',
   first_name: '',
+  middle_name: '',
   last_name: '',
   email: '',
   cell_phone: '',

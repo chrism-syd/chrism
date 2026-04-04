@@ -2,8 +2,9 @@ import Link from 'next/link'
 import AppHeader from '@/app/app-header'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { findCurrentActingCouncilContextForArea, type ActingCouncilContext } from '@/lib/auth/acting-context'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import {
   getMemberInvitedEventHref,
   getPublicMeetingsHref,
@@ -99,7 +100,7 @@ async function loadOrganizationProfile(args: {
     .from('organizations')
     .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
     .eq('id', council.organization_id)
-    .maybeSingle()
+    .maybeSingle<OrganizationProfileRow>()
 
   return (data as OrganizationProfileRow | null) ?? null
 }
@@ -208,9 +209,7 @@ async function MemberEventsPage() {
           </div>
         </section>
 
-        {publicMeetingsHref ? (
-          <SectionMenuBar items={[{ label: 'Public meetings', href: publicMeetingsHref }]} />
-        ) : null}
+        {publicMeetingsHref ? <SectionMenuBar items={[{ label: 'Public meetings', href: publicMeetingsHref }]} /> : null}
 
         <div className="qv-detail-grid">
           <div className="qv-detail-stack">
@@ -264,21 +263,31 @@ async function MemberEventsPage() {
   )
 }
 
-async function AdminEventsPage() {
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({
-    redirectTo: '/me',
-    areaCode: 'events',
-    minimumAccessLevel: 'manage',
-  })
+async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
+  const { admin: supabase, council, permissions, localUnitId } = context
   const organization = await loadOrganizationProfile({ admin: supabase, council })
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
   const publicMeetingsHref = council.council_number ? `/councils/${council.council_number}/meetings` : null
   const meetingsFeedHref = council.council_number ? `/councils/${council.council_number}/meetings.ics` : null
 
+  const switchableLocalUnits = permissions.authUser
+    ? (
+        await listAccessibleLocalUnitsForArea({
+          admin: supabase,
+          userId: permissions.authUser.id,
+          areaCode: 'events',
+          minimumAccessLevel: 'manage',
+        })
+      )
+        .filter((unit) => unit.local_unit_id !== localUnitId)
+        .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
+    : []
+
   const { data: eventsData, error: eventsError } = await supabase
     .from('events')
-.select('id, title, location_name, starts_at, ends_at, status_code, scope_code, requires_rsvp, needs_volunteers, event_kind_code')
+    .select('id, title, location_name, starts_at, ends_at, status_code, scope_code, requires_rsvp, needs_volunteers, event_kind_code')
     .eq('council_id', council.id)
     .order('starts_at', { ascending: true })
     .returns<EventRow[]>()
@@ -301,12 +310,10 @@ async function AdminEventsPage() {
     (event) =>
       event.event_kind_code !== 'standard' &&
       !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
-      (event.ends_at ?? event.starts_at) >= nowIso
+      (event.ends_at ?? event.starts_at) >= nowIso,
   )
   const draftEvents = standardEvents.filter((event) => event.status_code === 'draft')
-  const hostedEvents = standardEvents.filter(
-    (event) => !['draft', 'completed', 'cancelled'].includes(event.status_code)
-  )
+  const hostedEvents = standardEvents.filter((event) => !['draft', 'completed', 'cancelled'].includes(event.status_code))
 
   const standardIds = standardEvents.map((event) => event.id)
   const multiIds = standardEvents.filter((event) => event.scope_code === 'multi_council').map((event) => event.id)
@@ -356,12 +363,8 @@ async function AdminEventsPage() {
           const isSingle = event.scope_code === 'home_council_only'
           const councilSummary = councilSummaryMap.get(event.id)
           const personSummary = personSummaryMap.get(event.id)
-          const respondedCount = isSingle
-            ? personSummary?.active_submission_count ?? 0
-            : councilSummary?.responded_council_count ?? 0
-          const volunteerCount = isSingle
-            ? personSummary?.total_volunteer_count ?? 0
-            : councilSummary?.total_volunteer_count ?? 0
+          const respondedCount = isSingle ? personSummary?.active_submission_count ?? 0 : councilSummary?.responded_council_count ?? 0
+          const volunteerCount = isSingle ? personSummary?.total_volunteer_count ?? 0 : councilSummary?.total_volunteer_count ?? 0
           const invitedCount = isSingle ? null : councilSummary?.invited_council_count ?? 0
           const externalInviteeCount = externalInviteeCountMap.get(event.id) ?? 0
 
@@ -406,38 +409,98 @@ async function AdminEventsPage() {
       <div className="qv-shell">
         <AppHeader />
 
-        <section className="qv-hero-card">
-          <div className="qv-directory-hero">
-            <div className="qv-directory-text">
-              <p className="qv-eyebrow">
-                {organizationName}
-                {council.council_number ? ` (${council.council_number})` : ''}
-              </p>
-              <div className="qv-directory-title-row">
-                <h1 className="qv-directory-name">Events</h1>
-              </div>
-              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Manage events, meetings, RSVPs, and volunteer responses.
-              </p>
-            </div>
+        <section
+          style={{
+            display: 'grid',
+            gap: 14,
+            paddingTop: 28,
+            marginBottom: 18,
+          }}
+        >
+          <h1
+            className="qv-directory-name"
+            style={{
+              margin: 0,
+              fontSize: 'clamp(42px, 6.4vw, 68px)',
+              lineHeight: 0.96,
+              letterSpacing: '-0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Events
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              maxWidth: '34ch',
+              fontSize: 15,
+              fontWeight: 700,
+              lineHeight: 1.35,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Manage events, meetings, RSVPs, and volunteer responses.
+          </p>
+        </section>
 
-            <div className="qv-org-avatar-wrap">
-              <OrganizationAvatar
-                displayName={organizationName}
-                logoStoragePath={organization?.logo_storage_path ?? null}
-                logoAltText={organization?.logo_alt_text ?? organizationName}
-                size={72}
-              />
+        <section className="qv-hero-card">
+          <div style={{ display: 'grid', gap: 16 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 18,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'grid', gap: 12 }}>
+                <h2 className="qv-section-title" style={{ margin: 0 }}>
+                  {currentCouncilLabel}
+                </h2>
+
+                {switchableLocalUnits.length > 0 ? (
+                  <details className="qv-view-menu">
+                    <summary>
+                      <span>Change local organization</span>
+                      <span aria-hidden="true" className="qv-view-menu-chevron">
+                        ▾
+                      </span>
+                    </summary>
+                    <div className="qv-view-menu-panel">
+                      {switchableLocalUnits.map((unit) => (
+                        <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
+                          <input type="hidden" name="areaCode" value="events" />
+                          <input type="hidden" name="minimumAccessLevel" value="manage" />
+                          <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
+                          <input type="hidden" name="next" value="/events" />
+                          <button
+                            type="submit"
+                            className="qv-view-menu-item"
+                            style={{ width: '100%', justifyContent: 'flex-start' }}
+                          >
+                            {unit.local_unit_name}
+                          </button>
+                        </form>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </div>
+
+              <div className="qv-org-avatar-wrap">
+                <OrganizationAvatar
+                  displayName={organizationName}
+                  logoStoragePath={organization?.logo_storage_path ?? null}
+                  logoAltText={organization?.logo_alt_text ?? organizationName}
+                  size={72}
+                />
+              </div>
             </div>
           </div>
         </section>
 
-        <SectionMenuBar
-          items={[
-            { label: 'Add event', href: '/events/new' },
-            { label: 'Archived events', href: '/events/archive' },
-          ]}
-        />
+        <SectionMenuBar items={[{ label: 'Add event', href: '/events/new' }, { label: 'Archived events', href: '/events/archive' }]} />
 
         <div className="qv-detail-grid">
           <div className="qv-detail-stack">
@@ -514,9 +577,7 @@ async function AdminEventsPage() {
                         <span className={getStatusPillClass(event.status_code)}>{getStatusLabel(event.status_code)}</span>
                       </div>
                       {event.location_name ? (
-                        <div style={{ marginTop: 4, fontSize: 14, color: 'var(--text-secondary)' }}>
-                          {event.location_name}
-                        </div>
+                        <div style={{ marginTop: 4, fontSize: 14, color: 'var(--text-secondary)' }}>{event.location_name}</div>
                       ) : null}
                     </div>
                   ))}
@@ -531,11 +592,14 @@ async function AdminEventsPage() {
 }
 
 export default async function EventsPage() {
-  const permissions = await getCurrentUserPermissions()
+  const manageContext = await findCurrentActingCouncilContextForArea({
+    areaCode: 'events',
+    minimumAccessLevel: 'manage',
+  })
 
-  if (!permissions.canManageEvents) {
-    return <MemberEventsPage />
+  if (manageContext) {
+    return <AdminEventsPage context={manageContext} />
   }
 
-  return <AdminEventsPage />
+  return <MemberEventsPage />
 }

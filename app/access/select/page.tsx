@@ -104,30 +104,48 @@ export default async function ParallelAreaAccessSelectionPage(props: { searchPar
           </div>
         </section>
 
-        <section className="qv-card qv-stack" style={{ gap: 12 }}>
+        <section className="qv-card qv-compact-card" style={{ display: 'grid', gap: 14, padding: 28 }}>
           {sortedUnits.map((unit: LocalUnitOption) => (
-            <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
+            <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context" style={{ margin: 0 }}>
               <input type="hidden" name="areaCode" value={areaCode} />
               <input type="hidden" name="minimumAccessLevel" value={minimumAccessLevel} />
               <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
               <input type="hidden" name="next" value={nextPath} />
-              <button type="submit" className="qv-user-menu-link" style={{ minHeight: 56, border: '1px solid var(--divider)' }}>
-                <span style={{ display: 'grid', gap: 4 }}>
-                  <span style={{ fontWeight: 700 }}>{unit.local_unit_name}</span>
+              <button
+                type="submit"
+                className="qv-user-menu-link"
+                style={{
+                  width: '100%',
+                  minHeight: 92,
+                  padding: '18px 20px',
+                  border: '1px solid var(--divider)',
+                  borderRadius: 20,
+                  justifyContent: 'space-between',
+                  background: 'var(--bg-card)',
+                }}
+              >
+                <span style={{ display: 'grid', gap: 6, textAlign: 'left' }}>
+                  <span style={{ fontWeight: 700, fontSize: 17 }}>{unit.local_unit_name}</span>
                   <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
                     {areaLabel} • {getAccessLevelLabel(unit.access_level)}
                   </span>
+                </span>
+                <span aria-hidden="true" className="qv-chevron">
+                  ›
                 </span>
               </button>
             </form>
           ))}
         </section>
 
-        <section className="qv-card qv-compact-card" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <section
+          className="qv-card qv-compact-card"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}
+        >
           <p className="qv-empty-text" style={{ margin: 0 }}>
             Your choice only affects this area. You can switch again later from the menu.
           </p>
-          <Link href={nextPath} className="qv-secondary-button">
+          <Link href={nextPath} className="qv-button-secondary qv-link-button">
             Cancel
           </Link>
         </section>

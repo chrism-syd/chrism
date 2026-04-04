@@ -1,16 +1,14 @@
-import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import AppHeader from '@/app/app-header'
 import MembersList from '@/app/members-list'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
-import PageOrgSwitcher from '@/app/components/page-org-switcher'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { loadCouncilMemberDirectoryData } from '@/lib/members/directory-data'
 
 export default async function MembersPage() {
-  const permissions = await getCurrentUserPermissions()
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({
+  const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({
     redirectTo: '/me',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
@@ -50,69 +48,136 @@ export default async function MembersPage() {
   } | null
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
-  const {
-    members,
-    prospects,
-    volunteers,
-    currentOfficerLabelsById,
-    executiveOfficerLabelsById,
-    officerCount,
-  } = directoryData
+  const switchableLocalUnits = permissions.authUser
+    ? (
+        await listAccessibleLocalUnitsForArea({
+          admin: supabase,
+          userId: permissions.authUser.id,
+          areaCode: 'members',
+          minimumAccessLevel: 'edit_manage',
+        })
+      )
+        .filter((unit) => unit.local_unit_id !== localUnitId)
+        .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
+    : []
+
+  const { members, prospects, currentOfficerLabelsById, executiveOfficerLabelsById } = directoryData
   const activeMembers = members.filter((person) => person.council_activity_level_code === 'active')
+  const inactiveMembers = members.filter((person) => person.council_activity_level_code === 'inactive')
 
   return (
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader />
 
+        <section
+          style={{
+            display: 'grid',
+            gap: 14,
+            paddingTop: 28,
+            marginBottom: 18,
+          }}
+        >
+          <h1
+            className="qv-directory-name"
+            style={{
+              margin: 0,
+              fontSize: 'clamp(42px, 6.4vw, 68px)',
+              lineHeight: 0.96,
+              letterSpacing: '-0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Member Directory
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              maxWidth: '34ch',
+              fontSize: 15,
+              fontWeight: 700,
+              lineHeight: 1.35,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Browse and manage members for your council.
+          </p>
+        </section>
+
         <section className="qv-hero-card">
-          <div className="qv-directory-hero">
-            <div className="qv-directory-text">
-              <p className="qv-eyebrow">
-                {organizationName}
-                {council.council_number ? ` (${council.council_number})` : ''}
-              </p>
-              <div className="qv-directory-title-row" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                <h1 className="qv-directory-name">Member directory</h1>
-                <PageOrgSwitcher
-                  contexts={permissions.availableContexts}
-                  selectedContextKey={permissions.activeContextKey}
-                  selectedOrganizationId={permissions.organizationId}
-                  isSuperAdmin={permissions.isSuperAdmin}
-                  actingMode={permissions.actingMode}
-                  fallbackHref="/members"
+          <div style={{ display: 'grid', gap: 16 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 18,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'grid', gap: 12 }}>
+                <h2 className="qv-section-title" style={{ margin: 0 }}>
+                  {currentCouncilLabel}
+                </h2>
+
+                {switchableLocalUnits.length > 0 ? (
+                  <details className="qv-view-menu">
+                    <summary>
+                      <span>Change local organization</span>
+                      <span aria-hidden="true" className="qv-view-menu-chevron">
+                        ▾
+                      </span>
+                    </summary>
+                    <div className="qv-view-menu-panel">
+                      {switchableLocalUnits.map((unit) => (
+                        <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
+                          <input type="hidden" name="areaCode" value="members" />
+                          <input type="hidden" name="minimumAccessLevel" value="edit_manage" />
+                          <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
+                          <input type="hidden" name="next" value="/members" />
+                          <button
+                            type="submit"
+                            className="qv-view-menu-item"
+                            style={{ width: '100%', justifyContent: 'flex-start' }}
+                          >
+                            {unit.local_unit_name}
+                          </button>
+                        </form>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </div>
+
+              <div className="qv-org-avatar-wrap">
+                <OrganizationAvatar
+                  displayName={organizationName}
+                  logoStoragePath={organization?.logo_storage_path ?? null}
+                  logoAltText={organization?.logo_alt_text ?? organizationName}
+                  size={72}
                 />
               </div>
-              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Browse and manage members for your council.
-              </p>
             </div>
-            <div className="qv-org-avatar-wrap">
-              <OrganizationAvatar
-                displayName={organizationName}
-                logoStoragePath={organization?.logo_storage_path ?? null}
-                logoAltText={organization?.logo_alt_text ?? organizationName}
-                size={72}
-              />
-            </div>
-          </div>
-          <div className="qv-stats">
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{members.length}</div>
-              <div className="qv-stat-label">Members</div>
-            </div>
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{activeMembers.length}</div>
-              <div className="qv-stat-label">Active members</div>
-            </div>
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{officerCount}</div>
-              <div className="qv-stat-label">Current officers</div>
-            </div>
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{volunteers.length + prospects.length}</div>
-              <div className="qv-stat-label">Prospects + volunteers</div>
+
+            <div className="qv-stats" style={{ marginTop: 0 }}>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{members.length}</div>
+                <div className="qv-stat-label">Total members</div>
+              </div>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{activeMembers.length}</div>
+                <div className="qv-stat-label">Marked Active</div>
+              </div>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{inactiveMembers.length}</div>
+                <div className="qv-stat-label">Marked Inactive</div>
+              </div>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{prospects.length}</div>
+                <div className="qv-stat-label">Prospects</div>
+              </div>
             </div>
           </div>
         </section>

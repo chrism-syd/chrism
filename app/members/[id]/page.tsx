@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
+import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { decryptPeopleRecord } from '@/lib/security/pii'
+import { getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { formatDate } from '@/lib/custom-lists'
 import { summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
 
@@ -12,6 +14,7 @@ type PageProps = { params: Promise<{ id: string }> }
 type PersonRow = {
   id: string
   first_name: string
+  middle_name: string | null
   last_name: string
   email: string | null
   cell_phone: string | null
@@ -52,50 +55,95 @@ function formatAddress(
   return [line1, line2].filter(Boolean).join(' • ')
 }
 
-function labelize(value: string | null) {
-  return value ? value.replaceAll('_', ' ') : 'Not set'
+function startCase(value: string | null) {
+  if (!value) return null
+  return value
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function formatFullName(person: Pick<PersonRow, 'first_name' | 'middle_name' | 'last_name'>) {
+  return [person.first_name, person.middle_name, person.last_name].filter(Boolean).join(' ')
 }
 
 export default async function MemberDetailPage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, council, permissions } = await getCurrentActingCouncilContext({ redirectTo: '/members' })
+  const { admin: supabase, council, permissions } = await getCurrentActingCouncilContext({
+    redirectTo: '/members',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
+  })
 
-  const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] = await Promise.all([
-    supabase
-      .from('people')
-      .select(
-        'id, first_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
-      )
-      .eq('id', id)
-      .eq('council_id', council.id)
-      .eq('primary_relationship_code', 'member')
-      .is('archived_at', null)
-      .maybeSingle<PersonRow>(),
-    supabase
-      .from('person_officer_terms')
-      .select(
-        'id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes'
-      )
-      .eq('person_id', id)
-      .eq('council_id', council.id)
-      .returns<OfficerTermRow[]>(),
-    supabase
-      .from('custom_list_members')
-      .select('id, custom_list_id, claimed_by_person_id, last_contact_at, last_contact_by_person_id')
-      .eq('person_id', id)
-      .returns<MemberCustomListMembershipRow[]>(),
-  ])
+  const { data: organizationData } = council.organization_id
+    ? await supabase
+        .from('organizations')
+        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .eq('id', council.organization_id)
+        .maybeSingle()
+    : { data: null }
+
+  const organization = organizationData as {
+    display_name: string | null
+    preferred_name: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
+
+  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+
+  const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] =
+    await Promise.all([
+      supabase
+        .from('people')
+        .select(
+          'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
+        )
+        .eq('id', id)
+        .eq('council_id', council.id)
+        .eq('primary_relationship_code', 'member')
+        .is('archived_at', null)
+        .maybeSingle<PersonRow>(),
+      supabase
+        .from('person_officer_terms')
+        .select(
+          'id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes'
+        )
+        .eq('person_id', id)
+        .eq('council_id', council.id)
+        .returns<OfficerTermRow[]>(),
+      supabase
+        .from('custom_list_members')
+        .select('id, custom_list_id, claimed_by_person_id, last_contact_at, last_contact_by_person_id')
+        .eq('person_id', id)
+        .returns<MemberCustomListMembershipRow[]>(),
+    ])
 
   if (error) {
     return (
       <main className="qv-page">
         <div className="qv-shell">
           <AppHeader />
-          <section className="qv-hero-card">
-            <p className="qv-eyebrow">Member Directory</p>
-            <h1 className="qv-title">Member details</h1>
-            <p className="qv-subtitle">Organization-facing contact and profile details.</p>
+
+          <section style={{ display: 'grid', gap: 14, marginTop: 12, marginBottom: 18 }}>
+            <h1
+              className="qv-directory-name"
+              style={{
+                margin: 0,
+                fontSize: 'clamp(42px, 6.4vw, 68px)',
+                lineHeight: 0.96,
+                letterSpacing: '-0.04em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Member Detail
+            </h1>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
+              Review local organization contact, status, and custom list details.
+            </p>
           </section>
+
           <div className="qv-error">
             <strong>Could not load member.</strong>
             <p>{error.message}</p>
@@ -111,7 +159,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
     const { data: externalPersonData, error: externalPersonError } = await supabase
       .from('people')
       .select(
-        'id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code, council_id'
+        'id, first_name, middle_name, last_name, nickname, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code, council_id'
       )
       .eq('id', id)
       .is('archived_at', null)
@@ -154,6 +202,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
     notFound()
   }
 
+  const memberName = formatFullName(person)
   const address = formatAddress(person)
   const currentOfficerLabels = summarizeCurrentOfficerLabels(officerTerms ?? [])
   const executiveOfficerLabels = summarizeExecutiveOfficerLabels(officerTerms ?? [])
@@ -164,12 +213,28 @@ export default async function MemberDetailPage({ params }: PageProps) {
         ? currentOfficerLabels.join(', ')
         : null
 
+  const relationshipLabel = isExternalAdminProfile ? 'Admin Contact' : startCase(person.primary_relationship_code) ?? 'Member'
+  const activityLevelLabel = startCase(person.council_activity_level_code)
+  const activityContextLabel = startCase(person.council_activity_context_code)
+  const reengagementLabel = startCase(person.council_reengagement_status_code)
+
+  const rightDetailRows = [
+    activityContextLabel ? { label: 'Activity context', value: activityContextLabel } : null,
+    reengagementLabel ? { label: 'Re-engagement status', value: reengagementLabel } : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row))
+
   const customListMemberships = customListMembershipsData ?? []
   const customListIds = [...new Set(customListMemberships.map((membership) => membership.custom_list_id))]
-  const relatedPeopleIds = [...new Set([
-    ...customListMemberships.map((membership) => membership.last_contact_by_person_id).filter((value): value is string => Boolean(value)),
-    ...customListMemberships.map((membership) => membership.claimed_by_person_id).filter((value): value is string => Boolean(value)),
-  ])]
+  const relatedPeopleIds = [
+    ...new Set([
+      ...customListMemberships
+        .map((membership) => membership.last_contact_by_person_id)
+        .filter((value): value is string => Boolean(value)),
+      ...customListMemberships
+        .map((membership) => membership.claimed_by_person_id)
+        .filter((value): value is string => Boolean(value)),
+    ]),
+  ]
 
   const [customListsResult, relatedPeopleResult] = await Promise.all([
     customListIds.length > 0
@@ -192,7 +257,10 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
   const customListsById = new Map((customListsResult.data ?? []).map((list) => [list.id, list]))
   const relatedPeopleById = new Map(
-    (relatedPeopleResult.data ?? []).map((relatedPerson) => [relatedPerson.id, `${relatedPerson.first_name} ${relatedPerson.last_name}`.trim()])
+    (relatedPeopleResult.data ?? []).map((relatedPerson) => [
+      relatedPerson.id,
+      `${relatedPerson.first_name} ${relatedPerson.last_name}`.trim(),
+    ])
   )
 
   const memberCustomLists = customListMemberships
@@ -208,163 +276,252 @@ export default async function MemberDetailPage({ params }: PageProps) {
     }))
     .filter((item) => item.list)
 
+  const customListGridColumns =
+    memberCustomLists.length >= 3
+      ? 'repeat(3, minmax(0, 1fr))'
+      : memberCustomLists.length === 2
+        ? 'repeat(2, minmax(0, 1fr))'
+        : 'minmax(0, 1fr)'
+
   return (
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader />
 
-        <section className="qv-hero-card">
-          <div className="qv-detail-hero-main">
-            <div className="qv-detail-hero-copy">
-              <p className="qv-eyebrow">Member Directory</p>
-              <h1 className="qv-title">
-                {person.first_name} {person.last_name}
-              </h1>
-              <p className="qv-subtitle">Organization-facing contact and profile details.</p>
-              <div className="qv-detail-badges">
-                <span className="qv-badge">{isExternalAdminProfile ? 'Admin contact' : 'Member'}</span>
-                {person.council_activity_level_code ? (
-                  <span className="qv-badge qv-badge-soft">{labelize(person.council_activity_level_code)}</span>
-                ) : null}
-                {officerSummary ? <span className="qv-badge qv-badge-soft">Officer</span> : null}
+        <section style={{ display: 'grid', gap: 14, marginTop: 12, marginBottom: 18 }}>
+          <h1
+            className="qv-directory-name"
+            style={{
+              margin: 0,
+              fontSize: 'clamp(42px, 6.4vw, 68px)',
+              lineHeight: 0.96,
+              letterSpacing: '-0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Member Detail
+          </h1>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
+            Review local organization contact, status, and custom list details.
+          </p>
+        </section>
+
+        <section>
+          <div className="qv-hero-card" style={{ paddingBottom: 16 }}>
+            <div style={{ display: 'grid', gap: 18 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: 24,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'grid', gap: 18, flex: '1 1 560px', minWidth: 0 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <Link
+                      href="/members"
+                      aria-label="Back to members"
+                      className="qv-link-button"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 6,
+                        border: '1px solid var(--divider-strong)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--interactive)',
+                        fontSize: 18,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ‹
+                    </Link>
+                    <p className="qv-eyebrow" style={{ margin: 0 }}>
+                      Member Directory
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontFamily: 'var(--font-heading), Georgia, serif',
+                        fontSize: 'clamp(42px, 6vw, 58px)',
+                        lineHeight: 0.98,
+                        letterSpacing: '-0.035em',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {memberName}
+                    </h2>
+
+                    <div className="qv-detail-badges" style={{ marginTop: 0 }}>
+                      <span className="qv-badge">{relationshipLabel}</span>
+                      {activityLevelLabel ? <span className="qv-badge qv-badge-soft">{activityLevelLabel}</span> : null}
+                      {officerSummary ? <span className="qv-badge qv-badge-soft">{officerSummary}</span> : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="qv-org-avatar-wrap">
+                  <OrganizationAvatar
+                    displayName={organizationName}
+                    logoStoragePath={organization?.logo_storage_path ?? null}
+                    logoAltText={organization?.logo_alt_text ?? organizationName}
+                    size={72}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1.55fr) minmax(260px, 0.95fr)',
+                  gap: 36,
+                  alignItems: 'start',
+                }}
+              >
+                <div className="qv-detail-list" style={{ marginTop: 0 }}>
+                  <div className="qv-detail-item" style={{ paddingTop: 0 }}>
+                    <div className="qv-detail-label">Email</div>
+                    <div className="qv-detail-value">{person.email || 'No email on file'}</div>
+                  </div>
+
+                  <div className="qv-detail-item">
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                        gap: 24,
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div className="qv-detail-label">Cell phone</div>
+                        <div className="qv-detail-value">{person.cell_phone || 'Not set'}</div>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="qv-detail-label">Home phone</div>
+                        <div className="qv-detail-value">{person.home_phone || 'Not set'}</div>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="qv-detail-label">Other phone</div>
+                        <div className="qv-detail-value">{person.other_phone || 'Not set'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="qv-detail-item">
+                    <div className="qv-detail-label">Address</div>
+                    <div className="qv-detail-value">{address || 'No address on file'}</div>
+                  </div>
+                </div>
+
+                <div className="qv-detail-list" style={{ marginTop: 0 }}>
+                  {rightDetailRows.map((row, index) => (
+                    <div
+                      key={row.label}
+                      className="qv-detail-item"
+                      style={index === 0 ? { paddingTop: 0 } : undefined}
+                    >
+                      <div className="qv-detail-label">{row.label}</div>
+                      <div className="qv-detail-value">{row.value}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="qv-detail-action-row" style={{ marginTop: 20 }}>
-            <div className="qv-detail-actions">
-              <Link href="/members" className="qv-button-secondary qv-link-button">
-                Back to members
-              </Link>
+          <div className="qv-section-menu-shell" style={{ marginTop: -22 }}>
+            <div
+              style={{
+                position: 'relative',
+                minHeight: 58,
+                paddingInline: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               {!isExternalAdminProfile ? (
-                <Link href={`/members/${person.id}/edit`} className="qv-button-primary qv-link-button">
+                <Link href={`/members/${person.id}/edit`} className="qv-button-secondary qv-link-button">
                   Edit member
                 </Link>
               ) : null}
+
+              {permissions.isCouncilAdmin && !isExternalAdminProfile ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 28,
+                    top: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <DeleteMemberIconButton memberId={person.id} memberName={memberName} />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        {permissions.isCouncilAdmin && memberCustomLists.length > 0 ? (
+          <section className="qv-card">
+            <div>
+              <h2 className="qv-section-title">{person.first_name} appears on these lists</h2>
             </div>
 
-            {permissions.isCouncilAdmin && !isExternalAdminProfile ? (
-              <DeleteMemberIconButton
-                memberId={person.id}
-                memberName={`${person.first_name} ${person.last_name}`.trim()}
-              />
-            ) : null}
-          </div>
-        </section>
-
-        <section className="qv-detail-grid">
-          <div className="qv-detail-stack">
-            <section className="qv-card">
-              <h2 className="qv-section-title">Contact</h2>
-              <p className="qv-section-subtitle">Current organization-facing contact details.</p>
-
-              <div className="qv-detail-list">
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Email</div>
-                  <div className="qv-detail-value">{person.email || 'No email on file'}</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Cell phone</div>
-                  <div className="qv-detail-value">{person.cell_phone || 'Not set'}</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Home phone</div>
-                  <div className="qv-detail-value">{person.home_phone || 'Not set'}</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Other phone</div>
-                  <div className="qv-detail-value">{person.other_phone || 'Not set'}</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Address</div>
-                  <div className="qv-detail-value">{address || 'No address on file'}</div>
-                </div>
-              </div>
-            </section>
-
-          </div>
-
-          <div className="qv-detail-stack">
-            <section className="qv-card">
-              <h2 className="qv-section-title">Organization profile</h2>
-              <p className="qv-section-subtitle">Local organization-managed status fields.</p>
-
-              <div className="qv-detail-list">
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Relationship</div>
-                  <div className="qv-detail-value">
-                    {labelize(person.primary_relationship_code)}
-                    {officerSummary ? (
-                      <p className="qv-inline-message" style={{ marginTop: 6 }}>
-                        Also serving as {officerSummary}.
+            <div
+              style={{
+                marginTop: 16,
+                display: 'grid',
+                gridTemplateColumns: customListGridColumns,
+                gap: 16,
+                alignItems: 'start',
+              }}
+            >
+              {memberCustomLists.map(({ membership, list, lastContactByName, claimedByName }) => (
+                <Link
+                  key={membership.id}
+                  href={`/custom-lists/${list!.id}`}
+                  className="qv-card qv-card-link qv-member-list-summary-card"
+                >
+                  <div className="qv-list-row-head">
+                    <div>
+                      <h3 className="qv-list-row-title">{list!.name}</h3>
+                      <p className="qv-inline-message" style={{ marginTop: 4 }}>
+                        {list!.description || 'No description yet.'}
                       </p>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Activity level</div>
-                  <div className="qv-detail-value">{labelize(person.council_activity_level_code)}</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Activity context</div>
-                  <div className="qv-detail-value">{labelize(person.council_activity_context_code)}</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Re-engagement status</div>
-                  <div className="qv-detail-value">{labelize(person.council_reengagement_status_code)}</div>
-                </div>
-              </div>
-            </section>
-
-            {permissions.isCouncilAdmin && memberCustomLists.length > 0 ? (
-              <section className="qv-card">
-                <div className="qv-directory-section-head">
-                  <div>
-                    <h2 className="qv-section-title">Custom lists</h2>
-                    <p className="qv-section-subtitle">This member appears on these lists. Open a list to see the full review and claiming screen.</p>
-                  </div>
-                  <Link href="/custom-lists" className="qv-button-secondary qv-link-button">
-                    View lists
-                  </Link>
-                </div>
-
-                <div className="qv-member-list-summary-stack" style={{ marginTop: 16 }}>
-                  {memberCustomLists.map(({ membership, list, lastContactByName, claimedByName }) => (
-                    <Link key={membership.id} href={`/custom-lists/${list!.id}`} className="qv-card qv-card-link qv-member-list-summary-card">
-                      <div className="qv-list-row-head">
-                        <div>
-                          <h3 className="qv-list-row-title">{list!.name}</h3>
-                          <p className="qv-inline-message" style={{ marginTop: 4 }}>
-                            {list!.description || 'No description yet.'}
-                          </p>
-                          <div className="qv-detail-badges" style={{ marginTop: 10 }}>
-                            {membership.claimed_by_person_id ? (
-                              <span className="qv-badge qv-badge-soft">Claimed by {claimedByName || 'Unknown member'}</span>
-                            ) : (
-                              <span className="qv-badge qv-badge-soft">Unclaimed</span>
-                            )}
-                            {membership.last_contact_at ? (
-                              <span className="qv-badge qv-badge-soft">Last contact {formatDate(membership.last_contact_at)}</span>
-                            ) : (
-                              <span className="qv-badge qv-badge-soft">No contact logged yet</span>
-                            )}
-                          </div>
-                        </div>
+                      <div className="qv-detail-badges" style={{ marginTop: 10 }}>
+                        {membership.claimed_by_person_id ? (
+                          <span className="qv-badge qv-badge-soft">Claimed by {claimedByName || 'Unknown member'}</span>
+                        ) : (
+                          <span className="qv-badge qv-badge-soft">Unclaimed</span>
+                        )}
+                        {membership.last_contact_at ? (
+                          <span className="qv-badge qv-badge-soft">Last contact {formatDate(membership.last_contact_at)}</span>
+                        ) : (
+                          <span className="qv-badge qv-badge-soft">No contact logged yet</span>
+                        )}
                       </div>
+                    </div>
+                  </div>
 
-                      <div className="qv-detail-list">
-                        <div className="qv-detail-item">
-                          <div className="qv-detail-label">Contacted by</div>
-                          <div className="qv-detail-value">{lastContactByName || '—'}</div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </div>
-        </section>
+                  <div className="qv-detail-list">
+                    <div className="qv-detail-item">
+                      <div className="qv-detail-label">Contacted by</div>
+                      <div className="qv-detail-value">{lastContactByName || '—'}</div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </main>
   )

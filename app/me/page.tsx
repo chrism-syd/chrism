@@ -6,7 +6,7 @@ import ClaimReviewNoticeCard from '@/app/me/claim-review-notice-card'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getParallelAreaAccessSummary } from '@/lib/auth/parallel-access-summary'
-import { getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names'
+import { getEffectiveOrganizationName, getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names'
 import { listClaimedPersonRsvpsForUser } from '@/lib/rsvp/claim'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord, decryptProfileChangeRequestRecord, decryptProfileChangeRequestRecords } from '@/lib/security/pii'
@@ -15,6 +15,7 @@ import { formatEventDateTimeRange } from '@/lib/events/display'
 type LinkedPersonRow = {
   id: string
   first_name: string
+  middle_name: string | null
   last_name: string
   email: string | null
   cell_phone: string | null
@@ -25,6 +26,7 @@ type LinkedPersonRow = {
 type CouncilRow = { name: string | null; council_number: string | null }
 
 type OrganizationProfileRow = OrganizationNameRecord & {
+  id: string
   logo_storage_path: string | null
   logo_alt_text: string | null
 }
@@ -53,12 +55,26 @@ type PendingClaimNoticeRow = {
   requested_city: string | null
 }
 
+type AffiliationMembershipRow = {
+  organization_id: string
+  is_primary_membership: boolean | null
+  source_code: string | null
+  membership_status_code: string | null
+}
+
 type RejectedFieldNotice = { reviewedAt: string | null }
 type RejectedFieldNoticeMap = Partial<Record<'email' | 'cell_phone' | 'home_phone', RejectedFieldNotice>>
 
 function formatDateTime(value?: string | null) {
   if (!value) return '—'
-  return new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+  return new Intl.DateTimeFormat('en-CA', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value))
 }
 
 function formatDisplayName(firstName: string, lastName: string, preferredName?: string | null) {
@@ -91,6 +107,11 @@ function buildCouncilLabel(claim: PendingClaimNoticeRow | null) {
   return claim.requested_council_name ?? claim.requested_council_number ?? claim.requested_city ?? null
 }
 
+function normalizeLogoKey(value: string | null | undefined) {
+  const trimmed = value?.trim().toLowerCase()
+  return trimmed ? `logo:${trimmed}` : null
+}
+
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -103,7 +124,11 @@ export default async function MyProfilePage() {
   const claimedRsvps = await listClaimedPersonRsvpsForUser({ supabase: adminSupabase, userId: permissions.authUser.id })
 
   const personPromise = permissions.personId
-    ? adminSupabase.from('people').select('id, first_name, last_name, email, cell_phone, home_phone, nickname').eq('id', permissions.personId).maybeSingle<LinkedPersonRow>()
+    ? adminSupabase
+        .from('people')
+        .select('id, first_name, middle_name, last_name, email, cell_phone, home_phone, nickname')
+        .eq('id', permissions.personId)
+        .maybeSingle<LinkedPersonRow>()
     : Promise.resolve({ data: null as LinkedPersonRow | null })
 
   const councilPromise = permissions.councilId
@@ -111,13 +136,27 @@ export default async function MyProfilePage() {
     : Promise.resolve({ data: null as CouncilRow | null })
 
   const organizationPromise = permissions.organizationId
-    ? adminSupabase.from('organizations').select('display_name, preferred_name, logo_storage_path, logo_alt_text').eq('id', permissions.organizationId).maybeSingle<OrganizationProfileRow>()
+    ? adminSupabase
+        .from('organizations')
+        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .eq('id', permissions.organizationId)
+        .maybeSingle<OrganizationProfileRow>()
     : Promise.resolve({ data: null as OrganizationProfileRow | null })
+
+  const membershipsPromise = permissions.personId
+    ? adminSupabase
+        .from('organization_memberships')
+        .select('organization_id, is_primary_membership, source_code, membership_status_code')
+        .eq('person_id', permissions.personId)
+        .returns<AffiliationMembershipRow[]>()
+    : Promise.resolve({ data: [] as AffiliationMembershipRow[] })
 
   const pendingChangesPromise = permissions.personId
     ? adminSupabase
         .from('person_profile_change_requests')
-        .select('proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested')
+        .select(
+          'proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested'
+        )
         .eq('person_id', permissions.personId)
         .eq('status_code', 'pending')
         .order('requested_at', { ascending: false })
@@ -128,7 +167,9 @@ export default async function MyProfilePage() {
   const reviewedChangesPromise = permissions.personId
     ? adminSupabase
         .from('person_profile_change_requests')
-        .select('proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested, reviewed_at, status_code')
+        .select(
+          'proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested, reviewed_at, status_code'
+        )
         .eq('person_id', permissions.personId)
         .in('status_code', ['approved', 'rejected'])
         .order('reviewed_at', { ascending: false })
@@ -146,9 +187,16 @@ export default async function MyProfilePage() {
     .limit(1)
     .maybeSingle<PendingClaimNoticeRow>()
 
-  const [personResult, councilResult, organizationResult, pendingResult, reviewedResult, claimNoticeResult] = await Promise.all([
-    personPromise, councilPromise, organizationPromise, pendingChangesPromise, reviewedChangesPromise, claimNoticePromise,
-  ])
+  const [personResult, councilResult, organizationResult, membershipsResult, pendingResult, reviewedResult, claimNoticeResult] =
+    await Promise.all([
+      personPromise,
+      councilPromise,
+      organizationPromise,
+      membershipsPromise,
+      pendingChangesPromise,
+      reviewedChangesPromise,
+      claimNoticePromise,
+    ])
 
   const linkedPerson = personResult.data ? decryptPeopleRecord(personResult.data) : null
   const currentCouncil = councilResult.data ?? null
@@ -158,6 +206,7 @@ export default async function MyProfilePage() {
     decryptProfileChangeRequestRecords((reviewedResult.data as ReviewedProfileChangeRow[] | null) ?? []) as ReviewedProfileChangeRow[]
   )
   const claimNotice = claimNoticeResult.data ?? null
+  const affiliationMemberships = membershipsResult.data ?? []
 
   const organizationLabel = permissions.organizationId
     ? getOrganizationContextLabel({
@@ -167,9 +216,83 @@ export default async function MyProfilePage() {
       })
     : null
 
-  const profileName = linkedPerson ? formatDisplayName(linkedPerson.first_name, linkedPerson.last_name, linkedPerson.nickname) : permissions.email ?? 'Signed in'
-  const officialRecordName = linkedPerson ? `${linkedPerson.first_name} ${linkedPerson.last_name}`.trim() : 'Your personal profile'
-  const addressHelpText = permissions.organizationId ? 'If you have an update to your home address, please inform your local council.' : null
+  const affiliationOrganizationIds = [
+    ...new Set(
+      [
+        ...affiliationMemberships.map((membership) => membership.organization_id),
+        permissions.organizationId ?? null,
+      ].filter((value): value is string => Boolean(value))
+    ),
+  ]
+
+  const affiliationOrganizationsResult = affiliationOrganizationIds.length > 0
+    ? await adminSupabase
+        .from('organizations')
+        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .in('id', affiliationOrganizationIds)
+        .returns<OrganizationProfileRow[]>()
+    : { data: [] as OrganizationProfileRow[] }
+
+  const affiliationOrganizations = (affiliationOrganizationsResult.data ?? []).map((organization) => {
+    const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
+    return {
+      ...organization,
+      isCurrent: organization.id === permissions.organizationId,
+      isPrimaryMembership: membership?.is_primary_membership ?? false,
+      displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
+    }
+  })
+
+  affiliationOrganizations.sort((left, right) => {
+    if (left.isCurrent !== right.isCurrent) return left.isCurrent ? -1 : 1
+    if (left.isPrimaryMembership !== right.isPrimaryMembership) return left.isPrimaryMembership ? -1 : 1
+    return left.displayLabel.localeCompare(right.displayLabel)
+  })
+
+  const affiliationLogoGroups = new Map<
+    string,
+    Array<{
+      id: string
+      displayLabel: string
+      logo_storage_path: string | null
+      logo_alt_text: string | null
+      isCurrent: boolean
+    }>
+  >()
+
+  for (const organization of affiliationOrganizations) {
+    const key = normalizeLogoKey(organization.logo_storage_path) ?? `org:${organization.id}`
+    const group = affiliationLogoGroups.get(key) ?? []
+    group.push({
+      id: organization.id,
+      displayLabel: organization.displayLabel,
+      logo_storage_path: organization.logo_storage_path,
+      logo_alt_text: organization.logo_alt_text ?? null,
+      isCurrent: organization.isCurrent,
+    })
+    affiliationLogoGroups.set(key, group)
+  }
+
+  const affiliationLogos = [...affiliationLogoGroups.entries()].map(([key, group]) => {
+    const primary = group[0]
+    return {
+      key,
+      displayName: primary.displayLabel,
+      logoStoragePath: primary.logo_storage_path,
+      logoAltText: primary.logo_alt_text ?? primary.displayLabel,
+      title: group.map((item) => item.displayLabel).join(' • '),
+    }
+  })
+
+  const profileName = linkedPerson
+    ? formatDisplayName(linkedPerson.first_name, linkedPerson.last_name, linkedPerson.nickname)
+    : permissions.email ?? 'Signed in'
+  const officialRecordName = linkedPerson
+    ? [linkedPerson.first_name, linkedPerson.middle_name, linkedPerson.last_name].filter(Boolean).join(' ')
+    : 'Your personal profile'
+  const addressHelpText = permissions.organizationId
+    ? 'If you have an update to your home address, please inform your local council.'
+    : null
   const adminClaimHeading = organizationLabel ? `Need admin access for ${organizationLabel}?` : 'Already with an organization on Chrism?'
   const isAlreadyOrganizationAdmin =
     permissions.canAccessMemberData ||
@@ -182,9 +305,7 @@ export default async function MyProfilePage() {
     parallelAreaAccess.customListsManage ||
     parallelAreaAccess.localUnitSettingsManage ||
     permissions.availableContexts.some(
-      (context) =>
-        context.organizationId === permissions.organizationId &&
-        context.accessLevel !== 'member'
+      (context) => context.organizationId === permissions.organizationId && context.accessLevel !== 'member'
     )
 
   return (
@@ -197,17 +318,27 @@ export default async function MyProfilePage() {
             <div className="qv-directory-text">
               <p className="qv-eyebrow">Profile</p>
               <h1 className="qv-title">{profileName}</h1>
+
+              {affiliationLogos.length > 0 ? (
+                <div style={{ display: 'grid', gap: 10, marginTop: 18 }}>
+                  <p className="qv-inline-message" style={{ margin: 0 }}>
+                    Your organizations
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                    {affiliationLogos.map((organization) => (
+                      <OrganizationAvatar
+                        key={organization.key}
+                        displayName={organization.displayName}
+                        logoStoragePath={organization.logoStoragePath}
+                        logoAltText={organization.logoAltText}
+                        title={organization.title}
+                        size={48}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
-            {organizationLabel ? (
-              <div className="qv-org-avatar-wrap">
-                <OrganizationAvatar
-                  displayName={organizationLabel}
-                  logoStoragePath={currentOrganization?.logo_storage_path ?? null}
-                  logoAltText={currentOrganization?.logo_alt_text ?? organizationLabel}
-                  size={68}
-                />
-              </div>
-            ) : null}
           </div>
         </section>
 
@@ -249,7 +380,9 @@ export default async function MyProfilePage() {
 
         {permissions.canAccessOrganizationSettings || parallelAreaAccess.localUnitSettingsManage ? (
           <div className="qv-form-actions" style={{ marginTop: 20 }}>
-            <Link href="/me/council" className="qv-link-button qv-button-primary">Organization settings</Link>
+            <Link href="/me/council" className="qv-link-button qv-button-primary">
+              Organization settings
+            </Link>
           </div>
         ) : isAlreadyOrganizationAdmin ? null : (
           <section className="qv-card" style={{ marginTop: 20 }}>
@@ -276,19 +409,38 @@ export default async function MyProfilePage() {
             <div className="qv-directory-section-head">
               <div>
                 <h2 className="qv-section-title">My RSVPs</h2>
-                <p className="qv-section-subtitle">These are RSVPs to events where you were invited to, using your registered email address.</p>
+                <p className="qv-section-subtitle">
+                  These are RSVPs to events where you were invited to, using your registered email address.
+                </p>
               </div>
             </div>
             <div style={{ display: 'grid', gap: 16 }}>
               {claimedRsvps.map((submission) => (
-                <div key={submission.id} style={{ border: '1px solid var(--divider)', borderRadius: 16, padding: 16, background: 'var(--bg-sunken)', display: 'grid', gap: 10 }}>
+                <div
+                  key={submission.id}
+                  style={{
+                    border: '1px solid var(--divider)',
+                    borderRadius: 16,
+                    padding: 16,
+                    background: 'var(--bg-sunken)',
+                    display: 'grid',
+                    gap: 10,
+                  }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div>
-                      <h2 className="qv-section-title" style={{ fontSize: 22 }}>{submission.event_title}</h2>
-                      <p className="qv-section-subtitle" style={{ marginTop: 6 }}>{formatEventDateTimeRange(submission.starts_at, submission.ends_at)}</p>
+                      <h2 className="qv-section-title" style={{ fontSize: 22 }}>
+                        {submission.event_title}
+                      </h2>
+                      <p className="qv-section-subtitle" style={{ marginTop: 6 }}>
+                        {formatEventDateTimeRange(submission.starts_at, submission.ends_at)}
+                      </p>
                     </div>
                     {submission.host_token ? (
-                      <Link href={`/rsvp/${submission.host_token}/manage?submission=${encodeURIComponent(submission.id)}`} className="qv-link-button qv-button-primary">
+                      <Link
+                        href={`/rsvp/${submission.host_token}/manage?submission=${encodeURIComponent(submission.id)}`}
+                        className="qv-link-button qv-button-primary"
+                      >
                         Manage RSVP
                       </Link>
                     ) : null}

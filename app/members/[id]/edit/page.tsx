@@ -5,6 +5,29 @@ import { decryptPeopleRecord } from '@/lib/security/pii'
 
 type PageProps = { params: Promise<{ id: string }> }
 
+type PersonRow = {
+  id: string
+  first_name: string
+  middle_name: string | null
+  last_name: string
+  email: string | null
+  cell_phone: string | null
+  home_phone: string | null
+  other_phone: string | null
+  address_line_1: string | null
+  address_line_2: string | null
+  city: string | null
+  state_province: string | null
+  postal_code: string | null
+  council_activity_level_code: string | null
+  council_activity_context_code: string | null
+  council_reengagement_status_code: string | null
+}
+
+function formatFullName(person: Pick<PersonRow, 'first_name' | 'middle_name' | 'last_name'>) {
+  return [person.first_name, person.middle_name, person.last_name].filter(Boolean).join(' ')
+}
+
 export default async function EditMemberPage({ params }: PageProps) {
   const { id } = await params
   const { admin: supabase, council } = await getCurrentActingCouncilContext({
@@ -17,28 +40,40 @@ export default async function EditMemberPage({ params }: PageProps) {
   const { data: personData } = await supabase
     .from('people')
     .select(
-      'id, first_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
+      'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
     )
     .eq('id', id)
     .eq('council_id', council.id)
     .eq('primary_relationship_code', 'member')
     .is('archived_at', null)
-    .maybeSingle()
+    .maybeSingle<PersonRow>()
 
   const person = personData ? decryptPeopleRecord(personData) : null
 
   if (!person) return null
+
+  const memberName = formatFullName(person)
 
   return (
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader />
 
-        <section className="qv-hero-card">
-          <p className="qv-eyebrow">Member Directory</p>
-          <h1 className="qv-title">Edit member</h1>
-          <p className="qv-subtitle">
-            Update local organization-managed information for {person.first_name} {person.last_name}.
+        <section style={{ display: 'grid', gap: 14, marginTop: 12, marginBottom: 18 }}>
+          <h1
+            className="qv-directory-name"
+            style={{
+              margin: 0,
+              fontSize: 'clamp(42px, 6.4vw, 68px)',
+              lineHeight: 0.96,
+              letterSpacing: '-0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Edit Member
+          </h1>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
+            Update local organization-managed information for {memberName}.
           </p>
         </section>
 
@@ -49,6 +84,7 @@ export default async function EditMemberPage({ params }: PageProps) {
             initialValues={{
               member_id: person.id,
               first_name: person.first_name ?? '',
+              middle_name: person.middle_name ?? '',
               last_name: person.last_name ?? '',
               email: person.email ?? '',
               cell_phone: person.cell_phone ?? '',

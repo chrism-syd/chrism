@@ -192,6 +192,49 @@ export async function createCustomListFromMembersAction(
   redirect(`/custom-lists/${customListData.id}`)
 }
 
+export async function updateCustomListDetailsAction(formData: FormData) {
+  const customListId = String(formData.get('custom_list_id') ?? '').trim()
+  const name = String(formData.get('name') ?? '').trim()
+  const descriptionValue = String(formData.get('description') ?? '').trim()
+
+  if (!customListId) {
+    redirect('/custom-lists')
+  }
+
+  if (!name) {
+    throw new Error('Give this custom list a name before saving it.')
+  }
+
+  const { admin, permissions, list } = await loadCustomListForLifecycleAction({
+    customListId,
+    requireArchived: false,
+  })
+
+  const userId = permissions.authUser?.id
+  if (!userId) {
+    redirect('/login')
+  }
+
+  const { error } = await admin
+    .from('custom_lists')
+    .update({
+      name,
+      description: descriptionValue || null,
+      updated_at: new Date().toISOString(),
+      updated_by_auth_user_id: userId,
+    })
+    .eq('id', list.id)
+
+  if (error) {
+    throw new Error(`Could not update this custom list. ${error.message}`)
+  }
+
+  revalidatePath('/custom-lists')
+  revalidatePath(`/custom-lists/${customListId}`)
+  revalidatePath(`/custom-lists/${customListId}/edit`)
+  redirect(`/custom-lists/${customListId}`)
+}
+
 export async function archiveCustomListAction(formData: FormData) {
   const customListId = String(formData.get('custom_list_id') ?? '')
 

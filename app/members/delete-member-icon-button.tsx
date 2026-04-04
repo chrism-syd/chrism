@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState, useState, type CSSProperties } from 'react'
+import { useActionState, useEffect, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { deleteMemberAction } from './actions'
 import { EMPTY_DELETE_MEMBER_STATE } from './form-state'
 
@@ -8,12 +9,12 @@ function overlayStyle(): CSSProperties {
   return {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(15, 23, 42, 0.35)',
+    background: 'rgba(15, 23, 42, 0.56)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    zIndex: 1000,
+    zIndex: 4000,
   }
 }
 
@@ -59,8 +60,53 @@ function BootstrapTrashIcon({ className }: { className?: string }) {
 
 export default function DeleteMemberIconButton({ memberId, memberName }: { memberId: string; memberName: string }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const [state, formAction] = useActionState(deleteMemberAction, EMPTY_DELETE_MEMBER_STATE)
 
+  useEffect(() => {
+    setIsMounted(true)
+    return () => setIsMounted(false)
+  }, [])
+
+  const dialog = isOpen ? (
+    <div style={overlayStyle()} role="dialog" aria-modal="true" aria-labelledby="delete-member-title">
+      <div style={cardStyle()}>
+        <h3 id="delete-member-title" className="qv-section-title">
+          Delete {memberName}?
+        </h3>
+
+        <p style={textStyle()}>
+          This removes the member from the active directory. Type DELETE to confirm.
+        </p>
+
+        <form action={formAction} className="qv-delete-form qv-form-grid" style={{ marginTop: 18 }}>
+          <input type="hidden" name="member_id" value={memberId} />
+
+          <div className="qv-control">
+            <label className="qv-label" htmlFor="member-delete-confirmation">
+              Type DELETE to confirm removing this member from the directory
+            </label>
+            <input id="member-delete-confirmation" name="confirmation" autoComplete="off" />
+          </div>
+
+          {state.error ? (
+            <div className="qv-form-alert" role="alert">
+              {state.error}
+            </div>
+          ) : null}
+
+          <div style={actionsRowStyle()}>
+            <button type="button" className="qv-button-secondary" onClick={() => setIsOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="qv-button-danger qv-link-button">
+              Remove member
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null
 
   return (
     <>
@@ -69,50 +115,11 @@ export default function DeleteMemberIconButton({ memberId, memberName }: { membe
         className="qv-icon-button qv-icon-button-danger"
         onClick={() => setIsOpen(true)}
         aria-label={`Delete ${memberName}`}
-        title="Delete member"
       >
         <BootstrapTrashIcon className="qv-bi-icon" />
       </button>
 
-      {isOpen ? (
-        <div style={overlayStyle()} role="dialog" aria-modal="true" aria-labelledby="delete-member-title">
-          <div style={cardStyle()}>
-            <h3 id="delete-member-title" className="qv-section-title">
-              Delete {memberName}?
-            </h3>
-
-            <p style={textStyle()}>
-              This removes the member from the active directory. Type DELETE to confirm.
-            </p>
-
-            <form action={formAction} className="qv-delete-form qv-form-grid" style={{ marginTop: 18 }}>
-              <input type="hidden" name="member_id" value={memberId} />
-
-              <div className="qv-control">
-                <label className="qv-label" htmlFor="member-delete-confirmation">
-                  Type DELETE to confirm removing this member from the directory
-                </label>
-                <input id="member-delete-confirmation" name="confirmation" autoComplete="off" />
-              </div>
-
-              {state.error ? (
-                <div className="qv-form-alert" role="alert">
-                  {state.error}
-                </div>
-              ) : null}
-
-              <div style={actionsRowStyle()}>
-                <button type="button" className="qv-button-secondary" onClick={() => setIsOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="qv-button-danger qv-link-button">
-                  Remove member
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      {isMounted && dialog ? createPortal(dialog, document.body) : null}
     </>
   )
 }

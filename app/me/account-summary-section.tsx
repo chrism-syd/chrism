@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
 import { submitProfileChangeRequest } from '@/app/me/actions';
 
 type PendingValues = {
@@ -156,7 +156,11 @@ export default function AccountSummarySection({
 }) {
   const [state, action, isPending] = useActionState(submitProfileChangeRequest, initialState);
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
-  const [dismissedRejectedNoticeKeys, setDismissedRejectedNoticeKeys] = useState<Set<string>>(() => loadDismissedRejectedNotices());
+  const [dismissedRejectedNoticeKeys, setDismissedRejectedNoticeKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setDismissedRejectedNoticeKeys(loadDismissedRejectedNotices());
+  }, []);
 
   const isEditing = useMemo(() => Object.values(editingFields).some(Boolean), [editingFields]);
 

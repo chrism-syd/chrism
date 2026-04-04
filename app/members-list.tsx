@@ -179,9 +179,8 @@ export default function MembersList({
   const [showFieldPicker, setShowFieldPicker] = useState(false)
   const [createListDraft, setCreateListDraft] = useState<CreateListDraft | null>(null)
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
-  const currentViewMenuRef = useRef<HTMLDetailsElement | null>(null)
-  const selectedRowsMenuRef = useRef<HTMLDetailsElement | null>(null)
-  const pageSelectionRef = useRef<HTMLInputElement | null>(null)
+  const actionMenuRef = useRef<HTMLDetailsElement | null>(null)
+  const selectionRef = useRef<HTMLInputElement | null>(null)
 
   const filteredAndSortedMembers = useMemo(() => {
     const query = normalize(search)
@@ -272,13 +271,8 @@ export default function MembersList({
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       const target = event.target as Node
-
-      if (!currentViewMenuRef.current?.contains(target)) {
-        currentViewMenuRef.current?.removeAttribute('open')
-      }
-
-      if (!selectedRowsMenuRef.current?.contains(target)) {
-        selectedRowsMenuRef.current?.removeAttribute('open')
+      if (!actionMenuRef.current?.contains(target)) {
+        actionMenuRef.current?.removeAttribute('open')
       }
     }
 
@@ -308,21 +302,19 @@ export default function MembersList({
 
   const selectedMemberIdSet = useMemo(() => new Set(selectedMemberIds), [selectedMemberIds])
   const filteredMemberIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
-  const paginatedMemberIds = useMemo(() => paginatedMembers.map((member) => member.id), [paginatedMembers])
 
   const selectedCount = selectedMembers.length
-  const selectedVisibleCount = filteredMemberIds.filter((memberId) => selectedMemberIdSet.has(memberId)).length
-  const hiddenSelectedCount = selectedCount - selectedVisibleCount
-  const allPageMembersSelected = paginatedMemberIds.length > 0 && paginatedMemberIds.every((memberId) => selectedMemberIdSet.has(memberId))
-  const somePageMembersSelected = paginatedMemberIds.some((memberId) => selectedMemberIdSet.has(memberId))
+  const allFilteredMembersSelected =
+    filteredMemberIds.length > 0 && filteredMemberIds.every((memberId) => selectedMemberIdSet.has(memberId))
+  const someFilteredMembersSelected = filteredMemberIds.some((memberId) => selectedMemberIdSet.has(memberId))
 
   useEffect(() => {
-    if (!pageSelectionRef.current) {
+    if (!selectionRef.current) {
       return
     }
 
-    pageSelectionRef.current.indeterminate = somePageMembersSelected && !allPageMembersSelected
-  }, [allPageMembersSelected, somePageMembersSelected])
+    selectionRef.current.indeterminate = someFilteredMembersSelected && !allFilteredMembersSelected
+  }, [allFilteredMembersSelected, someFilteredMembersSelected])
 
   const hasActiveControls =
     search.trim() !== '' ||
@@ -346,9 +338,8 @@ export default function MembersList({
     })
   }
 
-  function closeMenus() {
-    currentViewMenuRef.current?.removeAttribute('open')
-    selectedRowsMenuRef.current?.removeAttribute('open')
+  function closeMenu() {
+    actionMenuRef.current?.removeAttribute('open')
   }
 
   function resetControls() {
@@ -428,7 +419,7 @@ export default function MembersList({
       return
     }
 
-    closeMenus()
+    closeMenu()
     setNotice(null)
     setCreateListDraft({
       memberIds: list.map((member) => member.id),
@@ -444,20 +435,20 @@ export default function MembersList({
     )
   }
 
-  function handleTogglePageSelection() {
-    if (paginatedMemberIds.length === 0) {
+  function handleToggleAllSelection() {
+    if (filteredMemberIds.length === 0) {
       return
     }
 
     setSelectedMemberIds((current) => {
       const next = new Set(current)
 
-      if (allPageMembersSelected) {
-        for (const memberId of paginatedMemberIds) {
+      if (allFilteredMembersSelected) {
+        for (const memberId of filteredMemberIds) {
           next.delete(memberId)
         }
       } else {
-        for (const memberId of paginatedMemberIds) {
+        for (const memberId of filteredMemberIds) {
           next.add(memberId)
         }
       }
@@ -466,23 +457,8 @@ export default function MembersList({
     })
   }
 
-  function handleSelectFilteredView() {
-    if (filteredMemberIds.length === 0) {
-      setNotice({ tone: 'error', text: 'There are no members in the current filtered view to select.' })
-      return
-    }
-
-    setSelectedMemberIds((current) => [...new Set([...current, ...filteredMemberIds])])
-    setNotice({ tone: 'success', text: `Selected ${filteredMemberIds.length} member${filteredMemberIds.length === 1 ? '' : 's'} from the current filtered view.` })
-  }
-
-  function handleClearSelection() {
-    setSelectedMemberIds([])
-    setNotice(null)
-  }
-
   async function handleExportCurrentView() {
-    closeMenus()
+    closeMenu()
 
     if (filteredAndSortedMembers.length === 0) {
       setNotice({ tone: 'error', text: 'There are no members in this filtered view to export.' })
@@ -493,7 +469,7 @@ export default function MembersList({
   }
 
   async function handleExportSelectedRows() {
-    closeMenus()
+    closeMenu()
 
     if (selectedMembers.length === 0) {
       setNotice({ tone: 'error', text: 'Select at least one member before exporting.' })
@@ -504,12 +480,12 @@ export default function MembersList({
   }
 
   async function handleCopyCurrentViewEmails() {
-    closeMenus()
+    closeMenu()
     await copyEmailsFromMembers(filteredAndSortedMembers, 'the current filtered view')
   }
 
   async function handleCopySelectedRowEmails() {
-    closeMenus()
+    closeMenu()
 
     if (selectedMembers.length === 0) {
       setNotice({ tone: 'error', text: 'Select at least one member before copying email addresses.' })
@@ -539,6 +515,9 @@ export default function MembersList({
     }
   }
 
+  const usingSelectedRows = selectedCount > 0
+  const actionMenuLabel = usingSelectedRows ? 'Use Selected Rows' : 'Use Current View'
+
   return (
     <>
       <section className="qv-card qv-members-list-card">
@@ -549,35 +528,31 @@ export default function MembersList({
           </div>
 
           <div className="qv-view-menu-stack">
-            <div className="qv-directory-action-row">
-              {currentViewControlMode === 'button' ? (
-                <button
-                  type="button"
-                  className="qv-button-secondary qv-view-action-button"
-                  onClick={() => openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')}
-                >
-                  Use Current View
-                </button>
-              ) : (
-                <ActionMenu
-                  label="Use Current View"
-                  menuRef={currentViewMenuRef}
-                  onCreateList={() => openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')}
-                  onExport={handleExportCurrentView}
-                  onCopyEmails={handleCopyCurrentViewEmails}
-                />
-              )}
-
-              {selectedCount > 0 ? (
-                <ActionMenu
-                  label={<>Use Selected Rows <span className="qv-view-menu-count">({selectedCount})</span></>}
-                  menuRef={selectedRowsMenuRef}
-                  onCreateList={() => openCreateListFromMembers(selectedMembers, 'the selected rows', 'Selected rows')}
-                  onExport={handleExportSelectedRows}
-                  onCopyEmails={handleCopySelectedRowEmails}
-                />
-              ) : null}
-            </div>
+            {currentViewControlMode === 'button' ? (
+              <button
+                type="button"
+                className="qv-button-secondary qv-view-action-button"
+                onClick={() =>
+                  usingSelectedRows
+                    ? openCreateListFromMembers(selectedMembers, 'the selected rows', 'Selected rows')
+                    : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')
+                }
+              >
+                {actionMenuLabel}
+              </button>
+            ) : (
+              <ActionMenu
+                label={actionMenuLabel}
+                menuRef={actionMenuRef}
+                onCreateList={() =>
+                  usingSelectedRows
+                    ? openCreateListFromMembers(selectedMembers, 'the selected rows', 'Selected rows')
+                    : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')
+                }
+                onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView}
+                onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails}
+              />
+            )}
 
             {notice ? (
               <p className={notice.tone === 'error' ? 'qv-view-menu-notice qv-inline-error' : 'qv-view-menu-notice qv-inline-message'}>
@@ -626,38 +601,6 @@ export default function MembersList({
             }}
             placeholder="Search by name, phone, email, or office"
           />
-        </div>
-
-        <div className="qv-selection-toolbar" role="region" aria-label="Selected members actions">
-          <div className="qv-selection-toolbar-left">
-            <label className="qv-selection-checkbox-label">
-              <input
-                ref={pageSelectionRef}
-                type="checkbox"
-                checked={allPageMembersSelected}
-                onChange={handleTogglePageSelection}
-                disabled={paginatedMemberIds.length === 0}
-              />
-              <span>{allPageMembersSelected ? 'Clear page' : 'Select page'}</span>
-            </label>
-
-            <button type="button" className="qv-text-toggle" onClick={handleSelectFilteredView} disabled={filteredAndSortedMembers.length === 0}>
-              <span>Select filtered view</span>
-            </button>
-
-            {selectedCount > 0 ? (
-              <button type="button" className="qv-text-toggle qv-text-toggle-secondary" onClick={handleClearSelection}>
-                <span>Clear selection</span>
-              </button>
-            ) : null}
-          </div>
-
-          <div className="qv-selection-toolbar-right">
-            <span className="qv-badge">{selectedCount} selected</span>
-            {hiddenSelectedCount > 0 ? (
-              <span className="qv-inline-message qv-selection-meta">{hiddenSelectedCount} hidden by current filters</span>
-            ) : null}
-          </div>
         </div>
 
         <div className="qv-pagination-toolbar">
@@ -741,6 +684,22 @@ export default function MembersList({
           </div>
 
           <div className="qv-pagination-right">
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: filteredMemberIds.length > 0 ? 'pointer' : 'default' }}>
+              <input
+                ref={selectionRef}
+                type="checkbox"
+                checked={allFilteredMembersSelected}
+                onChange={handleToggleAllSelection}
+                disabled={filteredMemberIds.length === 0}
+                style={{ width: 16, height: 16 }}
+              />
+              <span className="qv-inline-message" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                {allFilteredMembersSelected ? 'Clear all' : 'Select all'}
+              </span>
+            </label>
+
+            {selectedCount > 0 ? <span className="qv-badge">{selectedCount} selected</span> : null}
+
             {hasActiveControls ? (
               <button type="button" className="qv-text-toggle qv-text-toggle-secondary" onClick={resetControls}>
                 <span>Reset filters</span>
@@ -786,15 +745,15 @@ export default function MembersList({
             <p className="qv-empty-text">Try a different search, filter, or reset the controls.</p>
           </div>
         ) : (
-          <div className="qv-member-table-scroll">
-            <div className="qv-member-list">
+          <div className="qv-member-table-scroll" style={{ overflowY: 'visible', paddingTop: 6, paddingBottom: 6 }}>
+            <div className="qv-member-list" style={{ gap: 10, paddingTop: 2 }}>
               {paginatedMembers.map((person) => {
                 const currentOfficerLabels = currentOfficerLabelsById[person.id] ?? []
                 const executiveOfficerLabels = executiveOfficerLabelsById[person.id] ?? []
                 const primaryExecutiveLabel = executiveOfficerLabels[0] ?? null
                 const columnCount = Math.max(visibleColumns.length, 1)
-                const gridTemplateColumns = `minmax(200px, 1.3fr) repeat(${columnCount}, minmax(120px, 1fr)) auto`
-                const rowMinWidth = 320 + columnCount * 180 + 48
+                const gridTemplateColumns = `minmax(180px, 1.2fr) repeat(${columnCount}, minmax(104px, 0.9fr)) auto`
+                const rowMinWidth = 280 + columnCount * 148 + 28
                 const isSelected = selectedMemberIdSet.has(person.id)
 
                 const rowStyle = {
@@ -803,18 +762,36 @@ export default function MembersList({
                 } as CSSProperties
 
                 return (
-                  <div key={person.id} className="qv-member-row-shell">
-                    <label className="qv-member-row-selector" aria-label={`Select ${person.first_name} ${person.last_name}`}>
+                  <div
+                    key={person.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'auto minmax(0, 1fr)',
+                      gap: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 }} aria-label={`Select ${person.first_name} ${person.last_name}`}>
                       <input
                         type="checkbox"
-                        className="qv-member-row-checkbox"
                         checked={isSelected}
                         onChange={() => toggleMemberSelection(person.id)}
+                        style={{ width: 16, height: 16 }}
                       />
                     </label>
 
                     <Link href={`/members/${person.id}`} className="qv-member-link">
-                      <div className={`qv-member-row qv-member-row-compact${isSelected ? ' qv-member-row-selected' : ''}`}>
+                      <div
+                        className="qv-member-row qv-member-row-compact"
+                        style={
+                          isSelected
+                            ? {
+                                borderColor: 'rgba(92, 74, 114, 0.34)',
+                                boxShadow: '0 0 0 1px rgba(92, 74, 114, 0.16)',
+                              }
+                            : undefined
+                        }
+                      >
                         <div className="qv-member-row-grid" style={rowStyle}>
                           <div style={{ minWidth: 0 }}>
                             <div className="qv-member-name qv-member-name-tight">

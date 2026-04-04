@@ -41,12 +41,18 @@ export default function MemberForm({ mode, initialValues, cancelHref }: MemberFo
         </div>
       ) : null}
 
-      <div className="qv-form-row qv-form-row-2">
+      <div className="qv-form-row qv-form-row-3">
         <div className="qv-control">
           <label className="qv-label" htmlFor="first_name">
             First name
           </label>
           <input id="first_name" name="first_name" defaultValue={values.first_name ?? ''} required />
+        </div>
+        <div className="qv-control">
+          <label className="qv-label" htmlFor="middle_name">
+            Middle name
+          </label>
+          <input id="middle_name" name="middle_name" defaultValue={values.middle_name ?? ''} />
         </div>
         <div className="qv-control">
           <label className="qv-label" htmlFor="last_name">

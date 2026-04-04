@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -27,6 +26,7 @@ function collectMemberFormValues(formData: FormData): MemberFormValues {
   return {
     member_id: rawTextValue(formData, 'member_id'),
     first_name: rawTextValue(formData, 'first_name'),
+    middle_name: rawTextValue(formData, 'middle_name'),
     last_name: rawTextValue(formData, 'last_name'),
     email: rawTextValue(formData, 'email'),
     cell_phone: rawTextValue(formData, 'cell_phone'),
@@ -119,6 +119,7 @@ export async function createMemberAction(
   const payload = protectPeoplePayload({
     council_id: council.id,
     first_name: textValue(formData, 'first_name'),
+    middle_name: textValue(formData, 'middle_name'),
     last_name: textValue(formData, 'last_name'),
     email: textValue(formData, 'email'),
     cell_phone: textValue(formData, 'cell_phone'),
@@ -172,6 +173,7 @@ export async function updateMemberAction(
 
   const payload = protectPeoplePayload({
     first_name: textValue(formData, 'first_name'),
+    middle_name: textValue(formData, 'middle_name'),
     last_name: textValue(formData, 'last_name'),
     email: textValue(formData, 'email'),
     cell_phone: textValue(formData, 'cell_phone'),
