@@ -29,10 +29,10 @@ type OrganizationProfileRow = OrganizationNameRecord & {
   id: string
   logo_storage_path: string | null
   logo_alt_text: string | null
-  parent_organization?: {
-    id?: string | null
+  brand_profile?: {
+    code: string | null
     display_name: string | null
-    preferred_name: string | null
+    logo_storage_bucket: string | null
     logo_storage_path: string | null
     logo_alt_text: string | null
   } | null
@@ -145,7 +145,7 @@ export default async function MyProfilePage() {
   const organizationPromise = permissions.organizationId
     ? adminSupabase
         .from('organizations')
-        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, parent_organization:parent_organization_id(id, display_name, preferred_name, logo_storage_path, logo_alt_text)')
+        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
         .eq('id', permissions.organizationId)
         .maybeSingle<OrganizationProfileRow>()
     : Promise.resolve({ data: null as OrganizationProfileRow | null })
@@ -235,7 +235,7 @@ export default async function MyProfilePage() {
   const affiliationOrganizationsResult = affiliationOrganizationIds.length > 0
     ? await adminSupabase
         .from('organizations')
-        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, parent_organization:parent_organization_id(id, display_name, preferred_name, logo_storage_path, logo_alt_text)')
+        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
         .in('id', affiliationOrganizationIds)
         .returns<OrganizationProfileRow[]>()
     : { data: [] as OrganizationProfileRow[] }
