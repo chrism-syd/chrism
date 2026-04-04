@@ -1,43 +1,33 @@
 .shell {
-  gap: 34px;
+  gap: 32px;
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: 24px;
-  padding-top: 8px;
+  gap: 18px;
 }
 
 .heroCopy {
-  min-width: 0;
+  display: grid;
+  gap: 18px;
 }
 
 .heroTitle {
-  margin: 0;
-  font-family: var(--font-heading), Georgia, serif;
-  font-size: clamp(54px, 7vw, 76px);
-  line-height: 0.96;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
-  max-width: 10ch;
+  max-width: 12ch;
 }
 
 .searchForm {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
-  max-width: 860px;
+  max-width: 48rem;
 }
 
 .searchLabel {
-  margin: 0;
-  font-size: 12px;
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 0.86rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-secondary);
 }
 
 .searchRow {
@@ -49,127 +39,167 @@
 
 .searchInput {
   min-width: 0;
-  min-height: 54px;
-  padding: 0 18px;
-  border: 1px solid var(--divider);
-  border-radius: 999px;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 16px;
-  box-shadow: 0 12px 28px rgba(46, 42, 52, 0.05);
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 16px;
+  background: var(--surface-primary, #fff);
+  color: var(--spiritual-ink);
+  font: inherit;
 }
 
 .searchInput::placeholder {
-  color: var(--text-secondary);
+  color: var(--spiritual-muted);
 }
 
 .searchButton {
+  min-height: 52px;
   white-space: nowrap;
 }
 
-.cardGrid {
+.resultsStack {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 40px;
-  align-items: start;
+  gap: 28px;
 }
 
-.areaCard {
+.resultsHeader {
   display: grid;
-  gap: 0;
+  gap: 8px;
+}
+
+.resultsEyebrow {
+  margin: 0;
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.resultsTitle {
+  margin: 0;
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-serif);
+  font-size: clamp(1.6rem, 1.28rem + 1vw, 2.3rem);
+  line-height: 1.1;
+}
+
+.resultSection {
+  display: grid;
+  gap: 16px;
+}
+
+.resultSectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.resultSectionTitle {
+  margin: 0;
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-serif);
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.resultSectionMeta {
+  margin: 0;
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 0.95rem;
+}
+
+.resultCardGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.resultCard {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 20px;
+  background: var(--surface-primary, #fff);
+  text-decoration: none;
+}
+
+.resultCardBody {
+  display: grid;
+  gap: 8px;
   min-width: 0;
 }
 
-.cardInner {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  gap: 18px;
-  padding: 24px 26px 28px;
-  border: 1px solid var(--divider);
-  border-radius: var(--radius-card);
-  background: var(--bg-card);
-  box-shadow: 0 18px 36px rgba(46, 42, 52, 0.06);
+.resultCardTitle {
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-serif);
+  font-size: 1.2rem;
+  line-height: 1.2;
 }
 
-.cardBanner {
-  position: relative;
-  z-index: 1;
-  margin-top: -22px;
-  min-height: 54px;
-  border-radius: 0 0 var(--radius-card) var(--radius-card);
-  background: var(--interactive);
+.resultCardSummary {
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 0.98rem;
+  line-height: 1.55;
 }
 
-.cardTitle {
-  margin: 0;
-  font-family: var(--font-heading), Georgia, serif;
-  font-size: clamp(34px, 4vw, 48px);
-  line-height: 0.98;
-  color: var(--text-primary);
+.resultCardMeta {
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
-.cardIntro {
-  margin: 0;
-  max-width: 34ch;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--text-secondary);
+.resultCardArrow {
+  color: var(--spiritual-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.cardSection {
+.emptyState {
   display: grid;
   gap: 10px;
+  padding: 24px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 20px;
+  background: var(--surface-primary, #fff);
 }
 
-.cardSectionTitle {
+.emptyStateTitle {
   margin: 0;
-  max-width: 30ch;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--text-primary);
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-serif);
+  font-size: 1.35rem;
 }
 
-.cardButton {
-  justify-self: start;
-}
-
-@media (max-width: 860px) {
-  .cardGrid {
-    grid-template-columns: 1fr;
-  }
+.emptyStateCopy {
+  margin: 0;
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 @media (max-width: 720px) {
-  .shell {
-    gap: 28px;
-  }
-
-  .heroTitle {
-    font-size: clamp(42px, 16vw, 58px);
-    max-width: 8ch;
-  }
-
   .searchRow {
     grid-template-columns: 1fr;
   }
 
-  .cardGrid {
-    gap: 20px;
+  .searchButton {
+    width: 100%;
   }
 
-  .cardInner {
-    padding: 20px 20px 24px;
-  }
-
-  .cardBanner {
-    margin-top: -18px;
-    min-height: 44px;
-  }
-
-  .cardTitle {
-    font-size: 30px;
+  .resultCard {
+    padding: 16px;
   }
 }

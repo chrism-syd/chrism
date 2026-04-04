@@ -4,7 +4,7 @@ import { Fragment } from 'react'
 import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
-import { formatAuthorityLabel, getPrayerBySlug } from '@/lib/spiritual/prayers'
+import { formatAuthorityLabel, getPrayerBySlug, listPublishedPrayers } from '@/lib/spiritual/prayers'
 import sharedStyles from '../../spiritual-section.module.css'
 import styles from './prayer-detail.module.css'
 
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const prayer = await getPrayerBySlug(slug)
 
   return {
-    title: prayer ? `${prayer.title} | Prayer Library | Chrism` : 'Prayer | Chrism',
+    title: prayer ? `${prayer.title} | Spiritual Search | Chrism` : 'Prayer | Chrism',
   }
 }
 
@@ -51,7 +51,10 @@ export default async function PrayerDetailPage({ params }: PageProps) {
   }
 
   const { slug } = await params
-  const prayer = await getPrayerBySlug(slug)
+  const [prayer, allPrayers] = await Promise.all([
+    getPrayerBySlug(slug),
+    listPublishedPrayers(),
+  ])
 
   if (!prayer) {
     notFound()
@@ -60,7 +63,7 @@ export default async function PrayerDetailPage({ params }: PageProps) {
   const authorityLabel = formatAuthorityLabel(prayer.authorityLevel)
   const authoritySourceLabel = prayer.sourceLabel ?? authorityLabel
   const prayerText = prayer.bodyMarkdown?.trim() ?? ''
-  const showLanguage = prayer.languageCode && prayer.languageCode.toLowerCase() !== 'en'
+  const relatedLibraryPrayers = allPrayers.filter((entry) => entry.slug !== prayer.slug).slice(0, 6)
 
   return (
     <main className={`qv-page ${sharedStyles.page}`}>
@@ -69,28 +72,14 @@ export default async function PrayerDetailPage({ params }: PageProps) {
 
         <section className={`${sharedStyles.hero} ${styles.hero}`}>
           <div className={styles.heroTopRow}>
-            <Link href="/spiritual/prayers" className={sharedStyles.backLink}>
-              ← Back to Prayer Library
+            <Link href="/spiritual" className={sharedStyles.backLink}>
+              ← Back
             </Link>
+            <p className={sharedStyles.eyebrow}>Spiritual Search</p>
           </div>
 
           <div className={styles.heroCopy}>
-            <p className={sharedStyles.eyebrow}>Prayer Library</p>
             <h1 className={`${sharedStyles.heroTitle} ${styles.heroTitle}`}>{prayer.title}</h1>
-
-            <div className={styles.metaLine}>
-              <span>{prayer.prayerTypeLabel}</span>
-              {showLanguage ? (
-                <>
-                  <span className={styles.metaDot} aria-hidden="true">
-                    •
-                  </span>
-                  <span>{prayer.languageCode?.toUpperCase()}</span>
-                </>
-              ) : null}
-            </div>
-
-            {prayer.summary ? <p className={`${sharedStyles.heroSubtitle} ${styles.heroSubtitle}`}>{prayer.summary}</p> : null}
           </div>
         </section>
 
@@ -111,7 +100,7 @@ export default async function PrayerDetailPage({ params }: PageProps) {
                 <dl className={styles.metaList}>
                   {authoritySourceLabel ? (
                     <div>
-                      <dt>Authority</dt>
+                      <dt>Source</dt>
                       <dd>
                         {prayer.sourceUrl ? (
                           <a href={prayer.sourceUrl} className={styles.sourceLink} target="_blank" rel="noreferrer">
@@ -123,9 +112,10 @@ export default async function PrayerDetailPage({ params }: PageProps) {
                       </dd>
                     </div>
                   ) : null}
+
                   {prayer.summary ? (
                     <div>
-                      <dt>About</dt>
+                      <dt>About this prayer</dt>
                       <dd>{prayer.summary}</dd>
                     </div>
                   ) : null}
@@ -134,6 +124,52 @@ export default async function PrayerDetailPage({ params }: PageProps) {
             </aside>
           ) : null}
         </div>
+
+        <section className={styles.bottomSections} aria-label="More spiritual browsing">
+          <article className={styles.bottomCard}>
+            <div className={styles.bottomCardHeader}>
+              <div>
+                <p className={styles.bottomEyebrow}>Prayers</p>
+                <h2 className={styles.bottomTitle}>Prayer library</h2>
+              </div>
+              <Link href="/spiritual/prayers" className={styles.bottomAction}>
+                Open library
+              </Link>
+            </div>
+
+            {relatedLibraryPrayers.length > 0 ? (
+              <div className={styles.bottomList}>
+                {relatedLibraryPrayers.map((entry) => (
+                  <Link key={entry.slug} href={`/spiritual/prayers/${entry.slug}`} className={styles.bottomListItem}>
+                    <span className={styles.bottomListTitle}>{entry.title}</span>
+                    <span className={styles.bottomListArrow} aria-hidden="true">
+                      →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.bottomEmptyCopy}>More prayer entries will appear here as the library grows.</p>
+            )}
+          </article>
+
+          <article className={styles.bottomCard}>
+            <div className={styles.bottomCardHeader}>
+              <div>
+                <p className={styles.bottomEyebrow}>Daily Readings</p>
+                <h2 className={styles.bottomTitle}>Today&apos;s reading</h2>
+              </div>
+            </div>
+
+            <p className={styles.bottomBody}>
+              Daily readings are planned for this surface next, so members can move from a prayer into scripture and reflection without bouncing around the app.
+            </p>
+
+            <button type="button" className={styles.disabledButton} disabled>
+              Daily readings coming soon
+            </button>
+          </article>
+        </section>
       </div>
     </main>
   )

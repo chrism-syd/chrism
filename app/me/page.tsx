@@ -6,7 +6,7 @@ import ClaimReviewNoticeCard from '@/app/me/claim-review-notice-card'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getParallelAreaAccessSummary } from '@/lib/auth/parallel-access-summary'
-import { getEffectiveOrganizationName, getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName, getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names'
 import { listClaimedPersonRsvpsForUser } from '@/lib/rsvp/claim'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord, decryptProfileChangeRequestRecord, decryptProfileChangeRequestRecords } from '@/lib/security/pii'
@@ -29,6 +29,13 @@ type OrganizationProfileRow = OrganizationNameRecord & {
   id: string
   logo_storage_path: string | null
   logo_alt_text: string | null
+  parent_organization?: {
+    id?: string | null
+    display_name: string | null
+    preferred_name: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type PendingProfileChangeRow = {
@@ -138,7 +145,7 @@ export default async function MyProfilePage() {
   const organizationPromise = permissions.organizationId
     ? adminSupabase
         .from('organizations')
-        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, parent_organization:parent_organization_id(id, display_name, preferred_name, logo_storage_path, logo_alt_text)')
         .eq('id', permissions.organizationId)
         .maybeSingle<OrganizationProfileRow>()
     : Promise.resolve({ data: null as OrganizationProfileRow | null })
@@ -228,18 +235,21 @@ export default async function MyProfilePage() {
   const affiliationOrganizationsResult = affiliationOrganizationIds.length > 0
     ? await adminSupabase
         .from('organizations')
-        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, parent_organization:parent_organization_id(id, display_name, preferred_name, logo_storage_path, logo_alt_text)')
         .in('id', affiliationOrganizationIds)
         .returns<OrganizationProfileRow[]>()
     : { data: [] as OrganizationProfileRow[] }
 
   const affiliationOrganizations = (affiliationOrganizationsResult.data ?? []).map((organization) => {
     const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
+    const effectiveBranding = getEffectiveOrganizationBranding(organization)
     return {
       ...organization,
       isCurrent: organization.id === permissions.organizationId,
       isPrimaryMembership: membership?.is_primary_membership ?? false,
       displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
+      effective_logo_storage_path: effectiveBranding.logo_storage_path,
+      effective_logo_alt_text: effectiveBranding.logo_alt_text,
     }
   })
 
@@ -261,13 +271,13 @@ export default async function MyProfilePage() {
   >()
 
   for (const organization of affiliationOrganizations) {
-    const key = normalizeLogoKey(organization.logo_storage_path) ?? `org:${organization.id}`
+    const key = normalizeLogoKey(organization.effective_logo_storage_path) ?? `org:${organization.id}`
     const group = affiliationLogoGroups.get(key) ?? []
     group.push({
       id: organization.id,
       displayLabel: organization.displayLabel,
-      logo_storage_path: organization.logo_storage_path,
-      logo_alt_text: organization.logo_alt_text ?? null,
+      logo_storage_path: organization.effective_logo_storage_path,
+      logo_alt_text: organization.effective_logo_alt_text ?? null,
       isCurrent: organization.isCurrent,
     })
     affiliationLogoGroups.set(key, group)

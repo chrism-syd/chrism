@@ -7,6 +7,7 @@ type OrganizationRow = {
   id: string
   display_name: string | null
   preferred_name: string | null
+  org_type_code: string | null
 }
 
 export default async function NewEventPage() {
@@ -18,7 +19,11 @@ export default async function NewEventPage() {
 
   let organization: OrganizationRow | null = null
   if (council.organization_id) {
-    const { data } = await admin.from('organizations').select('id, display_name, preferred_name').eq('id', council.organization_id).single()
+    const { data } = await admin
+      .from('organizations')
+      .select('id, display_name, preferred_name, org_type_code')
+      .eq('id', council.organization_id)
+      .single()
     organization = (data as OrganizationRow | null) ?? null
   }
 
@@ -49,6 +54,7 @@ export default async function NewEventPage() {
             requires_rsvp: false,
             needs_volunteers: false,
             reminder_enabled: false,
+            organizationTypeCode: organization?.org_type_code ?? null,
             invited_councils: [{ invited_council_name: '', invited_council_number: '', invite_email: '', invite_contact_name: '' }],
             external_invitees: [{ invitee_name: '', invitee_email: '', invitee_phone: '', invitee_role_label: '', invitee_notes: '' }],
           }}

@@ -11,7 +11,7 @@ import {
   listMemberInvitedEvents,
   type MemberInvitedEvent,
 } from '@/lib/member-navigation'
-import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatEventDateTimeRange } from '@/lib/events/display'
 
@@ -47,6 +47,14 @@ type OrganizationProfileRow = {
   preferred_name: string | null
   logo_storage_path: string | null
   logo_alt_text: string | null
+  org_type_code?: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type CouncilContextRow = {
@@ -56,19 +64,35 @@ type CouncilContextRow = {
   organization_id: string | null
 }
 
-function getScopeLabel(scopeCode: EventRow['scope_code']) {
-  return scopeCode === 'multi_council' ? 'Multi-council' : 'Home council only'
+function getEventScopeLabels(orgTypeCode: string | null | undefined) {
+  switch (orgTypeCode) {
+    case 'parish':
+      return {
+        home: 'Parish event',
+        multi: 'Community event',
+      }
+    case 'ssvp':
+      return {
+        home: 'Home conference only',
+        multi: 'Multi-conference event',
+      }
+    case 'cwl':
+      return {
+        home: 'Home council only',
+        multi: 'Multi-council event',
+      }
+    case 'knights_of_columbus':
+    default:
+      return {
+        home: 'Home council only',
+        multi: 'Multi-council event',
+      }
+  }
 }
 
-function getStatusLabel(statusCode: string) {
-  if (statusCode === 'draft') return 'Draft'
-  if (statusCode === 'completed') return 'Completed'
-  if (statusCode === 'cancelled') return 'Cancelled'
-  return 'Scheduled'
-}
-
-function getStatusPillClass(statusCode: string) {
-  return statusCode === 'draft' ? 'qv-mini-pill qv-mini-pill-draft' : 'qv-mini-pill'
+function getScopeLabel(scopeCode: EventRow['scope_code'], orgTypeCode: string | null | undefined) {
+  const labels = getEventScopeLabels(orgTypeCode)
+  return scopeCode === 'multi_council' ? labels.multi : labels.home
 }
 
 function getMeetingLabel(kind: EventRow['event_kind_code']) {
@@ -98,7 +122,7 @@ async function loadOrganizationProfile(args: {
 
   const { data } = await admin
     .from('organizations')
-    .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+    .select('display_name, preferred_name, logo_storage_path, logo_alt_text, org_type_code, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
     .eq('id', council.organization_id)
     .maybeSingle<OrganizationProfileRow>()
 
@@ -177,6 +201,7 @@ async function MemberEventsPage() {
   const council = (councilData.data as CouncilContextRow | null) ?? null
   const organization = council ? await loadOrganizationProfile({ admin, council }) : null
   const organizationName = getEffectiveOrganizationName(organization) ?? council?.name ?? 'Chrism'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
   return (
     <main className="qv-page">
@@ -201,8 +226,8 @@ async function MemberEventsPage() {
             <div className="qv-org-avatar-wrap">
               <OrganizationAvatar
                 displayName={organizationName}
-                logoStoragePath={organization?.logo_storage_path ?? null}
-                logoAltText={organization?.logo_alt_text ?? organizationName}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                 size={72}
               />
             </div>
@@ -268,6 +293,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   const organization = await loadOrganizationProfile({ admin: supabase, council })
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
   const publicMeetingsHref = council.council_number ? `/councils/${council.council_number}/meetings` : null
   const meetingsFeedHref = council.council_number ? `/councils/${council.council_number}/meetings.ics` : null
@@ -313,7 +339,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
       (event.ends_at ?? event.starts_at) >= nowIso,
   )
   const draftEvents = standardEvents.filter((event) => event.status_code === 'draft')
-  const hostedEvents = standardEvents.filter((event) => !['draft', 'completed', 'cancelled'].includes(event.status_code))
+  const scheduledEvents = standardEvents.filter((event) => !['draft', 'completed', 'cancelled'].includes(event.status_code))
 
   const standardIds = standardEvents.map((event) => event.id)
   const multiIds = standardEvents.filter((event) => event.scope_code === 'multi_council').map((event) => event.id)
@@ -378,10 +404,9 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                     {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
 
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                      <span className={getStatusPillClass(event.status_code)}>{getStatusLabel(event.status_code)}</span>
-                      <span className="qv-mini-pill">{getScopeLabel(event.scope_code)}</span>
-                      <span className="qv-mini-pill">{event.requires_rsvp ? 'RSVP required' : 'No RSVP'}</span>
-                      <span className="qv-mini-pill">{event.needs_volunteers ? 'Volunteers needed' : 'No volunteers needed'}</span>
+                      <span className="qv-mini-pill">{getScopeLabel(event.scope_code, organization?.org_type_code)}</span>
+                      {event.requires_rsvp ? <span className="qv-mini-pill">RSVP On</span> : null}
+                      {event.needs_volunteers ? <span className="qv-mini-pill">Volunteers On</span> : null}
                     </div>
 
                     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
@@ -491,8 +516,8 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
               <div className="qv-org-avatar-wrap">
                 <OrganizationAvatar
                   displayName={organizationName}
-                  logoStoragePath={organization?.logo_storage_path ?? null}
-                  logoAltText={organization?.logo_alt_text ?? organizationName}
+                  logoStoragePath={effectiveBranding.logo_storage_path}
+                  logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                   size={72}
                 />
               </div>
@@ -504,15 +529,15 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
 
         <div className="qv-detail-grid">
           <div className="qv-detail-stack">
-            {hostedEvents.length > 0 ? (
+            {scheduledEvents.length > 0 ? (
               <section className="qv-card">
                 <div className="qv-directory-section-head">
                   <div>
-                    <h2 className="qv-section-title">Hosted events</h2>
-                    <p className="qv-section-subtitle">{hostedEvents.length} active</p>
+                    <h2 className="qv-section-title">Scheduled events</h2>
+                    <p className="qv-section-subtitle">{scheduledEvents.length} active</p>
                   </div>
                 </div>
-                {renderStandardEventList(hostedEvents)}
+                {renderStandardEventList(scheduledEvents)}
               </section>
             ) : null}
 
@@ -528,7 +553,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
               </section>
             ) : null}
 
-            {hostedEvents.length === 0 && draftEvents.length === 0 ? (
+            {scheduledEvents.length === 0 && draftEvents.length === 0 ? (
               <section className="qv-card">
                 <EmptyState
                   title="No events yet"
@@ -574,7 +599,6 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                         <span className="qv-mini-pill">{getMeetingLabel(event.event_kind_code)}</span>
-                        <span className={getStatusPillClass(event.status_code)}>{getStatusLabel(event.status_code)}</span>
                       </div>
                       {event.location_name ? (
                         <div style={{ marginTop: 4, fontSize: 14, color: 'var(--text-secondary)' }}>{event.location_name}</div>

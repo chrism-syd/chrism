@@ -4,7 +4,7 @@ import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
-import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { loadCouncilMemberDirectoryData } from '@/lib/members/directory-data'
 
 export default async function MembersPage() {
@@ -35,7 +35,7 @@ export default async function MembersPage() {
   const { data: organizationData } = council.organization_id
     ? await supabase
         .from('organizations')
-        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
         .eq('id', council.organization_id)
         .maybeSingle()
     : { data: null }
@@ -45,9 +45,17 @@ export default async function MembersPage() {
     preferred_name: string | null
     logo_storage_path: string | null
     logo_alt_text: string | null
+    brand_profile?: {
+      code: string | null
+      display_name: string | null
+      logo_storage_bucket: string | null
+      logo_storage_path: string | null
+      logo_alt_text: string | null
+    } | null
   } | null
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
   const switchableLocalUnits = permissions.authUser
@@ -154,8 +162,8 @@ export default async function MembersPage() {
               <div className="qv-org-avatar-wrap">
                 <OrganizationAvatar
                   displayName={organizationName}
-                  logoStoragePath={organization?.logo_storage_path ?? null}
-                  logoAltText={organization?.logo_alt_text ?? organizationName}
+                  logoStoragePath={effectiveBranding.logo_storage_path}
+                  logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                   size={72}
                 />
               </div>

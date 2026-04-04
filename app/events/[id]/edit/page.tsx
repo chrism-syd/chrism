@@ -11,7 +11,9 @@ type EditEventPageProps = {
 
 type OrganizationRow = {
   id: string
-  name: string | null
+  display_name: string | null
+  preferred_name: string | null
+  org_type_code: string | null
 }
 
 type InvitedCouncilRow = {
@@ -40,7 +42,11 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
 
   let organization: OrganizationRow | null = null
   if (council.organization_id) {
-    const { data } = await supabase.from('organizations').select('id, name').eq('id', council.organization_id).single()
+    const { data } = await supabase
+      .from('organizations')
+      .select('id, display_name, preferred_name, org_type_code')
+      .eq('id', council.organization_id)
+      .single()
     organization = (data as OrganizationRow | null) ?? null
   }
 
@@ -95,6 +101,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
 
   const updateEventAction = updateEvent.bind(null, event.id)
   const deleteEventAction = deleteEvent.bind(null, event.id)
+  const heroName = organization?.preferred_name ?? organization?.display_name ?? council.name ?? 'Council'
 
   return (
     <main className="qv-page">
@@ -103,19 +110,22 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
         <section className="qv-hero-card">
           <div className="qv-hero-top">
             <div>
-              <p className="qv-eyebrow">{organization?.name ? `${organization.name} • ` : ''}{council.name ?? 'Council'}{council.council_number ? ` (${council.council_number})` : ''}</p>
+              <p className="qv-eyebrow">{heroName}{council.council_number ? ` (${council.council_number})` : ''}</p>
               <h1 className="qv-title">Edit event</h1>
               <p className="qv-subtitle">Update event details, RSVP settings, invitees, and automated email reminders.</p>
             </div>
           </div>
         </section>
 
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <DeleteEventButton action={deleteEventAction} />
+        </div>
+
         <EventForm
           mode="edit"
           action={updateEventAction}
           cancelHref={`/events/${event.id}`}
           submitLabel="Save changes"
-          footerActions={<DeleteEventButton action={deleteEventAction} />}
           initialValues={{
             title: event.title,
             description: event.description ?? '',
@@ -131,6 +141,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
             rsvp_deadline_at: event.rsvp_deadline_at,
             reminder_enabled: event.reminder_enabled,
             reminder_scheduled_for: event.reminder_scheduled_for,
+            organizationTypeCode: organization?.org_type_code ?? null,
             invited_councils: nonHostInvitedCouncils.length > 0 ? nonHostInvitedCouncils : [emptyInvite()],
             external_invitees: initialExternalInvitees.length > 0 ? initialExternalInvitees : [emptyExternalInvitee()],
           }}

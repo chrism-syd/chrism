@@ -35,6 +35,7 @@ type EventFormInitialValues = {
   reminder_scheduled_for?: string | null
   invited_councils?: InvitedCouncilDraft[]
   external_invitees?: ExternalInviteeDraft[]
+  organizationTypeCode?: string | null
 }
 
 type EventFormProps = {
@@ -66,6 +67,32 @@ const emptyExternalInviteeRow = (): ExternalInviteeDraft => ({
   invitee_role_label: '',
   invitee_notes: '',
 })
+
+function getEventTypeLabels(orgTypeCode: string | null | undefined) {
+  switch (orgTypeCode) {
+    case 'parish':
+      return {
+        homeEvent: 'Parish event',
+        multiEvent: 'Community event',
+      }
+    case 'ssvp':
+      return {
+        homeEvent: 'Home conference only',
+        multiEvent: 'Multi-conference event',
+      }
+    case 'cwl':
+      return {
+        homeEvent: 'Home council only',
+        multiEvent: 'Multi-council event',
+      }
+    case 'knights_of_columbus':
+    default:
+      return {
+        homeEvent: 'Home council only',
+        multiEvent: 'Multi-council event',
+      }
+  }
+}
 
 function toDateTimeLocalValue(value?: string | null) {
   if (!value) return ''
@@ -200,6 +227,7 @@ export default function EventForm({
   const hasExternalInviteeContent = hasExternalInviteeValues(externalInvitees)
   const canCollapseExternalInvitees =
     showExternalInvitees && externalInvitees.length === 1 && !hasExternalInviteeContent
+  const eventTypeLabels = getEventTypeLabels(initialValues?.organizationTypeCode)
 
   function updateInviteRow(index: number, field: keyof InvitedCouncilDraft, value: string) {
     setInvitedCouncils((current) =>
@@ -440,8 +468,8 @@ export default function EventForm({
                 value={eventType}
                 onChange={(event) => setEventType(event.target.value as EventTypeOption)}
               >
-                <option value="home_council_event">Home Council Event</option>
-                <option value="multi_council_event">Multi-Council Event</option>
+                <option value="home_council_event">{eventTypeLabels.homeEvent}</option>
+                <option value="multi_council_event">{eventTypeLabels.multiEvent}</option>
                 <option value="executive_meeting">Executive Meeting</option>
                 <option value="general_meeting">General Meeting</option>
               </select>
@@ -605,244 +633,6 @@ export default function EventForm({
             <p style={fieldNoteStyle()}>Volunteers can add their name, contact details, and notes from the public response page.</p>
           ) : null}
         </div>
-      </section>
-
-      {shouldShowInviteSection ? (
-        <section className="qv-card">
-          <div className="qv-directory-section-head">
-            <div>
-              <h2 className="qv-section-title">Invited councils</h2>
-              <p className="qv-section-subtitle">Only needed for multi-council events.</p>
-            </div>
-            <div className="qv-directory-actions">
-              {showInviteCouncils ? (
-                <button type="button" onClick={addInviteRow} className="qv-button-secondary">
-                  Add council
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowInviteCouncils(true)}
-                  className="qv-button-secondary"
-                >
-                  Add councils
-                </button>
-              )}
-            </div>
-          </div>
-
-          {showInviteCouncils ? (
-            <div className="qv-form-grid">
-              {fieldErrors.invited_councils ? (
-                <div className="qv-card qv-error">
-                  <p style={{ margin: 0 }}>{fieldErrors.invited_councils}</p>
-                </div>
-              ) : null}
-              {invitedCouncils.map((row, index) => (
-                <div key={index} className="qv-card">
-                  <div className="qv-directory-section-head">
-                    <div>
-                      <h3 className="qv-section-title">Invited council {index + 1}</h3>
-                      <p className="qv-section-subtitle">This row becomes one invite target and one RSVP link.</p>
-                    </div>
-                    <div className="qv-directory-actions">
-                      <button
-                        type="button"
-                        onClick={() => removeInviteRow(index)}
-                        className="qv-button-secondary"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                  <div className="qv-form-grid">
-                    <div className="qv-form-row qv-form-row-2">
-                      <label className="qv-control">
-                        <span className="qv-label">Council name</span>
-                        <input
-                          type="text"
-                          name="invited_council_name[]"
-                          value={row.invited_council_name}
-                          onChange={(event) =>
-                            updateInviteRow(index, 'invited_council_name', event.target.value)
-                          }
-                          placeholder="Council name"
-                        />
-                      </label>
-                      <label className="qv-control">
-                        <span className="qv-label">Council number</span>
-                        <input
-                          type="text"
-                          name="invited_council_number[]"
-                          value={row.invited_council_number}
-                          onChange={(event) =>
-                            updateInviteRow(index, 'invited_council_number', event.target.value)
-                          }
-                          placeholder="Council number"
-                        />
-                      </label>
-                    </div>
-                    <div className="qv-form-row qv-form-row-2">
-                      <label className="qv-control">
-                        <span className="qv-label">Invite email</span>
-                        <input
-                          type="email"
-                          name="invite_email[]"
-                          value={row.invite_email}
-                          onChange={(event) => updateInviteRow(index, 'invite_email', event.target.value)}
-                          placeholder="Invite email"
-                        />
-                      </label>
-                      <label className="qv-control">
-                        <span className="qv-label">Invite contact name</span>
-                        <input
-                          type="text"
-                          name="invite_contact_name[]"
-                          value={row.invite_contact_name}
-                          onChange={(event) =>
-                            updateInviteRow(index, 'invite_contact_name', event.target.value)
-                          }
-                          placeholder="Invite contact name"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="qv-empty">
-              <h3 className="qv-empty-title">No invited councils yet</h3>
-              <p className="qv-empty-text">Add councils only when this event needs outside group RSVP links.</p>
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      <section className="qv-card">
-        <div className="qv-directory-section-head">
-          <div>
-            <h2 className="qv-section-title">Invite individual guests</h2>
-            <p className="qv-section-subtitle">Guests stay attached only to this event.</p>
-          </div>
-          <div className="qv-directory-actions">
-            {showExternalInvitees ? (
-              canCollapseExternalInvitees ? (
-                <button type="button" onClick={collapseExternalInvitees} className="qv-button-secondary">
-                  Cancel
-                </button>
-              ) : (
-                <button type="button" onClick={addExternalInviteeRow} className="qv-button-secondary">
-                  Add guest
-                </button>
-              )
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowExternalInvitees(true)}
-                className="qv-button-secondary"
-              >
-                Add guest
-              </button>
-            )}
-          </div>
-        </div>
-
-        {showExternalInvitees ? (
-          <div className="qv-form-grid">
-            {fieldErrors.external_invitees ? (
-              <div className="qv-card qv-error">
-                <p style={{ margin: 0 }}>{fieldErrors.external_invitees}</p>
-              </div>
-            ) : null}
-            {externalInvitees.map((row, index) => (
-              <div key={index} className="qv-card">
-                <div className="qv-directory-section-head">
-                  <div>
-                    <h3 className="qv-section-title">Guest invitee {index + 1}</h3>
-                    <p className="qv-section-subtitle">Guest invitees are not added to the member database.</p>
-                  </div>
-                  <div className="qv-directory-actions">
-                    <button
-                      type="button"
-                      onClick={() => removeExternalInviteeRow(index)}
-                      className="qv-button-secondary"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-                <div className="qv-form-grid">
-                  <div className="qv-form-row qv-form-row-2">
-                    <label className="qv-control">
-                      <span className="qv-label">Name</span>
-                      <input
-                        type="text"
-                        name="invitee_name[]"
-                        value={row.invitee_name}
-                        onChange={(event) =>
-                          updateExternalInviteeRow(index, 'invitee_name', event.target.value)
-                        }
-                        placeholder="Name"
-                      />
-                    </label>
-                    <label className="qv-control">
-                      <span className="qv-label">Email</span>
-                      <input
-                        type="email"
-                        name="invitee_email[]"
-                        value={row.invitee_email}
-                        onChange={(event) =>
-                          updateExternalInviteeRow(index, 'invitee_email', event.target.value)
-                        }
-                        placeholder="Email"
-                      />
-                    </label>
-                  </div>
-                  <div className="qv-form-row qv-form-row-2">
-                    <label className="qv-control">
-                      <span className="qv-label">Role / context</span>
-                      <input
-                        type="text"
-                        name="invitee_role_label[]"
-                        value={row.invitee_role_label}
-                        onChange={(event) =>
-                          updateExternalInviteeRow(index, 'invitee_role_label', event.target.value)
-                        }
-                        placeholder="Role / context"
-                      />
-                    </label>
-                    <label className="qv-control">
-                      <span className="qv-label">Phone</span>
-                      <input
-                        type="text"
-                        name="invitee_phone[]"
-                        value={row.invitee_phone}
-                        onChange={(event) =>
-                          updateExternalInviteeRow(index, 'invitee_phone', event.target.value)
-                        }
-                        placeholder="Phone"
-                      />
-                    </label>
-                  </div>
-                  <div className="qv-form-row">
-                    <label className="qv-control">
-                      <span className="qv-label">Notes</span>
-                      <textarea
-                        name="invitee_notes[]"
-                        value={row.invitee_notes}
-                        onChange={(event) =>
-                          updateExternalInviteeRow(index, 'invitee_notes', event.target.value)
-                        }
-                        placeholder="Notes"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </section>
 
       <section className="qv-card">
