@@ -9,9 +9,11 @@ import {
   getManagedVisibilityOptions,
   listManagedOrganizationTypeOptions,
 } from '@/lib/organizations/management'
+import { getEffectiveOrganizationBranding } from '@/lib/organizations/names'
 import {
   createLocalUnitAction,
   createOrganizationAction,
+  removeOrganizationLogoAction,
   updateOrganizationAction,
 } from './actions'
 
@@ -28,6 +30,13 @@ type OrganizationRow = {
   secondary_color_hex: string | null
   logo_storage_path: string | null
   logo_alt_text: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type LocalUnitRow = {
@@ -63,6 +72,10 @@ function formatWhen(value: string | null) {
   }).format(new Date(value))
 }
 
+function hasLocalLogoOverride(organization: Pick<OrganizationRow, 'logo_storage_path'>) {
+  return Boolean(organization.logo_storage_path?.trim())
+}
+
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -81,7 +94,7 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
     listManagedOrganizationTypeOptions({ admin }),
     admin
       .from('organizations')
-      .select('id, display_name, preferred_name, organization_type_code, primary_color_hex, secondary_color_hex, logo_storage_path, logo_alt_text')
+.select('id, display_name, preferred_name, organization_type_code, primary_color_hex, secondary_color_hex, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
       .order('display_name', { ascending: true }),
     admin
       .from('local_units')
@@ -255,6 +268,7 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
               </div>
             ) : organizations.map((organization) => {
               const label = organizationLabel(organization)
+              const effectiveBranding = getEffectiveOrganizationBranding(organization)
               const units = (localUnitsByOrganizationId.get(organization.id) ?? []).slice().sort((left, right) => {
                 const leftLabel = left.display_name?.trim() || left.official_name?.trim() || 'Local unit'
                 const rightLabel = right.display_name?.trim() || right.official_name?.trim() || 'Local unit'
@@ -268,14 +282,17 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 14 }}>
                     <OrganizationAvatar
                       displayName={label}
-                      logoStoragePath={organization.logo_storage_path}
-                      logoAltText={organization.logo_alt_text}
+                      logoStoragePath={effectiveBranding.logo_storage_path}
+                      logoAltText={effectiveBranding.logo_alt_text ?? label}
                       size={64}
                     />
                     <div style={{ display: 'grid', gap: 4 }}>
                       <h3 className="qv-section-title" style={{ margin: 0 }}>{label}</h3>
                       <p className="qv-section-subtitle" style={{ margin: 0 }}>
                         Type: {organization.organization_type_code} • {units.length} local unit{units.length === 1 ? '' : 's'}
+                      </p>
+                      <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                        {hasLocalLogoOverride(organization) ? 'Local override logo' : 'Using brand fallback'}
                       </p>
                     </div>
                   </div>
@@ -346,6 +363,13 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
                       <button type="submit" className="qv-button-primary">Save organization</button>
                     </div>
                   </form>
+
+                  {hasLocalLogoOverride(organization) ? (
+                    <form action={removeOrganizationLogoAction} className="qv-form-actions" style={{ marginTop: 12 }}>
+                      <input type="hidden" name="organization_id" value={organization.id} />
+                      <button type="submit" className="qv-button-secondary">Remove local logo</button>
+                    </form>
+                  ) : null}
 
                   <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
                     <div>

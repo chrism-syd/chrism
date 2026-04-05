@@ -16,18 +16,21 @@ import {
   listSharedCustomListIdsForUser,
   type CustomListRow,
 } from '@/lib/custom-lists'
-import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { type OrganizationProfileRow } from '@/lib/organizations/profile'
 import { loadCouncilMemberDirectoryData } from '@/lib/members/directory-data'
 
 type CountRow = {
   custom_list_id: string
 }
 
-type OrganizationRow = {
-  display_name: string | null
-  preferred_name: string | null
-  logo_storage_path: string | null
-  logo_alt_text: string | null
+type OrganizationRow = OrganizationProfileRow
+
+type CouncilContextRow = {
+  id: string
+  name: string | null
+  council_number: string | null
+  organization_id: string | null
 }
 
 type LocalUnitRow = {
@@ -47,6 +50,27 @@ function normalizeSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null
 }
 
+async function loadOrganizationProfile(args: {
+  admin: ReturnType<typeof createAdminClient>
+  council: CouncilContextRow
+}) {
+  const { admin, council } = args
+
+  if (!council.organization_id) {
+    return null
+  }
+
+  const { data } = await admin
+    .from('organizations')
+    .select(
+      'display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)'
+    )
+    .eq('id', council.organization_id)
+    .maybeSingle()
+
+  return (data as OrganizationRow | null) ?? null
+}
+
 async function renderManageCustomListsPage(args: {
   searchParams: Record<string, string | string[] | undefined>
   context: NonNullable<Awaited<ReturnType<typeof findCurrentActingCouncilContextForArea>>>
@@ -55,16 +79,17 @@ async function renderManageCustomListsPage(args: {
   const showMemberDirectory = normalizeSingleParam(resolvedSearchParams.showMemberDirectory) === '1'
   const { admin, council, permissions, localUnitId } = args.context
 
-  const { data: organizationData } = council.organization_id
-    ? await admin
-        .from('organizations')
-        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
-        .eq('id', council.organization_id)
-        .maybeSingle<OrganizationRow>()
-    : { data: null as OrganizationRow | null }
-
-  const organization = (organizationData as OrganizationRow | null) ?? null
+  const organization = await loadOrganizationProfile({
+    admin,
+    council: {
+      id: council.id,
+      name: council.name,
+      council_number: council.council_number,
+      organization_id: council.organization_id,
+    },
+  })
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
   const switchableLocalUnits = permissions.authUser
@@ -206,8 +231,8 @@ async function renderManageCustomListsPage(args: {
               <div className="qv-org-avatar-wrap">
                 <OrganizationAvatar
                   displayName={organizationName}
-                  logoStoragePath={organization?.logo_storage_path ?? null}
-                  logoAltText={organization?.logo_alt_text ?? organizationName}
+                  logoStoragePath={effectiveBranding.logo_storage_path}
+                  logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                   size={72}
                 />
               </div>
@@ -314,7 +339,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     areaCode: 'custom_lists',
   })
 
-  const [manageableLocalUnitIds, sharedIds, legacyContextLocalUnitId, organizationLocalUnitIds] = await Promise.all([
+  const [manageableLocalUnitIds, sharedIds, legacyContextLocalUnitId, organizationLocalUnitIds, councilResult] = await Promise.all([
     listManageableLocalUnitIdsForCustomLists({ admin, permissions }),
     listSharedCustomListIdsForUser({ admin, permissions }),
     permissions.councilId
@@ -333,6 +358,13 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
           .eq('legacy_organization_id', permissions.organizationId)
           .then((result) => ((result.data as Array<{ id: string }> | null) ?? []).map((row) => row.id))
       : Promise.resolve([] as string[]),
+    permissions.councilId
+      ? admin
+          .from('councils')
+          .select('id, name, council_number, organization_id')
+          .eq('id', permissions.councilId)
+          .maybeSingle<CouncilContextRow>()
+      : Promise.resolve({ data: null }),
   ])
 
   const activeLocalUnitId =
@@ -402,14 +434,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   const listIds = lists.map((list) => list.id)
   const localUnitIds = [...new Set(lists.map((list) => list.local_unit_id).filter((value): value is string => Boolean(value)))]
 
-  const [organizationResult, memberCountResult, accessCountResult, localUnitsResult] = await Promise.all([
-    permissions.organizationId
-      ? admin
-          .from('organizations')
-          .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
-          .eq('id', permissions.organizationId)
-          .maybeSingle<OrganizationRow>()
-      : Promise.resolve({ data: null as OrganizationRow | null }),
+  const [memberCountResult, accessCountResult, localUnitsResult, contextLocalUnitsResult] = await Promise.all([
     listIds.length > 0
       ? admin.from('custom_list_members').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
       : Promise.resolve({ data: [] as CountRow[] }),
@@ -418,6 +443,9 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
       : Promise.resolve({ data: [] as CountRow[] }),
     localUnitIds.length > 0
       ? admin.from('local_units').select('id, display_name').in('id', localUnitIds).returns<LocalUnitRow[]>()
+      : Promise.resolve({ data: [] as LocalUnitRow[] }),
+    contextScopedManageableLocalUnitIds.length > 0
+      ? admin.from('local_units').select('id, display_name').in('id', contextScopedManageableLocalUnitIds).returns<LocalUnitRow[]>()
       : Promise.resolve({ data: [] as LocalUnitRow[] }),
   ])
 
@@ -432,7 +460,25 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   }
 
   const localUnitsById = new Map(((localUnitsResult.data ?? []) as LocalUnitRow[]).map((row) => [row.id, row] as const))
-  const organizationName = getEffectiveOrganizationName((organizationResult as { data: OrganizationRow | null }).data ?? null)
+  const contextLocalUnits = (contextLocalUnitsResult.data ?? []) as LocalUnitRow[]
+  const currentLocalUnitName =
+    (activeLocalUnitId ? contextLocalUnits.find((row) => row.id === activeLocalUnitId)?.display_name ?? null : null) ?? null
+  const switchableLocalUnits = contextLocalUnits
+    .filter((row) => row.id !== activeLocalUnitId)
+    .sort((left, right) => (left.display_name ?? '').localeCompare(right.display_name ?? ''))
+    .map((row) => ({
+      local_unit_id: row.id,
+      local_unit_name: row.display_name ?? 'Organization',
+    }))
+
+  const organization = councilResult.data
+    ? await loadOrganizationProfile({
+        admin,
+        council: councilResult.data,
+      })
+    : null
+  const organizationName = getEffectiveOrganizationName(organization)
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
   let memberDirectoryData: Awaited<ReturnType<typeof loadCouncilMemberDirectoryData>> | null = null
   let memberDirectoryLocalUnitName: string | null = null
@@ -468,15 +514,42 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
         <section className="qv-hero-card">
           <div className="qv-directory-hero">
             <div className="qv-directory-text">
-              <p className="qv-eyebrow">{organizationName ?? 'Custom lists'}</p>
+              <p className="qv-eyebrow">{currentLocalUnitName ?? organizationName ?? 'Custom lists'}</p>
               <h1 className="qv-title">Custom lists</h1>
               <p className="qv-subtitle">Lists you can manage directly or that have been shared with you.</p>
+              {switchableLocalUnits.length > 0 ? (
+                <details className="qv-view-menu" style={{ marginTop: 12 }}>
+                  <summary>
+                    <span>Change local organization</span>
+                    <span aria-hidden="true" className="qv-view-menu-chevron">
+                      ▾
+                    </span>
+                  </summary>
+                  <div className="qv-view-menu-panel">
+                    {switchableLocalUnits.map((unit) => (
+                      <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
+                        <input type="hidden" name="areaCode" value="custom_lists" />
+                        <input type="hidden" name="minimumAccessLevel" value="manage" />
+                        <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
+                        <input type="hidden" name="next" value="/custom-lists" />
+                        <button
+                          type="submit"
+                          className="qv-view-menu-item"
+                          style={{ width: '100%', justifyContent: 'flex-start' }}
+                        >
+                          {unit.local_unit_name}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
             </div>
             <div className="qv-org-avatar-wrap">
               <OrganizationAvatar
                 displayName={organizationName ?? 'Organization'}
-                logoStoragePath={(organizationResult as { data: OrganizationRow | null }).data?.logo_storage_path ?? null}
-                logoAltText={(organizationResult as { data: OrganizationRow | null }).data?.logo_alt_text ?? organizationName ?? 'Organization'}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationName ?? 'Organization'}
                 size={72}
               />
             </div>

@@ -114,11 +114,6 @@ function buildCouncilLabel(claim: PendingClaimNoticeRow | null) {
   return claim.requested_council_name ?? claim.requested_council_number ?? claim.requested_city ?? null
 }
 
-function normalizeLogoKey(value: string | null | undefined) {
-  const trimmed = value?.trim().toLowerCase()
-  return trimmed ? `logo:${trimmed}` : null
-}
-
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -241,17 +236,39 @@ export default async function MyProfilePage() {
     : { data: [] as OrganizationProfileRow[] }
 
   const affiliationOrganizations = (affiliationOrganizationsResult.data ?? []).map((organization) => {
-    const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
-    const effectiveBranding = getEffectiveOrganizationBranding(organization)
-    return {
-      ...organization,
-      isCurrent: organization.id === permissions.organizationId,
-      isPrimaryMembership: membership?.is_primary_membership ?? false,
-      displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
-      effective_logo_storage_path: effectiveBranding.logo_storage_path,
-      effective_logo_alt_text: effectiveBranding.logo_alt_text,
-    }
-  })
+  const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
+
+  const ownLogoPath = organization.logo_storage_path?.trim().toLowerCase() || null
+  const brandProfileCode = organization.brand_profile?.code?.trim().toLowerCase() || null
+  const brandProfileLogoPath = organization.brand_profile?.logo_storage_path?.trim().toLowerCase() || null
+
+  const hasDistinctLocalOverride =
+    Boolean(ownLogoPath) &&
+    Boolean(brandProfileLogoPath) &&
+    ownLogoPath !== brandProfileLogoPath
+
+  const dedupeKey =
+    hasDistinctLocalOverride
+      ? `local:${ownLogoPath}`
+      : brandProfileCode
+        ? `brand:${brandProfileCode}`
+        : brandProfileLogoPath
+          ? `brand-logo:${brandProfileLogoPath}`
+          : ownLogoPath
+            ? `local:${ownLogoPath}`
+            : `org:${organization.id}`
+
+  return {
+    ...organization,
+    isCurrent: organization.id === permissions.organizationId,
+    isPrimaryMembership: membership?.is_primary_membership ?? false,
+    displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
+    effective_logo_storage_path: effectiveBranding.logo_storage_path,
+    effective_logo_alt_text: effectiveBranding.logo_alt_text,
+    dedupe_key: dedupeKey,
+  }
+})
 
   affiliationOrganizations.sort((left, right) => {
     if (left.isCurrent !== right.isCurrent) return left.isCurrent ? -1 : 1
@@ -271,7 +288,7 @@ export default async function MyProfilePage() {
   >()
 
   for (const organization of affiliationOrganizations) {
-    const key = normalizeLogoKey(organization.effective_logo_storage_path) ?? `org:${organization.id}`
+    const key = organization.dedupe_key
     const group = affiliationLogoGroups.get(key) ?? []
     group.push({
       id: organization.id,

@@ -7,6 +7,7 @@ import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import {
   createManagedLocalUnit,
   createManagedOrganization,
+  removeManagedOrganizationLogo,
   updateManagedOrganization,
   type ManagedLocalUnitKind,
   type ManagedLocalUnitVisibility,
@@ -256,6 +257,27 @@ export async function createLocalUnitAction(formData: FormData) {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not create the local unit right now.'
+    redirectToOrganizationsPage({ error: message })
+  }
+}
+
+export async function removeOrganizationLogoAction(formData: FormData) {
+  const permissions = await requireSuperAdminNormalMode()
+  const organizationId = textValue(formData, 'organization_id')
+  if (!organizationId) {
+    redirectToOrganizationsPage({ error: 'We could not tell which organization logo to remove.' })
+  }
+
+  try {
+    await removeManagedOrganizationLogo({
+      actorUserId: permissions.authUser!.id,
+      organizationId,
+    })
+
+    revalidateOrganizationManagementSurfaces()
+    redirectToOrganizationsPage({ notice: 'Local organization logo removed. Brand fallback will now be used.' })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not remove the organization logo right now.'
     redirectToOrganizationsPage({ error: message })
   }
 }

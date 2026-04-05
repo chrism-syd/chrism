@@ -5,7 +5,7 @@ import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { decryptPeopleRecord } from '@/lib/security/pii'
-import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { formatDate } from '@/lib/custom-lists'
 import { summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
 
@@ -79,7 +79,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const { data: organizationData } = council.organization_id
     ? await supabase
         .from('organizations')
-        .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+        .select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
         .eq('id', council.organization_id)
         .maybeSingle()
     : { data: null }
@@ -89,9 +89,17 @@ export default async function MemberDetailPage({ params }: PageProps) {
     preferred_name: string | null
     logo_storage_path: string | null
     logo_alt_text: string | null
+    brand_profile?: {
+      code: string | null
+      display_name: string | null
+      logo_storage_bucket: string | null
+      logo_storage_path: string | null
+      logo_alt_text: string | null
+    } | null
   } | null
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
   const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] =
     await Promise.all([
@@ -368,8 +376,8 @@ export default async function MemberDetailPage({ params }: PageProps) {
                 <div className="qv-org-avatar-wrap">
                   <OrganizationAvatar
                     displayName={organizationName}
-                    logoStoragePath={organization?.logo_storage_path ?? null}
-                    logoAltText={organization?.logo_alt_text ?? organizationName}
+                    logoStoragePath={effectiveBranding.logo_storage_path}
+                    logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                     size={72}
                   />
                 </div>

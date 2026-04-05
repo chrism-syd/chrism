@@ -58,17 +58,21 @@
   white-space: nowrap;
 }
 
-.resultsStack {
+.pathwayStack {
   display: grid;
   gap: 28px;
 }
 
-.resultsHeader {
+.pathwayHeader,
+.startHereHeader,
+.pivotHeader {
   display: grid;
   gap: 8px;
 }
 
-.resultsEyebrow {
+.pathwayEyebrow,
+.sectionEyebrow,
+.panelLabel {
   margin: 0;
   color: var(--spiritual-muted);
   font-family: var(--spiritual-sans);
@@ -78,12 +82,109 @@
   text-transform: uppercase;
 }
 
-.resultsTitle {
+.pathwayTitle,
+.startHereTitle,
+.resultSectionTitle,
+.pivotTitle {
   margin: 0;
   color: var(--spiritual-ink);
   font-family: var(--spiritual-serif);
-  font-size: clamp(1.6rem, 1.28rem + 1vw, 2.3rem);
   line-height: 1.1;
+}
+
+.pathwayTitle {
+  font-size: clamp(1.7rem, 1.35rem + 1vw, 2.5rem);
+}
+
+.pathwayCopy,
+.startHereCopy,
+.pivotCopy,
+.resultCardSummary,
+.emptyStateCopy,
+.panelCopy {
+  margin: 0;
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.startHereCard,
+.pivotCard,
+.emptyState {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 24px;
+  background: var(--surface-primary, #fff);
+}
+
+.startHereGrid,
+.pivotGrid,
+.resultCardGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.startHereGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.startHerePanel,
+.pivotItem,
+.resultCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 20px;
+  background: var(--surface-primary, #fff);
+  text-decoration: none;
+}
+
+.panelTitle,
+.resultCardTitle,
+.pivotItemTitle {
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-serif);
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.panelMeta,
+.resultCardMeta,
+.resultSectionMeta,
+.pivotItemCopy {
+  color: var(--spiritual-muted);
+  font-family: var(--spiritual-sans);
+  font-size: 0.9rem;
+}
+
+.panelAction,
+.resultCardArrow {
+  color: var(--spiritual-accent);
+  font-family: var(--spiritual-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.panelSaveButton,
+.cardSaveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--spiritual-rule);
+  border-radius: 999px;
+  background: var(--spiritual-paper-strong);
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-sans);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .resultSection {
@@ -100,35 +201,14 @@
 }
 
 .resultSectionTitle {
-  margin: 0;
-  color: var(--spiritual-ink);
-  font-family: var(--spiritual-serif);
   font-size: 1.5rem;
-  line-height: 1.1;
-}
-
-.resultSectionMeta {
-  margin: 0;
-  color: var(--spiritual-muted);
-  font-family: var(--spiritual-sans);
-  font-size: 0.95rem;
-}
-
-.resultCardGrid {
-  display: grid;
-  gap: 14px;
 }
 
 .resultCard {
-  display: flex;
+  flex-direction: row;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px;
-  border: 1px solid var(--spiritual-rule);
-  border-radius: 20px;
-  background: var(--surface-primary, #fff);
-  text-decoration: none;
 }
 
 .resultCardBody {
@@ -137,42 +217,29 @@
   min-width: 0;
 }
 
-.resultCardTitle {
-  color: var(--spiritual-ink);
-  font-family: var(--spiritual-serif);
-  font-size: 1.2rem;
-  line-height: 1.2;
-}
-
-.resultCardSummary {
-  color: var(--spiritual-muted);
-  font-family: var(--spiritual-sans);
-  font-size: 0.98rem;
-  line-height: 1.55;
-}
-
-.resultCardMeta {
-  color: var(--spiritual-muted);
-  font-family: var(--spiritual-sans);
-  font-size: 0.86rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}
-
-.resultCardArrow {
-  color: var(--spiritual-muted);
-  font-size: 1.25rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.emptyState {
-  display: grid;
+.explorationRail {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  padding: 24px;
+}
+
+.themeChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
   border: 1px solid var(--spiritual-rule);
-  border-radius: 20px;
-  background: var(--surface-primary, #fff);
+  border-radius: 999px;
+  background: var(--spiritual-paper-strong);
+  color: var(--spiritual-ink);
+  font-family: var(--spiritual-sans);
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.themeChip:hover {
+  border-color: color-mix(in srgb, var(--spiritual-accent) 30%, var(--spiritual-rule));
+  color: var(--spiritual-accent);
 }
 
 .emptyStateTitle {
@@ -182,12 +249,10 @@
   font-size: 1.35rem;
 }
 
-.emptyStateCopy {
-  margin: 0;
-  color: var(--spiritual-muted);
-  font-family: var(--spiritual-sans);
-  font-size: 1rem;
-  line-height: 1.6;
+@media (max-width: 960px) {
+  .startHereGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -201,5 +266,6 @@
 
   .resultCard {
     padding: 16px;
+    flex-direction: column;
   }
 }

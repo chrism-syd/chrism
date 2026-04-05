@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import AppHeader from '@/app/app-header';
+import OrganizationAvatar from '@/app/components/organization-avatar';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
 import { formatHonorificLabel, formatOfficerLabel, type OfficerScopeCode } from '@/lib/members/officer-roles';
-import { getOrganizationContextLabel, type OrganizationNameRecord } from '@/lib/organizations/names';
+import { getEffectiveOrganizationBranding, getOrganizationContextLabel, type OrganizationBrandingRecord } from '@/lib/organizations/names';
 import { decryptPeopleRecords } from '@/lib/security/pii';
 
 type OfficerTermRow = {
@@ -114,13 +115,17 @@ export default async function OfficersPage() {
       .is('archived_at', null)
       .is('merged_into_person_id', null),
     permissions.organizationId
-      ? admin.from('organizations').select('display_name, preferred_name').eq('id', permissions.organizationId).maybeSingle()
+      ? admin
+          .from('organizations')
+          .select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
+          .eq('id', permissions.organizationId)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
   const terms = (termData as OfficerTermRow[] | null) ?? [];
   const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? []);
-  const organization = (organizationData as OrganizationNameRecord | null) ?? null;
+  const organization = (organizationData as OrganizationBrandingRecord | null) ?? null;
   const peopleById = new Map(people.map((person) => [person.id, person]));
 
   const currentTerms = terms.filter((term) => term.service_end_year == null);
@@ -130,6 +135,7 @@ export default async function OfficersPage() {
     fallbackName: council.name ?? null,
     unitNumber: council.council_number ?? null,
   });
+  const effectiveBranding = getEffectiveOrganizationBranding(organization);
 
   return (
     <main className="qv-page">
@@ -137,9 +143,21 @@ export default async function OfficersPage() {
         <AppHeader />
 
         <section className="qv-hero-card">
-          <p className="qv-eyebrow">Officers</p>
-          <h1 className="qv-title">{organizationLabel ?? 'Organization officers'}</h1>
-          <p className="qv-subtitle">Current officer terms and enduring honorifics.</p>
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
+              <p className="qv-eyebrow">Officers</p>
+              <h1 className="qv-title">{organizationLabel ?? 'Organization officers'}</h1>
+              <p className="qv-subtitle">Current officer terms and enduring honorifics.</p>
+            </div>
+            <div className="qv-org-avatar-wrap">
+              <OrganizationAvatar
+                displayName={organizationLabel ?? 'Organization officers'}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationLabel ?? 'Organization'}
+                size={72}
+              />
+            </div>
+          </div>
         </section>
 
         <section className="qv-card">

@@ -75,6 +75,38 @@ async function uploadOrganizationLogo(args: {
   }
 }
 
+async function removeOrganizationLogoFile(args: {
+  admin?: ReturnType<typeof createAdminClient>
+  storagePath?: string | null
+}) {
+  const admin = args.admin ?? createAdminClient()
+  const rawPath = normalizeText(args.storagePath)
+  if (!rawPath) return
+
+  let objectPath = rawPath
+
+  if (/^https?:\/\//i.test(rawPath)) {
+    try {
+      const url = new URL(rawPath)
+      const marker = `/${DEFAULT_LOGO_BUCKET}/`
+      const markerIndex = url.pathname.indexOf(marker)
+      if (markerIndex === -1) return
+      objectPath = decodeURIComponent(url.pathname.slice(markerIndex + marker.length))
+    } catch {
+      return
+    }
+  } else if (rawPath.startsWith('/')) {
+    objectPath = rawPath.replace(/^\/+/, '')
+  }
+
+  objectPath = objectPath.replace(/^public\//i, '')
+
+  if (!objectPath.startsWith('organizations/')) return
+
+  const { error } = await admin.storage.from(DEFAULT_LOGO_BUCKET).remove([objectPath])
+  if (error) throw new Error(error.message)
+}
+
 export async function listManagedOrganizationTypeOptions(args?: {
   admin?: ReturnType<typeof createAdminClient>
 }) {
@@ -362,9 +394,6 @@ export async function updateManagedOrganization(args: {
       .from('brand_profiles')
       .update({
         display_name: preferredName ?? displayName,
-        logo_storage_bucket: logoStorageBucket,
-        logo_storage_path: logoStoragePath,
-        logo_alt_text: normalizeText(args.logoAltText),
         updated_by_auth_user_id: args.actorUserId,
       })
       .eq('id', existingOrganization.brand_profile_id),
@@ -372,6 +401,46 @@ export async function updateManagedOrganization(args: {
 
   if (orgUpdateError) throw new Error(orgUpdateError.message)
   if (brandUpdateError) throw new Error(brandUpdateError.message)
+}
+
+export async function removeManagedOrganizationLogo(args: {
+  actorUserId: string
+  organizationId: string
+}) {
+  const admin = createAdminClient()
+
+  const { data: existingOrganization, error: orgLookupError } = await admin
+    .from('organizations')
+    .select('logo_storage_bucket, logo_storage_path')
+    .eq('id', args.organizationId)
+    .maybeSingle<{ logo_storage_bucket: string | null; logo_storage_path: string | null }>()
+
+  if (orgLookupError) {
+    throw new Error(orgLookupError.message)
+  }
+
+  if (!existingOrganization) {
+    throw new Error('Could not load the organization you are trying to update.')
+  }
+
+  await removeOrganizationLogoFile({
+    admin,
+    storagePath: existingOrganization.logo_storage_path,
+  })
+
+  const currentBucket = existingOrganization.logo_storage_bucket ?? DEFAULT_LOGO_BUCKET
+
+  const { error: orgUpdateError } = await admin
+    .from('organizations')
+    .update({
+      logo_storage_bucket: currentBucket,
+      logo_storage_path: null,
+      logo_alt_text: null,
+      updated_by_auth_user_id: args.actorUserId,
+    })
+    .eq('id', args.organizationId)
+
+  if (orgUpdateError) throw new Error(orgUpdateError.message)
 }
 
 export async function createManagedLocalUnit(args: {

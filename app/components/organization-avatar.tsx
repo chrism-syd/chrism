@@ -14,6 +14,8 @@ type Props = {
 }
 
 const STOP_WORDS = new Set(['of', 'the', 'and', 'at', 'for', 'de', 'du', 'la'])
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? null
+const DEFAULT_STORAGE_BUCKET = 'organization-assets'
 
 function buildInitials(displayName: string) {
   const tokens = displayName
@@ -28,6 +30,18 @@ function buildInitials(displayName: string) {
     .slice(0, 2)
     .map((token) => token.charAt(0).toUpperCase())
     .join('')
+}
+
+function buildSupabasePublicUrl(path: string, bucket = DEFAULT_STORAGE_BUCKET) {
+  if (!SUPABASE_URL) return null
+
+  const encodedPath = path
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodedPath}`
 }
 
 function normalizeLogoSrc(rawLogoPath?: string | null) {
@@ -45,13 +59,17 @@ function normalizeLogoSrc(rawLogoPath?: string | null) {
   }
 
   const withoutPublicPrefix = trimmed.replace(/^public\//i, '')
-  const normalized = withoutPublicPrefix.replace(/^organizations\//i, 'organizations/')
 
-  if (normalized.startsWith('organizations/')) {
-    return `/${normalized}`
+  if (withoutPublicPrefix.startsWith('organizations/')) {
+    return `/${withoutPublicPrefix}`
   }
 
-  return `/organizations/${normalized}`
+  const supabaseSrc = buildSupabasePublicUrl(withoutPublicPrefix)
+  if (supabaseSrc) {
+    return supabaseSrc
+  }
+
+  return `/organizations/${withoutPublicPrefix}`
 }
 
 export default function OrganizationAvatar({

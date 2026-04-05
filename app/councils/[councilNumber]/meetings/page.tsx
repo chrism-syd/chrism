@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import MeetingKindFilter, { type PublicMeetingKindFilter } from './meeting-kind-filter'
 import { formatMeetingDateTimeRange, getEventKindLabel } from '@/lib/events/meetings'
-import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 type MeetingsPageProps = {
@@ -70,7 +70,7 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
     council.organization_id
       ? supabase
           .from('organizations')
-          .select('display_name, preferred_name, logo_storage_path, logo_alt_text')
+          .select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', council.organization_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -81,9 +81,17 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
     preferred_name: string | null
     logo_storage_path: string | null
     logo_alt_text: string | null
+    brand_profile?: {
+      code: string | null
+      display_name: string | null
+      logo_storage_bucket: string | null
+      logo_storage_path: string | null
+      logo_alt_text: string | null
+    } | null
   } | null
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Council'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const councilName = council.name || organizationName || 'Council'
   const feedHref = `/councils/${council.council_number}/meetings.ics`
   const emptyUnitTerm = council.council_number ? 'council' : 'organization'
@@ -121,9 +129,8 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
             <div className="qv-org-avatar-wrap">
               <OrganizationAvatar
                 displayName={organizationName}
-                logoStoragePath={organization?.logo_storage_path ?? null}
-                fallbackLogoPath="/organizations/knights-of-columbus-logo.png"
-                logoAltText={organization?.logo_alt_text ?? organizationName}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                 size={72}
               />
             </div>

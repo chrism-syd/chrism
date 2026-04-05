@@ -122,9 +122,11 @@ async function loadOrganizationProfile(args: {
 
   const { data } = await admin
     .from('organizations')
-    .select('display_name, preferred_name, logo_storage_path, logo_alt_text, org_type_code, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
+    .select(
+      'display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)'
+    )
     .eq('id', council.organization_id)
-    .maybeSingle<OrganizationProfileRow>()
+    .maybeSingle()
 
   return (data as OrganizationProfileRow | null) ?? null
 }

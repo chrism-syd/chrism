@@ -25,6 +25,7 @@ import { decryptPeopleRecords } from '@/lib/security/pii'
 import AdminCarousel from './admin-carousel'
 import OfficerCarousel from './officer-carousel'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -36,6 +37,13 @@ type OrganizationRow = {
   preferred_name: string | null
   logo_storage_path: string | null
   logo_alt_text: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type PersonRow = {
@@ -180,10 +188,6 @@ function assignmentSourceLabel(sourceCode: AdminAssignmentRow['source_code']) {
   return 'Manual assignment'
 }
 
-function getOrganizationName(organization: OrganizationRow | null, councilName: string | null) {
-  return organization?.preferred_name?.trim() || organization?.display_name?.trim() || councilName || 'Organization'
-}
-
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -252,7 +256,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .order('created_at', { ascending: false }),
     admin
       .from('organizations')
-      .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text')
+      .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
       .eq('id', permissions.organizationId)
       .maybeSingle(),
   ])
@@ -519,7 +523,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     }
   })
 
-  const organizationName = getOrganizationName(organization, council.name)
+  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const eyebrow = `${organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
   return (
@@ -541,8 +546,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
             <div className="qv-org-avatar-wrap">
               <OrganizationAvatar
                 displayName={organizationName}
-                logoStoragePath={organization?.logo_storage_path ?? null}
-                logoAltText={organization?.logo_alt_text ?? organizationName}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                 size={72}
               />
             </div>
