@@ -332,6 +332,31 @@ export async function submitProfileChangeRequest(
   };
 }
 
+export async function dismissProfileChangeReviewNoticeAction(formData: FormData) {
+  const permissions = await getCurrentUserPermissions();
+  if (!permissions.authUser || !permissions.personId) return;
+
+  const requestId = normalizeText(formData.get('request_id'));
+  if (!requestId) return;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('person_profile_change_requests')
+    .update({
+      decision_notice_cleared_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', requestId)
+    .eq('person_id', permissions.personId);
+
+  if (error) {
+    return;
+  }
+
+  revalidatePath('/me');
+  revalidatePath('/members/reviews');
+}
+
 export async function dismissOrganizationClaimNoticeAction(formData: FormData) {
   const permissions = await getCurrentUserPermissions();
   if (!permissions.authUser) redirect('/login');

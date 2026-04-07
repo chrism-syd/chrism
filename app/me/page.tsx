@@ -48,8 +48,10 @@ type PendingProfileChangeRow = {
 }
 
 type ReviewedProfileChangeRow = PendingProfileChangeRow & {
+  id: string
   reviewed_at: string | null
   status_code: 'approved' | 'rejected'
+  decision_notice_cleared_at: string | null
 }
 
 type PendingClaimNoticeRow = {
@@ -69,7 +71,7 @@ type AffiliationMembershipRow = {
   membership_status_code: string | null
 }
 
-type RejectedFieldNotice = { reviewedAt: string | null }
+type RejectedFieldNotice = { requestId: string; reviewedAt: string | null }
 type RejectedFieldNoticeMap = Partial<Record<'email' | 'cell_phone' | 'home_phone', RejectedFieldNotice>>
 
 function formatDateTime(value?: string | null) {
@@ -99,9 +101,15 @@ function buildRejectedFieldNotices(rows: ReviewedProfileChangeRow[] | null | und
     if (row.home_phone_change_requested && !latestByField.home_phone) latestByField.home_phone = row
   }
 
-  if (latestByField.email?.status_code === 'rejected') notices.email = { reviewedAt: latestByField.email.reviewed_at }
-  if (latestByField.cell_phone?.status_code === 'rejected') notices.cell_phone = { reviewedAt: latestByField.cell_phone.reviewed_at }
-  if (latestByField.home_phone?.status_code === 'rejected') notices.home_phone = { reviewedAt: latestByField.home_phone.reviewed_at }
+  if (latestByField.email?.status_code === 'rejected' && !latestByField.email.decision_notice_cleared_at) {
+    notices.email = { requestId: latestByField.email.id, reviewedAt: latestByField.email.reviewed_at }
+  }
+  if (latestByField.cell_phone?.status_code === 'rejected' && !latestByField.cell_phone.decision_notice_cleared_at) {
+    notices.cell_phone = { requestId: latestByField.cell_phone.id, reviewedAt: latestByField.cell_phone.reviewed_at }
+  }
+  if (latestByField.home_phone?.status_code === 'rejected' && !latestByField.home_phone.decision_notice_cleared_at) {
+    notices.home_phone = { requestId: latestByField.home_phone.id, reviewedAt: latestByField.home_phone.reviewed_at }
+  }
 
   return notices
 }
@@ -170,7 +178,7 @@ export default async function MyProfilePage() {
     ? adminSupabase
         .from('person_profile_change_requests')
         .select(
-          'proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested, reviewed_at, status_code'
+          'id, proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested, reviewed_at, status_code, decision_notice_cleared_at'
         )
         .eq('person_id', permissions.personId)
         .in('status_code', ['approved', 'rejected'])
