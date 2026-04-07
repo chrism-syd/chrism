@@ -59,9 +59,7 @@ export type CurrentUserPermissions = {
   activeContextKey: string | null
 }
 
-type AppUserRow = NonNullable<CurrentUserPermissions['appUser']> & {
-  council_id?: string | null
-}
+type AppUserRow = NonNullable<CurrentUserPermissions['appUser']>
 type CouncilAdminAssignmentRow = { council_id: string | null; person_id: string | null }
 type OrganizationAdminAssignmentRow = { organization_id: string | null; person_id: string | null }
 type AutomaticCouncilAdminTermRow = {
@@ -494,7 +492,6 @@ async function ensureAppUserRow(args: {
   authUserId: string
   existingAppUser: AppUserRow | null
   personId?: string | null
-  councilId?: string | null
   isSuperAdmin?: boolean
 }) {
   const {
@@ -502,7 +499,6 @@ async function ensureAppUserRow(args: {
     authUserId,
     existingAppUser,
     personId = null,
-    councilId = null,
     isSuperAdmin = false,
   } = args
 
@@ -510,7 +506,6 @@ async function ensureAppUserRow(args: {
   const needsSync =
     !needsInsert &&
     ((personId && existingAppUser.person_id !== personId) ||
-      (councilId && (existingAppUser.council_id ?? null) !== councilId) ||
       (isSuperAdmin && !existingAppUser.is_super_admin) ||
       existingAppUser.is_active === false)
 
@@ -521,7 +516,6 @@ async function ensureAppUserRow(args: {
   const payload = {
     id: authUserId,
     person_id: personId ?? existingAppUser?.person_id ?? null,
-    council_id: councilId ?? existingAppUser?.council_id ?? null,
     is_active: existingAppUser?.is_active ?? true,
     is_super_admin: isSuperAdmin || existingAppUser?.is_super_admin || false,
   }
@@ -529,7 +523,7 @@ async function ensureAppUserRow(args: {
   const { data, error } = await admin
     .from('users')
     .upsert(payload, { onConflict: 'id' })
-    .select('id, person_id, council_id, is_active, is_super_admin')
+    .select('id, person_id, is_active, is_super_admin')
     .maybeSingle()
 
   if (error) {
@@ -539,7 +533,6 @@ async function ensureAppUserRow(args: {
   return (data as AppUserRow | null) ?? {
     id: authUserId,
     person_id: payload.person_id,
-    council_id: payload.council_id,
     is_active: payload.is_active,
     is_super_admin: payload.is_super_admin,
   }
@@ -588,7 +581,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const { data: appUserData } = await admin
     .from('users')
-    .select('id, person_id, council_id, is_active, is_super_admin')
+    .select('id, person_id, is_active, is_super_admin')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -850,7 +843,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     authUserId: user.id,
     existingAppUser: appUser,
     personId,
-    councilId: derivedOfficerEmailCouncilId ?? null,
     isSuperAdmin,
   })
 
