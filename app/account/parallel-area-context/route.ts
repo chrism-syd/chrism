@@ -45,15 +45,23 @@ function normalizeNextPath(value: string | null) {
 }
 
 function pickContextKeyForLocalUnit(args: {
-  localUnit: { legacy_council_id: string | null; legacy_organization_id: string | null }
+  localUnit: { id: string; legacy_council_id: string | null; legacy_organization_id: string | null }
   availableContexts: Array<{
     key: string
+    localUnitId: string | null
     accessLevel: 'member' | 'admin' | 'manager'
     councilId: string | null
     organizationId: string | null
   }>
 }) {
   const staffContexts = args.availableContexts.filter((context) => context.accessLevel !== 'member')
+
+  const exactLocalUnitMatch =
+    staffContexts.find((context) => context.localUnitId === args.localUnit.id) ?? null
+
+  if (exactLocalUnitMatch?.key) {
+    return exactLocalUnitMatch.key
+  }
 
   const exactCouncilMatch = args.localUnit.legacy_council_id
     ? staffContexts.find((context) => context.councilId === args.localUnit.legacy_council_id) ?? null
@@ -127,9 +135,9 @@ export async function POST(request: Request) {
     const admin = createAdminClient()
     const { data: localUnitData } = await admin
       .from('local_units')
-      .select('legacy_council_id, legacy_organization_id')
+      .select('id, legacy_council_id, legacy_organization_id')
       .eq('id', localUnitId)
-      .maybeSingle<{ legacy_council_id: string | null; legacy_organization_id: string | null }>()
+      .maybeSingle<{ id: string; legacy_council_id: string | null; legacy_organization_id: string | null }>()
 
     const localUnit = localUnitData ?? null
     if (localUnit) {

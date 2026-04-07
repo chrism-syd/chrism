@@ -268,7 +268,7 @@ async function MemberEventsPage() {
   return (
     <main className="qv-page">
       <div className="qv-shell">
-        <AppHeader />
+        <AppHeader permissions={permissions} />
 
         <section className="qv-hero-card">
           <div className="qv-directory-hero">
@@ -388,7 +388,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
     return (
       <main className="qv-page">
         <div className="qv-shell">
-          <AppHeader />
+          <AppHeader permissions={permissions} />
           <section className="qv-card qv-error">Could not load events.</section>
         </div>
       </main>
@@ -498,7 +498,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   return (
     <main className="qv-page">
       <div className="qv-shell">
-        <AppHeader />
+        <AppHeader permissions={permissions} />
 
         <section
           style={{

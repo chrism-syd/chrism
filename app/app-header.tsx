@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { getCurrentUserPermissions, type CurrentUserPermissions } from '@/lib/auth/permissions'
 import { hasSharedCustomListsForUser } from '@/lib/custom-lists'
 import { getPublicMeetingsHref, listMemberInvitedEvents } from '@/lib/member-navigation'
 import UserMenu from './components/user-menu'
@@ -17,10 +17,11 @@ type OrganizationRow = {
 
 type AppHeaderProps = {
   brandVariant?: 'auto' | 'operations' | 'spiritual'
+  permissions?: CurrentUserPermissions | null
 }
 
-export default async function AppHeader({ brandVariant = 'auto' }: AppHeaderProps) {
-  const permissions = await getCurrentUserPermissions()
+export default async function AppHeader({ brandVariant = 'auto', permissions: providedPermissions }: AppHeaderProps) {
+  const permissions = providedPermissions ?? await getCurrentUserPermissions()
   const admin = createAdminClient()
 
   let devOrganizations: SuperAdminOrganizationOption[] = []
