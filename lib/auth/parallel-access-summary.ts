@@ -47,6 +47,10 @@ async function resolveActiveLocalUnitId(args: {
 }) {
   const { admin, permissions } = args
 
+  if (permissions.activeLocalUnitId) {
+    return permissions.activeLocalUnitId
+  }
+
   const selectedOperationsLocalUnitId = await resolveSelectedOperationsLocalUnitId()
   if (selectedOperationsLocalUnitId) {
     return selectedOperationsLocalUnitId

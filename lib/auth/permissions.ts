@@ -57,6 +57,7 @@ export type CurrentUserPermissions = {
   email: string | null
   availableContexts: AccessContextOption[]
   activeContextKey: string | null
+  activeLocalUnitId: string | null
 }
 
 type AppUserRow = NonNullable<CurrentUserPermissions['appUser']> & {
@@ -573,6 +574,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       email: null,
       availableContexts: [],
       activeContextKey: null,
+      activeLocalUnitId: null,
     }
   }
 
@@ -1065,5 +1067,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     email: normalizedEmail,
     availableContexts,
     activeContextKey: activeAccessContext?.key ?? null,
+    activeLocalUnitId,
   }
 }
