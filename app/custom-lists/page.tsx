@@ -109,13 +109,17 @@ async function renderManageCustomListsPage(args: {
         .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
     : []
 
-  const { data: listRows, error: listError } = await admin
+  let listQuery = admin
     .from('custom_lists')
     .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
-    .eq('council_id', council.id)
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
-    .returns<CustomListRow[]>()
+
+  listQuery = localUnitId
+    ? listQuery.eq('local_unit_id', localUnitId)
+    : listQuery.eq('council_id', council.id)
+
+  const { data: listRows, error: listError } = await listQuery.returns<CustomListRow[]>()
 
   if (listError) {
     throw new Error(`Could not load custom lists. ${listError.message}`)
@@ -365,7 +369,12 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
 
   const activeLocalUnitId =
     (selectedLocalUnitId && manageableLocalUnitIds.includes(selectedLocalUnitId) ? selectedLocalUnitId : null) ??
-    legacyContextLocalUnitId ??
+    (permissions.activeLocalUnitId && manageableLocalUnitIds.includes(permissions.activeLocalUnitId)
+      ? permissions.activeLocalUnitId
+      : null) ??
+    (legacyContextLocalUnitId && manageableLocalUnitIds.includes(legacyContextLocalUnitId)
+      ? legacyContextLocalUnitId
+      : null) ??
     (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
 
   if (manageableLocalUnitIds.length === 0 && sharedIds.length === 0) {
@@ -405,8 +414,6 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     filters.push(`local_unit_id.eq.${activeLocalUnitId}`)
   } else if (scopedManageableLocalUnitIds.length > 0) {
     filters.push(`local_unit_id.in.(${scopedManageableLocalUnitIds.join(',')})`)
-  } else if (sharedIds.length === 0 && permissions.councilId) {
-    filters.push(`council_id.eq.${permissions.councilId}`)
   }
 
   if (sharedIds.length > 0) {
