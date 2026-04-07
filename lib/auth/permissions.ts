@@ -936,6 +936,9 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     canManageAdmins = actingAsAdmin
   }
 
+  const shouldApplyRealAccessCapabilities =
+    !(isSuperAdmin && actingMode !== 'normal')
+
   const aggregatedParallelCapabilities = [...parallelAccessState.capabilityByLocalUnitId.values()].reduce(
     (accumulator, capabilities) => ({
       members: accumulator.members || capabilities.members,
@@ -950,16 +953,22 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   )
 
   let activeLocalUnitId =
-    (activeAccessContext?.localUnitId ??
-      (activeAccessContext ? parallelAccessState.localUnitIdByContextKey.get(activeAccessContext.key) ?? null : null)) ??
-    requestedOperationsLocalUnitId ??
-    (await tryResolveActiveLocalUnitId({
-      admin,
-      councilId,
-      organizationId,
-    }))
+    isSuperAdmin && actingMode !== 'normal'
+      ? await tryResolveActiveLocalUnitId({
+          admin,
+          councilId,
+          organizationId,
+        })
+      : (activeAccessContext?.localUnitId ??
+          (activeAccessContext ? parallelAccessState.localUnitIdByContextKey.get(activeAccessContext.key) ?? null : null)) ??
+        requestedOperationsLocalUnitId ??
+        (await tryResolveActiveLocalUnitId({
+          admin,
+          councilId,
+          organizationId,
+        }))
 
-  if (activeLocalUnitId && !(isSuperAdmin && actingMode === 'member')) {
+  if (shouldApplyRealAccessCapabilities && activeLocalUnitId && !(isSuperAdmin && actingMode === 'member')) {
     const activeCapabilities =
       parallelAccessState.capabilityByLocalUnitId.get(activeLocalUnitId) ?? createEmptyParallelUnitCapabilities()
 
@@ -991,7 +1000,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     isCouncilAdmin = resolvedMemberManage
   }
 
-  if ((!activeLocalUnitId || !hasStaffAccess) && !(isSuperAdmin && actingMode === 'member')) {
+  if (shouldApplyRealAccessCapabilities && (!activeLocalUnitId || !hasStaffAccess) && !(isSuperAdmin && actingMode === 'member')) {
     const resolvedMemberManage = aggregatedParallelCapabilities.members
     const resolvedEventsManage = aggregatedParallelCapabilities.events
     const resolvedClaimsManage = aggregatedParallelCapabilities.claims

@@ -175,6 +175,25 @@ async function resolveScopedLocalUnitId(args: {
     return currentLocalUnit?.id ?? null
   }
 
+  if (permissions.isSuperAdmin && permissions.actingMode !== 'normal') {
+    if (permissions.activeLocalUnitId) {
+      return permissions.activeLocalUnitId
+    }
+
+    if (permissions.councilId) {
+      const currentLocalUnit = await findLocalUnitByLegacyCouncilId({
+        admin,
+        councilId: permissions.councilId,
+      }).catch(() => null)
+
+      if (currentLocalUnit?.id) {
+        return currentLocalUnit.id
+      }
+    }
+
+    return null
+  }
+
   const accessibleLocalUnits = await listAccessibleLocalUnitsForArea({
     admin,
     userId: permissions.authUser.id,
@@ -337,14 +356,23 @@ export async function getCurrentActingCouncilContextForEvent(options: {
 
   const event = (eventData as EventContextRow | null) ?? null
 
+  const superAdminMatchesEventLocalUnit = Boolean(
+    permissions.isSuperAdmin &&
+      permissions.actingMode !== 'normal' &&
+      event?.local_unit_id &&
+      (event.local_unit_id === permissions.activeLocalUnitId ||
+        (event.council_id && event.council_id === permissions.councilId))
+  )
+
   const canUseEventLocalUnit =
-    Boolean(event?.local_unit_id && permissions.authUser?.id) &&
-    await hasEventManagementAccess({
-      admin,
-      userId: permissions.authUser!.id,
-      localUnitId: event!.local_unit_id!,
-      eventId: options.eventId,
-    }).catch(() => false)
+    superAdminMatchesEventLocalUnit ||
+    (Boolean(event?.local_unit_id && permissions.authUser?.id) &&
+      await hasEventManagementAccess({
+        admin,
+        userId: permissions.authUser!.id,
+        localUnitId: event!.local_unit_id!,
+        eventId: options.eventId,
+      }).catch(() => false))
 
   if (event?.local_unit_id && canUseEventLocalUnit) {
     const eventContext = await buildContextFromLocalUnit({
@@ -366,6 +394,7 @@ export async function getCurrentActingCouncilContextForEvent(options: {
   const canUseEventCouncil = Boolean(
     event?.council_id &&
       (
+        (permissions.isSuperAdmin && permissions.actingMode !== 'normal' && event.council_id === permissions.councilId) ||
         event.council_id === permissions.councilId ||
         permissions.availableContexts.some((context) => context.councilId === event.council_id)
       )

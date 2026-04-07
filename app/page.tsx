@@ -28,6 +28,8 @@ type LocalUnitRow = {
   id: string
   display_name: string | null
   legacy_council_id: string | null
+  legacy_organization_id?: string | null
+  local_unit_kind?: string | null
 }
 
 type OrganizationRow = {
@@ -132,6 +134,61 @@ async function resolveHomeContext(args: {
 
   if (!args.permissions.authUser) {
     return empty
+  }
+
+  if (args.permissions.isSuperAdmin && args.permissions.actingMode !== 'normal') {
+    let activeLocalUnitId = args.permissions.activeLocalUnitId
+
+    if (!activeLocalUnitId && args.permissions.councilId) {
+      const { data } = await args.admin
+        .from('local_units')
+        .select('id, display_name, legacy_council_id, legacy_organization_id, local_unit_kind')
+        .eq('legacy_council_id', args.permissions.councilId)
+        .limit(1)
+        .maybeSingle<LocalUnitRow>()
+
+      if (data?.id) {
+        activeLocalUnitId = data.id
+      }
+    }
+
+    if (!activeLocalUnitId && args.permissions.organizationId) {
+      const { data } = await args.admin
+        .from('local_units')
+        .select('id, display_name, legacy_council_id, legacy_organization_id, local_unit_kind')
+        .eq('legacy_organization_id', args.permissions.organizationId)
+        .order('local_unit_kind', { ascending: true })
+        .limit(1)
+        .returns<LocalUnitRow[]>()
+
+      activeLocalUnitId = data?.[0]?.id ?? null
+    }
+
+    if (!activeLocalUnitId) {
+      return empty
+    }
+
+    const { data: localUnitData } = await args.admin
+      .from('local_units')
+      .select('id, display_name, legacy_council_id, legacy_organization_id, local_unit_kind')
+      .eq('id', activeLocalUnitId)
+      .maybeSingle<LocalUnitRow>()
+
+    const currentLocalUnit = (localUnitData as LocalUnitRow | null) ?? null
+    const { data: councilData } =
+      currentLocalUnit?.legacy_council_id
+        ? await args.admin
+            .from('councils')
+            .select('id, name, council_number, organization_id')
+            .eq('id', currentLocalUnit.legacy_council_id)
+            .maybeSingle<CouncilRow>()
+        : { data: null }
+
+    return {
+      council: councilData ?? null,
+      currentLocalUnit,
+      switchableLocalUnits: [],
+    }
   }
 
   const cookieStore = await cookies()
@@ -240,17 +297,31 @@ export default async function HomePage() {
   return (
     <main className="qv-page">
       <div className={`qv-shell ${styles.shell}`}>
-        <AppHeader />
+        <AppHeader permissions={permissions} />
 
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
+            <p
+              style={{
+                margin: '0 0 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              {council?.name ?? unitName}
+              {council?.council_number ? ` (${council.council_number})` : ''}
+            </p>
+
             <h1 className={styles.heroTitle}>
               Your ministry,
               <br />
               organized.
             </h1>
 
-            {switchableLocalUnits.length > 0 ? (
+            {switchableLocalUnits.length > 0 && !(permissions.isSuperAdmin && permissions.actingMode !== 'normal') ? (
               <div style={{ marginTop: 18, width: 'fit-content', maxWidth: '100%', position: 'relative' }}>
                 <details className="qv-view-menu" style={{ position: 'relative' }}>
                   <summary>
