@@ -8,6 +8,7 @@ import {
   type ManagedAreaAccessLevel,
   type ManagedAreaCode,
 } from '@/lib/auth/area-access'
+import { hasEventManagementAccess } from '@/lib/auth/resource-access'
 import {
   getSelectedLocalUnitIdForArea,
   OPERATIONS_SCOPE_COOKIE,
@@ -18,6 +19,17 @@ export type ActingCouncilRow = {
   name: string | null
   council_number: string | null
   organization_id: string | null
+}
+
+type ActingLocalUnitRow = {
+  id: string
+  legacy_council_id: string | null
+}
+
+type EventContextRow = {
+  id: string
+  council_id: string | null
+  local_unit_id: string | null
 }
 
 export type ActingCouncilContext = {
@@ -95,7 +107,46 @@ async function buildContextFromCouncil(args: {
   } satisfies ActingCouncilContext
 }
 
-async function resolveScopedCouncilId(args: {
+async function buildContextFromLocalUnit(args: {
+  admin: ReturnType<typeof createAdminClient>
+  permissions: CurrentUserPermissions
+  localUnitId: string
+  patchPermissions?: Partial<CurrentUserPermissions>
+}) {
+  const { data } = await args.admin
+    .from('local_units')
+    .select('id, legacy_council_id')
+    .eq('id', args.localUnitId)
+    .maybeSingle<ActingLocalUnitRow>()
+
+  const localUnit = (data as ActingLocalUnitRow | null) ?? null
+  if (!localUnit?.legacy_council_id) {
+    return null
+  }
+
+  const council = await loadCouncilById({
+    admin: args.admin,
+    councilId: localUnit.legacy_council_id,
+  })
+
+  if (!council) {
+    return null
+  }
+
+  return {
+    admin: args.admin,
+    permissions: {
+      ...args.permissions,
+      ...args.patchPermissions,
+      councilId: council.id,
+      organizationId: council.organization_id ?? args.permissions.organizationId,
+    },
+    council,
+    localUnitId: localUnit.id,
+  } satisfies ActingCouncilContext
+}
+
+async function resolveScopedLocalUnitId(args: {
   admin: ReturnType<typeof createAdminClient>
   permissions: CurrentUserPermissions
   areaCode: ManagedAreaCode
@@ -104,7 +155,28 @@ async function resolveScopedCouncilId(args: {
   const { admin, permissions, areaCode, minimumAccessLevel } = args
 
   if (!permissions.authUser) {
-    return getFallbackCouncilId(permissions)
+    const fallbackCouncilId = getFallbackCouncilId(permissions)
+    if (!fallbackCouncilId) {
+      return null
+    }
+
+    const currentLocalUnit = await findLocalUnitByLegacyCouncilId({
+      admin,
+      councilId: fallbackCouncilId,
+    }).catch(() => null)
+
+    return currentLocalUnit?.id ?? null
+  }
+
+  const accessibleLocalUnits = await listAccessibleLocalUnitsForArea({
+    admin,
+    userId: permissions.authUser.id,
+    areaCode,
+    minimumAccessLevel,
+  }).catch(() => [])
+
+  if (accessibleLocalUnits.length === 0) {
+    return null
   }
 
   const cookieStore = await cookies()
@@ -113,37 +185,26 @@ async function resolveScopedCouncilId(args: {
     areaCode,
   })
 
-  if (selectedLocalUnitId) {
-    try {
-      const accessibleLocalUnits = await listAccessibleLocalUnitsForArea({
-        admin,
-        userId: permissions.authUser.id,
-        areaCode,
-        minimumAccessLevel,
-      })
+  if (selectedLocalUnitId && accessibleLocalUnits.some((unit) => unit.local_unit_id === selectedLocalUnitId)) {
+    return selectedLocalUnitId
+  }
 
-      const isAllowedSelection = accessibleLocalUnits.some(
-        (unit) => unit.local_unit_id === selectedLocalUnitId
-      )
+  if (permissions.councilId) {
+    const currentLocalUnit = await findLocalUnitByLegacyCouncilId({
+      admin,
+      councilId: permissions.councilId,
+    }).catch(() => null)
 
-      if (isAllowedSelection) {
-        const { data } = await admin
-          .from('local_units')
-          .select('legacy_council_id')
-          .eq('id', selectedLocalUnitId)
-          .maybeSingle<{ legacy_council_id: string | null }>()
-
-        const selectedCouncilId = data?.legacy_council_id ?? null
-        if (selectedCouncilId) {
-          return selectedCouncilId
-        }
-      }
-    } catch {
-      // Fall back to the global active context below.
+    if (currentLocalUnit?.id && accessibleLocalUnits.some((unit) => unit.local_unit_id === currentLocalUnit.id)) {
+      return currentLocalUnit.id
     }
   }
 
-  return getFallbackCouncilId(permissions)
+  const sortedAccessibleLocalUnits = [...accessibleLocalUnits].sort((left, right) =>
+    left.local_unit_name.localeCompare(right.local_unit_name)
+  )
+
+  return sortedAccessibleLocalUnits[0]?.local_unit_id ?? null
 }
 
 export async function findCurrentActingCouncilContextForArea(options: {
@@ -156,13 +217,26 @@ export async function findCurrentActingCouncilContextForArea(options: {
   if (!permissions.authUser) return null
   if (!hasAreaPermission({ permissions, areaCode: options.areaCode })) return null
 
-  const councilId = await resolveScopedCouncilId({
+  const localUnitId = await resolveScopedLocalUnitId({
     admin,
     permissions,
     areaCode: options.areaCode,
     minimumAccessLevel: options.minimumAccessLevel,
   })
 
+  if (localUnitId) {
+    const context = await buildContextFromLocalUnit({
+      admin,
+      permissions,
+      localUnitId,
+    })
+
+    if (context) {
+      return context
+    }
+  }
+
+  const councilId = getFallbackCouncilId(permissions)
   if (!councilId) return null
 
   return buildContextFromCouncil({
@@ -187,16 +261,34 @@ export async function getCurrentActingCouncilContext(options?: {
   if (requireAdmin && !permissions.hasStaffAccess) redirect('/me')
   if (!hasAreaPermission({ permissions, areaCode: options?.areaCode })) redirect(redirectTo)
 
-  const councilId =
+  const localUnitId =
     options?.areaCode && options?.minimumAccessLevel
-      ? await resolveScopedCouncilId({
+      ? await resolveScopedLocalUnitId({
           admin,
           permissions,
           areaCode: options.areaCode,
           minimumAccessLevel: options.minimumAccessLevel,
         })
-      : getFallbackCouncilId(permissions)
+      : permissions.councilId
+        ? await findLocalUnitByLegacyCouncilId({
+            admin,
+            councilId: permissions.councilId,
+          }).then((row) => row?.id ?? null)
+        : null
 
+  if (localUnitId) {
+    const context = await buildContextFromLocalUnit({
+      admin,
+      permissions,
+      localUnitId,
+    })
+
+    if (context) {
+      return context
+    }
+  }
+
+  const councilId = getFallbackCouncilId(permissions)
   if (!councilId) redirect(redirectTo)
 
   const context = await buildContextFromCouncil({
@@ -224,11 +316,37 @@ export async function getCurrentActingCouncilContextForEvent(options: {
 
   const { data: eventData } = await admin
     .from('events')
-    .select('id, council_id')
+    .select('id, council_id, local_unit_id')
     .eq('id', options.eventId)
-    .maybeSingle<{ id: string; council_id: string }>()
+    .maybeSingle<EventContextRow>()
 
-  const event = eventData ?? null
+  const event = (eventData as EventContextRow | null) ?? null
+
+  const canUseEventLocalUnit =
+    Boolean(event?.local_unit_id && permissions.authUser?.id) &&
+    await hasEventManagementAccess({
+      admin,
+      userId: permissions.authUser!.id,
+      localUnitId: event!.local_unit_id!,
+      eventId: options.eventId,
+    }).catch(() => false)
+
+  if (event?.local_unit_id && canUseEventLocalUnit) {
+    const eventContext = await buildContextFromLocalUnit({
+      admin,
+      permissions,
+      localUnitId: event.local_unit_id,
+      patchPermissions: {
+        hasStaffAccess: true,
+        canManageEvents: true,
+      },
+    })
+
+    if (eventContext) {
+      return eventContext
+    }
+  }
+
   const canUseEventCouncil = Boolean(
     event?.council_id &&
       (

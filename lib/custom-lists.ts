@@ -155,6 +155,77 @@ export async function resolveCustomListLocalUnitId(args: {
   return localUnit?.id ?? null
 }
 
+
+export async function resolveLegacyCouncilIdForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+}) {
+  const { data, error } = await args.admin
+    .from('local_units')
+    .select('legacy_council_id')
+    .eq('id', args.localUnitId)
+    .maybeSingle<{ legacy_council_id: string | null }>()
+
+  if (error) {
+    throw new Error(`Could not load legacy council for local unit ${args.localUnitId}: ${error.message}`)
+  }
+
+  return data?.legacy_council_id ?? null
+}
+
+export async function listValidMemberPersonIdsForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+  personIds: string[]
+}) {
+  const uniquePersonIds = [...new Set(args.personIds.filter(Boolean))]
+  if (uniquePersonIds.length === 0) {
+    return [] as string[]
+  }
+
+  const { data: membershipRows, error: membershipError } = await args.admin
+    .from('member_records')
+    .select('legacy_people_id')
+    .eq('local_unit_id', args.localUnitId)
+    .in('legacy_people_id', uniquePersonIds)
+    .is('archived_at', null)
+
+  if (membershipError) {
+    throw new Error(`Could not validate local-unit member records: ${membershipError.message}`)
+  }
+
+  const scopedPersonIds = [
+    ...new Set(
+      ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
+        .map((row) => row.legacy_people_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+
+  if (scopedPersonIds.length === 0) {
+    return [] as string[]
+  }
+
+  const { data: peopleRows, error: peopleError } = await args.admin
+    .from('people')
+    .select('id')
+    .in('id', scopedPersonIds)
+    .eq('primary_relationship_code', 'member')
+    .is('archived_at', null)
+
+  if (peopleError) {
+    throw new Error(`Could not validate members in the active directory: ${peopleError.message}`)
+  }
+
+  return [
+    ...new Set(
+      ((peopleRows as Array<{ id: string | null }> | null) ?? [])
+        .map((row) => row.id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+}
+
 export async function hasStrictCustomListLifecycleAccess(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
@@ -256,39 +327,27 @@ export async function canManageCustomList(
   list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
   admin: SupabaseClient
 ) {
-  if (permissions.canManageCustomLists && permissions.councilId && list.council_id === permissions.councilId) {
-    return true
-  }
-
-  if (!list.local_unit_id) {
+  const userId = permissions.authUser?.id
+  if (!userId) {
     return false
   }
 
-  const memberRecordIds = await listLinkedMemberRecordIds({
+  const localUnitId = await resolveCustomListLocalUnitId({
     admin,
-    permissions,
-    localUnitId: list.local_unit_id,
+    list,
   })
 
-  if (memberRecordIds.length === 0) {
+  if (!localUnitId) {
     return false
   }
 
-  const { data: grantRows, error: grantError } = await admin
-    .from('area_access_grants')
-    .select('id')
-    .eq('local_unit_id', list.local_unit_id)
-    .eq('area_code', 'custom_lists')
-    .eq('access_level', 'manage')
-    .is('revoked_at', null)
-    .in('member_record_id', memberRecordIds)
-    .limit(1)
-
-  if (grantError) {
-    throw new Error(`Could not verify custom list management access: ${grantError.message}`)
-  }
-
-  return Boolean(grantRows && grantRows.length > 0)
+  return hasAreaAccess({
+    admin,
+    userId,
+    localUnitId,
+    areaCode: 'custom_lists',
+    minimumAccessLevel: 'manage',
+  })
 }
 
 export async function canViewCustomList(args: {

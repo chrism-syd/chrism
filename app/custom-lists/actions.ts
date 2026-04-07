@@ -9,6 +9,7 @@ import {
   canManageCustomList,
   canViewCustomList,
   hasStrictCustomListLifecycleAccess,
+  listValidMemberPersonIdsForLocalUnit,
   normalizeEmail,
   resolveCustomListLocalUnitId,
   type CustomListRow,
@@ -124,7 +125,7 @@ export async function createCustomListFromMembersAction(
     return { error: 'There are no members in this filtered view to save into a custom list.' }
   }
 
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
@@ -132,29 +133,23 @@ export async function createCustomListFromMembersAction(
   })
   const authUserId = permissions.authUser?.id ?? null
 
-  const { data: localUnitData } = await admin
-    .from('local_units')
-    .select('id')
-    .eq('legacy_council_id', council.id)
-    .limit(1)
-    .maybeSingle<{ id: string }>()
-
-  const localUnitId = localUnitData?.id ?? null
-
-  const { data: validMembers, error: membersError } = await admin
-    .from('people')
-    .select('id')
-    .in('id', memberIds)
-    .eq('council_id', council.id)
-    .eq('primary_relationship_code', 'member')
-    .is('archived_at', null)
-
-  if (membersError) {
-    return { error: `Could not load the members for this list. ${membersError.message}` }
+  if (!localUnitId) {
+    return { error: 'We could not resolve the active local organization for this custom list.' }
   }
 
-  const validMemberIds = ((validMembers as Array<{ id: string }> | null) ?? []).map((member) => member.id)
-  if (validMemberIds.length === 0) {
+  let scopedMemberIds: string[] = []
+  try {
+    scopedMemberIds = await listValidMemberPersonIdsForLocalUnit({
+      admin,
+      localUnitId,
+      personIds: memberIds,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Please try again.'
+    return { error: `Could not load the members for this list. ${message}` }
+  }
+
+  if (scopedMemberIds.length === 0) {
     return { error: 'The selected members are no longer available in the active directory.' }
   }
 
@@ -176,7 +171,7 @@ export async function createCustomListFromMembersAction(
   }
 
   const { error: memberInsertError } = await admin.from('custom_list_members').insert(
-    validMemberIds.map((personId) => ({
+    scopedMemberIds.map((personId) => ({
       custom_list_id: customListData.id,
       person_id: personId,
       added_by_auth_user_id: authUserId,
@@ -360,12 +355,22 @@ export async function shareCustomListAction(formData: FormData) {
     redirect(`/custom-lists/${customListId}`)
   }
 
+  const localUnitId = await resolveCustomListLocalUnitId({ admin, list })
+  if (!localUnitId) {
+    throw new Error('This custom list is missing its local organization link.')
+  }
+
   const uniquePersonIds = [...new Set(personIds)]
+  const scopedPersonIds = await listValidMemberPersonIdsForLocalUnit({
+    admin,
+    localUnitId,
+    personIds: uniquePersonIds,
+  })
+
   const { data: peopleRows, error: peopleError } = await admin
     .from('people')
     .select('id, email')
-    .in('id', uniquePersonIds)
-    .eq('council_id', list.council_id)
+    .in('id', scopedPersonIds)
     .eq('primary_relationship_code', 'member')
     .is('archived_at', null)
 
@@ -631,16 +636,18 @@ export async function addCustomListMemberAction(formData: FormData) {
     redirect(`/custom-lists/${customListId}`)
   }
 
-  const { data: personRow, error: personError } = await admin
-    .from('people')
-    .select('id')
-    .eq('id', personId)
-    .eq('council_id', list.council_id)
-    .eq('primary_relationship_code', 'member')
-    .is('archived_at', null)
-    .maybeSingle<{ id: string }>()
+  const localUnitId = await resolveCustomListLocalUnitId({ admin, list })
+  if (!localUnitId) {
+    throw new Error('This custom list is missing its local organization link.')
+  }
 
-  if (personError || !personRow) {
+  const scopedPersonIds = await listValidMemberPersonIdsForLocalUnit({
+    admin,
+    localUnitId,
+    personIds: [personId],
+  })
+
+  if (!scopedPersonIds.includes(personId)) {
     throw new Error('We could not find that member in this directory.')
   }
 

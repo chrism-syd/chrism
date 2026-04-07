@@ -1,9 +1,17 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import OrganizationAvatar from '@/app/components/organization-avatar'
-import { findCurrentActingCouncilContextForArea } from '@/lib/auth/acting-context'
-import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
+import {
+  listAccessibleLocalUnitsForArea,
+  type ManagedAreaAccessLevel,
+  type ManagedAreaCode,
+} from '@/lib/auth/area-access'
+import {
+  getSelectedOperationsLocalUnitId,
+  OPERATIONS_SCOPE_COOKIE,
+} from '@/lib/auth/operations-scope-selection'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
@@ -14,6 +22,12 @@ type CouncilRow = {
   name: string | null
   council_number: string | null
   organization_id: string | null
+}
+
+type LocalUnitRow = {
+  id: string
+  display_name: string | null
+  legacy_council_id: string | null
 }
 
 type OrganizationRow = {
@@ -29,6 +43,25 @@ type OrganizationRow = {
     logo_alt_text: string | null
   } | null
 } | null
+
+type HomeScopeOption = {
+  local_unit_id: string
+  local_unit_name: string
+  areaCode: ManagedAreaCode
+  minimumAccessLevel: ManagedAreaAccessLevel
+}
+
+const HOME_SCOPE_RULES: Array<{
+  areaCode: ManagedAreaCode
+  minimumAccessLevel: ManagedAreaAccessLevel
+}> = [
+  { areaCode: 'members', minimumAccessLevel: 'edit_manage' },
+  { areaCode: 'events', minimumAccessLevel: 'manage' },
+  { areaCode: 'custom_lists', minimumAccessLevel: 'manage' },
+  { areaCode: 'local_unit_settings', minimumAccessLevel: 'manage' },
+  { areaCode: 'admins', minimumAccessLevel: 'manage' },
+  { areaCode: 'claims', minimumAccessLevel: 'manage' },
+]
 
 async function loadOrganizationProfile(args: {
   admin: ReturnType<typeof createAdminClient>
@@ -51,6 +84,117 @@ async function loadOrganizationProfile(args: {
   return (data as OrganizationRow) ?? null
 }
 
+async function listHomeAccessibleLocalUnits(args: {
+  admin: ReturnType<typeof createAdminClient>
+  userId: string
+}) {
+  const results = await Promise.all(
+    HOME_SCOPE_RULES.map(async (rule) => ({
+      rule,
+      units: await listAccessibleLocalUnitsForArea({
+        admin: args.admin,
+        userId: args.userId,
+        areaCode: rule.areaCode,
+        minimumAccessLevel: rule.minimumAccessLevel,
+      }).catch(() => []),
+    }))
+  )
+
+  const byId = new Map<string, HomeScopeOption>()
+
+  for (const result of results) {
+    for (const unit of result.units) {
+      if (byId.has(unit.local_unit_id)) {
+        continue
+      }
+
+      byId.set(unit.local_unit_id, {
+        local_unit_id: unit.local_unit_id,
+        local_unit_name: unit.local_unit_name,
+        areaCode: result.rule.areaCode,
+        minimumAccessLevel: result.rule.minimumAccessLevel,
+      })
+    }
+  }
+
+  return [...byId.values()].sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
+}
+
+async function resolveHomeContext(args: {
+  admin: ReturnType<typeof createAdminClient>
+  permissions: Awaited<ReturnType<typeof getCurrentUserPermissions>>
+}) {
+  const empty = {
+    council: null as CouncilRow | null,
+    currentLocalUnit: null as LocalUnitRow | null,
+    switchableLocalUnits: [] as HomeScopeOption[],
+  }
+
+  if (!args.permissions.authUser) {
+    return empty
+  }
+
+  const cookieStore = await cookies()
+  const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
+    rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
+  })
+
+  const accessibleLocalUnits = await listHomeAccessibleLocalUnits({
+    admin: args.admin,
+    userId: args.permissions.authUser.id,
+  })
+
+  if (accessibleLocalUnits.length === 0) {
+    return empty
+  }
+
+  let activeLocalUnitId =
+    selectedLocalUnitId && accessibleLocalUnits.some((unit) => unit.local_unit_id === selectedLocalUnitId)
+      ? selectedLocalUnitId
+      : null
+
+  if (!activeLocalUnitId && args.permissions.councilId) {
+    const { data } = await args.admin
+      .from('local_units')
+      .select('id, display_name, legacy_council_id')
+      .eq('legacy_council_id', args.permissions.councilId)
+      .limit(1)
+      .maybeSingle<LocalUnitRow>()
+
+    if (data?.id && accessibleLocalUnits.some((unit) => unit.local_unit_id === data.id)) {
+      activeLocalUnitId = data.id
+    }
+  }
+
+  activeLocalUnitId ??= accessibleLocalUnits[0]?.local_unit_id ?? null
+
+  if (!activeLocalUnitId) {
+    return empty
+  }
+
+  const { data: localUnitData } = await args.admin
+    .from('local_units')
+    .select('id, display_name, legacy_council_id')
+    .eq('id', activeLocalUnitId)
+    .maybeSingle<LocalUnitRow>()
+
+  const currentLocalUnit = (localUnitData as LocalUnitRow | null) ?? null
+  const { data: councilData } =
+    currentLocalUnit?.legacy_council_id
+      ? await args.admin
+          .from('councils')
+          .select('id, name, council_number, organization_id')
+          .eq('id', currentLocalUnit.legacy_council_id)
+          .maybeSingle<CouncilRow>()
+      : { data: null }
+
+  return {
+    council: councilData ?? null,
+    currentLocalUnit,
+    switchableLocalUnits: accessibleLocalUnits.filter((unit) => unit.local_unit_id !== activeLocalUnitId),
+  }
+}
+
 export default async function HomePage() {
   const permissions = await getCurrentUserPermissions()
 
@@ -68,22 +212,10 @@ export default async function HomePage() {
   }
 
   const admin = createAdminClient()
-  const operationsContext = await findCurrentActingCouncilContextForArea({
-    areaCode: 'events',
-    minimumAccessLevel: 'manage',
+  const { council, currentLocalUnit, switchableLocalUnits } = await resolveHomeContext({
+    admin,
+    permissions,
   })
-
-  const effectiveCouncilId = operationsContext?.council.id ?? permissions.councilId ?? null
-
-  const { data: councilData } = effectiveCouncilId
-    ? await admin
-        .from('councils')
-        .select('id, name, council_number, organization_id')
-        .eq('id', effectiveCouncilId)
-        .maybeSingle<CouncilRow>()
-    : { data: null }
-
-  const council = councilData ?? null
 
   if (!council?.id) {
     if (permissions.canManageEvents) redirect('/events')
@@ -100,24 +232,10 @@ export default async function HomePage() {
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
-  const unitName = council.name?.trim() || organizationName
+  const unitName = currentLocalUnit?.display_name?.trim() || council.name?.trim() || organizationName
   const publicMeetingsHref = council.council_number
     ? `/councils/${council.council_number}/meetings`
     : '/events'
-
-  const switchableLocalUnits =
-    operationsContext?.permissions.authUser
-      ? (
-          await listAccessibleLocalUnitsForArea({
-            admin,
-            userId: operationsContext.permissions.authUser.id,
-            areaCode: 'events',
-            minimumAccessLevel: 'manage',
-          })
-        )
-          .filter((unit) => unit.local_unit_id !== operationsContext.localUnitId)
-          .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
-      : []
 
   return (
     <main className="qv-page">
@@ -144,8 +262,8 @@ export default async function HomePage() {
                   <div className="qv-view-menu-panel" style={{ left: 0, right: 'auto' }}>
                     {switchableLocalUnits.map((unit) => (
                       <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
-                        <input type="hidden" name="areaCode" value="events" />
-                        <input type="hidden" name="minimumAccessLevel" value="manage" />
+                        <input type="hidden" name="areaCode" value={unit.areaCode} />
+                        <input type="hidden" name="minimumAccessLevel" value={unit.minimumAccessLevel} />
                         <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
                         <input type="hidden" name="next" value="/" />
                         <button

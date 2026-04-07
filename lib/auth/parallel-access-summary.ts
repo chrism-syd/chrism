@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import type { CurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -7,6 +8,10 @@ import {
   listAccessibleLocalUnitsForArea,
 } from '@/lib/auth/area-access'
 import { isParallelAreaAccessEnabled } from '@/lib/auth/feature-flags'
+import {
+  getSelectedOperationsLocalUnitId,
+  OPERATIONS_SCOPE_COOKIE,
+} from '@/lib/auth/operations-scope-selection'
 
 async function countAreaUnits(args: {
   admin: ReturnType<typeof createAdminClient>
@@ -29,11 +34,23 @@ async function countAreaUnits(args: {
   return units.length
 }
 
+async function resolveSelectedOperationsLocalUnitId() {
+  const cookieStore = await cookies()
+  return getSelectedOperationsLocalUnitId({
+    rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
+  })
+}
+
 async function resolveActiveLocalUnitId(args: {
   admin: ReturnType<typeof createAdminClient>
   permissions: CurrentUserPermissions
 }) {
   const { admin, permissions } = args
+
+  const selectedOperationsLocalUnitId = await resolveSelectedOperationsLocalUnitId()
+  if (selectedOperationsLocalUnitId) {
+    return selectedOperationsLocalUnitId
+  }
 
   if (permissions.councilId) {
     const row = await findLocalUnitByLegacyCouncilId({

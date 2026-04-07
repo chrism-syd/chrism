@@ -42,6 +42,10 @@ type DirectoryLocalUnitRow = LocalUnitRow & {
   legacy_council_id: string | null
 }
 
+type ContextLocalUnitRow = DirectoryLocalUnitRow & {
+  legacy_organization_id: string | null
+}
+
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
@@ -336,10 +340,9 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   const cookieStore = await cookies()
   const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
     rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
-    areaCode: 'custom_lists',
   })
 
-  const [manageableLocalUnitIds, sharedIds, legacyContextLocalUnitId, organizationLocalUnitIds, councilResult] = await Promise.all([
+  const [manageableLocalUnitIds, sharedIds, legacyContextLocalUnitId, organizationLocalUnitIds] = await Promise.all([
     listManageableLocalUnitIdsForCustomLists({ admin, permissions }),
     listSharedCustomListIdsForUser({ admin, permissions }),
     permissions.councilId
@@ -358,13 +361,6 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
           .eq('legacy_organization_id', permissions.organizationId)
           .then((result) => ((result.data as Array<{ id: string }> | null) ?? []).map((row) => row.id))
       : Promise.resolve([] as string[]),
-    permissions.councilId
-      ? admin
-          .from('councils')
-          .select('id, name, council_number, organization_id')
-          .eq('id', permissions.councilId)
-          .maybeSingle<CouncilContextRow>()
-      : Promise.resolve({ data: null }),
   ])
 
   const activeLocalUnitId =
@@ -403,18 +399,16 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
 
-  if (activeLocalUnitId) {
-    query = query.eq('local_unit_id', activeLocalUnitId)
-  } else if (organizationLocalUnitIds.length > 0) {
-    query = query.in('local_unit_id', organizationLocalUnitIds)
-  } else if (permissions.councilId) {
-    query = query.eq('council_id', permissions.councilId)
+  const filters: string[] = []
+
+  if (activeLocalUnitId && manageableLocalUnitIds.includes(activeLocalUnitId)) {
+    filters.push(`local_unit_id.eq.${activeLocalUnitId}`)
+  } else if (scopedManageableLocalUnitIds.length > 0) {
+    filters.push(`local_unit_id.in.(${scopedManageableLocalUnitIds.join(',')})`)
+  } else if (sharedIds.length === 0 && permissions.councilId) {
+    filters.push(`council_id.eq.${permissions.councilId}`)
   }
 
-  const filters: string[] = []
-  if (scopedManageableLocalUnitIds.length > 0) {
-    filters.push(`local_unit_id.in.(${scopedManageableLocalUnitIds.join(',')})`)
-  }
   if (sharedIds.length > 0) {
     filters.push(`id.in.(${sharedIds.join(',')})`)
   }
@@ -433,8 +427,18 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   const lists = listRows ?? []
   const listIds = lists.map((list) => list.id)
   const localUnitIds = [...new Set(lists.map((list) => list.local_unit_id).filter((value): value is string => Boolean(value)))]
+  const contextLocalUnitIds = [...new Set([
+    ...contextScopedManageableLocalUnitIds,
+    ...(activeLocalUnitId ? [activeLocalUnitId] : []),
+  ])]
 
-  const [memberCountResult, accessCountResult, localUnitsResult, contextLocalUnitsResult] = await Promise.all([
+  const [
+    memberCountResult,
+    accessCountResult,
+    localUnitsResult,
+    contextLocalUnitsResult,
+    activeContextUnitResult,
+  ] = await Promise.all([
     listIds.length > 0
       ? admin.from('custom_list_members').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
       : Promise.resolve({ data: [] as CountRow[] }),
@@ -444,9 +448,20 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     localUnitIds.length > 0
       ? admin.from('local_units').select('id, display_name').in('id', localUnitIds).returns<LocalUnitRow[]>()
       : Promise.resolve({ data: [] as LocalUnitRow[] }),
-    contextScopedManageableLocalUnitIds.length > 0
-      ? admin.from('local_units').select('id, display_name').in('id', contextScopedManageableLocalUnitIds).returns<LocalUnitRow[]>()
+    contextLocalUnitIds.length > 0
+      ? admin
+          .from('local_units')
+          .select('id, display_name')
+          .in('id', contextLocalUnitIds)
+          .returns<LocalUnitRow[]>()
       : Promise.resolve({ data: [] as LocalUnitRow[] }),
+    activeLocalUnitId
+      ? admin
+          .from('local_units')
+          .select('id, display_name, legacy_council_id, legacy_organization_id')
+          .eq('id', activeLocalUnitId)
+          .maybeSingle<ContextLocalUnitRow>()
+      : Promise.resolve({ data: null as ContextLocalUnitRow | null }),
   ])
 
   const memberCounts = new Map<string, number>()
@@ -471,10 +486,21 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
       local_unit_name: row.display_name ?? 'Organization',
     }))
 
-  const organization = councilResult.data
+  const activeContextUnit = (activeContextUnitResult.data as ContextLocalUnitRow | null) ?? null
+  const contextCouncilId = activeContextUnit?.legacy_council_id ?? permissions.councilId ?? null
+  const { data: councilData } =
+    contextCouncilId
+      ? await admin
+          .from('councils')
+          .select('id, name, council_number, organization_id')
+          .eq('id', contextCouncilId)
+          .maybeSingle<CouncilContextRow>()
+      : { data: null }
+
+  const organization = councilData
     ? await loadOrganizationProfile({
         admin,
-        council: councilResult.data,
+        council: councilData,
       })
     : null
   const organizationName = getEffectiveOrganizationName(organization)
