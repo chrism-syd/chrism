@@ -49,6 +49,7 @@ export type CurrentUserPermissions = {
   actingMode: ActingMode
   isDevMode: boolean
   currentViewLabel: string | null
+  activeLocalUnitId: string | null
   organizationId: string | null
   organizationName: string | null
   councilId: string | null
@@ -142,6 +143,7 @@ type ParallelUnitCapabilities = {
 
 type ParallelAccessState = {
   contextSeeds: Array<{
+    localUnitId: string
     organizationId: string | null
     councilId: string | null
     accessLevel: 'member' | 'admin' | 'manager'
@@ -416,6 +418,7 @@ async function loadParallelAccessState(args: {
       : 'parallel_area_access'
 
     contextSeeds.push({
+      localUnitId: localUnit.id,
       organizationId,
       councilId: localUnit.legacy_council_id,
       accessLevel,
@@ -423,6 +426,7 @@ async function loadParallelAccessState(args: {
     })
 
     const contextKey = buildAccessContextKey({
+      localUnitId: localUnit.id,
       organizationId,
       councilId: localUnit.legacy_council_id,
       accessLevel,
@@ -441,7 +445,6 @@ async function loadParallelAccessState(args: {
     localUnitIdByContextKey,
   }
 }
-
 
 async function tryResolveActiveLocalUnitId(args: {
   admin: ReturnType<typeof createAdminClient>
@@ -562,6 +565,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       actingMode: 'normal',
       isDevMode: false,
       currentViewLabel: null,
+      activeLocalUnitId: null,
       organizationId: null,
       organizationName: null,
       councilId: null,
@@ -697,7 +701,9 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       ).data as LinkedPersonCouncilRow | null)
     : null
 
-  const memberCouncilId = linkedPersonRow?.council_id ?? appUser?.council_id ?? null
+  const linkedPersonCouncilId = linkedPersonRow?.council_id ?? null
+  const appUserCouncilId = appUser?.council_id ?? null
+  const memberCouncilId = linkedPersonCouncilId ?? derivedOfficerEmailCouncilId ?? appUserCouncilId ?? null
   const parallelAccessState = await loadParallelAccessState({
     admin,
     userId: user.id,
@@ -742,12 +748,12 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const organizationProfiles =
     organizationIds.length > 0
-      ? (((
+      ? ((((
           await admin
             .from('organizations')
             .select('id, display_name, preferred_name')
             .in('id', organizationIds)
-        ).data as OrganizationProfileRow[] | null) ?? [])
+        ).data as OrganizationProfileRow[] | null) ?? []))
       : []
 
   const mergedOrganizationProfiles = [
@@ -756,6 +762,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   ].filter((row, index, rows) => rows.findIndex((candidate) => candidate.id === row.id) === index)
 
   const accessSeeds: Array<{
+    localUnitId?: string | null
     organizationId: string | null
     councilId: string | null
     accessLevel: 'member' | 'admin' | 'manager'
@@ -764,15 +771,15 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   if (memberCouncilId) {
     accessSeeds.push({
+      localUnitId: null,
       organizationId: null,
       councilId: memberCouncilId,
       accessLevel: 'member',
-      source: linkedPersonRow?.council_id ? 'linked_person' : 'app_user',
+      source: linkedPersonCouncilId ? 'linked_person' : 'app_user',
     })
   }
 
   accessSeeds.push(...parallelAccessState.contextSeeds)
-
 
   // TODO(multi-org): once a real memberships table exists, feed it here instead of relying on people.council_id and users.council_id.
   const availableContexts = buildAccessContexts({
@@ -799,7 +806,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     authUserId: user.id,
     existingAppUser: appUser,
     personId,
-    councilId: defaultCouncilId,
+    councilId: linkedPersonCouncilId ?? derivedOfficerEmailCouncilId ?? null,
     isSuperAdmin,
   })
 
@@ -830,7 +837,8 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
         availableContexts.filter(
           (context) =>
             context.accessLevel !== 'member' &&
-            parallelAccessState.localUnitIdByContextKey.get(context.key) === requestedOperationsLocalUnitId
+            (context.localUnitId === requestedOperationsLocalUnitId ||
+              parallelAccessState.localUnitIdByContextKey.get(context.key) === requestedOperationsLocalUnitId)
         )
       )
     : null
@@ -905,8 +913,10 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     createEmptyParallelUnitCapabilities()
   )
 
-  const activeLocalUnitId =
-    (activeAccessContext ? parallelAccessState.localUnitIdByContextKey.get(activeAccessContext.key) ?? null : null) ??
+  let activeLocalUnitId =
+    (activeAccessContext?.localUnitId ??
+      (activeAccessContext ? parallelAccessState.localUnitIdByContextKey.get(activeAccessContext.key) ?? null : null)) ??
+    requestedOperationsLocalUnitId ??
     (await tryResolveActiveLocalUnitId({
       admin,
       councilId,
@@ -944,7 +954,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
     isCouncilAdmin = resolvedMemberManage
   }
-
 
   if ((!activeLocalUnitId || !hasStaffAccess) && !(isSuperAdmin && actingMode === 'member')) {
     const resolvedMemberManage = aggregatedParallelCapabilities.members
@@ -989,6 +998,32 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     canManageAdmins = false
   }
 
+  if (activeLocalUnitId && !(isSuperAdmin && actingMode === 'member')) {
+    const { data: activeLocalUnitData } = await admin
+      .from('local_units')
+      .select('id, legacy_council_id, legacy_organization_id')
+      .eq('id', activeLocalUnitId)
+      .maybeSingle<LocalUnitProfileRow>()
+
+    const activeLocalUnit = (activeLocalUnitData as LocalUnitProfileRow | null) ?? null
+    if (activeLocalUnit) {
+      councilId = activeLocalUnit.legacy_council_id ?? councilId
+      organizationId =
+        activeLocalUnit.legacy_organization_id ??
+        councilProfiles.find((council) => council.id === councilId)?.organization_id ??
+        organizationId
+
+      const scopedOrganization = organizationId
+        ? mergedOrganizationProfiles.find((organization) => organization.id === organizationId) ?? null
+        : null
+
+      organizationName =
+        scopedOrganization?.preferred_name ??
+        scopedOrganization?.display_name ??
+        organizationName
+    }
+  }
+
   const currentViewLabel = isSuperAdmin
     ? getSuperAdminViewLabel({ mode: actingMode, organizationName })
     : activeAccessContext && defaultContext && activeAccessContext.key !== defaultContext.key
@@ -1022,6 +1057,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     actingMode,
     isDevMode: actingMode !== 'normal',
     currentViewLabel,
+    activeLocalUnitId,
     organizationId,
     organizationName,
     councilId,

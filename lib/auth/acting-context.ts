@@ -42,6 +42,7 @@ export type ActingCouncilContext = {
 function getFallbackCouncilId(permissions: CurrentUserPermissions) {
   return (
     permissions.councilId ??
+    permissions.availableContexts.find((context) => context.localUnitId === permissions.activeLocalUnitId)?.councilId ??
     permissions.availableContexts.find((context) => context.councilId)?.councilId ??
     null
   )
@@ -99,6 +100,7 @@ async function buildContextFromCouncil(args: {
     permissions: {
       ...args.permissions,
       ...args.patchPermissions,
+      activeLocalUnitId: currentLocalUnit?.id ?? args.permissions.activeLocalUnitId,
       councilId: council.id,
       organizationId: council.organization_id ?? args.permissions.organizationId,
     },
@@ -138,6 +140,7 @@ async function buildContextFromLocalUnit(args: {
     permissions: {
       ...args.permissions,
       ...args.patchPermissions,
+      activeLocalUnitId: localUnit.id,
       councilId: council.id,
       organizationId: council.organization_id ?? args.permissions.organizationId,
     },
@@ -155,6 +158,10 @@ async function resolveScopedLocalUnitId(args: {
   const { admin, permissions, areaCode, minimumAccessLevel } = args
 
   if (!permissions.authUser) {
+    if (permissions.activeLocalUnitId) {
+      return permissions.activeLocalUnitId
+    }
+
     const fallbackCouncilId = getFallbackCouncilId(permissions)
     if (!fallbackCouncilId) {
       return null
@@ -187,6 +194,13 @@ async function resolveScopedLocalUnitId(args: {
 
   if (selectedLocalUnitId && accessibleLocalUnits.some((unit) => unit.local_unit_id === selectedLocalUnitId)) {
     return selectedLocalUnitId
+  }
+
+  if (
+    permissions.activeLocalUnitId &&
+    accessibleLocalUnits.some((unit) => unit.local_unit_id === permissions.activeLocalUnitId)
+  ) {
+    return permissions.activeLocalUnitId
   }
 
   if (permissions.councilId) {
@@ -269,12 +283,13 @@ export async function getCurrentActingCouncilContext(options?: {
           areaCode: options.areaCode,
           minimumAccessLevel: options.minimumAccessLevel,
         })
-      : permissions.councilId
-        ? await findLocalUnitByLegacyCouncilId({
-            admin,
-            councilId: permissions.councilId,
-          }).then((row) => row?.id ?? null)
-        : null
+      : permissions.activeLocalUnitId ??
+        (permissions.councilId
+          ? await findLocalUnitByLegacyCouncilId({
+              admin,
+              councilId: permissions.councilId,
+            }).then((row) => row?.id ?? null)
+          : null)
 
   if (localUnitId) {
     const context = await buildContextFromLocalUnit({
@@ -337,6 +352,7 @@ export async function getCurrentActingCouncilContextForEvent(options: {
       permissions,
       localUnitId: event.local_unit_id,
       patchPermissions: {
+        activeLocalUnitId: event.local_unit_id,
         hasStaffAccess: true,
         canManageEvents: true,
       },

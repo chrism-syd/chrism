@@ -10,6 +10,7 @@ export type AccessContextSource =
 
 export type AccessContextOption = {
   key: string
+  localUnitId: string | null
   organizationId: string | null
   organizationName: string | null
   councilId: string | null
@@ -36,6 +37,7 @@ type OrganizationProfile = {
 }
 
 type AccessContextSeed = {
+  localUnitId?: string | null
   organizationId: string | null
   councilId: string | null
   accessLevel: AccessContextLevel
@@ -72,11 +74,14 @@ function accessLevelLabel(accessLevel: AccessContextLevel) {
 }
 
 export function buildAccessContextKey(args: {
+  localUnitId?: string | null
   organizationId?: string | null
   councilId?: string | null
   accessLevel: AccessContextLevel
 }) {
-  return [args.organizationId ?? 'org:none', args.councilId ?? 'council:none', args.accessLevel].join('::')
+  const baseKey = [args.organizationId ?? 'org:none', args.councilId ?? 'council:none', args.accessLevel].join('::')
+  const localUnitId = clean(args.localUnitId)
+  return localUnitId ? `${baseKey}::local-unit:${localUnitId}` : baseKey
 }
 
 export function describeAccessContext(option: {
@@ -129,7 +134,9 @@ export function buildAccessContexts(args: {
     const council = seed.councilId ? councilMap.get(seed.councilId) ?? null : null
     const organizationId = seed.organizationId ?? council?.organization_id ?? null
     const organization = organizationId ? organizationMap.get(organizationId) ?? null : null
+    const localUnitId = clean(seed.localUnitId)
     const key = buildAccessContextKey({
+      localUnitId,
       organizationId,
       councilId: seed.councilId ?? council?.id ?? null,
       accessLevel: seed.accessLevel,
@@ -143,6 +150,7 @@ export function buildAccessContexts(args: {
 
     merged.set(key, {
       key,
+      localUnitId,
       organizationId,
       organizationName: organizationLabel(organization),
       councilId: seed.councilId ?? council?.id ?? null,
@@ -156,7 +164,9 @@ export function buildAccessContexts(args: {
   const deduped = new Map<string, Omit<AccessContextOption, 'label' | 'shortLabel' | 'description'>>()
 
   for (const option of merged.values()) {
-    const identityKey = [option.organizationId ?? 'org:none', option.councilId ?? 'council:none'].join('::')
+    const identityKey = option.localUnitId
+      ? `local-unit:${option.localUnitId}`
+      : [option.organizationId ?? 'org:none', option.councilId ?? 'council:none'].join('::')
     const existing = deduped.get(identityKey)
 
     if (!existing || ACCESS_LEVEL_PRIORITY[option.accessLevel] > ACCESS_LEVEL_PRIORITY[existing.accessLevel]) {
@@ -174,7 +184,10 @@ export function buildAccessContexts(args: {
   return sortAccessContexts(
     [...deduped.values()].map((option) => {
       const label = describeAccessContext(option)
-      const shortLabel = option.organizationName ?? councilLabel({ name: option.councilName, council_number: option.councilNumber }) ?? accessLevelLabel(option.accessLevel)
+      const shortLabel =
+        option.organizationName ??
+        councilLabel({ name: option.councilName, council_number: option.councilNumber }) ??
+        accessLevelLabel(option.accessLevel)
       const scopeLabel = option.councilId
         ? councilLabel({ name: option.councilName, council_number: option.councilNumber })
         : option.organizationName
