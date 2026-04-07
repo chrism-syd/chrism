@@ -550,7 +550,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                   {currentCouncilLabel}
                 </h2>
 
-                {switchableLocalUnits.length > 0 ? (
+                {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
                   <details className="qv-view-menu">
                     <summary>
                       <span>Change local organization</span>

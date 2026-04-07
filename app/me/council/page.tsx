@@ -557,7 +557,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 Manage identity, officers, and admin access.
               </p>
 
-              {switchableLocalUnits.length > 0 ? (
+              {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
                 <details className="qv-view-menu" style={{ marginTop: 12 }}>
                   <summary>
                     <span>Change local organization</span>

@@ -207,7 +207,7 @@ async function renderManageCustomListsPage(args: {
                   {currentCouncilLabel}
                 </h2>
 
-                {switchableLocalUnits.length > 0 ? (
+                {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
                   <details className="qv-view-menu">
                     <summary>
                       <span>Change local organization</span>
@@ -550,7 +550,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
               <p className="qv-eyebrow">{currentLocalUnitName ?? organizationName ?? 'Custom lists'}</p>
               <h1 className="qv-title">Custom lists</h1>
               <p className="qv-subtitle">Lists you can manage directly or that have been shared with you.</p>
-              {switchableLocalUnits.length > 0 ? (
+              {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
                 <details className="qv-view-menu" style={{ marginTop: 12 }}>
                   <summary>
                     <span>Change local organization</span>
