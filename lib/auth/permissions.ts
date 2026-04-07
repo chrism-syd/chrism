@@ -57,7 +57,6 @@ export type CurrentUserPermissions = {
   email: string | null
   availableContexts: AccessContextOption[]
   activeContextKey: string | null
-  activeLocalUnitId: string | null
 }
 
 type AppUserRow = NonNullable<CurrentUserPermissions['appUser']> & {
@@ -71,8 +70,15 @@ type AutomaticCouncilAdminTermRow = {
   office_code: string
 }
 
-type LinkedPersonCouncilRow = {
-  council_id: string | null
+type LinkedMemberRelationshipRow = {
+  local_unit_id: string | null
+  member_record?: {
+    legacy_people_id: string | null
+  } | null
+  local_unit?: {
+    legacy_council_id: string | null
+    legacy_organization_id: string | null
+  } | null
 }
 
 type CouncilProfileRow = {
@@ -574,7 +580,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       email: null,
       availableContexts: [],
       activeContextKey: null,
-      activeLocalUnitId: null,
     }
   }
 
@@ -632,6 +637,26 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   }
 
   let personId = appUser?.person_id ?? derivedOfficerEmailPersonId ?? null
+
+  const { data: linkedRelationshipData } = await admin
+    .from('user_unit_relationships')
+    .select(
+      'local_unit_id, member_record:member_record_id(legacy_people_id), local_unit:local_unit_id(legacy_council_id, legacy_organization_id)'
+    )
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .limit(50)
+
+  const linkedMemberRelationships =
+    ((linkedRelationshipData as LinkedMemberRelationshipRow[] | null) ?? []).filter(
+      (row): row is LinkedMemberRelationshipRow & { local_unit_id: string } => Boolean(row.local_unit_id)
+    )
+
+  if (!personId) {
+    personId =
+      linkedMemberRelationships.find((row) => row.member_record?.legacy_people_id)?.member_record?.legacy_people_id ??
+      null
+  }
 
   const [councilAdminAssignmentResult, organizationAdminAssignmentResult, automaticCouncilAdminTermResult] =
     await Promise.all([
@@ -697,30 +722,42 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       null
   }
 
-  const linkedPersonRow = personId
-    ? ((
-        await admin.from('people').select('council_id').eq('id', personId).maybeSingle()
-      ).data as LinkedPersonCouncilRow | null)
-    : null
+  const memberLocalUnitSeeds = linkedMemberRelationships.reduce<Array<{
+    localUnitId: string
+    organizationId: string | null
+    councilId: string | null
+  }>>((accumulator, row) => {
+    const localUnitId = row.local_unit_id
+    if (!localUnitId) return accumulator
+    if (accumulator.some((seed) => seed.localUnitId == localUnitId)) {
+      return accumulator
+    }
 
-  const linkedPersonCouncilId = linkedPersonRow?.council_id ?? null
-  const appUserCouncilId = appUser?.council_id ?? null
-  const memberCouncilId = linkedPersonCouncilId ?? derivedOfficerEmailCouncilId ?? appUserCouncilId ?? null
+    accumulator.push({
+      localUnitId,
+      organizationId: row.local_unit?.legacy_organization_id ?? null,
+      councilId: row.local_unit?.legacy_council_id ?? null,
+    })
+
+    return accumulator
+  }, [])
+
   const parallelAccessState = await loadParallelAccessState({
     admin,
     userId: user.id,
   })
 
   const directCouncilIds = uniqueStrings([
-    memberCouncilId,
+    ...memberLocalUnitSeeds.map((seed) => seed.councilId),
     derivedOfficerEmailCouncilId,
     ...councilAdminAssignments.map((assignment) => assignment.council_id),
     ...automaticCouncilAdminTerms.map((term) => term.council_id),
   ])
 
-  const directOrganizationIds = uniqueStrings(
-    organizationAdminAssignments.map((assignment) => assignment.organization_id)
-  )
+  const directOrganizationIds = uniqueStrings([
+    ...organizationAdminAssignments.map((assignment) => assignment.organization_id),
+    ...memberLocalUnitSeeds.map((seed) => seed.organizationId),
+  ])
 
   const [directCouncilProfilesResult, organizationCouncilProfilesResult] = await Promise.all([
     directCouncilIds.length > 0
@@ -750,12 +787,12 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const organizationProfiles =
     organizationIds.length > 0
-      ? ((((
+      ? (((
           await admin
             .from('organizations')
             .select('id, display_name, preferred_name')
             .in('id', organizationIds)
-        ).data as OrganizationProfileRow[] | null) ?? []))
+        ).data as OrganizationProfileRow[] | null) ?? [])
       : []
 
   const mergedOrganizationProfiles = [
@@ -771,19 +808,18 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     source: AccessContextSource
   }> = []
 
-  if (memberCouncilId) {
-    accessSeeds.push({
-      localUnitId: null,
-      organizationId: null,
-      councilId: memberCouncilId,
-      accessLevel: 'member',
-      source: linkedPersonCouncilId ? 'linked_person' : 'app_user',
-    })
-  }
+  accessSeeds.push(
+    ...memberLocalUnitSeeds.map((seed) => ({
+      localUnitId: seed.localUnitId,
+      organizationId: seed.organizationId,
+      councilId: seed.councilId,
+      accessLevel: 'member' as const,
+      source: 'app_user' as const,
+    }))
+  )
 
   accessSeeds.push(...parallelAccessState.contextSeeds)
 
-  // TODO(multi-org): once a real memberships table exists, feed it here instead of relying on people.council_id and users.council_id.
   const availableContexts = buildAccessContexts({
     seeds: accessSeeds,
     councils: councilProfiles,
@@ -792,9 +828,15 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const defaultContext = pickDefaultAccessContext(availableContexts)
 
-  const defaultCouncilId = defaultContext?.councilId ?? memberCouncilId ?? derivedOfficerEmailCouncilId ?? null
+  const defaultMemberSeed = memberLocalUnitSeeds[0] ?? null
+  const defaultCouncilId =
+    defaultContext?.councilId ??
+    defaultMemberSeed?.councilId ??
+    derivedOfficerEmailCouncilId ??
+    null
   const defaultOrganizationId =
     defaultContext?.organizationId ??
+    defaultMemberSeed?.organizationId ??
     councilProfiles.find((council) => council.id === defaultCouncilId)?.organization_id ??
     null
   const defaultOrganizationName =
@@ -808,7 +850,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     authUserId: user.id,
     existingAppUser: appUser,
     personId,
-    councilId: linkedPersonCouncilId ?? derivedOfficerEmailCouncilId ?? null,
+    councilId: derivedOfficerEmailCouncilId ?? null,
     isSuperAdmin,
   })
 
@@ -1067,6 +1109,5 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     email: normalizedEmail,
     availableContexts,
     activeContextKey: activeAccessContext?.key ?? null,
-    activeLocalUnitId,
   }
 }
