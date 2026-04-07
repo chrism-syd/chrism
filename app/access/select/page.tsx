@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { listAccessibleLocalUnitsForArea, type ManagedAreaAccessLevel, type ManagedAreaCode } from '@/lib/auth/area-access'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
-import { getManagedAreaLabel } from '@/lib/auth/parallel-area-selection'
+import { getManagedAreaLabel } from '@/lib/auth/operations-scope-selection'
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -59,7 +59,7 @@ function getAccessLevelLabel(value: ManagedAreaAccessLevel) {
   return 'Manage'
 }
 
-export default async function ParallelAreaAccessSelectionPage(props: { searchParams: SearchParams }) {
+export default async function OperationsScopeSelectionPage(props: { searchParams: SearchParams }) {
   const permissions = await getCurrentUserPermissions()
   if (!permissions.authUser) redirect('/login')
 

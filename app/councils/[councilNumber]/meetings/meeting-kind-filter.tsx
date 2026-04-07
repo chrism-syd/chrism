@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-export type PublicMeetingKindFilter = 'all' | 'general' | 'executive'
+export type PublicMeetingKindFilter = 'all' | 'general' | 'executive' | 'community'
 
 type MeetingKindFilterProps = {
   value?: PublicMeetingKindFilter
@@ -11,9 +11,10 @@ type MeetingKindFilterProps = {
 }
 
 const OPTIONS = [
-  { value: 'all', label: 'All meetings' },
+  { value: 'all', label: 'All events' },
   { value: 'general', label: 'General meetings' },
   { value: 'executive', label: 'Executive meetings' },
+  { value: 'community', label: 'Community events' },
 ] as const
 
 export function MeetingKindFilter({ value, selectedValue }: MeetingKindFilterProps) {

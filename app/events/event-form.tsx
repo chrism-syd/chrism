@@ -31,6 +31,7 @@ type EventFormInitialValues = {
   requires_rsvp?: boolean
   needs_volunteers?: boolean
   rsvp_deadline_at?: string | null
+  volunteer_deadline_at?: string | null
   reminder_enabled?: boolean
   reminder_scheduled_for?: string | null
   invited_councils?: InvitedCouncilDraft[]
@@ -106,6 +107,28 @@ function toDateTimeLocalValue(value?: string | null) {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+function toDateOnlyValue(value?: string | null) {
+  if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  const parts = formatter.formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value ?? ''
+  const month = parts.find((part) => part.type === 'month')?.value ?? ''
+  const day = parts.find((part) => part.type === 'day')?.value ?? ''
+
+  return year && month && day ? `${year}-${month}-${day}` : ''
+}
+
 function fieldNoteStyle(): CSSProperties {
   return {
     margin: '6px 0 0',
@@ -171,6 +194,7 @@ type EventFormFieldKey =
   | 'starts_at'
   | 'ends_at'
   | 'rsvp_deadline_at'
+  | 'volunteer_deadline_at'
   | 'reminder_scheduled_for'
   | 'reminder_days_before'
   | 'invited_councils'
@@ -342,7 +366,8 @@ export default function EventForm({
     const title = String(formData.get('title') ?? '').trim()
     const startsAt = String(formData.get('starts_at') ?? '').trim()
     const endsAt = String(formData.get('ends_at') ?? '').trim()
-    const responseDeadlineAt = String(formData.get('rsvp_deadline_at') ?? '').trim()
+    const rsvpDeadlineAt = String(formData.get('rsvp_deadline_at') ?? '').trim()
+    const volunteerDeadlineAt = String(formData.get('volunteer_deadline_at') ?? '').trim()
     const reminderScheduledFor = String(formData.get('reminder_scheduled_for') ?? '').trim()
     const reminderDaysBefore = String(formData.get('reminder_days_before') ?? '').trim()
 
@@ -365,14 +390,21 @@ export default function EventForm({
       nextFieldErrors.ends_at = 'Please choose an end time that comes after the start time.'
     }
 
-    const responseCollectionEnabled = requiresRsvp || needsVolunteers
-
-    if (responseCollectionEnabled && responseDeadlineAt) {
-      const deadline = parseLocalDate(responseDeadlineAt)
+    if (requiresRsvp && rsvpDeadlineAt) {
+      const deadline = parseLocalDate(rsvpDeadlineAt)
       if (!deadline) {
-        nextFieldErrors.rsvp_deadline_at = 'Please choose a valid response deadline.'
+        nextFieldErrors.rsvp_deadline_at = 'Please choose a valid RSVP date.'
       } else if (startDate && deadline.getTime() >= startDate.getTime()) {
-        nextFieldErrors.rsvp_deadline_at = 'Please choose a response deadline that comes before the event starts.'
+        nextFieldErrors.rsvp_deadline_at = 'Please choose an RSVP date that comes before the event starts.'
+      }
+    }
+
+    if (needsVolunteers && volunteerDeadlineAt) {
+      const deadline = parseLocalDate(volunteerDeadlineAt)
+      if (!deadline) {
+        nextFieldErrors.volunteer_deadline_at = 'Please choose a valid volunteer date.'
+      } else if (startDate && deadline.getTime() >= startDate.getTime()) {
+        nextFieldErrors.volunteer_deadline_at = 'Please choose a volunteer date that comes before the event starts.'
       }
     }
 
@@ -537,9 +569,7 @@ export default function EventForm({
               />
               {fieldErrors.ends_at ? (
                 <p style={{ ...fieldNoteStyle(), color: 'var(--danger-soft)' }}>{fieldErrors.ends_at}</p>
-              ) : (
-                <p style={fieldNoteStyle()}>Leave blank if the event does not have a fixed end time.</p>
-              )}
+              ) : null}
             </label>
           </div>
 
@@ -592,19 +622,21 @@ export default function EventForm({
             </div>
           </div>
 
-          {requiresRsvp || needsVolunteers ? (
+          {requiresRsvp ? (
             <div className="qv-form-row">
               <label className="qv-control">
-                <span className="qv-label">Response by</span>
+                <span className="qv-label">RSVP by</span>
                 <input
-                  type="datetime-local"
+                  type="date"
                   name="rsvp_deadline_at"
-                  defaultValue={toDateTimeLocalValue(initialValues?.rsvp_deadline_at)}
+                  defaultValue={toDateOnlyValue(initialValues?.rsvp_deadline_at)}
                   aria-invalid={fieldErrors.rsvp_deadline_at ? 'true' : 'false'}
                 />
                 {fieldErrors.rsvp_deadline_at ? (
                   <p style={{ ...fieldNoteStyle(), color: 'var(--danger-soft)' }}>{fieldErrors.rsvp_deadline_at}</p>
-                ) : null}
+                ) : (
+                  <p style={fieldNoteStyle()}>End-of-day cutoff is assumed automatically.</p>
+                )}
               </label>
             </div>
           ) : (
@@ -630,8 +662,25 @@ export default function EventForm({
           </div>
 
           {needsVolunteers ? (
-            <p style={fieldNoteStyle()}>Volunteers can add their name, contact details, and notes from the public response page.</p>
-          ) : null}
+            <div className="qv-form-row">
+              <label className="qv-control">
+                <span className="qv-label">Volunteer by</span>
+                <input
+                  type="date"
+                  name="volunteer_deadline_at"
+                  defaultValue={toDateOnlyValue(initialValues?.volunteer_deadline_at)}
+                  aria-invalid={fieldErrors.volunteer_deadline_at ? 'true' : 'false'}
+                />
+                {fieldErrors.volunteer_deadline_at ? (
+                  <p style={{ ...fieldNoteStyle(), color: 'var(--danger-soft)' }}>{fieldErrors.volunteer_deadline_at}</p>
+                ) : (
+                  <p style={fieldNoteStyle()}>End-of-day cutoff is assumed automatically.</p>
+                )}
+              </label>
+            </div>
+          ) : (
+            <input type="hidden" name="volunteer_deadline_at" value="" />
+          )}
         </div>
       </section>
 

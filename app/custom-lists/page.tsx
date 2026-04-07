@@ -7,7 +7,7 @@ import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
 import { findCurrentActingCouncilContextForArea } from '@/lib/auth/acting-context'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
-import { getSelectedLocalUnitIdForArea, PARALLEL_AREA_SELECTION_COOKIE } from '@/lib/auth/parallel-area-selection'
+import { getSelectedOperationsLocalUnitId, OPERATIONS_SCOPE_COOKIE } from '@/lib/auth/operations-scope-selection'
 import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -334,8 +334,8 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   const admin = createAdminClient()
 
   const cookieStore = await cookies()
-  const selectedLocalUnitId = getSelectedLocalUnitIdForArea({
-    rawCookieValue: cookieStore.get(PARALLEL_AREA_SELECTION_COOKIE)?.value ?? null,
+  const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
+    rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
     areaCode: 'custom_lists',
   })
 

@@ -40,6 +40,7 @@ type EventRow = {
   requires_rsvp: boolean;
   needs_volunteers: boolean;
   rsvp_deadline_at: string | null;
+  volunteer_deadline_at: string | null;
   reminder_enabled: boolean;
   reminder_scheduled_for: string | null;
 };
@@ -299,7 +300,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
     .eq('council_id', council.id)
@@ -668,7 +669,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </form>
               ) : null}
 
-              <Link href={`/events/${event.id}/edit`} className="qv-link-button qv-button-primary">
+              <Link href={`/events/${event.id}/edit`} prefetch={false} className="qv-link-button qv-button-primary">
                 Edit event
               </Link>
             </div>
@@ -1174,6 +1175,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">RSVP deadline</div>
                   <div className="qv-detail-value">{formatDateTime(event.rsvp_deadline_at)}</div>
+                </div>
+
+                <div className="qv-detail-item">
+                  <div className="qv-detail-label">Volunteer deadline</div>
+                  <div className="qv-detail-value">{formatDateTime(event.volunteer_deadline_at)}</div>
                 </div>
 
                 <div className="qv-detail-item">

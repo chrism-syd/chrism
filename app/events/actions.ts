@@ -25,12 +25,13 @@ type EventRow = {
   location_name: string | null;
   location_address: string | null;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   scope_code: 'home_council_only' | 'multi_council';
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting';
   requires_rsvp: boolean;
   needs_volunteers: boolean;
   rsvp_deadline_at: string | null;
+  volunteer_deadline_at: string | null;
   reminder_enabled: boolean;
   reminder_scheduled_for: string | null;
   reminder_days_before: number | null;
@@ -62,37 +63,20 @@ type PersonAttendeeInput = {
   sort_order: number;
 };
 
+type EventExternalInviteeRow = {
+  id: string;
+};
+
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 function normalizeString(value: FormDataEntryValue | string | null | undefined) {
-  if (typeof value !== 'string') {
-    return '';
-  }
-
+  if (typeof value !== 'string') return '';
   return value.trim();
 }
 
 function nullableString(value: FormDataEntryValue | string | null | undefined) {
   const normalized = normalizeString(value);
   return normalized.length > 0 ? normalized : null;
-}
-
-function assertPeopleContactRequirement(args: {
-  email: string | null;
-  cellPhone: string | null;
-  homePhone?: string | null;
-  otherPhone?: string | null;
-  contextLabel: string;
-}) {
-  const { email, cellPhone, homePhone = null, otherPhone = null, contextLabel } = args;
-
-  if ([email, cellPhone, homePhone, otherPhone].some((value) => Boolean(value && value.trim()))) {
-    return;
-  }
-
-  throw new Error(
-    `${contextLabel} needs at least one contact method on file: email, cell phone, home phone, or other phone.`
-  );
 }
 
 function normalizeEmail(value: FormDataEntryValue | string | null | undefined) {
@@ -180,7 +164,6 @@ function getZonedParts(date: Date, timeZone: string) {
   });
 
   const parts = formatter.formatToParts(date);
-
   const getPart = (type: string) => {
     const match = parts.find((part) => part.type === type)?.value;
     return match ? Number(match) : 0;
@@ -197,14 +180,10 @@ function getZonedParts(date: Date, timeZone: string) {
 }
 
 function localInputToTzIso(localInput: string | null, timeZone = DEFAULT_TIME_ZONE) {
-  if (!localInput) {
-    return null;
-  }
+  if (!localInput) return null;
 
   const [datePart, timePart] = localInput.split('T');
-  if (!datePart || !timePart) {
-    return null;
-  }
+  if (!datePart || !timePart) return null;
 
   const [year, month, day] = datePart.split('-').map(Number);
   const [hour, minute] = timePart.split(':').map(Number);
@@ -223,16 +202,34 @@ function localInputToTzIso(localInput: string | null, timeZone = DEFAULT_TIME_ZO
       60000;
     const diffMinutes = desiredUtcMinutes - zonedUtcMinutes;
 
-    if (diffMinutes === 0) {
-      break;
-    }
-
+    if (diffMinutes === 0) break;
     guess = new Date(guess.getTime() + diffMinutes * 60000);
   }
 
   return guess.toISOString();
 }
 
+function dateInputToEndOfDayTzIso(localDateInput: string | null, timeZone = DEFAULT_TIME_ZONE) {
+  if (!localDateInput) return null;
+  return localInputToTzIso(`${localDateInput}T23:59`, timeZone);
+}
+
+function assertPeopleContactRequirement(args: {
+  email: string | null;
+  cellPhone: string | null;
+  homePhone?: string | null;
+  otherPhone?: string | null;
+  contextLabel: string;
+}) {
+  const { email, cellPhone, homePhone = null, otherPhone = null, contextLabel } = args;
+  if ([email, cellPhone, homePhone, otherPhone].some((value) => Boolean(value && value.trim()))) {
+    return;
+  }
+
+  throw new Error(
+    `${contextLabel} needs at least one contact method on file: email, cell phone, home phone, or other phone.`
+  );
+}
 
 function parseInvitedCouncils(formData: FormData) {
   const names = getArray(formData, 'invited_council_name[]');
@@ -257,14 +254,8 @@ function parseInvitedCouncils(formData: FormData) {
       !!row.invite_email ||
       !!row.invite_contact_name;
 
-    if (!hasAnyValue) {
-      continue;
-    }
-
-    if (!row.invited_council_name) {
-      throw new Error('Each invited council row needs a council name.');
-    }
-
+    if (!hasAnyValue) continue;
+    if (!row.invited_council_name) throw new Error('Each invited council row needs a council name.');
     rows.push(row);
   }
 
@@ -302,13 +293,8 @@ function parseExternalInvitees(formData: FormData) {
       !!inviteeRoleLabel ||
       !!inviteeNotes;
 
-    if (!hasAnyValue) {
-      continue;
-    }
-
-    if (!inviteeName) {
-      throw new Error('Each guest invitee row needs a name.');
-    }
+    if (!hasAnyValue) continue;
+    if (!inviteeName) throw new Error('Each guest invitee row needs a name.');
 
     rows.push({
       invitee_name: inviteeName,
@@ -340,10 +326,7 @@ function parseVolunteerRows(formData: FormData) {
 
   for (let index = 0; index < rowCount; index += 1) {
     const removeRow = parseBoolean(formData.get(`volunteer_remove_${index}`));
-
-    if (removeRow) {
-      continue;
-    }
+    if (removeRow) continue;
 
     const volunteerName = names[index] ?? '';
     const volunteerEmail = nullableString(emails[index] ?? '');
@@ -353,13 +336,8 @@ function parseVolunteerRows(formData: FormData) {
     const hasAnyValue =
       volunteerName.length > 0 || !!volunteerEmail || !!volunteerPhone || !!volunteerNotes;
 
-    if (!hasAnyValue) {
-      continue;
-    }
-
-    if (!volunteerName) {
-      throw new Error('Each volunteer row needs a volunteer name.');
-    }
+    if (!hasAnyValue) continue;
+    if (!volunteerName) throw new Error('Each volunteer row needs a volunteer name.');
 
     rows.push({
       volunteer_name: volunteerName,
@@ -383,10 +361,7 @@ function parsePersonAttendeeRows(formData: FormData) {
 
   for (let index = 0; index < rowCount; index += 1) {
     const removeRow = parseBoolean(formData.get(`attendee_remove_${index}`));
-
-    if (removeRow) {
-      continue;
-    }
+    if (removeRow) continue;
 
     const attendeeName = names[index] ?? '';
     const attendeeEmail = normalizeEmail(emails[index] ?? '');
@@ -394,14 +369,8 @@ function parsePersonAttendeeRows(formData: FormData) {
     const usesPrimaryContact = parseBoolean(formData.get(`attendee_use_primary_contact_${index}`));
 
     const hasAnyValue = attendeeName.length > 0 || !!attendeeEmail || !!attendeePhone;
-
-    if (!hasAnyValue) {
-      continue;
-    }
-
-    if (!attendeeName) {
-      throw new Error('Each additional person needs a name.');
-    }
+    if (!hasAnyValue) continue;
+    if (!attendeeName) throw new Error('Each additional person needs a name.');
 
     rows.push({
       attendee_name: attendeeName,
@@ -429,15 +398,18 @@ function buildEventPayload(formData: FormData) {
       : normalizeString(formData.get('event_kind_code')) === 'executive_meeting'
         ? 'executive_meeting'
         : 'standard';
-  const requiresRsvp = parseBoolean(formData.get('requires_rsvp'));
-  const needsVolunteers = parseBoolean(formData.get('needs_volunteers'));
+
+  const rsvpDeadlineInput = normalizeString(formData.get('rsvp_deadline_at'));
+  const volunteerDeadlineInput = normalizeString(formData.get('volunteer_deadline_at'));
+
+  const requiresRsvp = parseBoolean(formData.get('requires_rsvp')) || Boolean(rsvpDeadlineInput);
+  const needsVolunteers = parseBoolean(formData.get('needs_volunteers')) || Boolean(volunteerDeadlineInput);
   const reminderEnabled = parseBoolean(formData.get('reminder_enabled'));
   const reminderDaysBeforeValue = nullableString(formData.get('reminder_days_before'));
   const reminderDaysBefore = reminderDaysBeforeValue ? Number(reminderDaysBeforeValue) : null;
 
-  const rsvpDeadlineAt = requiresRsvp
-    ? localInputToTzIso(normalizeString(formData.get('rsvp_deadline_at')))
-    : null;
+  const rsvpDeadlineAt = requiresRsvp ? dateInputToEndOfDayTzIso(rsvpDeadlineInput) : null;
+  const volunteerDeadlineAt = needsVolunteers ? dateInputToEndOfDayTzIso(volunteerDeadlineInput) : null;
 
   const reminderScheduledFor = reminderEnabled
     ? localInputToTzIso(normalizeString(formData.get('reminder_scheduled_for')))
@@ -451,29 +423,23 @@ function buildEventPayload(formData: FormData) {
         ? 'General Meeting'
         : '');
 
-  if (!title) {
-    throw new Error('Event title is required.');
-  }
-
-  if (!startsAt || !endsAt) {
-    throw new Error('Start and end time are required.');
-  }
-
-  if (new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
+  if (!title) throw new Error('Event title is required.');
+  if (!startsAt) throw new Error('Start time is required.');
+  if (endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
     throw new Error('End time must be after the start time.');
   }
-
   if (rsvpDeadlineAt && new Date(rsvpDeadlineAt).getTime() > new Date(startsAt).getTime()) {
     throw new Error('RSVP deadline must be before the event start.');
   }
-
+  if (volunteerDeadlineAt && new Date(volunteerDeadlineAt).getTime() > new Date(startsAt).getTime()) {
+    throw new Error('Volunteer deadline must be before the event start.');
+  }
   if (
     reminderScheduledFor &&
     new Date(reminderScheduledFor).getTime() >= new Date(startsAt).getTime()
   ) {
     throw new Error('Reminder time must be before the event start.');
   }
-
   if (
     reminderDaysBefore != null &&
     (!Number.isInteger(reminderDaysBefore) || reminderDaysBefore < 0 || reminderDaysBefore > 60)
@@ -493,6 +459,7 @@ function buildEventPayload(formData: FormData) {
     requires_rsvp: requiresRsvp,
     needs_volunteers: needsVolunteers,
     rsvp_deadline_at: rsvpDeadlineAt,
+    volunteer_deadline_at: volunteerDeadlineAt,
     reminder_enabled: reminderEnabled,
     reminder_scheduled_for: reminderScheduledFor,
     reminder_days_before: reminderDaysBefore,
@@ -557,10 +524,7 @@ async function ensureHostInvite(args: {
       })
       .eq('id', existingHostInvite.id);
 
-    if (error) {
-      throw new Error(`Could not update host council invite row: ${error.message}`);
-    }
-
+    if (error) throw new Error(`Could not update host council invite row: ${error.message}`);
     return existingHostInvite;
   }
 
@@ -582,9 +546,7 @@ async function ensureHostInvite(args: {
     .single();
 
   if (error || !data) {
-    throw new Error(
-      `Could not create host council invite row: ${error?.message ?? 'Unknown error'}`
-    );
+    throw new Error(`Could not create host council invite row: ${error?.message ?? 'Unknown error'}`);
   }
 
   return data as EventInviteRow;
@@ -603,9 +565,7 @@ async function replaceNonHostInvites(args: {
     .eq('event_id', eventId)
     .eq('is_host', false);
 
-  if (existingInvitesError) {
-    throw new Error(`Could not read existing invite rows: ${existingInvitesError.message}`);
-  }
+  if (existingInvitesError) throw new Error(`Could not read existing invite rows: ${existingInvitesError.message}`);
 
   const existingInviteIds = (existingInvites ?? []).map((row: { id: string }) => row.id);
 
@@ -618,9 +578,7 @@ async function replaceNonHostInvites(args: {
       .returns<ExistingRsvpRow[]>();
 
     if (existingResponsesError) {
-      throw new Error(
-        `Could not verify existing RSVP responses: ${existingResponsesError.message}`
-      );
+      throw new Error(`Could not verify existing RSVP responses: ${existingResponsesError.message}`);
     }
 
     if ((existingResponses ?? []).length > 0) {
@@ -634,14 +592,10 @@ async function replaceNonHostInvites(args: {
       .delete()
       .in('id', existingInviteIds);
 
-    if (deleteError) {
-      throw new Error(`Could not replace invited councils: ${deleteError.message}`);
-    }
+    if (deleteError) throw new Error(`Could not replace invited councils: ${deleteError.message}`);
   }
 
-  if (invitedCouncils.length === 0) {
-    return;
-  }
+  if (invitedCouncils.length === 0) return;
 
   const rows = invitedCouncils.map((invite, index) => ({
     event_id: eventId,
@@ -657,12 +611,8 @@ async function replaceNonHostInvites(args: {
   }));
 
   const { error } = await supabase.from('event_invited_councils').insert(rows);
-
-  if (error) {
-    throw new Error(`Could not save invited councils: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not save invited councils: ${error.message}`);
 }
-
 
 async function replaceEventExternalInvitees(args: {
   supabase: Awaited<ReturnType<typeof createClient>>;
@@ -684,13 +634,8 @@ async function replaceEventExternalInvitees(args: {
     .delete()
     .eq('event_id', eventId);
 
-  if (deleteError) {
-    throw new Error(`Could not refresh external invitees: ${deleteError.message}`);
-  }
-
-  if (invitees.length === 0) {
-    return;
-  }
+  if (deleteError) throw new Error(`Could not refresh external invitees: ${deleteError.message}`);
+  if (invitees.length === 0) return;
 
   const { error: insertError } = await supabase.from('event_external_invitees').insert(
     invitees.map((invitee) => ({
@@ -706,9 +651,7 @@ async function replaceEventExternalInvitees(args: {
     }))
   );
 
-  if (insertError) {
-    throw new Error(`Could not save external invitees: ${insertError.message}`);
-  }
+  if (insertError) throw new Error(`Could not save external invitees: ${insertError.message}`);
 }
 
 function buildInvitationMessage(args: {
@@ -736,9 +679,7 @@ function buildInvitationMessage(args: {
       'Please use this council RSVP link:',
       rsvpUrl,
       '',
-      event.rsvp_deadline_at
-        ? `RSVP deadline: ${formatEventDateForEmail(event.rsvp_deadline_at)}`
-        : null,
+      event.rsvp_deadline_at ? `RSVP deadline: ${formatEventDateForEmail(event.rsvp_deadline_at)}` : null,
       '',
       'This link can be shared within your council and reused to update your response.',
     ]
@@ -771,9 +712,7 @@ function buildReminderMessage(args: {
         '',
         rsvpUrl,
         '',
-        event.rsvp_deadline_at
-          ? `RSVP deadline: ${formatEventDateForEmail(event.rsvp_deadline_at)}`
-          : null,
+        event.rsvp_deadline_at ? `RSVP deadline: ${formatEventDateForEmail(event.rsvp_deadline_at)}` : null,
       ]
         .filter(Boolean)
         .join('\n'),
@@ -799,7 +738,6 @@ async function loadHostInviteForEvent(args: {
   eventId: string;
 }) {
   const { supabase, eventId } = args;
-
   const { data, error } = await supabase
     .from('event_invited_councils')
     .select('id, invited_council_name, rsvp_link_token')
@@ -807,10 +745,7 @@ async function loadHostInviteForEvent(args: {
     .eq('is_host', true)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`Could not load host invite row: ${error.message}`);
-  }
-
+  if (error) throw new Error(`Could not load host invite row: ${error.message}`);
   return (data as { id: string; invited_council_name: string; rsvp_link_token: string } | null) ?? null;
 }
 
@@ -881,15 +816,10 @@ async function queueVolunteerMessageJob(args: {
   const { supabase, event, createdByUserId, recipientEmail, recipientName, messageTypeCode, scheduledFor } = args;
   const normalizedRecipientEmail = normalizeEmail(recipientEmail);
 
-  if (!normalizedRecipientEmail) {
-    return;
-  }
+  if (!normalizedRecipientEmail) return;
 
   const hostInvite = await loadHostInviteForEvent({ supabase, eventId: event.id });
-
-  if (!hostInvite?.id) {
-    return;
-  }
+  if (!hostInvite?.id) return;
 
   const message =
     messageTypeCode === 'volunteer_confirmation'
@@ -918,9 +848,7 @@ async function queueVolunteerMessageJob(args: {
     created_by_user_id: createdByUserId,
   });
 
-  if (error) {
-    throw new Error(`Could not queue volunteer email: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not queue volunteer email: ${error.message}`);
 }
 
 async function replaceVolunteerReminderJob(args: {
@@ -933,15 +861,10 @@ async function replaceVolunteerReminderJob(args: {
   const { supabase, event, createdByUserId, recipientEmail, recipientName } = args;
   const normalizedRecipientEmail = normalizeEmail(recipientEmail);
 
-  if (!normalizedRecipientEmail) {
-    return;
-  }
+  if (!normalizedRecipientEmail) return;
 
   const hostInvite = await loadHostInviteForEvent({ supabase, eventId: event.id });
-
-  if (!hostInvite?.id) {
-    return;
-  }
+  if (!hostInvite?.id) return;
 
   const { error: cancelError } = await supabase
     .from('event_message_jobs')
@@ -952,17 +875,10 @@ async function replaceVolunteerReminderJob(args: {
     .eq('status_code', 'pending')
     .ilike('recipient_email', normalizedRecipientEmail);
 
-  if (cancelError) {
-    throw new Error(`Could not refresh volunteer reminder email: ${cancelError.message}`);
-  }
+  if (cancelError) throw new Error(`Could not refresh volunteer reminder email: ${cancelError.message}`);
 
-  if (!event.reminder_enabled || !event.reminder_scheduled_for) {
-    return;
-  }
-
-  if (new Date(event.reminder_scheduled_for).getTime() <= Date.now()) {
-    return;
-  }
+  if (!event.reminder_enabled || !event.reminder_scheduled_for) return;
+  if (new Date(event.reminder_scheduled_for).getTime() <= Date.now()) return;
 
   await queueVolunteerMessageJob({
     supabase,
@@ -975,7 +891,6 @@ async function replaceVolunteerReminderJob(args: {
   });
 }
 
-
 async function cancelPendingVolunteerMessageJobs(args: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   eventId: string;
@@ -984,9 +899,7 @@ async function cancelPendingVolunteerMessageJobs(args: {
   const { supabase, eventId, recipientEmail } = args;
   const normalizedRecipientEmail = normalizeEmail(recipientEmail);
 
-  if (!normalizedRecipientEmail) {
-    return;
-  }
+  if (!normalizedRecipientEmail) return;
 
   const { error } = await supabase
     .from('event_message_jobs')
@@ -996,9 +909,7 @@ async function cancelPendingVolunteerMessageJobs(args: {
     .in('message_type_code', ['volunteer_confirmation', 'volunteer_reminder'])
     .ilike('recipient_email', normalizedRecipientEmail);
 
-  if (error) {
-    throw new Error(`Could not clear volunteer message jobs: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not clear volunteer message jobs: ${error.message}`);
 }
 
 async function createDraftEventFromSeed(args: {
@@ -1011,12 +922,13 @@ async function createDraftEventFromSeed(args: {
     location_name: string | null;
     location_address: string | null;
     starts_at: string;
-    ends_at: string;
+    ends_at: string | null;
     scope_code: 'home_council_only' | 'multi_council';
     event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting';
     requires_rsvp: boolean;
     needs_volunteers: boolean;
     rsvp_deadline_at: string | null;
+    volunteer_deadline_at: string | null;
     reminder_enabled: boolean;
     reminder_scheduled_for: string | null;
     reminder_days_before: number | null;
@@ -1032,7 +944,6 @@ async function createDraftEventFromSeed(args: {
   }>;
 }) {
   const { supabase, council, userId, seed, invitedCouncils = [], externalInvitees = [] } = args;
-
   const eventId = crypto.randomUUID();
 
   const { error } = await supabase.from('events').insert({
@@ -1051,6 +962,7 @@ async function createDraftEventFromSeed(args: {
     requires_rsvp: seed.requires_rsvp,
     needs_volunteers: seed.needs_volunteers,
     rsvp_deadline_at: seed.rsvp_deadline_at,
+    volunteer_deadline_at: seed.volunteer_deadline_at,
     reminder_enabled: seed.reminder_enabled,
     reminder_scheduled_for: seed.reminder_scheduled_for,
     reminder_days_before: seed.reminder_days_before,
@@ -1058,28 +970,15 @@ async function createDraftEventFromSeed(args: {
     updated_by_user_id: userId,
   });
 
-  if (error) {
-    throw new Error(`Could not duplicate event into a draft: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not duplicate event into a draft: ${error.message}`);
 
-  await ensureHostInvite({
-    supabase,
-    eventId,
-    council,
-  });
-
+  await ensureHostInvite({ supabase, eventId, council });
   await replaceNonHostInvites({
     supabase,
     eventId,
     invitedCouncils: seed.scope_code === 'multi_council' ? invitedCouncils : [],
   });
-
-  await replaceEventExternalInvitees({
-    supabase,
-    eventId,
-    invitees: externalInvitees,
-    userId,
-  });
+  await replaceEventExternalInvitees({ supabase, eventId, invitees: externalInvitees, userId });
 
   revalidatePath('/events');
   revalidatePath(`/events/${eventId}`);
@@ -1093,16 +992,13 @@ async function cancelPendingMessageJobs(args: {
   eventId: string;
 }) {
   const { supabase, eventId } = args;
-
   const { error } = await supabase
     .from('event_message_jobs')
     .update({ status_code: 'cancelled' })
     .eq('event_id', eventId)
     .eq('status_code', 'pending');
 
-  if (error) {
-    throw new Error(`Could not cancel pending message jobs: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not cancel pending message jobs: ${error.message}`);
 }
 
 async function queueMessageJobs(args: {
@@ -1125,16 +1021,12 @@ async function queueMessageJobs(args: {
       }>
     >();
 
-  if (invitesError) {
-    throw new Error(`Could not load invite rows for message generation: ${invitesError.message}`);
-  }
+  if (invitesError) throw new Error(`Could not load invite rows for message generation: ${invitesError.message}`);
 
   const rows: Array<Record<string, unknown>> = [];
 
   for (const invite of invites ?? []) {
-    if (!invite.invite_email) {
-      continue;
-    }
+    if (!invite.invite_email) continue;
 
     if (event.requires_rsvp) {
       const invitation = buildInvitationMessage({ event, invite });
@@ -1195,15 +1087,11 @@ async function queueMessageJobs(args: {
         .eq('status_code', 'active')
         .returns<Array<{ primary_name: string; primary_email: string | null }>>();
 
-      if (submissionsError) {
-        throw new Error(`Could not load volunteer reminder recipients: ${submissionsError.message}`);
-      }
+      if (submissionsError) throw new Error(`Could not load volunteer reminder recipients: ${submissionsError.message}`);
 
       for (const submission of submissions ?? []) {
         const recipientEmail = normalizeEmail(submission.primary_email);
-        if (!recipientEmail) {
-          continue;
-        }
+        if (!recipientEmail) continue;
 
         const reminder = buildVolunteerReminderMessage({ event, volunteerName: submission.primary_name });
 
@@ -1230,15 +1118,10 @@ async function queueMessageJobs(args: {
     }
   }
 
-  if (rows.length === 0) {
-    return;
-  }
+  if (rows.length === 0) return;
 
   const { error } = await supabase.from('event_message_jobs').insert(rows);
-
-  if (error) {
-    throw new Error(`Could not queue event messages: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not queue event messages: ${error.message}`);
 }
 
 async function loadOwnedEvent(args: {
@@ -1251,21 +1134,16 @@ async function loadOwnedEvent(args: {
   const { data, error } = await supabase
     .from('events')
     .select(
-      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .eq('id', eventId)
     .eq('council_id', councilId)
     .single();
 
   const event = data as EventRow | null;
-
-  if (error || !event) {
-    throw new Error('Could not load that event.');
-  }
-
+  if (error || !event) throw new Error('Could not load that event.');
   return event;
 }
-
 
 async function revalidateEventVolunteerPaths(args: {
   supabase: Awaited<ReturnType<typeof createClient>>;
@@ -1310,13 +1188,8 @@ async function submitPersonRsvpByToken(args: {
   const primaryPhone = nullableString(formData.get('primary_phone'));
   const responseNotes = nullableString(formData.get('response_notes'));
 
-  if (!primaryName) {
-    throw new Error('Your name is required.');
-  }
-
-  if (!primaryEmail) {
-    throw new Error('Your email is required.');
-  }
+  if (!primaryName) throw new Error('Your name is required.');
+  if (!primaryEmail) throw new Error('Your email is required.');
 
   const additionalAttendees = parsePersonAttendeeRows(formData);
   const sourceCode =
@@ -1399,6 +1272,7 @@ export async function createEvent(formData: FormData) {
     requires_rsvp: eventInput.requires_rsvp,
     needs_volunteers: eventInput.needs_volunteers,
     rsvp_deadline_at: eventInput.rsvp_deadline_at,
+    volunteer_deadline_at: eventInput.volunteer_deadline_at,
     reminder_enabled: eventInput.reminder_enabled,
     reminder_scheduled_for: eventInput.reminder_scheduled_for,
     reminder_days_before: eventInput.reminder_days_before,
@@ -1420,6 +1294,7 @@ export async function createEvent(formData: FormData) {
     requires_rsvp: eventInput.requires_rsvp,
     needs_volunteers: eventInput.needs_volunteers,
     rsvp_deadline_at: eventInput.rsvp_deadline_at,
+    volunteer_deadline_at: eventInput.volunteer_deadline_at,
     reminder_enabled: eventInput.reminder_enabled,
     reminder_scheduled_for: eventInput.reminder_scheduled_for,
     reminder_days_before: eventInput.reminder_days_before,
@@ -1427,22 +1302,12 @@ export async function createEvent(formData: FormData) {
     updated_by_user_id: appUser.id,
   });
 
-  if (insertError) {
-    throw new Error(`Could not create event: ${insertError.message}`);
-  }
+  if (insertError) throw new Error(`Could not create event: ${insertError.message}`);
 
-  await ensureHostInvite({
-    supabase,
-    eventId: createdEvent.id,
-    council,
-  });
+  await ensureHostInvite({ supabase, eventId: createdEvent.id, council });
 
   if (eventInput.scope_code === 'multi_council') {
-    await replaceNonHostInvites({
-      supabase,
-      eventId: createdEvent.id,
-      invitedCouncils,
-    });
+    await replaceNonHostInvites({ supabase, eventId: createdEvent.id, invitedCouncils });
   }
 
   await replaceEventExternalInvitees({
@@ -1453,32 +1318,20 @@ export async function createEvent(formData: FormData) {
   });
 
   if (createdEvent.status_code === 'scheduled') {
-    await queueMessageJobs({
-      supabase,
-      event: createdEvent,
-      createdByUserId: appUser.id,
-    });
+    await queueMessageJobs({ supabase, event: createdEvent, createdByUserId: appUser.id });
   }
 
   revalidatePath('/events');
   revalidatePath(`/events/${createdEvent.id}`);
   revalidatePath(`/events/${createdEvent.id}/edit`);
-
   redirect(`/events/${createdEvent.id}`);
 }
 
 export async function updateEvent(eventId: string, formData: FormData) {
   const { supabase, appUser, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-
-  const existingEvent = await loadOwnedEvent({
-    supabase,
-    eventId,
-    councilId: council.id,
-  });
-
+  const existingEvent = await loadOwnedEvent({ supabase, eventId, councilId: council.id });
   const eventInput = buildEventPayload(formData);
-  const invitedCouncils =
-    eventInput.scope_code === 'multi_council' ? parseInvitedCouncils(formData) : [];
+  const invitedCouncils = eventInput.scope_code === 'multi_council' ? parseInvitedCouncils(formData) : [];
   const externalInvitees = parseExternalInvitees(formData);
   const submitIntent = normalizeString(formData.get('submit_intent'));
   const nextStatusCode =
@@ -1504,6 +1357,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
       requires_rsvp: eventInput.requires_rsvp,
       needs_volunteers: eventInput.needs_volunteers,
       rsvp_deadline_at: eventInput.rsvp_deadline_at,
+      volunteer_deadline_at: eventInput.volunteer_deadline_at,
       reminder_enabled: eventInput.reminder_enabled,
       reminder_scheduled_for: eventInput.reminder_scheduled_for,
       reminder_days_before: eventInput.reminder_days_before,
@@ -1512,28 +1366,21 @@ export async function updateEvent(eventId: string, formData: FormData) {
     .eq('id', eventId)
     .eq('council_id', council.id)
     .select(
-      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .single();
 
   const updatedEvent = data as EventRow | null;
-
   if (updateError || !updatedEvent) {
     throw new Error(`Could not update event: ${updateError?.message ?? 'Unknown error'}`);
   }
 
-  await ensureHostInvite({
-    supabase,
-    eventId: updatedEvent.id,
-    council,
-  });
-
+  await ensureHostInvite({ supabase, eventId: updatedEvent.id, council });
   await replaceNonHostInvites({
     supabase,
     eventId: updatedEvent.id,
     invitedCouncils: eventInput.scope_code === 'multi_council' ? invitedCouncils : [],
   });
-
   await replaceEventExternalInvitees({
     supabase,
     eventId: updatedEvent.id,
@@ -1541,35 +1388,21 @@ export async function updateEvent(eventId: string, formData: FormData) {
     userId: appUser.id,
   });
 
-  await cancelPendingMessageJobs({
-    supabase,
-    eventId: updatedEvent.id,
-  });
+  await cancelPendingMessageJobs({ supabase, eventId: updatedEvent.id });
 
   if (updatedEvent.status_code === 'scheduled') {
-    await queueMessageJobs({
-      supabase,
-      event: updatedEvent,
-      createdByUserId: appUser.id,
-    });
+    await queueMessageJobs({ supabase, event: updatedEvent, createdByUserId: appUser.id });
   }
 
   revalidatePath('/events');
   revalidatePath(`/events/${updatedEvent.id}`);
   revalidatePath(`/events/${updatedEvent.id}/edit`);
-
   redirect(`/events/${updatedEvent.id}`);
 }
 
-
 export async function duplicateEventAsDraft(eventId: string) {
   const { supabase, appUser, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-
-  const event = await loadOwnedEvent({
-    supabase,
-    eventId,
-    councilId: council.id,
-  });
+  const event = await loadOwnedEvent({ supabase, eventId, councilId: council.id });
 
   const { data: invitedCouncilsData, error: invitedCouncilsError } = await supabase
     .from('event_invited_councils')
@@ -1608,6 +1441,7 @@ export async function duplicateEventAsDraft(eventId: string) {
       requires_rsvp: event.requires_rsvp,
       needs_volunteers: event.needs_volunteers,
       rsvp_deadline_at: event.rsvp_deadline_at,
+      volunteer_deadline_at: event.volunteer_deadline_at,
       reminder_enabled: event.reminder_enabled,
       reminder_scheduled_for: event.reminder_scheduled_for,
       reminder_days_before: event.reminder_days_before,
@@ -1637,17 +1471,14 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
   const { data, error } = await supabase
     .from('event_archives')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .eq('id', archiveId)
     .eq('council_id', council.id)
     .single();
 
   const archive = data as Omit<EventRow, 'id' | 'status_code'> & { id: string; council_id: string } | null;
-
-  if (error || !archive) {
-    throw new Error('Could not load that archived event.');
-  }
+  if (error || !archive) throw new Error('Could not load that archived event.');
 
   const duplicatedEventId = await createDraftEventFromSeed({
     supabase,
@@ -1665,6 +1496,7 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
       requires_rsvp: archive.requires_rsvp,
       needs_volunteers: archive.needs_volunteers,
       rsvp_deadline_at: archive.rsvp_deadline_at,
+      volunteer_deadline_at: archive.volunteer_deadline_at,
       reminder_enabled: archive.reminder_enabled,
       reminder_scheduled_for: archive.reminder_scheduled_for,
       reminder_days_before: archive.reminder_days_before,
@@ -1676,12 +1508,7 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
 
 export async function deleteEvent(eventId: string) {
   const { supabase, appUser, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-
-  const event = await loadOwnedEvent({
-    supabase,
-    eventId,
-    councilId: council.id,
-  });
+  const event = await loadOwnedEvent({ supabase, eventId, councilId: council.id });
 
   const { error: archiveError } = await supabase.from('event_archives').insert({
     original_event_id: event.id,
@@ -1697,6 +1524,7 @@ export async function deleteEvent(eventId: string) {
     event_kind_code: event.event_kind_code,
     requires_rsvp: event.requires_rsvp,
     rsvp_deadline_at: event.rsvp_deadline_at,
+    volunteer_deadline_at: event.volunteer_deadline_at,
     reminder_enabled: event.reminder_enabled,
     reminder_scheduled_for: event.reminder_scheduled_for,
     reminder_days_before: event.reminder_days_before,
@@ -1704,9 +1532,7 @@ export async function deleteEvent(eventId: string) {
     deleted_by_user_id: appUser.id,
   });
 
-  if (archiveError) {
-    throw new Error(`Could not archive event before deletion: ${archiveError.message}`);
-  }
+  if (archiveError) throw new Error(`Could not archive event before deletion: ${archiveError.message}`);
 
   const { error } = await supabase
     .from('events')
@@ -1714,9 +1540,7 @@ export async function deleteEvent(eventId: string) {
     .eq('id', eventId)
     .eq('council_id', council.id);
 
-  if (error) {
-    throw new Error(`Could not delete event: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not delete event: ${error.message}`);
 
   revalidatePath('/events');
   revalidatePath('/events/archive');
@@ -1729,12 +1553,7 @@ export async function addHostManualVolunteer(
   formData: FormData
 ) {
   const { supabase, council, appUser } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-
-  const event = await loadOwnedEvent({
-    supabase,
-    eventId,
-    councilId: council.id,
-  });
+  const event = await loadOwnedEvent({ supabase, eventId, councilId: council.id });
 
   if (event.scope_code !== 'home_council_only') {
     throw new Error('Host manual volunteer entry is only available for home council only events.');
@@ -1777,9 +1596,7 @@ export async function addHostManualVolunteer(
         })
       : null;
 
-    if (personError || !person) {
-      throw new Error('Could not load the selected member.');
-    }
+    if (personError || !person) throw new Error('Could not load the selected member.');
 
     matchedPersonId = person.id;
 
@@ -1821,9 +1638,7 @@ export async function addHostManualVolunteer(
     }
   }
 
-  if (!primaryName) {
-    throw new Error('Volunteer name is required.');
-  }
+  if (!primaryName) throw new Error('Volunteer name is required.');
 
   await savePersonRsvpSubmission({
     supabase,
@@ -1898,26 +1713,16 @@ export async function updateHostManualVolunteer(
     status_code: 'active' | 'cancelled';
   } | null;
 
-  if (submissionError || !submission) {
-    throw new Error('Could not load that volunteer submission.');
-  }
-
-  if (submission.source_code !== 'host_manual') {
-    throw new Error('Only host-added volunteers can be edited here.');
-  }
-
-  if (submission.status_code !== 'active') {
-    throw new Error('Only active volunteer submissions can be edited.');
-  }
+  if (submissionError || !submission) throw new Error('Could not load that volunteer submission.');
+  if (submission.source_code !== 'host_manual') throw new Error('Only host-added volunteers can be edited here.');
+  if (submission.status_code !== 'active') throw new Error('Only active volunteer submissions can be edited.');
 
   const primaryName = normalizeString(formData.get('primary_name'));
   const primaryEmail = normalizeEmail(formData.get('primary_email'));
   const primaryPhone = nullableString(formData.get('primary_phone'));
   const responseNotes = nullableString(formData.get('response_notes'));
 
-  if (!primaryName) {
-    throw new Error('Volunteer name is required.');
-  }
+  if (!primaryName) throw new Error('Volunteer name is required.');
 
   if (submission.matched_person_id) {
     const { data: personData, error: personError } = await supabase
@@ -1927,9 +1732,7 @@ export async function updateHostManualVolunteer(
       .eq('council_id', council.id)
       .maybeSingle();
 
-    if (personError) {
-      throw new Error(`Could not load member profile: ${personError.message}`);
-    }
+    if (personError) throw new Error(`Could not load member profile: ${personError.message}`);
 
     const person = personData ? decryptPeopleRecord(personData) : null;
 
@@ -1989,7 +1792,6 @@ export async function updateHostManualVolunteer(
   redirect(`/events/${event.id}/volunteers`);
 }
 
-
 export async function removeVolunteerSubmission(
   eventId: string,
   submissionId: string,
@@ -2023,13 +1825,8 @@ export async function removeVolunteerSubmission(
     status_code: 'active' | 'cancelled';
   } | null;
 
-  if (submissionError || !submission) {
-    throw new Error('Could not load that volunteer submission.');
-  }
-
-  if (submission.status_code !== 'active') {
-    throw new Error('Only active volunteer submissions can be removed.');
-  }
+  if (submissionError || !submission) throw new Error('Could not load that volunteer submission.');
+  if (submission.status_code !== 'active') throw new Error('Only active volunteer submissions can be removed.');
 
   const now = new Date().toISOString();
   const { error: updateError } = await supabase
@@ -2038,9 +1835,7 @@ export async function removeVolunteerSubmission(
     .eq('id', submission.id)
     .eq('event_id', event.id);
 
-  if (updateError) {
-    throw new Error(`Could not remove volunteer submission: ${updateError.message}`);
-  }
+  if (updateError) throw new Error(`Could not remove volunteer submission: ${updateError.message}`);
 
   await cancelPendingVolunteerMessageJobs({
     supabase,
@@ -2067,13 +1862,8 @@ export const removeHostManualVolunteer = removeVolunteerSubmission;
 export async function revokePersonRsvpByToken(token: string, submissionId: string) {
   const supabase = createAdminClient();
 
-  if (!token) {
-    throw new Error('Missing RSVP token.');
-  }
-
-  if (!submissionId) {
-    throw new Error('Missing RSVP submission.');
-  }
+  if (!token) throw new Error('Missing RSVP token.');
+  if (!submissionId) throw new Error('Missing RSVP submission.');
 
   const { data: inviteData, error: inviteError } = await supabase
     .from('event_invited_councils')
@@ -2082,10 +1872,7 @@ export async function revokePersonRsvpByToken(token: string, submissionId: strin
     .single();
 
   const invite = inviteData as { id: string; event_id: string } | null;
-
-  if (inviteError || !invite) {
-    throw new Error('That RSVP link is not valid.');
-  }
+  if (inviteError || !invite) throw new Error('That RSVP link is not valid.');
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
@@ -2099,9 +1886,7 @@ export async function revokePersonRsvpByToken(token: string, submissionId: strin
     rsvp_deadline_at: string | null;
   } | null;
 
-  if (eventError || !event) {
-    throw new Error('Could not load the event for this RSVP link.');
-  }
+  if (eventError || !event) throw new Error('Could not load the event for this RSVP link.');
 
   if (event.scope_code !== 'home_council_only') {
     throw new Error('This revoke action is only available for individual RSVP links.');
@@ -2124,13 +1909,8 @@ export async function revokePersonRsvpByToken(token: string, submissionId: strin
     status_code: 'active' | 'cancelled';
   } | null;
 
-  if (submissionError || !submission) {
-    throw new Error('Could not load your RSVP submission.');
-  }
-
-  if (submission.status_code !== 'active') {
-    throw new Error('This RSVP has already been removed.');
-  }
+  if (submissionError || !submission) throw new Error('Could not load your RSVP submission.');
+  if (submission.status_code !== 'active') throw new Error('This RSVP has already been removed.');
 
   const now = new Date().toISOString();
 
@@ -2144,9 +1924,7 @@ export async function revokePersonRsvpByToken(token: string, submissionId: strin
     .eq('id', submission.id)
     .eq('event_id', event.id);
 
-  if (updateError) {
-    throw new Error(`Could not remove RSVP: ${updateError.message}`);
-  }
+  if (updateError) throw new Error(`Could not remove RSVP: ${updateError.message}`);
 
   revalidatePath(`/rsvp/${token}`);
   revalidatePath(`/rsvp/${token}/event`);
@@ -2167,9 +1945,7 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
   const token = normalizeString(formData.get('token'));
   const rsvpFlow = normalizeString(formData.get('rsvp_flow'));
 
-  if (!token) {
-    throw new Error('Missing RSVP token.');
-  }
+  if (!token) throw new Error('Missing RSVP token.');
 
   const { data: inviteData, error: inviteError } = await supabase
     .from('event_invited_councils')
@@ -2178,22 +1954,16 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
     .single();
 
   const invite = inviteData as { id: string; event_id: string; invite_email: string | null } | null;
-
-  if (inviteError || !invite) {
-    throw new Error('That RSVP link is not valid.');
-  }
+  if (inviteError || !invite) throw new Error('That RSVP link is not valid.');
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
-.select('id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before')
+    .select('id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before')
     .eq('id', invite.event_id)
     .single();
 
   const event = eventData as EventRow | null;
-
-  if (eventError || !event) {
-    throw new Error('Could not load the event for this RSVP link.');
-  }
+  if (eventError || !event) throw new Error('Could not load the event for this RSVP link.');
 
   if (event.rsvp_deadline_at && new Date(event.rsvp_deadline_at).getTime() < Date.now()) {
     throw new Error('The RSVP deadline for this event has passed.');
@@ -2221,9 +1991,7 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
     last_responded_at: new Date().toISOString(),
   };
 
-  if (!rsvpPayload.responding_council_name) {
-    throw new Error('Council name is required.');
-  }
+  if (!rsvpPayload.responding_council_name) throw new Error('Council name is required.');
 
   const { data: existingRsvpData } = await supabase
     .from('event_council_rsvps')
@@ -2275,9 +2043,7 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
     .delete()
     .eq('event_council_rsvp_id', rsvpId);
 
-  if (deleteVolunteersError) {
-    throw new Error(`Could not refresh volunteer rows: ${deleteVolunteersError.message}`);
-  }
+  if (deleteVolunteersError) throw new Error(`Could not refresh volunteer rows: ${deleteVolunteersError.message}`);
 
   if (volunteerRows.length > 0) {
     const { error: insertVolunteersError } = await supabase
@@ -2294,9 +2060,7 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
         }))
       );
 
-    if (insertVolunteersError) {
-      throw new Error(`Could not save volunteer rows: ${insertVolunteersError.message}`);
-    }
+    if (insertVolunteersError) throw new Error(`Could not save volunteer rows: ${insertVolunteersError.message}`);
   }
 
   revalidatePath(`/rsvp/${token}`);
@@ -2312,10 +2076,6 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
   );
 }
 
-type EventExternalInviteeRow = {
-  id: string;
-};
-
 export async function addEventExternalInvitee(eventId: string, formData: FormData) {
   const { supabase, user, council } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
   const event = await loadOwnedEvent({
@@ -2325,9 +2085,7 @@ export async function addEventExternalInvitee(eventId: string, formData: FormDat
   });
 
   const inviteeName = normalizeString(formData.get('invitee_name'));
-  if (!inviteeName) {
-    throw new Error('Invitee name is required.');
-  }
+  if (!inviteeName) throw new Error('Invitee name is required.');
 
   const { data: existingRows } = await supabase
     .from('event_external_invitees')
@@ -2349,9 +2107,7 @@ export async function addEventExternalInvitee(eventId: string, formData: FormDat
     updated_by_user_id: user.id,
   });
 
-  if (error) {
-    throw new Error(`Could not add external invitee: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not add external invitee: ${error.message}`);
 
   revalidatePath('/events');
   revalidatePath(`/events/${event.id}`);
@@ -2368,9 +2124,7 @@ export async function removeEventExternalInvitee(eventId: string, formData: Form
   });
   const inviteeId = nullableString(formData.get('invitee_id'));
 
-  if (!inviteeId) {
-    throw new Error('Missing external invitee id.');
-  }
+  if (!inviteeId) throw new Error('Missing external invitee id.');
 
   const { error } = await supabase
     .from('event_external_invitees')
@@ -2378,9 +2132,7 @@ export async function removeEventExternalInvitee(eventId: string, formData: Form
     .eq('id', inviteeId)
     .eq('event_id', event.id);
 
-  if (error) {
-    throw new Error(`Could not remove external invitee: ${error.message}`);
-  }
+  if (error) throw new Error(`Could not remove external invitee: ${error.message}`);
 
   revalidatePath('/events');
   revalidatePath(`/events/${event.id}`);

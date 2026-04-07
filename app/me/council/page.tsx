@@ -5,6 +5,7 @@ import ConfirmActionButton from '@/app/components/confirm-action-button'
 import MemberSearchField from '@/app/components/member-search-field'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import {
   addOfficerTermAction,
   grantCouncilAdminAction,
@@ -196,7 +197,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
   const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
   const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
 
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/me',
     areaCode: 'local_unit_settings',
@@ -215,6 +216,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     { data: officerRoleEmailData },
     { data: pendingInvitationData },
     { data: organizationData },
+    switchableLocalUnits,
   ] = await Promise.all([
     admin
       .from('people')
@@ -259,6 +261,18 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
       .eq('id', permissions.organizationId)
       .maybeSingle(),
+    permissions.authUser
+      ? (
+          await listAccessibleLocalUnitsForArea({
+            admin,
+            userId: permissions.authUser.id,
+            areaCode: 'local_unit_settings',
+            minimumAccessLevel: 'manage',
+          })
+        )
+          .filter((unit) => unit.local_unit_id !== localUnitId)
+          .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
+      : [],
   ])
 
   const people = decryptPeopleRecords((peopleData as PersonRow[] | null) ?? [])
@@ -542,6 +556,34 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
                 Manage identity, officers, and admin access.
               </p>
+
+              {switchableLocalUnits.length > 0 ? (
+                <details className="qv-view-menu" style={{ marginTop: 12 }}>
+                  <summary>
+                    <span>Change local organization</span>
+                    <span aria-hidden="true" className="qv-view-menu-chevron">
+                      ▾
+                    </span>
+                  </summary>
+                  <div className="qv-view-menu-panel">
+                    {switchableLocalUnits.map((unit) => (
+                      <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
+                        <input type="hidden" name="areaCode" value="local_unit_settings" />
+                        <input type="hidden" name="minimumAccessLevel" value="manage" />
+                        <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
+                        <input type="hidden" name="next" value="/me/council" />
+                        <button
+                          type="submit"
+                          className="qv-view-menu-item"
+                          style={{ width: '100%', justifyContent: 'flex-start' }}
+                        >
+                          {unit.local_unit_name}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
             </div>
             <div className="qv-org-avatar-wrap">
               <OrganizationAvatar

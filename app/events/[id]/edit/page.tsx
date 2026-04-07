@@ -1,9 +1,12 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { notFound } from 'next/navigation'
+import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context'
 import AppHeader from '@/app/app-header'
 import EventForm from '../../event-form'
 import DeleteEventButton from '../../delete-event-button'
 import { deleteEvent, updateEvent } from '../../actions'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 
 type EditEventPageProps = {
   params: Promise<{ id: string }>
@@ -14,6 +17,15 @@ type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
   org_type_code: string | null
+  logo_storage_path?: string | null
+  logo_alt_text?: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type InvitedCouncilRow = {
@@ -36,7 +48,30 @@ type ExternalInviteeRow = {
   sort_order: number
 }
 
+function toDateOnlyValue(value?: string | null) {
+  if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  const parts = formatter.formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value ?? ''
+  const month = parts.find((part) => part.type === 'month')?.value ?? ''
+  const day = parts.find((part) => part.type === 'day')?.value ?? ''
+
+  return year && month && day ? `${year}-${month}-${day}` : ''
+}
+
 export default async function EditEventPage({ params }: EditEventPageProps) {
+  noStore()
   const { id } = await params
   const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' })
 
@@ -44,7 +79,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   if (council.organization_id) {
     const { data } = await supabase
       .from('organizations')
-      .select('id, display_name, preferred_name, org_type_code')
+      .select('id, display_name, preferred_name, org_type_code, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
       .eq('id', council.organization_id)
       .single()
     organization = (data as OrganizationRow | null) ?? null
@@ -53,7 +88,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   const { data: event, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
     .eq('council_id', council.id)
@@ -102,24 +137,43 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   const updateEventAction = updateEvent.bind(null, event.id)
   const deleteEventAction = deleteEvent.bind(null, event.id)
   const heroName = organization?.preferred_name ?? organization?.display_name ?? council.name ?? 'Council'
+  const organizationName = getEffectiveOrganizationName(organization) ?? heroName
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
   return (
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader />
         <section className="qv-hero-card">
-          <div className="qv-hero-top">
-            <div>
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
               <p className="qv-eyebrow">{heroName}{council.council_number ? ` (${council.council_number})` : ''}</p>
-              <h1 className="qv-title">Edit event</h1>
-              <p className="qv-subtitle">Update event details, RSVP settings, invitees, and automated email reminders.</p>
+              <h1 className="qv-directory-name">Events</h1>
+              <p className="qv-section-subtitle" style={{ maxWidth: 620 }}>
+                Update event details, RSVP settings, invitees, and automated email reminders.
+              </p>
+            </div>
+
+            <div className="qv-org-avatar-wrap">
+              <OrganizationAvatar
+                displayName={organizationName}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
+                size={72}
+              />
+            </div>
+          </div>
+
+          <div className="qv-section-menu-shell" style={{ marginTop: 24 }}>
+            <div className="qv-section-menu-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <p className="qv-section-menu-label">Edit event</p>
+                <p className="qv-section-menu-value">Refine timing, participation settings, and messaging before members see changes.</p>
+              </div>
+              <DeleteEventButton action={deleteEventAction} />
             </div>
           </div>
         </section>
-
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-          <DeleteEventButton action={deleteEventAction} />
-        </div>
 
         <EventForm
           mode="edit"
@@ -138,7 +192,8 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
             event_kind_code: event.event_kind_code,
             requires_rsvp: event.requires_rsvp,
             needs_volunteers: event.needs_volunteers,
-            rsvp_deadline_at: event.rsvp_deadline_at,
+            rsvp_deadline_at: toDateOnlyValue(event.rsvp_deadline_at),
+            volunteer_deadline_at: toDateOnlyValue(event.volunteer_deadline_at),
             reminder_enabled: event.reminder_enabled,
             reminder_scheduled_for: event.reminder_scheduled_for,
             organizationTypeCode: organization?.org_type_code ?? null,

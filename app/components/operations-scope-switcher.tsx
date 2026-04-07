@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
-  buildParallelAreaChooserHref,
+  buildAreaScopeChooserHref,
   getManagedAreaLabel,
   inferAreaSelectionFromPath,
-} from '@/lib/auth/parallel-area-selection'
+} from '@/lib/auth/operations-scope-selection'
 import type { ManagedAreaAccessLevel, ManagedAreaCode } from '@/lib/auth/area-access'
 
-type ParallelAreaAccessSwitcherProps = {
+type OperationsScopeSwitcherProps = {
   switchableAreas?: Partial<Record<ManagedAreaCode, boolean>>
 }
 
@@ -26,7 +26,7 @@ const SWITCHABLE_AREA_CONFIG: SwitcherAreaConfig[] = [
   { areaCode: 'local_unit_settings', minimumAccessLevel: 'manage', defaultPath: '/me/council' },
 ]
 
-export default function ParallelAreaAccessSwitcher({ switchableAreas }: ParallelAreaAccessSwitcherProps) {
+export default function OperationsScopeSwitcher({ switchableAreas }: OperationsScopeSwitcherProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const areaMatch = inferAreaSelectionFromPath(pathname)
@@ -39,7 +39,7 @@ export default function ParallelAreaAccessSwitcher({ switchableAreas }: Parallel
       return {
         areaCode: config.areaCode,
         label: getManagedAreaLabel(config.areaCode),
-        href: buildParallelAreaChooserHref({
+        href: buildAreaScopeChooserHref({
           areaCode: config.areaCode,
           minimumAccessLevel: config.minimumAccessLevel,
           nextPath,

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import SignOutButton from '@/app/sign-out-button'
 import DevModeSwitcher, { type SuperAdminOrganizationOption } from '@/app/components/dev-mode-switcher'
 import AccessContextSwitcher from '@/app/components/access-context-switcher'
-import ParallelAreaAccessSwitcher from '@/app/components/parallel-area-access-switcher'
+import OperationsScopeSwitcher from '@/app/components/operations-scope-switcher'
 import type { AccessContextOption } from '@/lib/auth/access-contexts'
 
 type UserMenuLink = {
@@ -25,7 +25,7 @@ type UserMenuProps = {
     selectedOrganizationId: string | null
     organizations: SuperAdminOrganizationOption[]
   } | null
-  parallelAreaSwitcher?: {
+  operationsScopeSwitcher?: {
     members?: boolean
     events?: boolean
     custom_lists?: boolean
@@ -33,7 +33,7 @@ type UserMenuProps = {
   } | null
 }
 
-export default function UserMenu({ links, email, accessContext, devMode, parallelAreaSwitcher }: UserMenuProps) {
+export default function UserMenu({ links, email, accessContext, devMode, operationsScopeSwitcher }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -62,7 +62,7 @@ export default function UserMenu({ links, email, accessContext, devMode, paralle
             </Link>
           ))}
 
-          {parallelAreaSwitcher ? <ParallelAreaAccessSwitcher switchableAreas={parallelAreaSwitcher} /> : null}
+          {operationsScopeSwitcher ? <OperationsScopeSwitcher switchableAreas={operationsScopeSwitcher} /> : null}
 
           {accessContext && accessContext.contexts.length > 1 && (!devMode || devMode.selectedMode === 'normal') ? (
             <>

@@ -68,12 +68,18 @@ export default async function HomePage() {
   }
 
   const admin = createAdminClient()
+  const operationsContext = await findCurrentActingCouncilContextForArea({
+    areaCode: 'events',
+    minimumAccessLevel: 'manage',
+  })
 
-  const { data: councilData } = permissions.councilId
+  const effectiveCouncilId = operationsContext?.council.id ?? permissions.councilId ?? null
+
+  const { data: councilData } = effectiveCouncilId
     ? await admin
         .from('councils')
         .select('id, name, council_number, organization_id')
-        .eq('id', permissions.councilId)
+        .eq('id', effectiveCouncilId)
         .maybeSingle<CouncilRow>()
     : { data: null }
 
@@ -98,11 +104,6 @@ export default async function HomePage() {
   const publicMeetingsHref = council.council_number
     ? `/councils/${council.council_number}/meetings`
     : '/events'
-
-  const operationsContext = await findCurrentActingCouncilContextForArea({
-    areaCode: 'events',
-    minimumAccessLevel: 'manage',
-  })
 
   const switchableLocalUnits =
     operationsContext?.permissions.authUser

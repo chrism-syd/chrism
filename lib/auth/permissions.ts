@@ -8,6 +8,7 @@ import {
   type AccessContextSource,
 } from '@/lib/auth/access-contexts'
 import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
+import { getSelectedOperationsLocalUnitId, OPERATIONS_SCOPE_COOKIE } from '@/lib/auth/operations-scope-selection'
 import { listManageableEventIdsForUser } from '@/lib/auth/resource-access'
 import { isAutomaticCouncilAdminTerm } from '@/lib/members/officer-roles'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -815,16 +816,30 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const requestedAccessContextKey = !isSuperAdmin
     ? cookieStore.get(ACTIVE_ACCESS_CONTEXT_COOKIE)?.value ?? null
     : null
+  const requestedOperationsLocalUnitId = !isSuperAdmin
+    ? getSelectedOperationsLocalUnitId({
+        rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
+      })
+    : null
 
   const selectedAccessContext = !isSuperAdmin && requestedAccessContextKey
     ? availableContexts.find((context) => context.key === requestedAccessContextKey) ?? null
+    : null
+  const selectedOperationsContext = !isSuperAdmin && requestedOperationsLocalUnitId
+    ? pickDefaultAccessContext(
+        availableContexts.filter(
+          (context) =>
+            context.accessLevel !== 'member' &&
+            parallelAccessState.localUnitIdByContextKey.get(context.key) === requestedOperationsLocalUnitId
+        )
+      )
     : null
   const highestStaffContext = !isSuperAdmin
     ? pickDefaultAccessContext(availableContexts.filter((context) => context.accessLevel !== 'member'))
     : null
   const activeAccessContext = !isSuperAdmin && highestStaffContext && selectedAccessContext?.accessLevel === 'member'
     ? highestStaffContext
-    : selectedAccessContext ?? defaultContext
+    : selectedAccessContext ?? selectedOperationsContext ?? defaultContext
 
   let organizationId: string | null = activeAccessContext?.organizationId ?? defaultOrganizationId
   let organizationName: string | null = activeAccessContext?.organizationName ?? defaultOrganizationName

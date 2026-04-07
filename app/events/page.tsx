@@ -6,9 +6,12 @@ import { findCurrentActingCouncilContextForArea, type ActingCouncilContext } fro
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import {
+  getCouncilInboxEventHref,
   getMemberInvitedEventHref,
   getPublicMeetingsHref,
+  listCouncilInboxEvents,
   listMemberInvitedEvents,
+  type CouncilInboxEvent,
   type MemberInvitedEvent,
 } from '@/lib/member-navigation'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
@@ -184,6 +187,63 @@ function renderInvitedEventList(events: MemberInvitedEvent[]) {
   )
 }
 
+
+function renderCouncilInboxEventList(events: CouncilInboxEvent[]) {
+  if (!events.length) return null
+
+  return (
+    <div className="qv-member-list">
+      {events.map((event) => {
+        const eventHref = getCouncilInboxEventHref(event)
+
+        return eventHref ? (
+          <Link key={event.event_id} href={eventHref} className="qv-member-link">
+            <article className="qv-member-row">
+              <div className="qv-member-main">
+                <div className="qv-member-text">
+                  <div className="qv-member-name">{event.event_title}</div>
+                  <div className="qv-member-meta">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
+                  {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    <span className="qv-mini-pill">Council invite</span>
+                    <span className="qv-mini-pill">Public event page</span>
+                  </div>
+
+                  {event.invite_contact_name || event.invite_email ? (
+                    <div className="qv-member-meta" style={{ marginTop: 10 }}>
+                      {event.invite_contact_name ? `Contact: ${event.invite_contact_name}` : null}
+                      {event.invite_contact_name && event.invite_email ? ' · ' : null}
+                      {event.invite_email ? event.invite_email : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="qv-member-row-right">
+                <span className="qv-chevron">›</span>
+              </div>
+            </article>
+          </Link>
+        ) : (
+          <article key={event.event_id} className="qv-member-row">
+            <div className="qv-member-main">
+              <div className="qv-member-text">
+                <div className="qv-member-name">{event.event_title}</div>
+                <div className="qv-member-meta">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
+                {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  <span className="qv-mini-pill">Council invite</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
 async function MemberEventsPage() {
   const permissions = await getCurrentUserPermissions()
   const admin = createAdminClient()
@@ -292,7 +352,11 @@ async function MemberEventsPage() {
 
 async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   const { admin: supabase, council, permissions, localUnitId } = context
-  const organization = await loadOrganizationProfile({ admin: supabase, council })
+  const [organization, councilInboxEvents, memberInvitedEvents] = await Promise.all([
+    loadOrganizationProfile({ admin: supabase, council }),
+    listCouncilInboxEvents({ admin: supabase, permissions, limit: 12 }),
+    listMemberInvitedEvents({ admin: supabase, permissions, limit: 12 }),
+  ])
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
@@ -531,6 +595,46 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
 
         <div className="qv-detail-grid">
           <div className="qv-detail-stack">
+            <section className="qv-card">
+              <div className="qv-directory-section-head">
+                <div>
+                  <h2 className="qv-section-title">Invited to your council</h2>
+                  <p className="qv-section-subtitle">
+                    Multi-council events that were sent to this council.
+                  </p>
+                </div>
+              </div>
+
+              {councilInboxEvents.length > 0 ? (
+                renderCouncilInboxEventList(councilInboxEvents)
+              ) : (
+                <EmptyState
+                  title="No council invites yet"
+                  body="When another council invites this council to a multi-council event, it will appear here."
+                />
+              )}
+            </section>
+
+            <section className="qv-card">
+              <div className="qv-directory-section-head">
+                <div>
+                  <h2 className="qv-section-title">Your invited events</h2>
+                  <p className="qv-section-subtitle">
+                    Personal RSVP or guest-invite matches tied to your own identity.
+                  </p>
+                </div>
+              </div>
+
+              {memberInvitedEvents.length > 0 ? (
+                renderInvitedEventList(memberInvitedEvents)
+              ) : (
+                <EmptyState
+                  title="No personal event matches yet"
+                  body="When an event RSVP or guest invite matches your email or member record, it will appear here."
+                />
+              )}
+            </section>
+
             {scheduledEvents.length > 0 ? (
               <section className="qv-card">
                 <div className="qv-directory-section-head">

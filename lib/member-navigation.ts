@@ -35,6 +35,15 @@ type CouncilNumberRow = {
   council_number: string | null
 }
 
+type CouncilInvitedEventRow = {
+  event_id: string
+  invited_council_name: string
+  invited_council_number: string | null
+  invite_email: string | null
+  invite_contact_name: string | null
+  sort_order: number | null
+}
+
 export type MemberInvitedEvent = {
   event_id: string
   event_title: string
@@ -44,6 +53,17 @@ export type MemberInvitedEvent = {
   source_label: string
   host_token: string | null
   submission_id: string | null
+}
+
+export type CouncilInboxEvent = {
+  event_id: string
+  event_title: string
+  starts_at: string
+  ends_at: string | null
+  location_name: string | null
+  invite_email: string | null
+  invite_contact_name: string | null
+  host_token: string | null
 }
 
 type CandidateMatch = {
@@ -73,6 +93,10 @@ function compareMatchPriority(left: CandidateMatch, right: CandidateMatch) {
 }
 
 function sortMemberEvents(left: MemberInvitedEvent, right: MemberInvitedEvent) {
+  return new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime()
+}
+
+function sortCouncilInboxEvents(left: CouncilInboxEvent, right: CouncilInboxEvent) {
   return new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime()
 }
 
@@ -143,6 +167,10 @@ export async function getPublicMeetingsHref(args: {
 }
 
 export function getMemberInvitedEventHref(event: Pick<MemberInvitedEvent, 'host_token'>) {
+  return event.host_token ? `/rsvp/${event.host_token}/event` : null
+}
+
+export function getCouncilInboxEventHref(event: Pick<CouncilInboxEvent, 'host_token'>) {
   return event.host_token ? `/rsvp/${event.host_token}/event` : null
 }
 
@@ -328,5 +356,112 @@ export async function listMemberInvitedEvents(args: {
     })
     .filter((row): row is MemberInvitedEvent => Boolean(row))
     .sort(sortMemberEvents)
+    .slice(0, limit)
+}
+
+export async function listCouncilInboxEvents(args: {
+  admin: SupabaseClient
+  permissions: CurrentUserPermissions
+  limit?: number
+}) {
+  const { admin, permissions, limit = 12 } = args
+
+  const normalizedEmail = normalizeEmail(permissions.email)
+  let councilNumber: string | null = null
+
+  if (permissions.councilId) {
+    const { data, error } = await admin
+      .from('councils')
+      .select('council_number')
+      .eq('id', permissions.councilId)
+      .maybeSingle<CouncilNumberRow>()
+
+    if (error) {
+      throw new Error(`Could not load council number for event inbox: ${error.message}`)
+    }
+
+    councilNumber = data?.council_number?.trim() ?? null
+  }
+
+  if (!councilNumber && !normalizedEmail) {
+    return [] as CouncilInboxEvent[]
+  }
+
+  const filters: string[] = []
+  if (councilNumber) {
+    filters.push(`invited_council_number.eq.${councilNumber}`)
+  }
+  if (normalizedEmail) {
+    filters.push(`invite_email.ilike.${normalizedEmail}`)
+  }
+
+  const { data: inviteRows, error: inviteError } = await admin
+    .from('event_invited_councils')
+    .select('event_id, invited_council_name, invited_council_number, invite_email, invite_contact_name, sort_order')
+    .eq('is_host', false)
+    .or(filters.join(','))
+    .returns<CouncilInvitedEventRow[]>()
+
+  if (inviteError) {
+    throw new Error(`Could not load council inbox events: ${inviteError.message}`)
+  }
+
+  const uniqueEventIds = [...new Set((inviteRows ?? []).map((row) => row.event_id).filter(Boolean))]
+  if (uniqueEventIds.length === 0) {
+    return [] as CouncilInboxEvent[]
+  }
+
+  const [{ data: eventRows, error: eventsError }, { data: hostRows, error: hostError }] = await Promise.all([
+    admin
+      .from('events')
+      .select('id, title, starts_at, ends_at, location_name, status_code')
+      .in('id', uniqueEventIds)
+      .not('status_code', 'in', '(cancelled,completed)')
+      .returns<EventRow[]>(),
+    admin
+      .from('event_invited_councils')
+      .select('event_id, rsvp_link_token')
+      .eq('is_host', true)
+      .in('event_id', uniqueEventIds)
+      .returns<HostInviteRow[]>(),
+  ])
+
+  if (eventsError) {
+    throw new Error(`Could not load council inbox event details: ${eventsError.message}`)
+  }
+
+  if (hostError) {
+    throw new Error(`Could not load council inbox public links: ${hostError.message}`)
+  }
+
+  const eventById = new Map((eventRows ?? []).map((row) => [row.id, row]))
+  const hostTokenByEventId = new Map((hostRows ?? []).map((row) => [row.event_id, row.rsvp_link_token]))
+  const inviteByEventId = new Map<string, CouncilInvitedEventRow>()
+
+  for (const row of (inviteRows ?? []).sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0))) {
+    if (!inviteByEventId.has(row.event_id)) {
+      inviteByEventId.set(row.event_id, row)
+    }
+  }
+
+  return uniqueEventIds
+    .map((eventId) => {
+      const event = eventById.get(eventId)
+      const invite = inviteByEventId.get(eventId)
+      if (!event || !invite) return null
+
+      return {
+        event_id: event.id,
+        event_title: event.title,
+        starts_at: event.starts_at,
+        ends_at: event.ends_at,
+        location_name: event.location_name,
+        invite_email: invite.invite_email,
+        invite_contact_name: invite.invite_contact_name,
+        host_token: hostTokenByEventId.get(event.id) ?? null,
+      } satisfies CouncilInboxEvent
+    })
+    .filter((row): row is CouncilInboxEvent => Boolean(row))
+    .sort(sortCouncilInboxEvents)
     .slice(0, limit)
 }
