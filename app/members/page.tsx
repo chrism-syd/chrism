@@ -5,7 +5,7 @@ import SectionMenuBar from '@/app/components/section-menu-bar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
-import { loadCouncilMemberDirectoryData } from '@/lib/members/directory-data'
+import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data'
 
 export default async function MembersPage() {
   const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({
@@ -14,10 +14,27 @@ export default async function MembersPage() {
     minimumAccessLevel: 'edit_manage',
   })
 
-  let directoryData: Awaited<ReturnType<typeof loadCouncilMemberDirectoryData>>
+  if (!localUnitId) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader />
+          <div className="qv-error">
+            <strong>Could not load members.</strong>
+            <p>This view is missing its active local organization context.</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  let directoryData: Awaited<ReturnType<typeof loadLocalUnitMemberDirectoryData>>
 
   try {
-    directoryData = await loadCouncilMemberDirectoryData({ admin: supabase, councilId: council.id })
+    directoryData = await loadLocalUnitMemberDirectoryData({
+      admin: supabase,
+      localUnitId,
+    })
   } catch (error) {
     return (
       <main className="qv-page">
@@ -54,6 +71,20 @@ export default async function MembersPage() {
     } | null
   } | null
 
+  const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin'
+  const filteredPersonIdSet = new Set<string>(
+    isPreviewAdminMode && permissions.personId ? [permissions.personId] : []
+  )
+
+  const members = directoryData.members.filter((person) => !filteredPersonIdSet.has(person.id))
+  const prospects = directoryData.prospects.filter((person) => !filteredPersonIdSet.has(person.id))
+  const currentOfficerLabelsById = Object.fromEntries(
+    Object.entries(directoryData.currentOfficerLabelsById).filter(([personId]) => !filteredPersonIdSet.has(personId))
+  )
+  const executiveOfficerLabelsById = Object.fromEntries(
+    Object.entries(directoryData.executiveOfficerLabelsById).filter(([personId]) => !filteredPersonIdSet.has(personId))
+  )
+
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
@@ -71,7 +102,6 @@ export default async function MembersPage() {
         .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
     : []
 
-  const { members, prospects, currentOfficerLabelsById, executiveOfficerLabelsById } = directoryData
   const activeMembers = members.filter((person) => person.council_activity_level_code === 'active')
   const inactiveMembers = members.filter((person) => person.council_activity_level_code === 'inactive')
 
@@ -110,7 +140,7 @@ export default async function MembersPage() {
               color: 'var(--text-secondary)',
             }}
           >
-            Browse and manage members for your council.
+            Browse and manage members for your local organization.
           </p>
         </section>
 
