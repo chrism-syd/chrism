@@ -23,6 +23,7 @@ import {
   getOfficerRoleOption,
   type OfficerScopeCode,
 } from '@/lib/members/officer-roles'
+import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -87,6 +88,29 @@ async function requireOrganizationAdminManager() {
   }
 
   return context
+}
+
+async function requireActiveLocalUnitMemberSelection(args: {
+  admin: ReturnType<typeof createAdminClient>
+  localUnitId: string | null
+  personId: string
+  errorMessage: string
+}) {
+  if (!args.localUnitId) {
+    redirectToCouncilPage({
+      error: 'This view is missing its active local organization context. Refresh and try again.',
+    })
+  }
+
+  const validPersonIds = await listValidMemberPersonIdsForLocalUnit({
+    admin: args.admin,
+    localUnitId: args.localUnitId,
+    personIds: [args.personId],
+  })
+
+  if (!validPersonIds.includes(args.personId)) {
+    redirectToCouncilPage({ error: args.errorMessage })
+  }
 }
 
 async function saveOfficerRoleEmail(args: {
@@ -280,6 +304,15 @@ export async function grantCouncilAdminAction(formData: FormData) {
     redirectToCouncilPage({ error: 'Choose a member before granting admin access.' })
   }
 
+  const admin = createAdminClient()
+
+  await requireActiveLocalUnitMemberSelection({
+    admin,
+    localUnitId: context.localUnitId,
+    personId,
+    errorMessage: 'Choose an active local-unit member before granting admin access.',
+  })
+
   try {
     await saveOrganizationAdminAssignment({
       personId,
@@ -437,6 +470,13 @@ export async function addOfficerTermAction(formData: FormData) {
   const option = getOfficerRoleOption(resolvedOfficeScopeCode, resolvedOfficeCode)
 
   const admin = createAdminClient()
+
+  await requireActiveLocalUnitMemberSelection({
+    admin,
+    localUnitId: context.localUnitId,
+    personId: resolvedPersonId,
+    errorMessage: 'Choose an active local-unit member before saving an officer term.',
+  })
 
   const { data: existingTerms, error: existingTermsError } = await admin
     .from('person_officer_terms')

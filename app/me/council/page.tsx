@@ -27,6 +27,7 @@ import AdminCarousel from './admin-carousel'
 import OfficerCarousel from './officer-carousel'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data'
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -141,8 +142,8 @@ function normalizeEmail(value: string | null | undefined) {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function isLocalMemberProfile(person: PersonRow | null | undefined, councilId: string) {
-  return Boolean(person && person.council_id === councilId && person.primary_relationship_code === 'member')
+function isLocalUnitMemberProfile(personId: string | null | undefined, localMemberIds: Set<string>) {
+  return Boolean(personId && localMemberIds.has(personId))
 }
 
 function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
@@ -208,6 +209,20 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
 
+  const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin'
+  const localUnitDirectoryData = localUnitId
+    ? await loadLocalUnitMemberDirectoryData({
+        admin,
+        localUnitId,
+      }).catch(() => null)
+    : null
+
+  const visibleLocalUnitMemberIds = new Set(
+    ((localUnitDirectoryData?.members ?? []).map((person) => person.id)).filter(
+      (personId) => !(isPreviewAdminMode && permissions.personId && permissions.personId === personId)
+    )
+  )
+
   const [
     { data: peopleData },
     { data: assignmentData },
@@ -216,6 +231,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     { data: officerRoleEmailData },
     { data: pendingInvitationData },
     { data: organizationData },
+    { data: localMemberPeopleData },
     switchableLocalUnits,
   ] = await Promise.all([
     admin
@@ -261,6 +277,13 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
       .eq('id', permissions.organizationId)
       .maybeSingle(),
+    visibleLocalUnitMemberIds.size > 0
+      ? admin
+          .from('people')
+          .select('id, first_name, last_name, nickname, email, primary_relationship_code, council_id')
+          .in('id', [...visibleLocalUnitMemberIds])
+          .is('archived_at', null)
+      : Promise.resolve({ data: [] as PersonRow[] }),
     permissions.authUser
       ? (
           await listAccessibleLocalUnitsForArea({
@@ -276,18 +299,21 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
   ])
 
   const people = decryptPeopleRecords((peopleData as PersonRow[] | null) ?? [])
-  const members = people.filter((person) => person.primary_relationship_code === 'member')
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
   const legacyCouncilAssignments = (legacyCouncilAssignmentData as LegacyCouncilAdminAssignmentRow[] | null) ?? []
   const officerTerms = (officerData as OfficerTermRow[] | null) ?? []
   const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
   const pendingInvitations = (pendingInvitationData as PendingInvitationRow[] | null) ?? []
   const organization = (organizationData as OrganizationRow | null) ?? null
+  const localMemberPeople = decryptPeopleRecords((localMemberPeopleData as PersonRow[] | null) ?? [])
+  const localMembers = localMemberPeople
+    .filter((person) => visibleLocalUnitMemberIds.has(person.id))
+    .filter((person) => person.primary_relationship_code === 'member')
 
   const externalAdminPersonIds = [...new Set([
     ...assignments.map((assignment) => assignment.person_id).filter((value): value is string => Boolean(value)),
     ...legacyCouncilAssignments.map((assignment) => assignment.person_id).filter((value): value is string => Boolean(value)),
-  ])].filter((personId) => !people.some((person) => person.id === personId))
+  ])].filter((personId) => !people.some((person) => person.id === personId) && !localMembers.some((person) => person.id === personId))
 
   const externalAdminPeopleResult = externalAdminPersonIds.length > 0
     ? await admin
@@ -299,7 +325,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   const externalAdminPeople = decryptPeopleRecords((externalAdminPeopleResult.data as PersonRow[] | null) ?? [])
 
-  const allKnownPeople = [...people, ...externalAdminPeople].filter(
+  const allKnownPeople = [...people, ...localMembers, ...externalAdminPeople].filter(
     (person, index, rows) => rows.findIndex((candidate) => candidate.id === person.id) === index
   )
 
@@ -477,7 +503,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
     const profilePerson = adminRow.personId ? personById.get(adminRow.personId) ?? null : null
     const profileHref = profilePerson
-      ? isLocalMemberProfile(profilePerson, council.id)
+      ? isLocalUnitMemberProfile(profilePerson.id, visibleLocalUnitMemberIds)
         ? `/members/${adminRow.personId}`
         : `/me/council/admins/${adminRow.personId}`
       : null
@@ -499,13 +525,19 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     adminCards.map((adminRow) => adminRow.personId).filter((personId): personId is string => Boolean(personId))
   )
 
-  const memberOptions = members
+  const adminGrantMemberOptions = localMembers
     .filter((member) => !adminPersonIds.has(member.id))
     .map((member) => ({
       id: member.id,
       name: memberName(member),
       email: member.email,
     }))
+
+  const officerMemberOptions = localMembers.map((member) => ({
+    id: member.id,
+    name: memberName(member),
+    email: member.email,
+  }))
 
   const fallbackMember: PersonRow = {
     id: '',
@@ -630,7 +662,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 <MemberSearchField
                   name="person_id"
                   label="Member"
-                  members={memberOptions}
+                  members={adminGrantMemberOptions}
                   placeholder="Type a member name"
                   required
                 />
@@ -813,7 +845,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 <MemberSearchField
                   name="person_id"
                   label="Member"
-                  members={memberOptions}
+                  members={officerMemberOptions}
                   placeholder="Type a member name"
                   required
                 />
