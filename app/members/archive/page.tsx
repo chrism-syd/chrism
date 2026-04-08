@@ -26,19 +26,43 @@ function formatDateTime(value: string | null) {
 }
 
 export default async function ArchivedMembersPage() {
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({
+  const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContext({
     redirectTo: '/members',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
 
-  const { data, error } = await supabase
-    .from('people')
-    .select('id, first_name, last_name, email, cell_phone, archived_at, archive_reason')
-    .eq('council_id', council.id)
-    .not('archived_at', 'is', null)
-    .order('archived_at', { ascending: false })
-    .returns<ArchivedMemberRow[]>()
+  const memberIdsResult = localUnitId
+    ? await supabase
+        .from('member_records')
+        .select('legacy_people_id')
+        .eq('local_unit_id', localUnitId)
+    : { data: [] as Array<{ legacy_people_id: string | null }>, error: null }
+
+  const memberIdsError = memberIdsResult.error ?? null
+  const localUnitPersonIds = [
+    ...new Set(
+      (((memberIdsResult.data as Array<{ legacy_people_id: string | null }> | null) ?? [])
+        .map((row) => row.legacy_people_id)
+        .filter((value): value is string => Boolean(value)))
+    ),
+  ]
+
+  const archivedPeopleResult =
+    memberIdsError || localUnitPersonIds.length === 0
+      ? { data: [] as ArchivedMemberRow[], error: memberIdsError }
+      : await supabase
+          .from('people')
+          .select('id, first_name, last_name, email, cell_phone, archived_at, archive_reason')
+          .in('id', localUnitPersonIds)
+          .eq('primary_relationship_code', 'member')
+          .not('archived_at', 'is', null)
+          .order('archived_at', { ascending: false })
+          .returns<ArchivedMemberRow[]>()
+
+  const data = archivedPeopleResult.data ?? []
+  const error = archivedPeopleResult.error ?? null
+  const archivedMembers = decryptPeopleRecords(data)
 
   return (
     <main className="qv-page">
@@ -53,7 +77,7 @@ export default async function ArchivedMembersPage() {
                 {council.council_number ? ` (${council.council_number})` : ''}
               </p>
               <h1 className="qv-title">Archived members</h1>
-              <p className="qv-subtitle">Members removed from the active directory stay visible here for admins.</p>
+              <p className="qv-subtitle">Members removed from the active local organization directory stay visible here for admins.</p>
             </div>
 
             <div className="qv-directory-actions">
@@ -66,7 +90,7 @@ export default async function ArchivedMembersPage() {
 
         {error ? (
           <section className="qv-card qv-error">Could not load archived members. {error.message}</section>
-        ) : decryptPeopleRecords(data ?? []).length === 0 ? (
+        ) : archivedMembers.length === 0 ? (
           <section className="qv-card qv-empty">
             <h2 className="qv-empty-title">No archived members</h2>
             <p className="qv-empty-text">Removed members will appear here after they are archived from the directory.</p>
@@ -81,7 +105,7 @@ export default async function ArchivedMembersPage() {
             </div>
 
             <div className="qv-member-list">
-              {decryptPeopleRecords(data ?? []).map((member) => (
+              {archivedMembers.map((member) => (
                 <div key={member.id} className="qv-member-row">
                   <div style={{ display: 'grid', gap: 6 }}>
                     <div className="qv-member-name">{member.first_name} {member.last_name}</div>

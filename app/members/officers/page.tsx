@@ -96,11 +96,27 @@ function buildHonorificGroups(terms: OfficerTermRow[]) {
 }
 
 export default async function OfficersPage() {
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     redirectTo: '/me',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   });
+
+  const memberRecordResult = localUnitId
+    ? await admin
+        .from('member_records')
+        .select('legacy_people_id')
+        .eq('local_unit_id', localUnitId)
+        .is('archived_at', null)
+    : { data: [], error: null };
+
+  const localUnitPersonIds = [
+    ...new Set(
+      (((memberRecordResult.data as Array<{ legacy_people_id: string | null }> | null) ?? [])
+        .map((row) => row.legacy_people_id)
+        .filter((value): value is string => Boolean(value)))
+    ),
+  ];
 
   const [{ data: termData }, { data: personData }, { data: organizationData }] = await Promise.all([
     admin
@@ -108,12 +124,14 @@ export default async function OfficersPage() {
       .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year')
       .eq('council_id', council.id)
       .order('service_start_year', { ascending: false }),
-    admin
-      .from('people')
-      .select('id, first_name, last_name, email')
-      .eq('council_id', council.id)
-      .is('archived_at', null)
-      .is('merged_into_person_id', null),
+    localUnitPersonIds.length > 0
+      ? admin
+          .from('people')
+          .select('id, first_name, last_name, email')
+          .in('id', localUnitPersonIds)
+          .eq('primary_relationship_code', 'member')
+          .is('archived_at', null)
+      : Promise.resolve({ data: [] as PersonRow[] }),
     permissions.organizationId
       ? admin
           .from('organizations')
@@ -123,10 +141,10 @@ export default async function OfficersPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const terms = (termData as OfficerTermRow[] | null) ?? [];
   const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? []);
-  const organization = (organizationData as OrganizationBrandingRecord | null) ?? null;
   const peopleById = new Map(people.map((person) => [person.id, person]));
+  const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) => peopleById.has(term.person_id));
+  const organization = (organizationData as OrganizationBrandingRecord | null) ?? null;
 
   const currentTerms = terms.filter((term) => term.service_end_year == null);
   const honorificGroups = buildHonorificGroups(terms);
