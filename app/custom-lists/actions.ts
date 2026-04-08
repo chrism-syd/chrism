@@ -107,6 +107,14 @@ async function resolveSelectedManageableCustomListLocalUnitId(args: {
   admin: ReturnType<typeof createAdminClient>
   permissions: Awaited<ReturnType<typeof getCurrentUserPermissions>>
 }) {
+  if (
+    args.permissions.isSuperAdmin &&
+    args.permissions.actingMode === 'admin' &&
+    args.permissions.activeLocalUnitId
+  ) {
+    return args.permissions.activeLocalUnitId
+  }
+
   const manageableLocalUnitIds = await listManageableLocalUnitIdsForCustomLists({
     admin: args.admin,
     permissions: args.permissions,

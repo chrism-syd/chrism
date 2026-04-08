@@ -85,7 +85,7 @@ function friendlyPeopleConstraintMessage(message: string) {
 }
 
 async function getCurrentMemberAdminContext() {
-  const { admin: supabase, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin: supabase, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
@@ -100,6 +100,7 @@ async function getCurrentMemberAdminContext() {
     supabase,
     user: permissions.authUser,
     council,
+    localUnitId,
   };
 }
 
@@ -114,7 +115,14 @@ export async function createMemberAction(
     return memberFormErrorState(values, validationError);
   }
 
-  const { supabase, user, council } = await getCurrentMemberAdminContext();
+  const { supabase, user, council, localUnitId } = await getCurrentMemberAdminContext();
+
+  if (!localUnitId) {
+    return memberFormErrorState(
+      values,
+      'We could not tell which local organization this member belongs to. Please refresh and try again.'
+    );
+  }
 
   const payload = protectPeoplePayload({
     council_id: council.id,
@@ -140,15 +148,45 @@ export async function createMemberAction(
     updated_by_auth_user_id: user.id,
   });
 
-  const { error } = await supabase.from('people').insert(payload);
+  const { data: insertedPerson, error: insertError } = await supabase
+    .from('people')
+    .insert(payload)
+    .select('id')
+    .maybeSingle<{ id: string }>();
 
-  if (error) {
-    return memberFormErrorState(values, friendlyPeopleConstraintMessage(error.message));
+  if (insertError || !insertedPerson?.id) {
+    return memberFormErrorState(
+      values,
+      friendlyPeopleConstraintMessage(insertError?.message ?? 'We could not save this member right now.')
+    );
+  }
+
+  const { data: memberRecordId, error: memberRecordError } = await supabase.rpc(
+    'ensure_member_record_for_person_local_unit',
+    {
+      p_local_unit_id: localUnitId,
+      p_person_id: insertedPerson.id,
+    }
+  );
+
+  if (memberRecordError || !memberRecordId) {
+    await supabase
+      .from('people')
+      .delete()
+      .eq('id', insertedPerson.id)
+      .eq('council_id', council.id)
+      .eq('primary_relationship_code', 'member');
+
+    return memberFormErrorState(
+      values,
+      `We saved the person record, but could not link this member to the active local organization. ${memberRecordError?.message ?? 'Please try again.'}`
+    );
   }
 
   revalidatePath('/');
   revalidatePath('/members');
   revalidatePath('/members/archive');
+  revalidatePath('/custom-lists');
   redirect('/members');
 }
 

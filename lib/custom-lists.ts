@@ -326,11 +326,36 @@ export async function listActiveCustomListShares(args: {
   })) satisfies CustomListShareGrantRow[]
 }
 
+function isPreviewManagingCurrentCustomList(args: {
+  permissions: CurrentUserPermissions
+  list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>
+}) {
+  const { permissions, list } = args
+
+  if (!(permissions.isSuperAdmin && permissions.actingMode === 'admin')) {
+    return false
+  }
+
+  if (permissions.activeLocalUnitId && list.local_unit_id && permissions.activeLocalUnitId === list.local_unit_id) {
+    return true
+  }
+
+  if (permissions.councilId && list.council_id && permissions.councilId === list.council_id) {
+    return true
+  }
+
+  return false
+}
+
 export async function hasStrictCustomListLifecycleAccess(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
   list: Pick<CustomListRow, 'id' | 'local_unit_id' | 'council_id'>
 }) {
+  if (isPreviewManagingCurrentCustomList({ permissions: args.permissions, list: args.list })) {
+    return true
+  }
+
   const userId = args.permissions.authUser?.id
   if (!userId) {
     return false
@@ -444,6 +469,10 @@ export async function canManageCustomList(
   list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
   admin: SupabaseClient
 ) {
+  if (isPreviewManagingCurrentCustomList({ permissions, list })) {
+    return true
+  }
+
   const userId = permissions.authUser?.id
   if (!userId) {
     return false
@@ -472,6 +501,10 @@ export async function canViewCustomList(args: {
   permissions: CurrentUserPermissions
   list: Pick<CustomListRow, 'id' | 'council_id' | 'local_unit_id'>
 }) {
+  if (isPreviewManagingCurrentCustomList({ permissions: args.permissions, list: args.list })) {
+    return true
+  }
+
   if (await canManageCustomList(args.permissions, args.list, args.admin)) {
     return true
   }
