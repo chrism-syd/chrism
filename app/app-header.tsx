@@ -40,18 +40,35 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
   const suppressPersonalizedMemberLinks =
     permissions.isSuperAdmin && permissions.actingMode === 'member'
 
-  const [memberInvitedEvents, publicMeetingsHref, hasSharedCustomLists] =
-    permissions.isSignedIn && !permissions.hasStaffAccess
-      ? await Promise.all([
-          suppressPersonalizedMemberLinks
-            ? Promise.resolve([])
-            : listMemberInvitedEvents({ admin, permissions, limit: 6 }),
+  let memberInvitedEvents: Awaited<ReturnType<typeof listMemberInvitedEvents>> = []
+  let publicMeetingsHref: string | null = null
+  let hasSharedCustomLists = false
+
+  if (permissions.isSignedIn && !permissions.hasStaffAccess) {
+    const [memberInvitedEventsResult, publicMeetingsHrefResult, hasSharedCustomListsResult] = suppressPersonalizedMemberLinks
+      ? [
+          { status: 'fulfilled', value: [] as Awaited<ReturnType<typeof listMemberInvitedEvents>> } as const,
+          { status: 'fulfilled', value: null as string | null } as const,
+          { status: 'fulfilled', value: false } as const,
+        ]
+      : await Promise.allSettled([
+          listMemberInvitedEvents({ admin, permissions, limit: 6 }),
           getPublicMeetingsHref({ admin, councilId: permissions.councilId }),
-          suppressPersonalizedMemberLinks
-            ? Promise.resolve(false)
-            : hasExplicitlySharedCustomListsForUser({ admin, permissions }),
+          hasExplicitlySharedCustomListsForUser({ admin, permissions }),
         ])
-      : [[], null, false]
+
+    if (memberInvitedEventsResult.status === 'fulfilled') {
+      memberInvitedEvents = memberInvitedEventsResult.value
+    }
+
+    if (publicMeetingsHrefResult.status === 'fulfilled') {
+      publicMeetingsHref = publicMeetingsHrefResult.value
+    }
+
+    if (hasSharedCustomListsResult.status === 'fulfilled') {
+      hasSharedCustomLists = hasSharedCustomListsResult.value
+    }
+  }
 
   const memberNavChildren = [
     ...(permissions.canAccessMemberData ? [{ label: 'Member directory', href: '/members' }] : []),

@@ -5,22 +5,18 @@ import AppHeader from '@/app/app-header'
 import MembersList from '@/app/members-list'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
-import { findCurrentActingCouncilContextForArea } from '@/lib/auth/acting-context'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getSelectedOperationsLocalUnitId, OPERATIONS_SCOPE_COOKIE } from '@/lib/auth/operations-scope-selection'
-import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   formatDateTime,
   listExplicitlySharedCustomListIdsForUser,
   listManageableLocalUnitIdsForCustomLists,
-  listSharedCustomListIdsForUser,
-  listValidMemberPersonIdsForLocalUnit,
   type CustomListRow,
 } from '@/lib/custom-lists'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { type OrganizationProfileRow } from '@/lib/organizations/profile'
-import { loadCouncilMemberDirectoryData } from '@/lib/members/directory-data'
+import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data'
 
 type CountRow = {
   custom_list_id: string
@@ -28,24 +24,10 @@ type CountRow = {
 
 type OrganizationRow = OrganizationProfileRow
 
-type CouncilContextRow = {
-  id: string
-  name: string | null
-  council_number: string | null
-  organization_id: string | null
-}
-
 type LocalUnitRow = {
   id: string
   display_name: string | null
-}
-
-type DirectoryLocalUnitRow = LocalUnitRow & {
-  legacy_council_id: string | null
-}
-
-type ContextLocalUnitRow = DirectoryLocalUnitRow & {
-  legacy_organization_id: string | null
+  legacy_organization_id?: string | null
 }
 
 type PageProps = {
@@ -56,112 +38,148 @@ function normalizeSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null
 }
 
-async function loadOrganizationProfile(args: {
+async function loadOrganizationProfileForLocalUnit(args: {
   admin: ReturnType<typeof createAdminClient>
-  council: CouncilContextRow
+  localUnitId: string | null
 }) {
-  const { admin, council } = args
+  const { admin, localUnitId } = args
 
-  if (!council.organization_id) {
-    return null
+  if (!localUnitId) {
+    return {
+      localUnit: null as LocalUnitRow | null,
+      organization: null as OrganizationRow | null,
+    }
   }
 
-  const { data } = await admin
+  const { data: localUnitData, error: localUnitError } = await admin
+    .from('local_units')
+    .select('id, display_name, legacy_organization_id')
+    .eq('id', localUnitId)
+    .maybeSingle<LocalUnitRow>()
+
+  if (localUnitError) {
+    throw new Error(`Could not load local organization context. ${localUnitError.message}`)
+  }
+
+  const localUnit = (localUnitData as LocalUnitRow | null) ?? null
+
+  if (!localUnit?.legacy_organization_id) {
+    return {
+      localUnit,
+      organization: null as OrganizationRow | null,
+    }
+  }
+
+  const { data: organizationData, error: organizationError } = await admin
     .from('organizations')
     .select(
       'display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)'
     )
-    .eq('id', council.organization_id)
+    .eq('id', localUnit.legacy_organization_id)
     .maybeSingle()
 
-  return (data as OrganizationRow | null) ?? null
+  if (organizationError) {
+    throw new Error(`Could not load organization branding. ${organizationError.message}`)
+  }
+
+  return {
+    localUnit,
+    organization: (organizationData as OrganizationRow | null) ?? null,
+  }
 }
 
-async function renderManageCustomListsPage(args: {
-  searchParams: Record<string, string | string[] | undefined>
-  context: NonNullable<Awaited<ReturnType<typeof findCurrentActingCouncilContextForArea>>>
-}) {
-  const resolvedSearchParams = args.searchParams
+export default async function CustomListsPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
   const showMemberDirectory = normalizeSingleParam(resolvedSearchParams.showMemberDirectory) === '1'
-  const { admin, council, permissions, localUnitId } = args.context
+  const permissions = await getCurrentUserPermissions()
 
-  const organization = await loadOrganizationProfile({
-    admin,
-    council: {
-      id: council.id,
-      name: council.name,
-      council_number: council.council_number,
-      organization_id: council.organization_id,
-    },
+  if (!permissions.authUser) {
+    redirect('/login')
+  }
+
+  const admin = createAdminClient()
+  const cookieStore = await cookies()
+  const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
+    rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
   })
-  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
-  const effectiveBranding = getEffectiveOrganizationBranding(organization)
-  const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
-  const switchableLocalUnits = permissions.authUser
-    ? (
-        await listAccessibleLocalUnitsForArea({
-          admin,
-          userId: permissions.authUser.id,
-          areaCode: 'custom_lists',
-          minimumAccessLevel: 'manage',
-        })
-      )
-        .filter((unit) => unit.local_unit_id !== localUnitId)
-        .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
-    : []
+  const [manageableLocalUnitIds, sharedListIds] = await Promise.all([
+    permissions.hasStaffAccess
+      ? listManageableLocalUnitIdsForCustomLists({ admin, permissions })
+      : Promise.resolve([] as string[]),
+    listExplicitlySharedCustomListIdsForUser({ admin, permissions }),
+  ])
 
-  let listQuery = admin
+  if (!permissions.hasStaffAccess && sharedListIds.length === 0) {
+    redirect('/me')
+  }
+
+  const activeManageLocalUnitId =
+    (selectedLocalUnitId && manageableLocalUnitIds.includes(selectedLocalUnitId) ? selectedLocalUnitId : null) ??
+    (permissions.activeLocalUnitId && manageableLocalUnitIds.includes(permissions.activeLocalUnitId)
+      ? permissions.activeLocalUnitId
+      : null) ??
+    (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
+
+  const manageScopeLocalUnitIds =
+    activeManageLocalUnitId && manageableLocalUnitIds.includes(activeManageLocalUnitId)
+      ? [activeManageLocalUnitId]
+      : manageableLocalUnitIds
+
+  if (manageScopeLocalUnitIds.length === 0 && sharedListIds.length === 0) {
+    redirect('/me')
+  }
+
+  const memberDirectoryLocalUnitId =
+    permissions.canManageCustomLists && manageableLocalUnitIds.length > 0
+      ? activeManageLocalUnitId ?? (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
+      : null
+
+  let query = admin
     .from('custom_lists')
     .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
 
-  listQuery = localUnitId
-    ? listQuery.eq('local_unit_id', localUnitId)
-    : listQuery.eq('council_id', council.id)
+  const filters: string[] = []
 
-  const { data: listRows, error: listError } = await listQuery.returns<CustomListRow[]>()
+  if (manageScopeLocalUnitIds.length > 0) {
+    filters.push(`local_unit_id.in.(${manageScopeLocalUnitIds.join(',')})`)
+  }
 
+  if (sharedListIds.length > 0) {
+    filters.push(`id.in.(${sharedListIds.join(',')})`)
+  }
+
+  if (filters.length === 1) {
+    query = query.or(filters[0])
+  } else if (filters.length > 1) {
+    query = query.or(filters.join(','))
+  }
+
+  const { data: listRows, error: listError } = await query.returns<CustomListRow[]>()
   if (listError) {
     throw new Error(`Could not load custom lists. ${listError.message}`)
   }
 
   const lists = listRows ?? []
   const listIds = lists.map((list) => list.id)
+  const listLocalUnitIds = [...new Set(lists.map((list) => list.local_unit_id).filter((value): value is string => Boolean(value)))]
 
-  const [memberCountResult, accessCountResult, memberDirectoryData] = await Promise.all([
+  const [memberCountResult, accessCountResult, localUnitsResult, manageableUnitsResult] = await Promise.all([
     listIds.length > 0
       ? admin.from('custom_list_members').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
       : Promise.resolve({ data: [] as CountRow[] }),
     listIds.length > 0
       ? admin.from('custom_list_access').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
       : Promise.resolve({ data: [] as CountRow[] }),
-    showMemberDirectory
-      ? loadCouncilMemberDirectoryData({ admin, councilId: council.id })
-      : Promise.resolve(null),
+    listLocalUnitIds.length > 0
+      ? admin.from('local_units').select('id, display_name').in('id', listLocalUnitIds).returns<LocalUnitRow[]>()
+      : Promise.resolve({ data: [] as LocalUnitRow[] }),
+    manageableLocalUnitIds.length > 0
+      ? admin.from('local_units').select('id, display_name').in('id', manageableLocalUnitIds).returns<LocalUnitRow[]>()
+      : Promise.resolve({ data: [] as LocalUnitRow[] }),
   ])
-
-  let scopedMemberDirectoryData = memberDirectoryData
-
-  if (scopedMemberDirectoryData && localUnitId) {
-    const scopedMemberIds = await listValidMemberPersonIdsForLocalUnit({
-      admin,
-      localUnitId,
-      personIds: scopedMemberDirectoryData.members.map((member) => member.id),
-    })
-    const scopedMemberIdSet = new Set(scopedMemberIds)
-    scopedMemberDirectoryData = {
-      ...scopedMemberDirectoryData,
-      members: scopedMemberDirectoryData.members.filter((member) => scopedMemberIdSet.has(member.id)),
-      currentOfficerLabelsById: Object.fromEntries(
-        Object.entries(scopedMemberDirectoryData.currentOfficerLabelsById ?? {}).filter(([personId]) => scopedMemberIdSet.has(personId))
-      ),
-      executiveOfficerLabelsById: Object.fromEntries(
-        Object.entries(scopedMemberDirectoryData.executiveOfficerLabelsById ?? {}).filter(([personId]) => scopedMemberIdSet.has(personId))
-      ),
-    }
-  }
 
   const memberCounts = new Map<string, number>()
   for (const row of memberCountResult.data ?? []) {
@@ -172,6 +190,52 @@ async function renderManageCustomListsPage(args: {
   for (const row of accessCountResult.data ?? []) {
     accessCounts.set(row.custom_list_id, (accessCounts.get(row.custom_list_id) ?? 0) + 1)
   }
+
+  const localUnitsById = new Map(((localUnitsResult.data ?? []) as LocalUnitRow[]).map((row) => [row.id, row] as const))
+  const manageableUnits = (manageableUnitsResult.data ?? []) as LocalUnitRow[]
+
+  const currentLocalUnitName =
+    (activeManageLocalUnitId
+      ? manageableUnits.find((row) => row.id === activeManageLocalUnitId)?.display_name ?? null
+      : manageableLocalUnitIds.length === 1
+        ? manageableUnits[0]?.display_name ?? null
+        : null) ?? null
+
+  const switchableLocalUnits = manageableUnits
+    .filter((row) => row.id !== activeManageLocalUnitId)
+    .sort((left, right) => (left.display_name ?? '').localeCompare(right.display_name ?? ''))
+    .map((row) => ({
+      local_unit_id: row.id,
+      local_unit_name: row.display_name ?? 'Organization',
+    }))
+
+  const brandingLocalUnitId =
+    activeManageLocalUnitId ??
+    memberDirectoryLocalUnitId ??
+    (listLocalUnitIds.length === 1 ? listLocalUnitIds[0] : null)
+
+  const { localUnit: brandingLocalUnit, organization } = await loadOrganizationProfileForLocalUnit({
+    admin,
+    localUnitId: brandingLocalUnitId,
+  })
+
+  const organizationName = getEffectiveOrganizationName(organization) ?? brandingLocalUnit?.display_name ?? 'Organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
+
+  const memberDirectoryData =
+    showMemberDirectory && memberDirectoryLocalUnitId
+      ? await loadLocalUnitMemberDirectoryData({
+          admin,
+          localUnitId: memberDirectoryLocalUnitId,
+        })
+      : null
+
+  const memberDirectoryLocalUnitName =
+    memberDirectoryLocalUnitId
+      ? manageableUnits.find((row) => row.id === memberDirectoryLocalUnitId)?.display_name ??
+        brandingLocalUnit?.display_name ??
+        organizationName
+      : null
 
   const memberDirectoryHref = showMemberDirectory ? '/custom-lists' : '/custom-lists?showMemberDirectory=1#member-directory-section'
 
@@ -210,7 +274,7 @@ async function renderManageCustomListsPage(args: {
               color: 'var(--text-secondary)',
             }}
           >
-            Create and manage custom follow-up lists for your council.
+            Create and manage custom follow-up lists for your local organization.
           </p>
         </section>
 
@@ -227,7 +291,7 @@ async function renderManageCustomListsPage(args: {
             >
               <div style={{ display: 'grid', gap: 12 }}>
                 <h2 className="qv-section-title" style={{ margin: 0 }}>
-                  {currentCouncilLabel}
+                  {currentLocalUnitName ?? organizationName}
                 </h2>
 
                 {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
@@ -273,7 +337,9 @@ async function renderManageCustomListsPage(args: {
 
         <SectionMenuBar
           items={[
-            { label: showMemberDirectory ? 'Hide member directory' : 'Create custom list', href: memberDirectoryHref },
+            ...(permissions.canManageCustomLists && memberDirectoryLocalUnitId
+              ? [{ label: showMemberDirectory ? 'Hide member directory' : 'Create custom list', href: memberDirectoryHref }]
+              : []),
             { label: 'Archived lists', href: '/custom-lists/archive' },
           ]}
         />
@@ -291,369 +357,15 @@ async function renderManageCustomListsPage(args: {
           {lists.length === 0 ? (
             <div className="qv-empty">
               <p className="qv-empty-title">No custom lists yet.</p>
-              <p className="qv-empty-text">This council does not have any custom lists yet.</p>
-            </div>
-          ) : (
-            <div className="qv-member-list">
-              {lists.map((list) => (
-                <Link key={list.id} href={`/custom-lists/${list.id}`} className="qv-member-link qv-card-link">
-                  <article className="qv-member-row qv-custom-list-card">
-                    <div className="qv-member-main">
-                      <div className="qv-member-text">
-                        <div className="qv-member-name">{list.name}</div>
-                        <div className="qv-member-meta">{list.description || 'No description yet.'}</div>
-                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
-                          <span className="qv-member-meta">Members: {memberCounts.get(list.id) ?? 0}</span>
-                          <span className="qv-member-meta">Shared with: {accessCounts.get(list.id) ?? 0}</span>
-                          <span className="qv-member-meta">Last updated: {formatDateTime(list.updated_at)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="qv-member-row-right">
-                      <span className="qv-chevron">›</span>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {showMemberDirectory ? (
-          <div id="member-directory-section" style={{ marginTop: 20 }}>
-            {scopedMemberDirectoryData ? (
-              <MembersList
-                members={scopedMemberDirectoryData.members}
-                currentOfficerLabelsById={scopedMemberDirectoryData.currentOfficerLabelsById}
-                executiveOfficerLabelsById={scopedMemberDirectoryData.executiveOfficerLabelsById}
-                sectionTitle="Member directory"
-                sectionSubtitle={`Search, sort, and save a new custom list from ${currentCouncilLabel}.`}
-                currentViewControlMode="button"
-              />
-            ) : (
-              <section className="qv-card">
-                <div className="qv-empty">
-                  <p className="qv-empty-title">Member directory is not available here yet.</p>
-                  <p className="qv-empty-text">This council cannot load a reusable member directory right now.</p>
-                </div>
-              </section>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </main>
-  )
-}
-
-export default async function CustomListsPage({ searchParams }: PageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {}
-  const permissions = await getCurrentUserPermissions()
-  if (!permissions.authUser) {
-    redirect('/login')
-  }
-
-  const admin = createAdminClient()
-  const sharedOnlyListIds = !permissions.hasStaffAccess
-    ? await listExplicitlySharedCustomListIdsForUser({ admin, permissions })
-    : null
-
-  if (!permissions.hasStaffAccess && (sharedOnlyListIds?.length ?? 0) === 0) {
-    redirect('/me')
-  }
-
-  const manageContext = permissions.hasStaffAccess
-    ? await findCurrentActingCouncilContextForArea({
-        areaCode: 'custom_lists',
-        minimumAccessLevel: 'manage',
-      })
-    : null
-
-  if (manageContext) {
-    return renderManageCustomListsPage({ searchParams: resolvedSearchParams, context: manageContext })
-  }
-
-  const showMemberDirectory = normalizeSingleParam(resolvedSearchParams.showMemberDirectory) === '1'
-
-  const cookieStore = await cookies()
-  const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
-    rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
-  })
-
-  const [manageableLocalUnitIds, sharedIds, legacyContextLocalUnitId, organizationLocalUnitIds] = await Promise.all([
-    permissions.hasStaffAccess
-      ? listManageableLocalUnitIdsForCustomLists({ admin, permissions })
-      : Promise.resolve([] as string[]),
-    sharedOnlyListIds ? Promise.resolve(sharedOnlyListIds) : listSharedCustomListIdsForUser({ admin, permissions }),
-    permissions.councilId
-      ? admin
-          .from('local_units')
-          .select('id')
-          .eq('legacy_council_id', permissions.councilId)
-          .limit(1)
-          .maybeSingle<{ id: string }>()
-          .then((result) => result.data?.id ?? null)
-      : Promise.resolve(null),
-    permissions.organizationId
-      ? admin
-          .from('local_units')
-          .select('id')
-          .eq('legacy_organization_id', permissions.organizationId)
-          .then((result) => ((result.data as Array<{ id: string }> | null) ?? []).map((row) => row.id))
-      : Promise.resolve([] as string[]),
-  ])
-
-  const activeLocalUnitId =
-    (selectedLocalUnitId && manageableLocalUnitIds.includes(selectedLocalUnitId) ? selectedLocalUnitId : null) ??
-    (permissions.activeLocalUnitId && manageableLocalUnitIds.includes(permissions.activeLocalUnitId)
-      ? permissions.activeLocalUnitId
-      : null) ??
-    (legacyContextLocalUnitId && manageableLocalUnitIds.includes(legacyContextLocalUnitId)
-      ? legacyContextLocalUnitId
-      : null) ??
-    (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
-
-  if (sharedIds.length === 0 && (!permissions.hasStaffAccess || manageableLocalUnitIds.length === 0)) {
-    redirect('/me')
-  }
-
-  const contextScopedManageableLocalUnitIds =
-    activeLocalUnitId || organizationLocalUnitIds.length === 0
-      ? manageableLocalUnitIds
-      : manageableLocalUnitIds.filter((value) => organizationLocalUnitIds.includes(value))
-
-  const scopedManageableLocalUnitIds =
-    activeLocalUnitId && manageableLocalUnitIds.includes(activeLocalUnitId)
-      ? [activeLocalUnitId]
-      : activeLocalUnitId
-        ? []
-        : contextScopedManageableLocalUnitIds
-
-  const memberDirectoryLocalUnitId =
-    permissions.canManageCustomLists && contextScopedManageableLocalUnitIds.length > 0
-      ? activeLocalUnitId && manageableLocalUnitIds.includes(activeLocalUnitId)
-        ? activeLocalUnitId
-        : contextScopedManageableLocalUnitIds.length === 1
-          ? contextScopedManageableLocalUnitIds[0]
-          : null
-      : null
-
-  let query = admin
-    .from('custom_lists')
-    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
-    .is('archived_at', null)
-    .order('updated_at', { ascending: false })
-
-  const filters: string[] = []
-
-  if (activeLocalUnitId && manageableLocalUnitIds.includes(activeLocalUnitId)) {
-    filters.push(`local_unit_id.eq.${activeLocalUnitId}`)
-  } else if (scopedManageableLocalUnitIds.length > 0) {
-    filters.push(`local_unit_id.in.(${scopedManageableLocalUnitIds.join(',')})`)
-  }
-
-  if (sharedIds.length > 0) {
-    filters.push(`id.in.(${sharedIds.join(',')})`)
-  }
-
-  if (filters.length === 1) {
-    query = query.or(filters[0])
-  } else if (filters.length > 1) {
-    query = query.or(filters.join(','))
-  }
-
-  const { data: listRows, error: listError } = await query.returns<CustomListRow[]>()
-  if (listError) {
-    throw new Error(`Could not load custom lists. ${listError.message}`)
-  }
-
-  const lists = listRows ?? []
-  const listIds = lists.map((list) => list.id)
-  const localUnitIds = [...new Set(lists.map((list) => list.local_unit_id).filter((value): value is string => Boolean(value)))]
-  const contextLocalUnitIds = [...new Set([
-    ...contextScopedManageableLocalUnitIds,
-    ...(activeLocalUnitId ? [activeLocalUnitId] : []),
-  ])]
-
-  const [
-    memberCountResult,
-    accessCountResult,
-    localUnitsResult,
-    contextLocalUnitsResult,
-    activeContextUnitResult,
-  ] = await Promise.all([
-    listIds.length > 0
-      ? admin.from('custom_list_members').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
-      : Promise.resolve({ data: [] as CountRow[] }),
-    listIds.length > 0
-      ? admin.from('custom_list_access').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
-      : Promise.resolve({ data: [] as CountRow[] }),
-    localUnitIds.length > 0
-      ? admin.from('local_units').select('id, display_name').in('id', localUnitIds).returns<LocalUnitRow[]>()
-      : Promise.resolve({ data: [] as LocalUnitRow[] }),
-    contextLocalUnitIds.length > 0
-      ? admin
-          .from('local_units')
-          .select('id, display_name')
-          .in('id', contextLocalUnitIds)
-          .returns<LocalUnitRow[]>()
-      : Promise.resolve({ data: [] as LocalUnitRow[] }),
-    activeLocalUnitId
-      ? admin
-          .from('local_units')
-          .select('id, display_name, legacy_council_id, legacy_organization_id')
-          .eq('id', activeLocalUnitId)
-          .maybeSingle<ContextLocalUnitRow>()
-      : Promise.resolve({ data: null as ContextLocalUnitRow | null }),
-  ])
-
-  const memberCounts = new Map<string, number>()
-  for (const row of memberCountResult.data ?? []) {
-    memberCounts.set(row.custom_list_id, (memberCounts.get(row.custom_list_id) ?? 0) + 1)
-  }
-
-  const accessCounts = new Map<string, number>()
-  for (const row of accessCountResult.data ?? []) {
-    accessCounts.set(row.custom_list_id, (accessCounts.get(row.custom_list_id) ?? 0) + 1)
-  }
-
-  const localUnitsById = new Map(((localUnitsResult.data ?? []) as LocalUnitRow[]).map((row) => [row.id, row] as const))
-  const contextLocalUnits = (contextLocalUnitsResult.data ?? []) as LocalUnitRow[]
-  const currentLocalUnitName =
-    (activeLocalUnitId ? contextLocalUnits.find((row) => row.id === activeLocalUnitId)?.display_name ?? null : null) ?? null
-  const switchableLocalUnits = contextLocalUnits
-    .filter((row) => row.id !== activeLocalUnitId)
-    .sort((left, right) => (left.display_name ?? '').localeCompare(right.display_name ?? ''))
-    .map((row) => ({
-      local_unit_id: row.id,
-      local_unit_name: row.display_name ?? 'Organization',
-    }))
-
-  const activeContextUnit = (activeContextUnitResult.data as ContextLocalUnitRow | null) ?? null
-  const contextCouncilId = activeContextUnit?.legacy_council_id ?? permissions.councilId ?? null
-  const { data: councilData } =
-    contextCouncilId
-      ? await admin
-          .from('councils')
-          .select('id, name, council_number, organization_id')
-          .eq('id', contextCouncilId)
-          .maybeSingle<CouncilContextRow>()
-      : { data: null }
-
-  const organization = councilData
-    ? await loadOrganizationProfile({
-        admin,
-        council: councilData,
-      })
-    : null
-  const organizationName = getEffectiveOrganizationName(organization)
-  const effectiveBranding = getEffectiveOrganizationBranding(organization)
-
-  let memberDirectoryData: Awaited<ReturnType<typeof loadCouncilMemberDirectoryData>> | null = null
-  let memberDirectoryLocalUnitName: string | null = null
-
-  if (showMemberDirectory && memberDirectoryLocalUnitId) {
-    const { data: directoryUnit, error: directoryUnitError } = await admin
-      .from('local_units')
-      .select('id, display_name, legacy_council_id')
-      .eq('id', memberDirectoryLocalUnitId)
-      .maybeSingle<DirectoryLocalUnitRow>()
-
-    if (directoryUnitError) {
-      throw new Error(`Could not load member directory context. ${directoryUnitError.message}`)
-    }
-
-    if (directoryUnit?.legacy_council_id) {
-      memberDirectoryData = await loadCouncilMemberDirectoryData({
-        admin,
-        councilId: directoryUnit.legacy_council_id,
-      })
-      memberDirectoryLocalUnitName = directoryUnit.display_name ?? organizationName ?? 'this organization'
-    }
-  }
-
-  const memberDirectoryHref = showMemberDirectory ? '/custom-lists' : '/custom-lists?showMemberDirectory=1#member-directory-section'
-  const archiveHref = '/custom-lists/archive'
-
-  return (
-    <main className="qv-page">
-      <div className="qv-shell">
-        <AppHeader />
-
-        <section className="qv-hero-card">
-          <div className="qv-directory-hero">
-            <div className="qv-directory-text">
-              <p className="qv-eyebrow">{currentLocalUnitName ?? organizationName ?? 'Custom lists'}</p>
-              <h1 className="qv-title">Custom lists</h1>
-              <p className="qv-subtitle">Lists you can manage directly or that have been shared with you.</p>
-              {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
-                <details className="qv-view-menu" style={{ marginTop: 12 }}>
-                  <summary>
-                    <span>Change local organization</span>
-                    <span aria-hidden="true" className="qv-view-menu-chevron">
-                      ▾
-                    </span>
-                  </summary>
-                  <div className="qv-view-menu-panel">
-                    {switchableLocalUnits.map((unit) => (
-                      <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
-                        <input type="hidden" name="areaCode" value="custom_lists" />
-                        <input type="hidden" name="minimumAccessLevel" value="manage" />
-                        <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
-                        <input type="hidden" name="next" value="/custom-lists" />
-                        <button
-                          type="submit"
-                          className="qv-view-menu-item"
-                          style={{ width: '100%', justifyContent: 'flex-start' }}
-                        >
-                          {unit.local_unit_name}
-                        </button>
-                      </form>
-                    ))}
-                  </div>
-                </details>
-              ) : null}
-            </div>
-            <div className="qv-org-avatar-wrap">
-              <OrganizationAvatar
-                displayName={organizationName ?? 'Organization'}
-                logoStoragePath={effectiveBranding.logo_storage_path}
-                logoAltText={effectiveBranding.logo_alt_text ?? organizationName ?? 'Organization'}
-                size={72}
-              />
-            </div>
-          </div>
-        </section>
-
-        <div className="qv-section-menu-shell">
-          <div className="qv-section-menu-desktop" aria-label="Custom list actions">
-            {permissions.canManageCustomLists && memberDirectoryLocalUnitId ? (
-              <Link href={memberDirectoryHref} className="qv-section-menu-link">
-                {showMemberDirectory ? 'Hide member directory' : 'Create custom list'}
-              </Link>
-            ) : null}
-            <Link href={archiveHref} className="qv-section-menu-link">
-              View archive
-            </Link>
-          </div>
-        </div>
-
-        <section className="qv-card">
-          <div className="qv-directory-section-head">
-            <div>
-              <h2 className="qv-section-title">Saved lists</h2>
-              <p className="qv-section-subtitle">Open a list to review members, notes, sharing, and follow-up activity.</p>
-            </div>
-          </div>
-
-          {lists.length === 0 ? (
-            <div className="qv-empty">
-              <p className="qv-empty-title">No custom lists yet.</p>
               <p className="qv-empty-text">This organization does not have any custom lists yet.</p>
             </div>
           ) : (
             <div className="qv-member-list">
               {lists.map((list) => {
-                const localUnitName = list.local_unit_id ? localUnitsById.get(list.local_unit_id)?.display_name ?? 'Organization' : 'Organization'
+                const localUnitName = list.local_unit_id
+                  ? localUnitsById.get(list.local_unit_id)?.display_name ?? 'Organization'
+                  : 'Organization'
+
                 return (
                   <Link key={list.id} href={`/custom-lists/${list.id}`} className="qv-member-link qv-card-link">
                     <article className="qv-member-row qv-custom-list-card">
@@ -695,7 +407,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
               <section className="qv-card">
                 <div className="qv-empty">
                   <p className="qv-empty-title">Member directory is not available here yet.</p>
-                  <p className="qv-empty-text">This organization context cannot load a reusable member directory right now.</p>
+                  <p className="qv-empty-text">This local organization cannot load a reusable member directory right now.</p>
                 </div>
               </section>
             )}

@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chrism
 
-## Getting Started
+Chrism is a Next.js application for church and ministry administration. It supports two primary experiences:
 
-First, run the development server:
+- **Operations / staff** workflows for member management, custom lists, event planning, admin access, and organization settings
+- **Spiritual / member** workflows for profile management, public meeting access, invited events, and explicitly shared custom lists
+
+The app is built around organization-aware access control, with active work underway to move context and permissions from legacy council-only assumptions toward a newer local-unit model.
+
+## What the app does
+
+### Member and profile workflows
+- Personal profile management under `/me`
+- Pending and reviewed profile change requests
+- Organization claim / admin-access request flows
+- Claimed RSVP history for signed-in users
+
+### Staff operations
+- Member directory and officer views
+- Custom lists for outreach, follow-up, and planning
+- Event scheduling, RSVP management, volunteer coordination, and public meetings
+- Organization settings, officer assignments, and admin invitations
+
+### Multi-context and preview tooling
+- Role-aware navigation for staff vs member users
+- Context switching between accessible organization areas
+- Super-admin dev preview for testing organization/member/admin views
+
+## Main areas
+
+- `/` — staff operations landing page
+- `/spiritual` — member-facing landing page
+- `/me` — personal profile and organization/account status
+- `/members` — member directory
+- `/custom-lists` — custom list management and shared-list access
+- `/events` — events and public meeting workflows
+- `/me/council` — organization settings and admin management
+
+## Tech stack
+
+- **Next.js** app router application
+- **React**
+- **Supabase** for data access, auth-adjacent access checks, and server actions
+- Role- and context-aware navigation built around current user permissions
+
+## Local development
+
+Install dependencies and start the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start from the main entry points in:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `app/page.tsx`
+- `app/spiritual/page.tsx`
+- `app/me/page.tsx`
+- `app/members/page.tsx`
+- `app/custom-lists/page.tsx`
+- `app/events/page.tsx`
 
-## Learn More
+## Current architecture note
 
-To learn more about Next.js, take a look at the following resources:
+The codebase is in the middle of a permissions/context migration:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- prefer **local-unit-aware** access and context resolution
+- retain some **legacy `council_id` compatibility bridges** where the database schema still requires them
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+If you are working on permissions, acting context, custom lists, or area access, check the latest migration and auth helpers before widening legacy behavior.
 
-## Deploy on Vercel
+## Recommended areas to understand first
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If you are onboarding into the codebase, start here:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/app-header.tsx`
+- `lib/auth/permissions.ts`
+- `lib/auth/acting-context.ts`
+- `lib/auth/parallel-access-summary.ts`
+- `lib/custom-lists.ts`
+- `app/custom-lists/`
+- `app/events/`
+- `app/me/`
+
+## Notes for contributors
+
+- Keep product behavior different for **staff** and **non-staff** users
+- Be careful with access checks that mix legacy council context and newer local-unit context
+- Prefer small, testable changes in auth, preview mode, and custom-list flows
+- Treat helper scripts used during refactors/debugging as disposable and keep them out of git
+
+## Deployment
+
+This is a Next.js app. Standard deployment guidance applies for your chosen platform. If deploying with Vercel, start with the usual Next.js deployment flow and ensure all required environment variables and Supabase credentials are configured for the target environment.

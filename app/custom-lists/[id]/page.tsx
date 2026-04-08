@@ -9,9 +9,12 @@ import {
   canManageCustomList,
   canViewCustomList,
   hasStrictCustomListLifecycleAccess,
-  type CustomListAccessRow,
+  listActiveCustomListShares,
+  listValidMemberPeopleForLocalUnit,
+  resolveCustomListLocalUnitId,
   type CustomListMemberRow,
   type CustomListRow,
+  type CustomListShareGrantRow,
 } from '@/lib/custom-lists'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecords } from '@/lib/security/pii'
@@ -35,7 +38,7 @@ type CustomListMemberView = CustomListMemberRow & {
   lastContactBy: PersonSummaryRow | null
 }
 
-type SharedAccessView = CustomListAccessRow & {
+type SharedAccessView = CustomListShareGrantRow & {
   person: PersonSummaryRow | null
 }
 
@@ -71,12 +74,17 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     redirect('/me')
   }
 
-  const [canManage, canManageLifecycle] = await Promise.all([
+  const [canManage, canManageLifecycle, listLocalUnitId] = await Promise.all([
     canManageCustomList(permissions, listData, admin),
     hasStrictCustomListLifecycleAccess({ admin, permissions, list: listData }),
+    resolveCustomListLocalUnitId({ admin, list: listData }),
   ])
 
-  const [membersResult, accessResult, eligiblePeopleResult] = await Promise.all([
+  if (canManage && !listLocalUnitId) {
+    throw new Error('This custom list is missing its local organization link.')
+  }
+
+  const [membersResult, accessRows, eligiblePeople] = await Promise.all([
     admin
       .from('custom_list_members')
       .select('id, custom_list_id, person_id, claimed_by_person_id, claimed_at, last_contact_at, last_contact_by_person_id, added_at')
@@ -84,35 +92,24 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       .order('added_at', { ascending: true })
       .returns<CustomListMemberRow[]>(),
     canManage
-      ? admin
-          .from('custom_list_access')
-          .select('id, custom_list_id, person_id, user_id, grantee_email, granted_at, granted_by_auth_user_id')
-          .eq('custom_list_id', id)
-          .order('granted_at', { ascending: true })
-          .returns<CustomListAccessRow[]>()
-      : Promise.resolve({ data: [] as CustomListAccessRow[], error: null }),
-    canManage
-      ? admin
-          .from('people')
-          .select('id, first_name, last_name, email, cell_phone, home_phone')
-          .eq('council_id', listData.council_id)
-          .eq('primary_relationship_code', 'member')
-          .is('archived_at', null)
-          .order('last_name', { ascending: true })
-          .returns<PersonSummaryRow[]>()
-      : Promise.resolve({ data: [] as PersonSummaryRow[], error: null }),
+      ? listActiveCustomListShares({
+          admin,
+          customListId: id,
+        })
+      : Promise.resolve([] as CustomListShareGrantRow[]),
+    canManage && listLocalUnitId
+      ? listValidMemberPeopleForLocalUnit({
+          admin,
+          localUnitId: listLocalUnitId,
+        })
+      : Promise.resolve([] as PersonSummaryRow[]),
   ])
 
   if (membersResult.error) {
     throw new Error(`Could not load the members on this custom list. ${membersResult.error.message}`)
   }
-  if (eligiblePeopleResult.error) {
-    throw new Error(`Could not load the eligible members for this custom list. ${eligiblePeopleResult.error.message}`)
-  }
 
   const memberRows = membersResult.data ?? []
-  const accessRows = accessResult.data ?? []
-  const eligiblePeople = decryptPeopleRecords(eligiblePeopleResult.data ?? [])
 
   const peopleIds = [
     ...new Set([
@@ -132,9 +129,22 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           .returns<PersonSummaryRow[]>()
       : Promise.resolve({ data: [] as PersonSummaryRow[], error: null })
 
-  const peopleResult = await peoplePromise
+  const shareablePeoplePromise =
+    canManage && eligiblePeople.length > 0
+      ? admin
+          .from('users')
+          .select('person_id')
+          .in('person_id', eligiblePeople.map((person) => person.id))
+      : Promise.resolve({ data: [] as Array<{ person_id: string | null }>, error: null })
+
+  const [peopleResult, shareablePeopleResult] = await Promise.all([peoplePromise, shareablePeoplePromise])
+
   if (peopleResult.error) {
     throw new Error(`Could not load member details for this custom list. ${peopleResult.error.message}`)
+  }
+
+  if (shareablePeopleResult.error) {
+    throw new Error(`Could not load shareable members for this custom list. ${shareablePeopleResult.error.message}`)
   }
 
   const peopleById = new Map<string, PersonSummaryRow>()
@@ -156,6 +166,11 @@ export default async function CustomListDetailPage({ params }: PageProps) {
 
   const sharedPersonIds = new Set(sharedAccess.map((row) => row.person_id).filter((value): value is string => Boolean(value)))
   const listMemberIds = new Set(members.map((member) => member.person_id))
+  const shareablePersonIds = new Set(
+    ((shareablePeopleResult.data as Array<{ person_id: string | null }> | null) ?? [])
+      .map((row) => row.person_id)
+      .filter((value): value is string => Boolean(value))
+  )
 
   const optionList = eligiblePeople.map((person) => ({
     id: person.id,
@@ -163,7 +178,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     email: person.email,
   }))
 
-  const shareCandidates = optionList.filter((person) => !sharedPersonIds.has(person.id))
+  const shareCandidates = optionList.filter((person) => shareablePersonIds.has(person.id) && !sharedPersonIds.has(person.id))
   const addCandidates = optionList.filter((person) => !listMemberIds.has(person.id))
 
   const claimedCount = members.filter((member) => Boolean(member.claimed_by_person_id)).length
@@ -216,7 +231,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
                 </h1>
 
                 <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: '40ch' }}>
-                  {listData.description || 'A shared member list for follow-up, care, prospects, or any other council use.'}
+                  {listData.description || 'A shared member list for follow-up, care, prospects, or any other local-unit use.'}
                 </p>
 
                 <div className="qv-detail-badges" style={{ marginTop: 2 }}>
