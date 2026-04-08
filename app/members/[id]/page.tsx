@@ -6,7 +6,7 @@ import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
-import { formatDate } from '@/lib/custom-lists'
+import { formatDate, listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -43,6 +43,8 @@ type MemberCustomListMembershipRow = {
 
 type MemberCustomListRow = {
   id: string
+  local_unit_id: string | null
+  council_id: string | null
   name: string
   description: string | null
 }
@@ -70,11 +72,23 @@ function formatFullName(person: Pick<PersonRow, 'first_name' | 'middle_name' | '
 
 export default async function MemberDetailPage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, council, permissions } = await getCurrentActingCouncilContext({
+  const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({
     redirectTo: '/members',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
+
+  if (!localUnitId) {
+    notFound()
+  }
+
+  const validLocalUnitMemberIds = await listValidMemberPersonIdsForLocalUnit({
+    admin: supabase,
+    localUnitId,
+    personIds: [id],
+  }).catch(() => [])
+
+  const isScopedMember = validLocalUnitMemberIds.includes(id)
 
   const { data: organizationData } = council.organization_id
     ? await supabase
@@ -101,18 +115,21 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
-  const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] =
-    await Promise.all([
-      supabase
+  const memberScopedPersonPromise = isScopedMember
+    ? supabase
         .from('people')
         .select(
           'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
         )
         .eq('id', id)
-        .eq('council_id', council.id)
         .eq('primary_relationship_code', 'member')
         .is('archived_at', null)
-        .maybeSingle<PersonRow>(),
+        .maybeSingle<PersonRow>()
+    : Promise.resolve({ data: null, error: null })
+
+  const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] =
+    await Promise.all([
+      memberScopedPersonPromise,
       supabase
         .from('person_officer_terms')
         .select(
@@ -248,9 +265,9 @@ export default async function MemberDetailPage({ params }: PageProps) {
     customListIds.length > 0
       ? supabase
           .from('custom_lists')
-          .select('id, name, description')
+          .select('id, local_unit_id, council_id, name, description')
           .in('id', customListIds)
-          .eq('council_id', council.id)
+          .or(`local_unit_id.eq.${localUnitId},and(local_unit_id.is.null,council_id.eq.${council.id})`)
           .is('archived_at', null)
           .returns<MemberCustomListRow[]>()
       : Promise.resolve({ data: [] as MemberCustomListRow[] }),

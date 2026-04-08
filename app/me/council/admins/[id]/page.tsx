@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 
 type PageProps = {
@@ -36,7 +37,7 @@ function formatAddress(
 
 export default async function ExternalAdminProfilePage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin: supabase, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/me',
     areaCode: 'admins',
@@ -44,6 +45,17 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
   })
 
   if (!permissions.organizationId) redirect('/me')
+
+  const validLocalUnitMemberIds =
+    localUnitId
+      ? await listValidMemberPersonIdsForLocalUnit({
+          admin: supabase,
+          localUnitId,
+          personIds: [id],
+        }).catch(() => [])
+      : []
+
+  const isScopedLocalMember = validLocalUnitMemberIds.includes(id)
 
   const [{ data: personData, error: personError }, { data: orgAdminRow }, { data: councilAdminRow }, { data: linkedCouncilRow }] = await Promise.all([
     supabase
@@ -86,7 +98,7 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
 
   const person = decryptPeopleRecord(personData)
 
-  if (person.council_id === council.id && person.primary_relationship_code === 'member') {
+  if (isScopedLocalMember && person.primary_relationship_code === 'member') {
     redirect(`/members/${person.id}`)
   }
 

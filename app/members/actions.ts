@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists';
 import { isValidEmailAddress } from '@/lib/security/contact-validation';
 import { protectPeoplePayload } from '@/lib/security/pii';
 import type { DeleteMemberState, MemberFormState, MemberFormValues } from './form-state';
@@ -102,6 +103,24 @@ async function getCurrentMemberAdminContext() {
     council,
     localUnitId,
   };
+}
+
+async function ensureActiveLocalUnitMember(args: {
+  supabase: ReturnType<typeof getCurrentActingCouncilContext> extends Promise<infer _T> ? any : never
+  localUnitId: string | null
+  memberId: string
+}) {
+  if (!args.localUnitId) {
+    return false;
+  }
+
+  const validPersonIds = await listValidMemberPersonIdsForLocalUnit({
+    admin: args.supabase,
+    localUnitId: args.localUnitId,
+    personIds: [args.memberId],
+  });
+
+  return validPersonIds.includes(args.memberId);
 }
 
 export async function createMemberAction(
@@ -207,7 +226,17 @@ export async function updateMemberAction(
     return memberFormErrorState(values, 'We could not tell which member to save. Please try again.');
   }
 
-  const { supabase, user, council } = await getCurrentMemberAdminContext();
+  const { supabase, user, council, localUnitId } = await getCurrentMemberAdminContext();
+
+  const isScopedMember = await ensureActiveLocalUnitMember({
+    supabase,
+    localUnitId,
+    memberId,
+  });
+
+  if (!isScopedMember) {
+    return memberFormErrorState(values, 'This member is no longer part of the active local organization.');
+  }
 
   const payload = protectPeoplePayload({
     first_name: textValue(formData, 'first_name'),
@@ -260,7 +289,17 @@ export async function deleteMemberAction(
     return { error: 'Type DELETE to confirm removing this member from the directory.' };
   }
 
-  const { supabase, user, council } = await getCurrentMemberAdminContext();
+  const { supabase, user, council, localUnitId } = await getCurrentMemberAdminContext();
+
+  const isScopedMember = await ensureActiveLocalUnitMember({
+    supabase,
+    localUnitId,
+    memberId,
+  });
+
+  if (!isScopedMember) {
+    return { error: 'This member is no longer part of the active local organization.' };
+  }
 
   const { error: archiveError } = await supabase
     .from('people')

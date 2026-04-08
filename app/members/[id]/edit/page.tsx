@@ -1,7 +1,9 @@
+import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import MemberForm from '../../member-form'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { decryptPeopleRecord } from '@/lib/security/pii'
+import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -30,12 +32,26 @@ function formatFullName(person: Pick<PersonRow, 'first_name' | 'middle_name' | '
 
 export default async function EditMemberPage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({
+  const { admin: supabase, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
+
+  if (!localUnitId) {
+    notFound()
+  }
+
+  const validPersonIds = await listValidMemberPersonIdsForLocalUnit({
+    admin: supabase,
+    localUnitId,
+    personIds: [id],
+  }).catch(() => [])
+
+  if (!validPersonIds.includes(id)) {
+    notFound()
+  }
 
   const { data: personData } = await supabase
     .from('people')
@@ -43,14 +59,13 @@ export default async function EditMemberPage({ params }: PageProps) {
       'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
     )
     .eq('id', id)
-    .eq('council_id', council.id)
     .eq('primary_relationship_code', 'member')
     .is('archived_at', null)
     .maybeSingle<PersonRow>()
 
   const person = personData ? decryptPeopleRecord(personData) : null
 
-  if (!person) return null
+  if (!person) notFound()
 
   const memberName = formatFullName(person)
 
