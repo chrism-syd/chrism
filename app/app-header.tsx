@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserPermissions, type CurrentUserPermissions } from '@/lib/auth/permissions'
-import { hasSharedCustomListsForUser } from '@/lib/custom-lists'
+import { hasExplicitlySharedCustomListsForUser } from '@/lib/custom-lists'
 import { getPublicMeetingsHref, listMemberInvitedEvents } from '@/lib/member-navigation'
 import UserMenu from './components/user-menu'
 import PrimaryNav from './components/primary-nav'
@@ -49,7 +49,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
           getPublicMeetingsHref({ admin, councilId: permissions.councilId }),
           suppressPersonalizedMemberLinks
             ? Promise.resolve(false)
-            : hasSharedCustomListsForUser({ admin, permissions }),
+            : hasExplicitlySharedCustomListsForUser({ admin, permissions }),
         ])
       : [[], null, false]
 
@@ -120,7 +120,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
           <UserMenu
             links={[
               { href: '/me', label: 'Profile' },
-              ...(permissions.canManageCustomLists && !memberNavChildren.some((item) => item.href === '/custom-lists')
+              ...(permissions.hasStaffAccess && permissions.canManageCustomLists && !memberNavChildren.some((item) => item.href === '/custom-lists')
                 ? [{ href: '/custom-lists', label: 'Custom lists' }]
                 : []),
               ...(permissions.canAccessOrganizationSettings || permissions.canManageAdmins

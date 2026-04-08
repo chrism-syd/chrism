@@ -12,8 +12,10 @@ import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   formatDateTime,
+  listExplicitlySharedCustomListIdsForUser,
   listManageableLocalUnitIdsForCustomLists,
   listSharedCustomListIdsForUser,
+  listValidMemberPersonIdsForLocalUnit,
   type CustomListRow,
 } from '@/lib/custom-lists'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
@@ -139,6 +141,27 @@ async function renderManageCustomListsPage(args: {
       ? loadCouncilMemberDirectoryData({ admin, councilId: council.id })
       : Promise.resolve(null),
   ])
+
+  let scopedMemberDirectoryData = memberDirectoryData
+
+  if (scopedMemberDirectoryData && localUnitId) {
+    const scopedMemberIds = await listValidMemberPersonIdsForLocalUnit({
+      admin,
+      localUnitId,
+      personIds: scopedMemberDirectoryData.members.map((member) => member.id),
+    })
+    const scopedMemberIdSet = new Set(scopedMemberIds)
+    scopedMemberDirectoryData = {
+      ...scopedMemberDirectoryData,
+      members: scopedMemberDirectoryData.members.filter((member) => scopedMemberIdSet.has(member.id)),
+      currentOfficerLabelsById: Object.fromEntries(
+        Object.entries(scopedMemberDirectoryData.currentOfficerLabelsById ?? {}).filter(([personId]) => scopedMemberIdSet.has(personId))
+      ),
+      executiveOfficerLabelsById: Object.fromEntries(
+        Object.entries(scopedMemberDirectoryData.executiveOfficerLabelsById ?? {}).filter(([personId]) => scopedMemberIdSet.has(personId))
+      ),
+    }
+  }
 
   const memberCounts = new Map<string, number>()
   for (const row of memberCountResult.data ?? []) {
@@ -298,11 +321,11 @@ async function renderManageCustomListsPage(args: {
 
         {showMemberDirectory ? (
           <div id="member-directory-section" style={{ marginTop: 20 }}>
-            {memberDirectoryData ? (
+            {scopedMemberDirectoryData ? (
               <MembersList
-                members={memberDirectoryData.members}
-                currentOfficerLabelsById={memberDirectoryData.currentOfficerLabelsById}
-                executiveOfficerLabelsById={memberDirectoryData.executiveOfficerLabelsById}
+                members={scopedMemberDirectoryData.members}
+                currentOfficerLabelsById={scopedMemberDirectoryData.currentOfficerLabelsById}
+                executiveOfficerLabelsById={scopedMemberDirectoryData.executiveOfficerLabelsById}
                 sectionTitle="Member directory"
                 sectionSubtitle={`Search, sort, and save a new custom list from ${currentCouncilLabel}.`}
                 currentViewControlMode="button"
@@ -329,17 +352,27 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     redirect('/login')
   }
 
-  const manageContext = await findCurrentActingCouncilContextForArea({
-    areaCode: 'custom_lists',
-    minimumAccessLevel: 'manage',
-  })
+  const admin = createAdminClient()
+  const sharedOnlyListIds = !permissions.hasStaffAccess
+    ? await listExplicitlySharedCustomListIdsForUser({ admin, permissions })
+    : null
+
+  if (!permissions.hasStaffAccess && (sharedOnlyListIds?.length ?? 0) === 0) {
+    redirect('/me')
+  }
+
+  const manageContext = permissions.hasStaffAccess
+    ? await findCurrentActingCouncilContextForArea({
+        areaCode: 'custom_lists',
+        minimumAccessLevel: 'manage',
+      })
+    : null
 
   if (manageContext) {
     return renderManageCustomListsPage({ searchParams: resolvedSearchParams, context: manageContext })
   }
 
   const showMemberDirectory = normalizeSingleParam(resolvedSearchParams.showMemberDirectory) === '1'
-  const admin = createAdminClient()
 
   const cookieStore = await cookies()
   const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
@@ -347,8 +380,10 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   })
 
   const [manageableLocalUnitIds, sharedIds, legacyContextLocalUnitId, organizationLocalUnitIds] = await Promise.all([
-    listManageableLocalUnitIdsForCustomLists({ admin, permissions }),
-    listSharedCustomListIdsForUser({ admin, permissions }),
+    permissions.hasStaffAccess
+      ? listManageableLocalUnitIdsForCustomLists({ admin, permissions })
+      : Promise.resolve([] as string[]),
+    sharedOnlyListIds ? Promise.resolve(sharedOnlyListIds) : listSharedCustomListIdsForUser({ admin, permissions }),
     permissions.councilId
       ? admin
           .from('local_units')
@@ -377,7 +412,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
       : null) ??
     (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
 
-  if (manageableLocalUnitIds.length === 0 && sharedIds.length === 0) {
+  if (sharedIds.length === 0 && (!permissions.hasStaffAccess || manageableLocalUnitIds.length === 0)) {
     redirect('/me')
   }
 

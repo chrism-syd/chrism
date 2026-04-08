@@ -111,12 +111,6 @@ export async function getParallelAreaAccessSummary(args: {
     claimsManageCount,
     adminsManageCount,
     localUnitSettingsManageCount,
-    membersManageActive,
-    eventsManageActive,
-    customListsManageActive,
-    claimsManageActive,
-    adminsManageActive,
-    localUnitSettingsManageActive,
   ] = await Promise.all([
     countAreaUnits({ admin, permissions, areaCode: 'members', minimumAccessLevel: 'edit_manage' }),
     countAreaUnits({ admin, permissions, areaCode: 'events', minimumAccessLevel: 'manage' }),
@@ -124,12 +118,34 @@ export async function getParallelAreaAccessSummary(args: {
     countAreaUnits({ admin, permissions, areaCode: 'claims', minimumAccessLevel: 'manage' }),
     countAreaUnits({ admin, permissions, areaCode: 'admins', minimumAccessLevel: 'manage' }),
     countAreaUnits({ admin, permissions, areaCode: 'local_unit_settings', minimumAccessLevel: 'manage' }),
-    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'members', minimumAccessLevel: 'edit_manage' }),
-    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'events', minimumAccessLevel: 'manage' }),
-    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'custom_lists', minimumAccessLevel: 'manage' }),
-    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'claims', minimumAccessLevel: 'manage' }),
-    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'admins', minimumAccessLevel: 'manage' }),
-    hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'local_unit_settings', minimumAccessLevel: 'manage' }),
+  ])
+
+  const [
+    membersManageActive,
+    eventsManageActive,
+    customListsManageActive,
+    claimsManageActive,
+    adminsManageActive,
+    localUnitSettingsManageActive,
+  ] = await Promise.all([
+    membersManageCount > 0
+      ? hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'members', minimumAccessLevel: 'edit_manage' })
+      : Promise.resolve(false),
+    eventsManageCount > 0
+      ? hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'events', minimumAccessLevel: 'manage' })
+      : Promise.resolve(false),
+    customListsManageCount > 0
+      ? hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'custom_lists', minimumAccessLevel: 'manage' })
+      : Promise.resolve(false),
+    claimsManageCount > 0
+      ? hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'claims', minimumAccessLevel: 'manage' })
+      : Promise.resolve(false),
+    adminsManageCount > 0
+      ? hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'admins', minimumAccessLevel: 'manage' })
+      : Promise.resolve(false),
+    localUnitSettingsManageCount > 0
+      ? hasScopedAreaAccess({ admin, permissions, localUnitId: activeLocalUnitId, areaCode: 'local_unit_settings', minimumAccessLevel: 'manage' })
+      : Promise.resolve(false),
   ])
 
   return {

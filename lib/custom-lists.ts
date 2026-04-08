@@ -322,6 +322,41 @@ export async function hasSharedCustomListsForUser(args: {
   return ids.length > 0
 }
 
+export async function listExplicitlySharedCustomListIdsForUser(args: {
+  admin: SupabaseClient
+  permissions: CurrentUserPermissions
+}) {
+  const accessMatch = buildCustomListAccessMatch(args.permissions)
+  if (!accessMatch) {
+    return []
+  }
+
+  const { data, error } = await args.admin
+    .from('custom_list_access')
+    .select('custom_list_id')
+    .or(accessMatch)
+
+  if (error) {
+    throw new Error(`Could not load explicitly shared custom list access: ${error.message}`)
+  }
+
+  return [
+    ...new Set(
+      ((data as Array<{ custom_list_id: string | null }> | null) ?? [])
+        .map((row) => row.custom_list_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+}
+
+export async function hasExplicitlySharedCustomListsForUser(args: {
+  admin: SupabaseClient
+  permissions: CurrentUserPermissions
+}) {
+  const ids = await listExplicitlySharedCustomListIdsForUser(args)
+  return ids.length > 0
+}
+
 export async function canManageCustomList(
   permissions: CurrentUserPermissions,
   list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
