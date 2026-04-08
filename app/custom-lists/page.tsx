@@ -103,23 +103,38 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
   })
 
-  const [manageableLocalUnitIds, sharedListIds] = await Promise.all([
+  const isPreviewAdminMode =
+    permissions.isSuperAdmin &&
+    permissions.actingMode === 'admin' &&
+    Boolean(permissions.activeLocalUnitId)
+
+  const [realManageableLocalUnitIds, realSharedListIds] = await Promise.all([
     permissions.hasStaffAccess
       ? listManageableLocalUnitIdsForCustomLists({ admin, permissions })
       : Promise.resolve([] as string[]),
     listExplicitlySharedCustomListIdsForUser({ admin, permissions }),
   ])
 
+  const manageableLocalUnitIds = isPreviewAdminMode
+    ? permissions.activeLocalUnitId
+      ? [permissions.activeLocalUnitId]
+      : []
+    : realManageableLocalUnitIds
+
+  const sharedListIds = isPreviewAdminMode ? [] : realSharedListIds
+
   if (!permissions.hasStaffAccess && sharedListIds.length === 0) {
     redirect('/me')
   }
 
   const activeManageLocalUnitId =
-    (selectedLocalUnitId && manageableLocalUnitIds.includes(selectedLocalUnitId) ? selectedLocalUnitId : null) ??
-    (permissions.activeLocalUnitId && manageableLocalUnitIds.includes(permissions.activeLocalUnitId)
+    isPreviewAdminMode
       ? permissions.activeLocalUnitId
-      : null) ??
-    (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
+      : (selectedLocalUnitId && manageableLocalUnitIds.includes(selectedLocalUnitId) ? selectedLocalUnitId : null) ??
+        (permissions.activeLocalUnitId && manageableLocalUnitIds.includes(permissions.activeLocalUnitId)
+          ? permissions.activeLocalUnitId
+          : null) ??
+        (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
 
   const manageScopeLocalUnitIds =
     activeManageLocalUnitId && manageableLocalUnitIds.includes(activeManageLocalUnitId)
