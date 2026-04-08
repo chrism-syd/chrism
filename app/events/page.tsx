@@ -352,10 +352,18 @@ async function MemberEventsPage() {
 
 async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   const { admin: supabase, council, permissions, localUnitId } = context
+  const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin'
+
   const [organization, councilInboxEvents, memberInvitedEvents] = await Promise.all([
     loadOrganizationProfile({ admin: supabase, council }),
-    listCouncilInboxEvents({ admin: supabase, permissions, limit: 12 }),
-    listMemberInvitedEvents({ admin: supabase, permissions, limit: 12 }),
+    listCouncilInboxEvents({
+      admin: supabase,
+      permissions: isPreviewAdminMode ? { ...permissions, email: null } : permissions,
+      limit: 12,
+    }),
+    isPreviewAdminMode
+      ? Promise.resolve([] as MemberInvitedEvent[])
+      : listMemberInvitedEvents({ admin: supabase, permissions, limit: 12 }),
   ])
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
@@ -598,9 +606,9 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
             <section className="qv-card">
               <div className="qv-directory-section-head">
                 <div>
-                  <h2 className="qv-section-title">Invited to your council</h2>
+                  <h2 className="qv-section-title">Council event invites</h2>
                   <p className="qv-section-subtitle">
-                    Multi-council events that were sent to this council.
+                    Multi-council events explicitly sent to this council.
                   </p>
                 </div>
               </div>
@@ -615,25 +623,27 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
               )}
             </section>
 
-            <section className="qv-card">
-              <div className="qv-directory-section-head">
-                <div>
-                  <h2 className="qv-section-title">Your invited events</h2>
-                  <p className="qv-section-subtitle">
-                    Personal RSVP or guest-invite matches tied to your own identity.
-                  </p>
+            {!isPreviewAdminMode ? (
+              <section className="qv-card">
+                <div className="qv-directory-section-head">
+                  <div>
+                    <h2 className="qv-section-title">Your invited events</h2>
+                    <p className="qv-section-subtitle">
+                      Personal RSVP or guest-invite matches tied to your own identity.
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {memberInvitedEvents.length > 0 ? (
-                renderInvitedEventList(memberInvitedEvents)
-              ) : (
-                <EmptyState
-                  title="No personal event matches yet"
-                  body="When an event RSVP or guest invite matches your email or member record, it will appear here."
-                />
-              )}
-            </section>
+                {memberInvitedEvents.length > 0 ? (
+                  renderInvitedEventList(memberInvitedEvents)
+                ) : (
+                  <EmptyState
+                    title="No personal event matches yet"
+                    body="When an event RSVP or guest invite matches your email or member record, it will appear here."
+                  />
+                )}
+              </section>
+            ) : null}
 
             {scheduledEvents.length > 0 ? (
               <section className="qv-card">
