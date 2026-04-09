@@ -193,6 +193,35 @@ function createEmptyParallelUnitCapabilities(): ParallelUnitCapabilities {
   }
 }
 
+function createFullManagementCapabilities(): ParallelUnitCapabilities {
+  return {
+    members: true,
+    events: true,
+    eventResource: true,
+    customLists: true,
+    claims: true,
+    admins: true,
+    localUnitSettings: true,
+  }
+}
+
+function mergeCapabilities(
+  ...capabilities: Array<ParallelUnitCapabilities | null | undefined>
+): ParallelUnitCapabilities {
+  return capabilities.reduce(
+    (merged, current) => ({
+      members: merged.members || Boolean(current?.members),
+      events: merged.events || Boolean(current?.events),
+      eventResource: merged.eventResource || Boolean(current?.eventResource),
+      customLists: merged.customLists || Boolean(current?.customLists),
+      claims: merged.claims || Boolean(current?.claims),
+      admins: merged.admins || Boolean(current?.admins),
+      localUnitSettings: merged.localUnitSettings || Boolean(current?.localUnitSettings),
+    }),
+    createEmptyParallelUnitCapabilities()
+  )
+}
+
 async function loadParallelAccessState(args: {
   admin: ReturnType<typeof createAdminClient>
   userId: string
@@ -740,8 +769,147 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     userId: user.id,
   })
 
+  const assignmentCouncilIds = uniqueStrings([
+    ...councilAdminAssignments.map((assignment) => assignment.council_id),
+    ...automaticCouncilAdminTerms.map((term) => term.council_id),
+  ])
+  const assignmentOrganizationIds = uniqueStrings(
+    organizationAdminAssignments.map((assignment) => assignment.organization_id)
+  )
+
+  const [assignmentCouncilLocalUnitResult, assignmentOrganizationLocalUnitResult] = await Promise.all([
+    assignmentCouncilIds.length > 0
+      ? admin
+          .from('local_units')
+          .select('id, legacy_council_id, legacy_organization_id')
+          .in('legacy_council_id', assignmentCouncilIds)
+      : Promise.resolve({ data: [] as LocalUnitProfileRow[], error: null }),
+    assignmentOrganizationIds.length > 0
+      ? admin
+          .from('local_units')
+          .select('id, legacy_council_id, legacy_organization_id')
+          .in('legacy_organization_id', assignmentOrganizationIds)
+      : Promise.resolve({ data: [] as LocalUnitProfileRow[], error: null }),
+  ])
+
+  if (assignmentCouncilLocalUnitResult.error) {
+    throw new Error(`Could not load council-scoped admin local units: ${assignmentCouncilLocalUnitResult.error.message}`)
+  }
+
+  if (assignmentOrganizationLocalUnitResult.error) {
+    throw new Error(
+      `Could not load organization-scoped admin local units: ${assignmentOrganizationLocalUnitResult.error.message}`
+    )
+  }
+
+  const councilScopedAdminLocalUnits =
+    (assignmentCouncilLocalUnitResult.data as LocalUnitProfileRow[] | null) ?? []
+  const organizationScopedAdminLocalUnits =
+    (assignmentOrganizationLocalUnitResult.data as LocalUnitProfileRow[] | null) ?? []
+
+  const directAssignmentCapabilitiesByLocalUnitId = new Map<string, ParallelUnitCapabilities>()
+
+  function rememberDirectAssignmentCapability(localUnitId: string) {
+    const existing = directAssignmentCapabilitiesByLocalUnitId.get(localUnitId)
+    if (existing) return existing
+
+    const next = createFullManagementCapabilities()
+    directAssignmentCapabilitiesByLocalUnitId.set(localUnitId, next)
+    return next
+  }
+
+  const directAssignmentSeeds: Array<{
+    localUnitId?: string | null
+    organizationId: string | null
+    councilId: string | null
+    accessLevel: 'member' | 'admin' | 'manager'
+    source: AccessContextSource
+  }> = []
+
+  for (const assignment of councilAdminAssignments) {
+    const matchingLocalUnits = councilScopedAdminLocalUnits.filter(
+      (row) => row.legacy_council_id === assignment.council_id
+    )
+
+    if (matchingLocalUnits.length === 0) {
+      directAssignmentSeeds.push({
+        organizationId: null,
+        councilId: assignment.council_id,
+        accessLevel: 'manager',
+        source: 'council_admin_assignment',
+      })
+      continue
+    }
+
+    for (const localUnit of matchingLocalUnits) {
+      rememberDirectAssignmentCapability(localUnit.id)
+      directAssignmentSeeds.push({
+        localUnitId: localUnit.id,
+        organizationId: localUnit.legacy_organization_id ?? null,
+        councilId: localUnit.legacy_council_id ?? null,
+        accessLevel: 'manager',
+        source: 'council_admin_assignment',
+      })
+    }
+  }
+
+  for (const term of automaticCouncilAdminTerms) {
+    const matchingLocalUnits = councilScopedAdminLocalUnits.filter(
+      (row) => row.legacy_council_id === term.council_id
+    )
+
+    if (matchingLocalUnits.length === 0) {
+      directAssignmentSeeds.push({
+        organizationId: null,
+        councilId: term.council_id,
+        accessLevel: 'manager',
+        source: 'officer_term',
+      })
+      continue
+    }
+
+    for (const localUnit of matchingLocalUnits) {
+      rememberDirectAssignmentCapability(localUnit.id)
+      directAssignmentSeeds.push({
+        localUnitId: localUnit.id,
+        organizationId: localUnit.legacy_organization_id ?? null,
+        councilId: localUnit.legacy_council_id ?? null,
+        accessLevel: 'manager',
+        source: 'officer_term',
+      })
+    }
+  }
+
+  for (const assignment of organizationAdminAssignments) {
+    const matchingLocalUnits = organizationScopedAdminLocalUnits.filter(
+      (row) => row.legacy_organization_id === assignment.organization_id
+    )
+
+    if (matchingLocalUnits.length === 0) {
+      directAssignmentSeeds.push({
+        organizationId: assignment.organization_id,
+        councilId: null,
+        accessLevel: 'manager',
+        source: 'organization_admin_assignment',
+      })
+      continue
+    }
+
+    for (const localUnit of matchingLocalUnits) {
+      rememberDirectAssignmentCapability(localUnit.id)
+      directAssignmentSeeds.push({
+        localUnitId: localUnit.id,
+        organizationId: localUnit.legacy_organization_id ?? assignment.organization_id,
+        councilId: localUnit.legacy_council_id ?? null,
+        accessLevel: 'manager',
+        source: 'organization_admin_assignment',
+      })
+    }
+  }
+
   const directCouncilIds = uniqueStrings([
     ...memberLocalUnitSeeds.map((seed) => seed.councilId),
+    ...assignmentCouncilIds,
     derivedOfficerEmailCouncilId,
     ...councilAdminAssignments.map((assignment) => assignment.council_id),
     ...automaticCouncilAdminTerms.map((term) => term.council_id),
@@ -811,6 +979,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     }))
   )
 
+  accessSeeds.push(...directAssignmentSeeds)
   accessSeeds.push(...parallelAccessState.contextSeeds)
 
   const availableContexts = buildAccessContexts({
@@ -952,6 +1121,16 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     createEmptyParallelUnitCapabilities()
   )
 
+  const aggregatedDirectAssignmentCapabilities = [...directAssignmentCapabilitiesByLocalUnitId.values()].reduce(
+    (accumulator, capabilities) => mergeCapabilities(accumulator, capabilities),
+    createEmptyParallelUnitCapabilities()
+  )
+
+  const aggregatedCapabilities = mergeCapabilities(
+    aggregatedParallelCapabilities,
+    aggregatedDirectAssignmentCapabilities
+  )
+
   let activeLocalUnitId =
     isSuperAdmin && actingMode !== 'normal'
       ? await tryResolveActiveLocalUnitId({
@@ -969,8 +1148,10 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
         }))
 
   if (shouldApplyRealAccessCapabilities && activeLocalUnitId && !(isSuperAdmin && actingMode === 'member')) {
-    const activeCapabilities =
-      parallelAccessState.capabilityByLocalUnitId.get(activeLocalUnitId) ?? createEmptyParallelUnitCapabilities()
+    const activeCapabilities = mergeCapabilities(
+      parallelAccessState.capabilityByLocalUnitId.get(activeLocalUnitId) ?? null,
+      directAssignmentCapabilitiesByLocalUnitId.get(activeLocalUnitId) ?? null
+    )
 
     const resolvedMemberManage = activeCapabilities.members
     const resolvedEventsManage = activeCapabilities.events
@@ -1001,13 +1182,13 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   }
 
   if (shouldApplyRealAccessCapabilities && (!activeLocalUnitId || !hasStaffAccess) && !(isSuperAdmin && actingMode === 'member')) {
-    const resolvedMemberManage = aggregatedParallelCapabilities.members
-    const resolvedEventsManage = aggregatedParallelCapabilities.events
-    const resolvedClaimsManage = aggregatedParallelCapabilities.claims
-    const resolvedCustomListsManage = aggregatedParallelCapabilities.customLists
-    const resolvedAdminsManage = aggregatedParallelCapabilities.admins
-    const resolvedLocalUnitSettingsManage = aggregatedParallelCapabilities.localUnitSettings
-    const resolvedEventCapability = resolvedEventsManage || aggregatedParallelCapabilities.eventResource
+    const resolvedMemberManage = aggregatedCapabilities.members
+    const resolvedEventsManage = aggregatedCapabilities.events
+    const resolvedClaimsManage = aggregatedCapabilities.claims
+    const resolvedCustomListsManage = aggregatedCapabilities.customLists
+    const resolvedAdminsManage = aggregatedCapabilities.admins
+    const resolvedLocalUnitSettingsManage = aggregatedCapabilities.localUnitSettings
+    const resolvedEventCapability = resolvedEventsManage || aggregatedCapabilities.eventResource
 
     if (
       resolvedMemberManage ||
