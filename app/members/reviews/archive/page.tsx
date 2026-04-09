@@ -57,6 +57,7 @@ export default async function ReviewDecisionArchivePage() {
     listProfileChangeReviewSummaries({
       admin,
       councilId: council.id,
+      organizationId: council.organization_id ?? null,
       statusCodes: ['approved', 'rejected'],
       decisionNoticeState: 'all',
       limit: 200,

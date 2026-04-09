@@ -39,6 +39,9 @@ type OrganizationProfileRow = OrganizationNameRecord & {
 }
 
 type PendingProfileChangeRow = {
+  proposed_first_name: string | null
+  proposed_last_name: string | null
+  proposed_preferred_name: string | null
   proposed_email: string | null
   proposed_cell_phone: string | null
   proposed_home_phone: string | null
@@ -165,7 +168,7 @@ export default async function MyProfilePage() {
     ? adminSupabase
         .from('person_profile_change_requests')
         .select(
-          'proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested'
+          'proposed_first_name, proposed_last_name, proposed_preferred_name, proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested'
         )
         .eq('person_id', permissions.personId)
         .eq('status_code', 'pending')
@@ -396,6 +399,9 @@ export default async function MyProfilePage() {
                   email_requested: pendingProfileChanges.email_change_requested,
                   cell_phone_requested: pendingProfileChanges.cell_phone_change_requested,
                   home_phone_requested: pendingProfileChanges.home_phone_change_requested,
+                  first_name: pendingProfileChanges.proposed_first_name,
+                  last_name: pendingProfileChanges.proposed_last_name,
+                  preferred_name: pendingProfileChanges.proposed_preferred_name,
                 }
               : null
           }

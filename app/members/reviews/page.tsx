@@ -66,12 +66,14 @@ export default async function MemberReviewsPage() {
     listProfileChangeReviewSummaries({
       admin,
       councilId: council.id,
+      organizationId: council.organization_id ?? null,
       statusCodes: ['pending'],
       limit: 40,
     }),
     listProfileChangeReviewSummaries({
       admin,
       councilId: council.id,
+      organizationId: council.organization_id ?? null,
       statusCodes: ['approved', 'rejected'],
       decisionNoticeState: 'uncleared',
       limit: 12,

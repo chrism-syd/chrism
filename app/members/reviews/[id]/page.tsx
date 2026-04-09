@@ -51,6 +51,7 @@ export default async function ProfileChangeReviewDetailPage({
   const summary = await getProfileChangeReviewSummary({
     admin,
     councilId: council.id,
+    organizationId: council.organization_id ?? null,
     requestId: id,
   })
 

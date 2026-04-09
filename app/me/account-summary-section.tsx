@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { dismissProfileChangeReviewNoticeAction, submitProfileChangeRequest } from '@/app/me/actions';
 
 type PendingValues = {
+  first_name: string | null;
+  last_name: string | null;
+  preferred_name: string | null;
   email: string | null;
   cell_phone: string | null;
   home_phone: string | null;
-  preferred_name: string | null;
   email_requested?: boolean;
   cell_phone_requested?: boolean;
   home_phone_requested?: boolean;
@@ -162,10 +164,26 @@ export default function AccountSummarySection({
             <div className="qv-detail-value">{officialName}</div>
           </div>
 
-          {allowStandaloneIdentityEdit && !readOnly ? (
+          {!readOnly ? (
             <>
-              <Row label="First name" value={firstName ?? null} editing={!!editingFields.first_name} name="first_name" placeholder="Your first name" onEdit={() => enableField('first_name')} />
-              <Row label="Last name" value={lastName ?? null} editing={!!editingFields.last_name} name="last_name" placeholder="Your last name" onEdit={() => enableField('last_name')} />
+              <Row
+                label="First name"
+                value={firstName ?? null}
+                pendingValue={pendingValues?.first_name ?? null}
+                editing={!!editingFields.first_name}
+                name="first_name"
+                placeholder="Your first name"
+                onEdit={() => enableField('first_name')}
+              />
+              <Row
+                label="Last name"
+                value={lastName ?? null}
+                pendingValue={pendingValues?.last_name ?? null}
+                editing={!!editingFields.last_name}
+                name="last_name"
+                placeholder="Your last name"
+                onEdit={() => enableField('last_name')}
+              />
             </>
           ) : null}
 

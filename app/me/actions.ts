@@ -19,6 +19,9 @@ type ActionResult = {
 
 type PendingProfileChangeRequestRow = {
   id: string;
+  proposed_first_name: string | null;
+  proposed_last_name: string | null;
+  proposed_preferred_name: string | null;
   proposed_email: string | null;
   proposed_cell_phone: string | null;
   proposed_home_phone: string | null;
@@ -45,6 +48,13 @@ function normalizeText(value: FormDataEntryValue | string | null | undefined): s
 
 function valuesDiffer(a: string | null, b: string | null) {
   return normalizeText(a) !== normalizeText(b);
+}
+
+function toInitialCaps(value: string | null) {
+  if (!value) return null;
+  return value
+    .toLowerCase()
+    .replace(/(^|[\s'’-])([a-z])/g, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
 }
 
 function resolveDesiredContactValue(args: {
@@ -92,7 +102,7 @@ async function saveStandaloneProfile(args: {
     submittedPreferredNameValue, submittedEmailValue, submittedCellPhoneValue, submittedHomePhoneValue, authEmail,
   } = args;
 
-  const desiredPreferredName = submittedPreferredNameValue ?? existingPerson?.nickname ?? null;
+  const desiredPreferredName = toInitialCaps(submittedPreferredNameValue ?? existingPerson?.nickname ?? null);
   const desiredEmail = submittedEmailValue ?? existingPerson?.email ?? authEmail ?? null;
   const desiredCellPhone = submittedCellPhoneValue ?? existingPerson?.cell_phone ?? null;
   const desiredHomePhone = submittedHomePhoneValue ?? existingPerson?.home_phone ?? null;
@@ -105,12 +115,12 @@ async function saveStandaloneProfile(args: {
 
   const payload = protectPeoplePayload({
     council_id: null,
-    first_name: inferred.firstName,
-    last_name: inferred.lastName,
+    first_name: toInitialCaps(inferred.firstName) ?? inferred.firstName,
+    last_name: toInitialCaps(inferred.lastName) ?? inferred.lastName,
     email: desiredEmail,
     cell_phone: desiredCellPhone,
     home_phone: desiredHomePhone,
-    nickname: desiredPreferredName,
+    nickname: toInitialCaps(desiredPreferredName) ?? desiredPreferredName,
     primary_relationship_code: 'member',
     created_source_code: 'admin_manual_member',
     is_provisional_member: true,
@@ -160,12 +170,12 @@ export async function submitProfileChangeRequest(
   const submittedHomePhone = formData.has('home_phone');
   const submittedPreferredName = formData.has('preferred_name');
 
-  const submittedFirstNameValue = submittedFirstName ? normalizeText(formData.get('first_name')) : null;
-  const submittedLastNameValue = submittedLastName ? normalizeText(formData.get('last_name')) : null;
+  const submittedFirstNameValue = submittedFirstName ? toInitialCaps(normalizeText(formData.get('first_name'))) : null;
+  const submittedLastNameValue = submittedLastName ? toInitialCaps(normalizeText(formData.get('last_name'))) : null;
   const submittedEmailValue = submittedEmail ? normalizeText(formData.get('email')) : null;
   const submittedCellPhoneValue = submittedCellPhone ? normalizeText(formData.get('cell_phone')) : null;
   const submittedHomePhoneValue = submittedHomePhone ? normalizeText(formData.get('home_phone')) : null;
-  const submittedPreferredNameValue = submittedPreferredName ? normalizeText(formData.get('preferred_name')) : null;
+  const submittedPreferredNameValue = submittedPreferredName ? toInitialCaps(normalizeText(formData.get('preferred_name'))) : null;
 
   if (submittedEmailValue && !isValidEmailAddress(submittedEmailValue)) {
     return { status: 'error', message: 'Enter a valid email address before saving your contact updates.' };
@@ -212,6 +222,8 @@ export async function submitProfileChangeRequest(
     return { status: 'error', message: 'We could not load your current profile details right now. Please try again.' };
   }
 
+  const currentFirstName = normalizeText(person.first_name as string | null);
+  const currentLastName = normalizeText(person.last_name as string | null);
   const currentEmail = normalizeText(person.email as string | null);
   const currentCellPhone = normalizeText(person.cell_phone as string | null);
   const currentHomePhone = normalizeText(person.home_phone as string | null);
@@ -219,10 +231,13 @@ export async function submitProfileChangeRequest(
 
   const { data: existingPendingData } = await admin
     .from('person_profile_change_requests')
-    .select('id, proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested')
+    .select('id, proposed_first_name, proposed_last_name, proposed_preferred_name, proposed_email, proposed_cell_phone, proposed_home_phone, email_change_requested, cell_phone_change_requested, home_phone_change_requested')
     .eq('person_id', personId).eq('status_code', 'pending').maybeSingle<PendingProfileChangeRequestRow>();
 
   const existingPending = existingPendingData ? decryptProfileChangeRequestRecord(existingPendingData) : null;
+  const existingPendingFirstName = normalizeText(existingPending?.proposed_first_name);
+  const existingPendingLastName = normalizeText(existingPending?.proposed_last_name);
+  const existingPendingPreferredName = normalizeText(existingPending?.proposed_preferred_name);
   const existingPendingEmail = normalizeText(existingPending?.proposed_email);
   const existingPendingCellPhone = normalizeText(existingPending?.proposed_cell_phone);
   const existingPendingHomePhone = normalizeText(existingPending?.proposed_home_phone);
@@ -230,6 +245,9 @@ export async function submitProfileChangeRequest(
   const stalePendingRequest = Boolean(
     existingPending?.id &&
       !(
+        Boolean(existingPendingFirstName && valuesDiffer(existingPendingFirstName, currentFirstName)) ||
+        Boolean(existingPendingLastName && valuesDiffer(existingPendingLastName, currentLastName)) ||
+        Boolean(existingPendingPreferredName && valuesDiffer(existingPendingPreferredName, currentPreferredName)) ||
         (existingPending.email_change_requested && valuesDiffer(existingPendingEmail, currentEmail)) ||
         (existingPending.cell_phone_change_requested && valuesDiffer(existingPendingCellPhone, currentCellPhone)) ||
         (existingPending.home_phone_change_requested && valuesDiffer(existingPendingHomePhone, currentHomePhone))
@@ -238,6 +256,36 @@ export async function submitProfileChangeRequest(
 
   const activePending = stalePendingRequest ? null : existingPending;
 
+  const desiredFirstName = resolveDesiredContactValue({
+    submitted: submittedFirstName,
+    submittedValue: submittedFirstNameValue,
+    current: currentFirstName,
+    pending: normalizeText(activePending?.proposed_first_name),
+    pendingRequested: Boolean(
+      normalizeText(activePending?.proposed_first_name) &&
+      valuesDiffer(normalizeText(activePending?.proposed_first_name), currentFirstName)
+    ),
+  });
+  const desiredLastName = resolveDesiredContactValue({
+    submitted: submittedLastName,
+    submittedValue: submittedLastNameValue,
+    current: currentLastName,
+    pending: normalizeText(activePending?.proposed_last_name),
+    pendingRequested: Boolean(
+      normalizeText(activePending?.proposed_last_name) &&
+      valuesDiffer(normalizeText(activePending?.proposed_last_name), currentLastName)
+    ),
+  });
+  const desiredPreferredName = resolveDesiredContactValue({
+    submitted: submittedPreferredName,
+    submittedValue: submittedPreferredNameValue,
+    current: currentPreferredName,
+    pending: normalizeText(activePending?.proposed_preferred_name),
+    pendingRequested: Boolean(
+      normalizeText(activePending?.proposed_preferred_name) &&
+      valuesDiffer(normalizeText(activePending?.proposed_preferred_name), currentPreferredName)
+    ),
+  });
   const desiredEmail = resolveDesiredContactValue({
     submitted: submittedEmail,
     submittedValue: submittedEmailValue,
@@ -259,21 +307,23 @@ export async function submitProfileChangeRequest(
     pending: normalizeText(activePending?.proposed_home_phone),
     pendingRequested: Boolean(activePending?.home_phone_change_requested),
   });
-  const desiredPreferredName = submittedPreferredName ? submittedPreferredNameValue : currentPreferredName;
 
+  const firstNameChanged = valuesDiffer(desiredFirstName, currentFirstName);
+  const lastNameChanged = valuesDiffer(desiredLastName, currentLastName);
+  const preferredNameChanged = valuesDiffer(desiredPreferredName, currentPreferredName);
   const emailChangeRequested = valuesDiffer(desiredEmail, currentEmail);
   const cellPhoneChangeRequested = valuesDiffer(desiredCellPhone, currentCellPhone);
   const homePhoneChangeRequested = valuesDiffer(desiredHomePhone, currentHomePhone);
-  const contactChanges = emailChangeRequested || cellPhoneChangeRequested || homePhoneChangeRequested;
-  const preferredNameChanged = valuesDiffer(desiredPreferredName, currentPreferredName);
+  const profileChanges =
+    firstNameChanged ||
+    lastNameChanged ||
+    preferredNameChanged ||
+    emailChangeRequested ||
+    cellPhoneChangeRequested ||
+    homePhoneChangeRequested;
 
-  if (!contactChanges && !preferredNameChanged && !stalePendingRequest) {
-    return { status: 'error', message: 'There are no new changes to send for review yet.' };
-  }
-
-  if (preferredNameChanged) {
-    const { error: preferredNameError } = await admin.from('people').update({ nickname: desiredPreferredName }).eq('id', personId);
-    if (preferredNameError) return { status: 'error', message: 'Could not update preferred name right now. Please try again.' };
+  if (!profileChanges && !stalePendingRequest) {
+    return { status: 'error', message: 'There are no new profile changes to send for review yet.' };
   }
 
   if (stalePendingRequest && existingPending?.id) {
@@ -284,16 +334,18 @@ export async function submitProfileChangeRequest(
   }
 
   let result: { error: unknown } | null = null;
-  if (contactChanges) {
+  if (profileChanges) {
     const payload = protectProfileChangeRequestPayload({
       person_id: personId,
       requested_by_auth_user_id: user.id,
       requested_at: new Date().toISOString(),
       status_code: 'pending',
+      proposed_first_name: toStoredPendingValue(desiredFirstName, currentFirstName),
+      proposed_last_name: toStoredPendingValue(desiredLastName, currentLastName),
+      proposed_preferred_name: toStoredPendingValue(desiredPreferredName, currentPreferredName),
       proposed_email: toStoredPendingValue(desiredEmail, currentEmail),
       proposed_cell_phone: toStoredPendingValue(desiredCellPhone, currentCellPhone),
       proposed_home_phone: toStoredPendingValue(desiredHomePhone, currentHomePhone),
-      proposed_preferred_name: null,
       email_change_requested: emailChangeRequested,
       cell_phone_change_requested: cellPhoneChangeRequested,
       home_phone_change_requested: homePhoneChangeRequested,
@@ -304,16 +356,16 @@ export async function submitProfileChangeRequest(
       : await admin.from('person_profile_change_requests').insert(payload);
   }
 
-  if (!contactChanges && activePending?.id) {
+  if (!profileChanges && activePending?.id) {
     result = await admin.from('person_profile_change_requests').delete().eq('id', activePending.id);
   }
 
   if (result?.error) {
     return {
       status: 'error',
-      message: contactChanges
-        ? 'We could not send your updates for review just now. Please try again.'
-        : 'We could not clear your pending contact changes right now. Please try again.',
+      message: profileChanges
+        ? 'We could not send your profile changes for review just now. Please try again.'
+        : 'We could not clear your pending profile changes right now. Please try again.',
     };
   }
 
@@ -322,13 +374,9 @@ export async function submitProfileChangeRequest(
 
   return {
     status: 'success',
-    message: contactChanges
-      ? preferredNameChanged
-        ? 'Your contact info changes have been sent for review. Preferred name was updated immediately.'
-        : 'Your contact info changes have been sent for review.'
-      : preferredNameChanged
-        ? 'Your preferred name has been updated successfully.'
-        : 'Your pending contact changes were cleared.',
+    message: profileChanges
+      ? 'Your profile changes have been sent for review.'
+      : 'Your pending profile changes were cleared.',
   };
 }
 
