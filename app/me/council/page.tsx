@@ -25,7 +25,6 @@ import {
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import AdminCarousel from './admin-carousel'
 import OfficerCarousel from './officer-carousel'
-import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data'
 
@@ -734,21 +733,23 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
         </details>
 
         {noticeMessage ? (
-          <AutoDismissingQueryMessage
-            kind="notice"
-            message={noticeMessage}
+          <section
             className="qv-card"
-            style={{ borderColor: 'var(--divider-strong)', marginTop: 18, color: 'var(--text-primary)' }}
-          />
+            aria-live="polite"
+            style={{
+              borderColor: 'var(--divider-strong)',
+              marginTop: 18,
+              color: 'var(--text-primary)',
+            }}
+          >
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{noticeMessage}</p>
+          </section>
         ) : null}
 
         {errorMessage ? (
-          <AutoDismissingQueryMessage
-            kind="error"
-            message={errorMessage}
-            className="qv-card qv-error"
-            style={{ marginTop: 18 }}
-          />
+          <section className="qv-card qv-error" role="alert" style={{ marginTop: 18 }}>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{errorMessage}</p>
+          </section>
         ) : null}
 
         <div
