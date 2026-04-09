@@ -1,8 +1,7 @@
 'use client';
 
-import { useActionState, useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { dismissProfileChangeReviewNoticeAction, submitProfileChangeRequest } from '@/app/me/actions';
+import { useActionState, useEffect, useMemo, useState } from 'react';
+import { submitProfileChangeRequest } from '@/app/me/actions';
 
 type PendingValues = {
   first_name: string | null;
@@ -22,7 +21,6 @@ type RejectedNotices = Partial<
   Record<
     RejectedFieldKey,
     {
-      requestId: string;
       reviewedAt: string | null;
     }
   >
@@ -34,6 +32,7 @@ type ActionState = {
 };
 
 const initialState: ActionState = { status: 'idle', message: '' };
+const DISMISSED_REVIEW_NOTICES_KEY = 'chrism-dismissed-review-notices';
 
 function displayValue(value: string | null) {
   return value && value.trim().length > 0 ? value : 'Not added yet';
@@ -48,14 +47,52 @@ function rejectionMessage(label: string) {
   return `${label} edit you submitted was rejected. Please contact your organization to process the change.`;
 }
 
+function buildDismissKey(field: RejectedFieldKey, reviewedAt: string | null | undefined) {
+  return `${field}:${reviewedAt ?? 'unknown'}`;
+}
+
+function loadDismissedRejectedNotices() {
+  if (typeof window === 'undefined') return new Set<string>();
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_REVIEW_NOTICES_KEY);
+    if (!raw) return new Set<string>();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set<string>();
+    return new Set(parsed.filter((value): value is string => typeof value === 'string'));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function persistDismissedRejectedNotices(keys: Set<string>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(DISMISSED_REVIEW_NOTICES_KEY, JSON.stringify([...keys]));
+}
+
+function hasPendingSubmission(pendingValues: PendingValues) {
+  if (!pendingValues) return false;
+
+  return Boolean(
+    pendingValues.first_name !== null ||
+      pendingValues.last_name !== null ||
+      pendingValues.preferred_name !== null ||
+      pendingValues.email_requested ||
+      pendingValues.cell_phone_requested ||
+      pendingValues.home_phone_requested ||
+      pendingValues.email !== null ||
+      pendingValues.cell_phone !== null ||
+      pendingValues.home_phone !== null
+  );
+}
+
 function Row({
   label,
   value,
   pendingValue,
   pendingRequested,
   rejectedNotice,
+  rejectedDismissed,
   onDismissRejected,
-  dismissPending,
   editing,
   name,
   onEdit,
@@ -66,15 +103,15 @@ function Row({
   pendingValue?: string | null;
   pendingRequested?: boolean;
   rejectedNotice?: { reviewedAt: string | null } | null;
+  rejectedDismissed?: boolean;
   onDismissRejected?: () => void;
-  dismissPending?: boolean;
   editing?: boolean;
   name?: string;
   onEdit?: () => void;
   placeholder?: string;
 }) {
   const showPending = pendingRequested || (pendingValue !== undefined && pendingValue !== null && pendingValue !== value);
-  const showRejected = !showPending && Boolean(rejectedNotice);
+  const showRejected = !showPending && Boolean(rejectedNotice) && !rejectedDismissed;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start', padding: '14px 0', borderTop: '1px solid var(--divider)' }}>
@@ -90,8 +127,8 @@ function Row({
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
             <p className="qv-inline-error" style={{ margin: 0 }}>{rejectionMessage(label)}</p>
             {onDismissRejected ? (
-              <button type="button" className="qv-button-secondary" onClick={onDismissRejected} disabled={dismissPending}>
-                {dismissPending ? 'Dismissing...' : 'Dismiss'}
+              <button type="button" className="qv-button-secondary" onClick={onDismissRejected}>
+                Dismiss
               </button>
             ) : null}
           </div>
@@ -135,25 +172,41 @@ export default function AccountSummarySection({
   readOnly?: boolean;
   readOnlyMessage?: string | null;
 }) {
-  const router = useRouter();
   const [state, action, isPending] = useActionState(submitProfileChangeRequest, initialState);
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
-  const [isDismissPending, startDismissTransition] = useTransition();
+  const [dismissedRejectedNoticeKeys, setDismissedRejectedNoticeKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setDismissedRejectedNoticeKeys(loadDismissedRejectedNotices());
+  }, []);
 
   const isEditing = useMemo(() => Object.values(editingFields).some(Boolean), [editingFields]);
+  const pendingSubmission = useMemo(() => hasPendingSubmission(pendingValues), [pendingValues]);
+  const lockEditing = state.status === 'success' || pendingSubmission;
+
+  useEffect(() => {
+    if (lockEditing && Object.keys(editingFields).length > 0) {
+      setEditingFields({});
+    }
+  }, [lockEditing, editingFields]);
 
   function enableField(field: string) {
+    if (lockEditing || isPending) return;
     setEditingFields((current) => ({ ...current, [field]: true }));
   }
 
-  function dismissRejectedNotice(requestId: string) {
-    startDismissTransition(async () => {
-      const formData = new FormData();
-      formData.set('request_id', requestId);
-      await dismissProfileChangeReviewNoticeAction(formData);
-      router.refresh();
-    });
+  function dismissRejectedNotice(field: RejectedFieldKey, reviewedAt: string | null) {
+    const next = new Set(dismissedRejectedNoticeKeys);
+    next.add(buildDismissKey(field, reviewedAt));
+    setDismissedRejectedNoticeKeys(next);
+    persistDismissedRejectedNotices(next);
   }
+
+  function isRejectedNoticeDismissed(field: RejectedFieldKey, reviewedAt: string | null) {
+    return dismissedRejectedNoticeKeys.has(buildDismissKey(field, reviewedAt));
+  }
+
+  const canEdit = !readOnly && !lockEditing;
 
   const content = (
     <>
@@ -173,7 +226,7 @@ export default function AccountSummarySection({
                 editing={!!editingFields.first_name}
                 name="first_name"
                 placeholder="Your first name"
-                onEdit={() => enableField('first_name')}
+                onEdit={canEdit ? () => enableField('first_name') : undefined}
               />
               <Row
                 label="Last name"
@@ -182,7 +235,7 @@ export default function AccountSummarySection({
                 editing={!!editingFields.last_name}
                 name="last_name"
                 placeholder="Your last name"
-                onEdit={() => enableField('last_name')}
+                onEdit={canEdit ? () => enableField('last_name') : undefined}
               />
             </>
           ) : null}
@@ -194,7 +247,7 @@ export default function AccountSummarySection({
             editing={!!editingFields.preferred_name}
             name="preferred_name"
             placeholder="How you would like your name to appear"
-            onEdit={readOnly ? undefined : () => enableField('preferred_name')}
+            onEdit={canEdit ? () => enableField('preferred_name') : undefined}
           />
         </div>
 
@@ -205,12 +258,12 @@ export default function AccountSummarySection({
             pendingValue={pendingValues?.email ?? null}
             pendingRequested={pendingValues?.email_requested ?? false}
             rejectedNotice={rejectedNotices.email ?? null}
-            onDismissRejected={rejectedNotices.email ? () => dismissRejectedNotice(rejectedNotices.email.requestId) : undefined}
-            dismissPending={isDismissPending}
+            rejectedDismissed={isRejectedNoticeDismissed('email', rejectedNotices.email?.reviewedAt ?? null)}
+            onDismissRejected={rejectedNotices.email ? () => dismissRejectedNotice('email', rejectedNotices.email?.reviewedAt ?? null) : undefined}
             editing={!!editingFields.email}
             name="email"
             placeholder="Your preferred email address"
-            onEdit={readOnly ? undefined : () => enableField('email')}
+            onEdit={canEdit ? () => enableField('email') : undefined}
           />
           <Row
             label="Cell phone"
@@ -218,12 +271,12 @@ export default function AccountSummarySection({
             pendingValue={pendingValues?.cell_phone ?? null}
             pendingRequested={pendingValues?.cell_phone_requested ?? false}
             rejectedNotice={rejectedNotices.cell_phone ?? null}
-            onDismissRejected={rejectedNotices.cell_phone ? () => dismissRejectedNotice(rejectedNotices.cell_phone.requestId) : undefined}
-            dismissPending={isDismissPending}
+            rejectedDismissed={isRejectedNoticeDismissed('cell_phone', rejectedNotices.cell_phone?.reviewedAt ?? null)}
+            onDismissRejected={rejectedNotices.cell_phone ? () => dismissRejectedNotice('cell_phone', rejectedNotices.cell_phone?.reviewedAt ?? null) : undefined}
             editing={!!editingFields.cell_phone}
             name="cell_phone"
             placeholder="Your cell phone number"
-            onEdit={readOnly ? undefined : () => enableField('cell_phone')}
+            onEdit={canEdit ? () => enableField('cell_phone') : undefined}
           />
           <Row
             label="Home phone"
@@ -231,12 +284,12 @@ export default function AccountSummarySection({
             pendingValue={pendingValues?.home_phone ?? null}
             pendingRequested={pendingValues?.home_phone_requested ?? false}
             rejectedNotice={rejectedNotices.home_phone ?? null}
-            onDismissRejected={rejectedNotices.home_phone ? () => dismissRejectedNotice(rejectedNotices.home_phone.requestId) : undefined}
-            dismissPending={isDismissPending}
+            rejectedDismissed={isRejectedNoticeDismissed('home_phone', rejectedNotices.home_phone?.reviewedAt ?? null)}
+            onDismissRejected={rejectedNotices.home_phone ? () => dismissRejectedNotice('home_phone', rejectedNotices.home_phone?.reviewedAt ?? null) : undefined}
             editing={!!editingFields.home_phone}
             name="home_phone"
             placeholder="Your home phone number"
-            onEdit={readOnly ? undefined : () => enableField('home_phone')}
+            onEdit={canEdit ? () => enableField('home_phone') : undefined}
           />
         </div>
       </div>
@@ -258,7 +311,7 @@ export default function AccountSummarySection({
         </p>
       ) : null}
 
-      {!readOnly && isEditing ? (
+      {!readOnly && isEditing && !lockEditing ? (
         <div className="qv-form-actions" style={{ marginTop: 18 }}>
           <button type="button" className="qv-button-secondary" onClick={() => setEditingFields({})} disabled={isPending}>Cancel</button>
           <button type="submit" className="qv-button-primary" disabled={isPending}>
