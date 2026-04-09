@@ -3,6 +3,7 @@
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { isParallelAreaAccessEnabled } from '@/lib/auth/feature-flags'
 import {
@@ -113,6 +114,18 @@ async function requireActiveLocalUnitMemberSelection(args: {
   }
 }
 
+function buildAbsoluteInviteUrl(args: { origin: string | null; invitePath: string }) {
+  if (!args.origin) {
+    return args.invitePath
+  }
+
+  try {
+    return new URL(args.invitePath, args.origin).toString()
+  } catch {
+    return args.invitePath
+  }
+}
+
 async function saveOfficerRoleEmail(args: {
   councilId: string
   officeScopeCode: string
@@ -212,6 +225,9 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
       authUserId: context.permissions.authUser!.id,
     })
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error
+    }
     const message = error instanceof Error ? error.message : 'We could not save the officer email.'
     redirectToCouncilPage({ error: message })
   }
@@ -322,6 +338,9 @@ export async function grantCouncilAdminAction(formData: FormData) {
       grantNotes,
     })
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error
+    }
     const message = error instanceof Error ? error.message : 'We could not grant admin access right now.'
     redirectToCouncilPage({ error: message })
   }
@@ -340,6 +359,11 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
     redirectToCouncilPage({ error: 'Enter an email address before sending the admin invite.' })
   }
 
+  const headerStore = await headers()
+  const host = headerStore.get('x-forwarded-host') ?? headerStore.get('host')
+  const protocol = headerStore.get('x-forwarded-proto') ?? 'http'
+  const origin = host ? `${protocol}://${host}` : null
+
   try {
     const invitation = await createOrganizationAdminInvitation({
       organizationId: context.permissions.organizationId!,
@@ -350,23 +374,40 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
       notes: grantNotes,
     })
 
-    const headerStore = await headers()
-    const host = headerStore.get('x-forwarded-host') ?? headerStore.get('host')
-    const protocol = headerStore.get('x-forwarded-proto') ?? 'http'
-    const origin = host ? `${protocol}://${host}` : null
+    try {
+      await sendOrganizationAdminInvitationEmail({
+        inviteeEmail: inviteEmail,
+        inviteeName,
+        invitePath: invitation.invitePath,
+        organizationName: context.permissions.organizationName ?? context.council.name ?? 'this organization',
+        councilName: context.council.name,
+        councilNumber: context.council.council_number,
+        inviterName: context.permissions.email,
+        notes: grantNotes,
+        origin,
+      })
+    } catch (error) {
+      if (isRedirectError(error)) {
+        throw error
+      }
+      const message =
+        error instanceof Error ? error.message : 'The invite record was created, but the email could not be sent.'
+      const manualLink = buildAbsoluteInviteUrl({
+        origin,
+        invitePath: invitation.invitePath,
+      })
 
-    await sendOrganizationAdminInvitationEmail({
-      inviteeEmail: inviteEmail,
-      inviteeName,
-      invitePath: invitation.invitePath,
-      organizationName: context.permissions.organizationName ?? context.council.name ?? 'this organization',
-      councilName: context.council.name,
-      councilNumber: context.council.council_number,
-      inviterName: context.permissions.email,
-      notes: grantNotes,
-      origin,
-    })
+      revalidateCouncilSurfaces()
+      redirectToCouncilPage({
+        notice:
+          `Admin invite record created for ${inviteEmail}, but the email send failed: ${message}. ` +
+          `Use this one-time secure invite link to test or deliver manually right now: ${manualLink}`,
+      })
+    }
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error
+    }
     const message = error instanceof Error ? error.message : 'We could not send that admin invite right now.'
     redirectToCouncilPage({ error: message })
   }
@@ -390,6 +431,9 @@ export async function revokeCouncilAdminInvitationAction(formData: FormData) {
       revokedByAuthUserId: context.permissions.authUser!.id,
     })
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error
+    }
     const message = error instanceof Error ? error.message : 'We could not revoke that invite right now.'
     redirectToCouncilPage({ error: message })
   }
@@ -431,6 +475,9 @@ export async function revokeCouncilAdminAction(formData: FormData) {
       })
     }
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error
+    }
     const message = error instanceof Error ? error.message : 'We could not remove that admin access right now.'
     redirectToCouncilPage({ error: message })
   }
@@ -538,6 +585,9 @@ export async function addOfficerTermAction(formData: FormData) {
       authUserId: context.permissions.authUser!.id,
     })
   } catch (emailError) {
+    if (isRedirectError(emailError)) {
+      throw emailError
+    }
     const message = emailError instanceof Error ? emailError.message : 'Officer term saved, but the office email could not be saved.'
     revalidateCouncilSurfaces()
     redirectToCouncilPage({ error: `Officer term saved. ${message}` })
@@ -553,6 +603,9 @@ export async function addOfficerTermAction(formData: FormData) {
         grantNotes: 'Granted while saving officer term.',
       })
     } catch (adminError) {
+      if (isRedirectError(adminError)) {
+        throw adminError
+      }
       const message =
         adminError instanceof Error
           ? adminError.message

@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 
 export type OrganizationAdminSourceCode = 'manual_assignment' | 'approved_claim' | 'admin_invitation'
+type ParallelGrantSourceCode = 'manual' | 'invite_package'
 
 type SaveOrganizationAdminAssignmentArgs = {
   organizationId: string
@@ -22,10 +23,17 @@ type ExistingAssignmentRow = {
   is_active: boolean
 }
 
-
 type LocalUnitLookupRow = {
   id: string
   local_unit_kind: string | null
+}
+
+function mapOrganizationAdminSourceToParallelGrantSource(
+  sourceCode: OrganizationAdminSourceCode | null | undefined
+): ParallelGrantSourceCode {
+  return sourceCode === 'admin_invitation' || sourceCode === 'approved_claim'
+    ? 'invite_package'
+    : 'manual'
 }
 
 async function pickPrimaryLocalUnitIdForOrganization(args: { organizationId: string }) {
@@ -53,6 +61,7 @@ async function syncParallelAdminPackageGrant(args: {
   actorUserId: string
   targetUserId: string | null
   organizationId: string
+  sourceCode?: OrganizationAdminSourceCode | null
   note?: string | null
 }) {
   if (!args.targetUserId) return
@@ -65,7 +74,7 @@ async function syncParallelAdminPackageGrant(args: {
     p_actor_user_id: args.actorUserId,
     p_target_user_id: args.targetUserId,
     p_local_unit_id: localUnitId,
-    p_source_code: 'manual',
+    p_source_code: mapOrganizationAdminSourceToParallelGrantSource(args.sourceCode),
     p_note: args.note ?? null,
   })
 
@@ -78,6 +87,7 @@ async function syncParallelAdminPackageRevoke(args: {
   actorUserId: string
   targetUserId: string | null
   organizationId: string
+  sourceCode?: OrganizationAdminSourceCode | null
   note?: string | null
 }) {
   if (!args.targetUserId) return
@@ -90,7 +100,7 @@ async function syncParallelAdminPackageRevoke(args: {
     p_actor_user_id: args.actorUserId,
     p_target_user_id: args.targetUserId,
     p_local_unit_id: localUnitId,
-    p_source_code: 'manual',
+    p_source_code: mapOrganizationAdminSourceToParallelGrantSource(args.sourceCode),
     p_note: args.note ?? null,
   })
 
@@ -223,6 +233,7 @@ export async function saveOrganizationAdminAssignment(args: SaveOrganizationAdmi
     actorUserId: args.actorUserId,
     targetUserId: target.userId,
     organizationId: args.organizationId,
+    sourceCode: args.sourceCode ?? 'manual_assignment',
     note: args.grantNotes ?? null,
   })
 
@@ -239,10 +250,10 @@ export async function deactivateOrganizationAdminAssignment(args: {
 
   const { data: existingAssignment, error: lookupError } = await admin
     .from('organization_admin_assignments')
-    .select('user_id')
+    .select('user_id, source_code')
     .eq('id', args.assignmentId)
     .eq('organization_id', args.organizationId)
-    .maybeSingle<{ user_id: string | null }>()
+    .maybeSingle<{ user_id: string | null; source_code: OrganizationAdminSourceCode | null }>()
 
   if (lookupError) {
     throw new Error(lookupError.message)
@@ -268,6 +279,7 @@ export async function deactivateOrganizationAdminAssignment(args: {
     actorUserId: args.actorUserId,
     targetUserId: existingAssignment?.user_id ?? null,
     organizationId: args.organizationId,
+    sourceCode: existingAssignment?.source_code ?? null,
     note: args.revokeNotes ?? null,
   })
 }
