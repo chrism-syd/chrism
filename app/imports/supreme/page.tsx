@@ -75,7 +75,7 @@ function pickMembership(
 }
 
 export default async function SupremeImportPage() {
-  const { admin, council } = await getCurrentActingCouncilContext({
+  const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/imports/supreme',
     areaCode: 'members',
@@ -84,18 +84,37 @@ export default async function SupremeImportPage() {
 
   const typedCouncil = council as CouncilRow;
 
-  const { data: peopleData } = await admin
-    .from('people')
-    .select(
-      'id, primary_relationship_code, council_activity_level_code, title, first_name, middle_name, last_name, suffix, email, cell_phone, address_line_1, city, state_province, postal_code, birth_date, organization_memberships(organization_id, membership_number, is_primary_membership), person_kofc_profiles(first_degree_date, second_degree_date, third_degree_date, years_in_service, member_type, member_class, assembly_number)'
-    )
-    .eq('council_id', council.id)
-    .is('archived_at', null)
-    .is('merged_into_person_id', null)
-    .order('last_name', { ascending: true })
-    .order('first_name', { ascending: true });
+  const memberRecordResult = localUnitId
+    ? await admin
+        .from('member_records')
+        .select('legacy_people_id')
+        .eq('local_unit_id', localUnitId)
+        .is('archived_at', null)
+    : { data: [], error: null };
 
-  const decryptedPeople = decryptPeopleRecords((peopleData as RawExistingPersonRow[] | null) ?? []);
+  const localUnitPersonIds = [
+    ...new Set(
+      (((memberRecordResult.data as Array<{ legacy_people_id: string | null }> | null) ?? [])
+        .map((row) => row.legacy_people_id)
+        .filter((value): value is string => Boolean(value)))
+    ),
+  ];
+
+  const peopleResult =
+    localUnitPersonIds.length > 0
+      ? await admin
+          .from('people')
+          .select(
+            'id, primary_relationship_code, council_activity_level_code, title, first_name, middle_name, last_name, suffix, email, cell_phone, address_line_1, city, state_province, postal_code, birth_date, organization_memberships(organization_id, membership_number, is_primary_membership), person_kofc_profiles(first_degree_date, second_degree_date, third_degree_date, years_in_service, member_type, member_class, assembly_number)'
+          )
+          .in('id', localUnitPersonIds)
+          .is('archived_at', null)
+          .is('merged_into_person_id', null)
+          .order('last_name', { ascending: true })
+          .order('first_name', { ascending: true })
+      : { data: [] as RawExistingPersonRow[], error: null };
+
+  const decryptedPeople = decryptPeopleRecords((peopleResult.data as RawExistingPersonRow[] | null) ?? []);
 
   const people: ExistingSupremeComparablePerson[] = decryptedPeople.map((person) => {
     const memberships = normalizeMembershipRows(person.organization_memberships);
@@ -156,6 +175,13 @@ export default async function SupremeImportPage() {
               <div className="qv-detail-value">Member number + council number</div>
               <div className="qv-detail-meta">
                 Existing rows match by member number first, then by name plus birth date, then by name only.
+              </div>
+            </div>
+            <div className="qv-detail-item">
+              <div className="qv-detail-label">Comparison set</div>
+              <div className="qv-detail-value">Active local organization members</div>
+              <div className="qv-detail-meta">
+                Existing comparison rows are scoped to the active local organization before import review.
               </div>
             </div>
             <div className="qv-detail-item">
