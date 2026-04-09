@@ -56,8 +56,6 @@ begin
       limit 1;
     end if;
 
-    -- External organization admins are now expected to work without a member_record bridge.
-    -- If no true local-member mapping exists for this local unit, skip legacy area-grant sync.
     if v_member_record_id is null then
       continue;
     end if;
@@ -123,10 +121,7 @@ end;
 $$;
 
 update public.migration_review_queue q
-set
-  resolved_at = coalesce(q.resolved_at, now()),
-  resolution_notes = coalesce(nullif(q.resolution_notes, ''), 'Resolved automatically after organization admin assignments stopped requiring synthetic member-record bridges.'),
-  updated_at = now()
+set resolved_at = coalesce(q.resolved_at, now())
 where q.source_table = 'public.organization_admin_assignments'
   and q.review_type = 'organization_admin_assignment_without_member_record'
   and q.resolved_at is null;

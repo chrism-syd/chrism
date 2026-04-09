@@ -13,6 +13,17 @@ function normalizeText(value: FormDataEntryValue | string | null | undefined) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function resolveApprovedRequiredNameValue(
+  requested: boolean | undefined,
+  proposedValue: string | null | undefined,
+  currentValue: string | null | undefined,
+) {
+  if (!requested) return currentValue ?? null
+
+  const proposed = normalizeText(proposedValue)
+  return proposed ?? currentValue ?? null
+}
+
 export async function reviewProfileChangeRequestAction(formData: FormData) {
   const requestId = normalizeText(formData.get('request_id'))
   const decision = normalizeText(formData.get('decision'))
@@ -62,9 +73,19 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
     const cellField = summary.changedFields.find((field) => field.key === 'cell_phone')
     const homeField = summary.changedFields.find((field) => field.key === 'home_phone')
 
-    const nextFirstName = firstNameField?.requested ? firstNameField.proposedValue : summary.person.first_name
-    const nextLastName = lastNameField?.requested ? lastNameField.proposedValue : summary.person.last_name
-    const nextPreferredName = preferredNameField?.requested ? preferredNameField.proposedValue : summary.person.nickname
+    const nextFirstName = resolveApprovedRequiredNameValue(
+      firstNameField?.requested,
+      firstNameField?.proposedValue,
+      summary.person.first_name,
+    )
+    const nextLastName = resolveApprovedRequiredNameValue(
+      lastNameField?.requested,
+      lastNameField?.proposedValue,
+      summary.person.last_name,
+    )
+    const nextPreferredName = preferredNameField?.requested
+      ? normalizeText(preferredNameField?.proposedValue)
+      : summary.person.nickname
     const nextEmail = emailField?.requested ? emailField.proposedValue : summary.person.email
     const nextCellPhone = cellField?.requested ? cellField.proposedValue : summary.person.cell_phone
     const nextHomePhone = homeField?.requested ? homeField.proposedValue : summary.person.home_phone
@@ -151,11 +172,11 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
   }
 
   const summary = await getProfileChangeReviewSummary({
-  admin,
-  councilId: council.id,
-  organizationId: council.organization_id ?? null,
-  requestId,
-})
+    admin,
+    councilId: council.id,
+    organizationId: council.organization_id ?? null,
+    requestId,
+  })
 
   if (!summary) {
     throw new Error('That review decision could not be found.')

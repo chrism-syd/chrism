@@ -69,6 +69,35 @@ function isDecisionStatus(statusCode: string) {
   return statusCode === 'approved' || statusCode === 'rejected'
 }
 
+function wasRequiredNameChangeSubmitted(args: {
+  currentValue: string | null | undefined
+  proposedValue: string | null | undefined
+  isDecision: boolean
+}) {
+  const { currentValue, proposedValue, isDecision } = args
+  const normalizedProposed = normalizeText(proposedValue)
+
+  if (isDecision) {
+    return Boolean(normalizedProposed)
+  }
+
+  return Boolean(normalizedProposed && valuesDiffer(currentValue, normalizedProposed))
+}
+
+function wasPreferredNameChangeSubmitted(args: {
+  currentValue: string | null | undefined
+  proposedValue: string | null | undefined
+  isDecision: boolean
+}) {
+  const { currentValue, proposedValue, isDecision } = args
+
+  if (isDecision) {
+    return proposedValue !== null || valuesDiffer(currentValue, proposedValue)
+  }
+
+  return valuesDiffer(currentValue, proposedValue)
+}
+
 export function getDisplayName(person: Pick<ProfileChangeReviewPerson, 'first_name' | 'last_name' | 'nickname'>) {
   const leadName = normalizeText(person.nickname) ?? normalizeText(person.first_name) ?? ''
   return `${leadName} ${normalizeText(person.last_name) ?? ''}`.trim()
@@ -91,27 +120,33 @@ export function buildProfileChangeReviewFields(args: {
       label: 'First name',
       currentValue: normalizeText(person.first_name),
       proposedValue: proposedFirstName,
-      requested: isDecision
-        ? Boolean(proposedFirstName)
-        : Boolean(proposedFirstName && valuesDiffer(person.first_name, proposedFirstName)),
+      requested: wasRequiredNameChangeSubmitted({
+        currentValue: person.first_name,
+        proposedValue: request.proposed_first_name,
+        isDecision,
+      }),
     },
     {
       key: 'last_name',
       label: 'Last name',
       currentValue: normalizeText(person.last_name),
       proposedValue: proposedLastName,
-      requested: isDecision
-        ? Boolean(proposedLastName)
-        : Boolean(proposedLastName && valuesDiffer(person.last_name, proposedLastName)),
+      requested: wasRequiredNameChangeSubmitted({
+        currentValue: person.last_name,
+        proposedValue: request.proposed_last_name,
+        isDecision,
+      }),
     },
     {
       key: 'preferred_name',
       label: 'Preferred name',
       currentValue: normalizeText(person.nickname),
       proposedValue: proposedPreferredName,
-      requested: isDecision
-        ? Boolean(proposedPreferredName)
-        : Boolean(proposedPreferredName && valuesDiffer(person.nickname, proposedPreferredName)),
+      requested: wasPreferredNameChangeSubmitted({
+        currentValue: person.nickname,
+        proposedValue: request.proposed_preferred_name,
+        isDecision,
+      }),
     },
     {
       key: 'email',
