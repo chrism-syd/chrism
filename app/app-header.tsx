@@ -92,7 +92,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
         ...(permissions.canManageEvents ? [{ label: 'Events', href: '/events' }] : []),
       ]
     : [
-        { label: 'Profile', href: '/me' },
+        { label: 'Home', href: '/spiritual' },
         ...(hasSharedCustomLists ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
         ...(memberInvitedEvents.length > 0 ? [{ label: 'Events', href: '/events' }] : []),
         ...(publicMeetingsHref ? [{ label: 'Public meetings', href: publicMeetingsHref }] : []),
