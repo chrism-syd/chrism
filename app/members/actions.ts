@@ -86,7 +86,7 @@ function friendlyPeopleConstraintMessage(message: string) {
 }
 
 async function getCurrentMemberAdminContext() {
-  const { admin: supabase, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
+  const { admin: supabase, permissions, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
@@ -100,7 +100,6 @@ async function getCurrentMemberAdminContext() {
   return {
     supabase,
     user: permissions.authUser,
-    council,
     localUnitId,
   };
 }
@@ -123,6 +122,28 @@ async function ensureActiveLocalUnitMember(args: {
   return validPersonIds.includes(args.memberId);
 }
 
+async function getLegacyCouncilIdForLocalUnit(args: {
+  supabase: ReturnType<typeof getCurrentActingCouncilContext> extends Promise<infer _T> ? any : never
+  localUnitId: string
+}) {
+  const { data, error } = await args.supabase
+    .from('local_units')
+    .select('legacy_council_id')
+    .eq('id', args.localUnitId)
+    .maybeSingle<{ legacy_council_id: string | null }>();
+
+  if (error) {
+    throw new Error(`Could not load the council link for the active local organization. ${error.message}`);
+  }
+
+  const legacyCouncilId = data?.legacy_council_id ?? null;
+  if (!legacyCouncilId) {
+    throw new Error('The active local organization is missing its linked council id.');
+  }
+
+  return legacyCouncilId;
+}
+
 export async function createMemberAction(
   _previousState: MemberFormState,
   formData: FormData
@@ -134,7 +155,7 @@ export async function createMemberAction(
     return memberFormErrorState(values, validationError);
   }
 
-  const { supabase, user, council, localUnitId } = await getCurrentMemberAdminContext();
+  const { supabase, user, localUnitId } = await getCurrentMemberAdminContext();
 
   if (!localUnitId) {
     return memberFormErrorState(
@@ -143,8 +164,21 @@ export async function createMemberAction(
     );
   }
 
+  let legacyCouncilId: string;
+  try {
+    legacyCouncilId = await getLegacyCouncilIdForLocalUnit({
+      supabase,
+      localUnitId,
+    });
+  } catch (error) {
+    return memberFormErrorState(
+      values,
+      error instanceof Error ? error.message : 'Could not load the linked council for this local organization.'
+    );
+  }
+
   const payload = protectPeoplePayload({
-    council_id: council.id,
+    council_id: legacyCouncilId,
     first_name: textValue(formData, 'first_name'),
     middle_name: textValue(formData, 'middle_name'),
     last_name: textValue(formData, 'last_name'),
@@ -193,7 +227,6 @@ export async function createMemberAction(
       .from('people')
       .delete()
       .eq('id', insertedPerson.id)
-      .eq('council_id', council.id)
       .eq('primary_relationship_code', 'member');
 
     return memberFormErrorState(
@@ -226,7 +259,7 @@ export async function updateMemberAction(
     return memberFormErrorState(values, 'We could not tell which member to save. Please try again.');
   }
 
-  const { supabase, user, council, localUnitId } = await getCurrentMemberAdminContext();
+  const { supabase, user, localUnitId } = await getCurrentMemberAdminContext();
 
   const isScopedMember = await ensureActiveLocalUnitMember({
     supabase,
@@ -261,7 +294,6 @@ export async function updateMemberAction(
     .from('people')
     .update(payload)
     .eq('id', memberId)
-    .eq('council_id', council.id)
     .eq('primary_relationship_code', 'member');
 
   if (error) {
@@ -289,7 +321,7 @@ export async function deleteMemberAction(
     return { error: 'Type DELETE to confirm removing this member from the directory.' };
   }
 
-  const { supabase, user, council, localUnitId } = await getCurrentMemberAdminContext();
+  const { supabase, user, localUnitId } = await getCurrentMemberAdminContext();
 
   const isScopedMember = await ensureActiveLocalUnitMember({
     supabase,
@@ -309,7 +341,6 @@ export async function deleteMemberAction(
       updated_by_auth_user_id: user.id,
     })
     .eq('id', memberId)
-    .eq('council_id', council.id)
     .eq('primary_relationship_code', 'member')
     .is('archived_at', null);
 
