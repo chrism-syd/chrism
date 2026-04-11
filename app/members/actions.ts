@@ -3,10 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
-import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists';
+import { listValidDirectoryPersonIdsForLocalUnit, resolveLegacyCouncilIdForLocalUnit } from '@/lib/custom-lists';
 import { isValidEmailAddress } from '@/lib/security/contact-validation';
 import { protectPeoplePayload } from '@/lib/security/pii';
 import type { DeleteMemberState, MemberFormState, MemberFormValues } from './form-state';
+
+type RelationshipCode = 'member' | 'volunteer_only' | 'prospect';
 
 function textValue(formData: FormData, key: keyof MemberFormValues) {
   const value = formData.get(key);
@@ -23,9 +25,30 @@ function rawTextValue(formData: FormData, key: keyof MemberFormValues) {
   return typeof value === 'string' ? value : '';
 }
 
+function normalizeRelationshipCode(value: string | null | undefined): RelationshipCode {
+  if (value === 'volunteer_only' || value === 'prospect') {
+    return value;
+  }
+
+  return 'member';
+}
+
+function createdSourceCodeForRelationship(relationshipCode: RelationshipCode) {
+  if (relationshipCode === 'prospect') {
+    return 'scoped_manual_prospect'
+  }
+
+  if (relationshipCode === 'volunteer_only') {
+    return 'scoped_manual_volunteer'
+  }
+
+  return 'admin_manual_member'
+}
+
 function collectMemberFormValues(formData: FormData): MemberFormValues {
   return {
     member_id: rawTextValue(formData, 'member_id'),
+    primary_relationship_code: normalizeRelationshipCode(rawTextValue(formData, 'primary_relationship_code')),
     first_name: rawTextValue(formData, 'first_name'),
     middle_name: rawTextValue(formData, 'middle_name'),
     last_name: rawTextValue(formData, 'last_name'),
@@ -60,7 +83,7 @@ function validateMemberFormValues(values: MemberFormValues) {
   }
 
   if (values.email.trim() && !isValidEmailAddress(values.email.trim())) {
-    return 'Enter a valid email address before saving this member.';
+    return 'Enter a valid email address before saving this person.';
   }
 
   return null;
@@ -79,14 +102,14 @@ function friendlyPeopleConstraintMessage(message: string) {
   }
 
   if (message.toLowerCase().includes('permission denied for schema app')) {
-    return 'We could not save this member because the local database is still missing one setup permission.';
+    return 'We could not save this person because the local database is still missing one setup permission.';
   }
 
   return message;
 }
 
 async function getCurrentMemberAdminContext() {
-  const { admin: supabase, permissions, localUnitId } = await getCurrentActingCouncilContext({
+  const { admin: supabase, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
@@ -100,48 +123,27 @@ async function getCurrentMemberAdminContext() {
   return {
     supabase,
     user: permissions.authUser,
+    council,
     localUnitId,
   };
 }
 
-async function ensureActiveLocalUnitMember(args: {
+async function ensureActiveLocalUnitPerson(args: {
   supabase: ReturnType<typeof getCurrentActingCouncilContext> extends Promise<infer _T> ? any : never
   localUnitId: string | null
-  memberId: string
+  personId: string
 }) {
   if (!args.localUnitId) {
     return false;
   }
 
-  const validPersonIds = await listValidMemberPersonIdsForLocalUnit({
+  const validPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
     admin: args.supabase,
     localUnitId: args.localUnitId,
-    personIds: [args.memberId],
+    personIds: [args.personId],
   });
 
-  return validPersonIds.includes(args.memberId);
-}
-
-async function getLegacyCouncilIdForLocalUnit(args: {
-  supabase: ReturnType<typeof getCurrentActingCouncilContext> extends Promise<infer _T> ? any : never
-  localUnitId: string
-}) {
-  const { data, error } = await args.supabase
-    .from('local_units')
-    .select('legacy_council_id')
-    .eq('id', args.localUnitId)
-    .maybeSingle<{ legacy_council_id: string | null }>();
-
-  if (error) {
-    throw new Error(`Could not load the council link for the active local organization. ${error.message}`);
-  }
-
-  const legacyCouncilId = data?.legacy_council_id ?? null;
-  if (!legacyCouncilId) {
-    throw new Error('The active local organization is missing its linked council id.');
-  }
-
-  return legacyCouncilId;
+  return validPersonIds.includes(args.personId);
 }
 
 export async function createMemberAction(
@@ -160,25 +162,26 @@ export async function createMemberAction(
   if (!localUnitId) {
     return memberFormErrorState(
       values,
-      'We could not tell which local organization this member belongs to. Please refresh and try again.'
+      'We could not tell which local organization this person belongs to. Please refresh and try again.'
     );
   }
 
-  let legacyCouncilId: string;
-  try {
-    legacyCouncilId = await getLegacyCouncilIdForLocalUnit({
-      supabase,
-      localUnitId,
-    });
-  } catch (error) {
+  const linkedCouncilId = await resolveLegacyCouncilIdForLocalUnit({
+    admin: supabase,
+    localUnitId,
+  }).catch(() => null);
+
+  if (!linkedCouncilId) {
     return memberFormErrorState(
       values,
-      error instanceof Error ? error.message : 'Could not load the linked council for this local organization.'
+      'This local organization is missing its council bridge, so we could not save this person yet.'
     );
   }
 
+  const relationshipCode = normalizeRelationshipCode(values.primary_relationship_code);
+
   const payload = protectPeoplePayload({
-    council_id: legacyCouncilId,
+    council_id: linkedCouncilId,
     first_name: textValue(formData, 'first_name'),
     middle_name: textValue(formData, 'middle_name'),
     last_name: textValue(formData, 'last_name'),
@@ -191,12 +194,14 @@ export async function createMemberAction(
     city: textValue(formData, 'city'),
     state_province: textValue(formData, 'state_province'),
     postal_code: textValue(formData, 'postal_code'),
-    primary_relationship_code: 'member',
-    created_source_code: 'admin_manual_member',
-    is_provisional_member: true,
-    council_activity_level_code: textValue(formData, 'council_activity_level_code'),
-    council_activity_context_code: textValue(formData, 'council_activity_context_code'),
-    council_reengagement_status_code: textValue(formData, 'council_reengagement_status_code'),
+    primary_relationship_code: relationshipCode,
+    created_source_code: createdSourceCodeForRelationship(relationshipCode),
+    is_provisional_member: relationshipCode === 'member',
+    prospect_status_code: relationshipCode === 'prospect' ? 'new' : null,
+    volunteer_context_code: relationshipCode === 'volunteer_only' ? 'unknown' : null,
+    council_activity_level_code: relationshipCode === 'member' ? textValue(formData, 'council_activity_level_code') : null,
+    council_activity_context_code: relationshipCode === 'member' ? textValue(formData, 'council_activity_context_code') : null,
+    council_reengagement_status_code: relationshipCode === 'member' ? textValue(formData, 'council_reengagement_status_code') : null,
     created_by_auth_user_id: user.id,
     updated_by_auth_user_id: user.id,
   });
@@ -210,7 +215,7 @@ export async function createMemberAction(
   if (insertError || !insertedPerson?.id) {
     return memberFormErrorState(
       values,
-      friendlyPeopleConstraintMessage(insertError?.message ?? 'We could not save this member right now.')
+      friendlyPeopleConstraintMessage(insertError?.message ?? 'We could not save this person right now.')
     );
   }
 
@@ -227,11 +232,12 @@ export async function createMemberAction(
       .from('people')
       .delete()
       .eq('id', insertedPerson.id)
-      .eq('primary_relationship_code', 'member');
+      .eq('council_id', linkedCouncilId)
+      .eq('primary_relationship_code', relationshipCode);
 
     return memberFormErrorState(
       values,
-      `We saved the person record, but could not link this member to the active local organization. ${memberRecordError?.message ?? 'Please try again.'}`
+      `We saved the person record, but could not link this person to the active local organization. ${memberRecordError?.message ?? 'Please try again.'}`
     );
   }
 
@@ -239,7 +245,7 @@ export async function createMemberAction(
   revalidatePath('/members');
   revalidatePath('/members/archive');
   revalidatePath('/custom-lists');
-  redirect('/members');
+  redirect(`/members/${insertedPerson.id}`);
 }
 
 export async function updateMemberAction(
@@ -253,25 +259,28 @@ export async function updateMemberAction(
     return memberFormErrorState(values, validationError);
   }
 
-  const memberId = textValue(formData, 'member_id');
+  const personId = textValue(formData, 'member_id');
 
-  if (!memberId) {
-    return memberFormErrorState(values, 'We could not tell which member to save. Please try again.');
+  if (!personId) {
+    return memberFormErrorState(values, 'We could not tell which person to save. Please try again.');
   }
 
   const { supabase, user, localUnitId } = await getCurrentMemberAdminContext();
 
-  const isScopedMember = await ensureActiveLocalUnitMember({
+  const isScopedPerson = await ensureActiveLocalUnitPerson({
     supabase,
     localUnitId,
-    memberId,
+    personId,
   });
 
-  if (!isScopedMember) {
-    return memberFormErrorState(values, 'This member is no longer part of the active local organization.');
+  if (!isScopedPerson) {
+    return memberFormErrorState(values, 'This person is no longer part of the active local organization.');
   }
 
+  const relationshipCode = normalizeRelationshipCode(values.primary_relationship_code)
+
   const payload = protectPeoplePayload({
+    primary_relationship_code: relationshipCode,
     first_name: textValue(formData, 'first_name'),
     middle_name: textValue(formData, 'middle_name'),
     last_name: textValue(formData, 'last_name'),
@@ -284,17 +293,20 @@ export async function updateMemberAction(
     city: textValue(formData, 'city'),
     state_province: textValue(formData, 'state_province'),
     postal_code: textValue(formData, 'postal_code'),
-    council_activity_level_code: textValue(formData, 'council_activity_level_code'),
-    council_activity_context_code: textValue(formData, 'council_activity_context_code'),
-    council_reengagement_status_code: textValue(formData, 'council_reengagement_status_code'),
+    is_provisional_member: relationshipCode === 'member',
+    prospect_status_code: relationshipCode === 'prospect' ? 'new' : null,
+    volunteer_context_code: relationshipCode === 'volunteer_only' ? 'unknown' : null,
+    council_activity_level_code: relationshipCode === 'member' ? textValue(formData, 'council_activity_level_code') : null,
+    council_activity_context_code: relationshipCode === 'member' ? textValue(formData, 'council_activity_context_code') : null,
+    council_reengagement_status_code: relationshipCode === 'member' ? textValue(formData, 'council_reengagement_status_code') : null,
     updated_by_auth_user_id: user.id,
   });
 
   const { error } = await supabase
     .from('people')
     .update(payload)
-    .eq('id', memberId)
-    .eq('primary_relationship_code', 'member');
+    .eq('id', personId)
+    .is('archived_at', null);
 
   if (error) {
     return memberFormErrorState(values, friendlyPeopleConstraintMessage(error.message));
@@ -302,35 +314,35 @@ export async function updateMemberAction(
 
   revalidatePath('/');
   revalidatePath('/members');
-  revalidatePath(`/members/${memberId}`);
-  redirect(`/members/${memberId}`);
+  revalidatePath(`/members/${personId}`);
+  redirect(`/members/${personId}`);
 }
 
 export async function deleteMemberAction(
   _previousState: DeleteMemberState,
   formData: FormData
 ): Promise<DeleteMemberState> {
-  const memberId = formData.get('member_id');
+  const personId = formData.get('member_id');
   const confirmation = formData.get('confirmation');
 
-  if (typeof memberId !== 'string' || !memberId) {
-    return { error: 'We could not tell which member to remove.' };
+  if (typeof personId !== 'string' || !personId) {
+    return { error: 'We could not tell which person to remove.' };
   }
 
   if (typeof confirmation !== 'string' || confirmation.trim().toUpperCase() !== 'DELETE') {
-    return { error: 'Type DELETE to confirm removing this member from the directory.' };
+    return { error: 'Type DELETE to confirm removing this person from the directory.' };
   }
 
   const { supabase, user, localUnitId } = await getCurrentMemberAdminContext();
 
-  const isScopedMember = await ensureActiveLocalUnitMember({
+  const isScopedPerson = await ensureActiveLocalUnitPerson({
     supabase,
     localUnitId,
-    memberId,
+    personId,
   });
 
-  if (!isScopedMember) {
-    return { error: 'This member is no longer part of the active local organization.' };
+  if (!isScopedPerson) {
+    return { error: 'This person is no longer part of the active local organization.' };
   }
 
   const { error: archiveError } = await supabase
@@ -340,12 +352,11 @@ export async function deleteMemberAction(
       archived_by_auth_user_id: user.id,
       updated_by_auth_user_id: user.id,
     })
-    .eq('id', memberId)
-    .eq('primary_relationship_code', 'member')
+    .eq('id', personId)
     .is('archived_at', null);
 
   if (archiveError) {
-    return { error: `We could not remove this member right now. ${friendlyPeopleConstraintMessage(archiveError.message)}` };
+    return { error: `We could not remove this person right now. ${friendlyPeopleConstraintMessage(archiveError.message)}` };
   }
 
   revalidatePath('/');

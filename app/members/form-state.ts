@@ -1,5 +1,8 @@
+export type PersonRelationshipCode = 'member' | 'volunteer_only' | 'prospect';
+
 export type MemberFormValues = {
   member_id: string;
+  primary_relationship_code: PersonRelationshipCode;
   first_name: string;
   middle_name: string;
   last_name: string;
@@ -28,6 +31,7 @@ export type DeleteMemberState = {
 
 const EMPTY_MEMBER_FORM_VALUES: MemberFormValues = {
   member_id: '',
+  primary_relationship_code: 'member',
   first_name: '',
   middle_name: '',
   last_name: '',

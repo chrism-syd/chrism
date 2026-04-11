@@ -35,7 +35,8 @@ type Props = {
   currentViewControlMode?: CurrentViewControlMode
 }
 
-type MemberFilter = 'all' | 'with_email' | 'missing_email' | 'executive_officers'
+type QuickFilter = 'all' | 'with_email' | 'missing_email' | 'executive_officers'
+type RelationshipFilter = 'all' | 'member' | 'volunteer_only' | 'prospect'
 type SortOption = 'last_name_asc' | 'last_name_desc' | 'first_name_asc' | 'first_name_desc'
 type RowsPerPage = 10 | 20 | 50 | 'all'
 type ColumnKey =
@@ -90,12 +91,19 @@ function normalize(value: string | null | undefined) {
 
 function labelize(value: string | null | undefined) {
   if (!value) return 'Not set'
-  return value.replaceAll('_', ' ')
+  if (value === 'volunteer_only') return 'Volunteer'
+
+  return value
+    .replaceAll('_', ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 function formatAddress(member: Member) {
   const line1 = [member.address_line_1, member.address_line_2].filter(Boolean).join(', ')
-  const line2 = [member.city, member.state_province, member.postal_code].filter(Boolean).join(', ')
+  const line2 = [member.city, member.state_province, member.postal_code].filter(Boolean).join(' • ')
   return [line1, line2].filter(Boolean).join(' • ') || 'No address on file'
 }
 
@@ -130,7 +138,7 @@ function fileSafe(value: string) {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'members'
+      .replace(/^-+|-+$/g, '') || 'people'
   )
 }
 
@@ -164,12 +172,13 @@ export default function MembersList({
   members,
   currentOfficerLabelsById = {},
   executiveOfficerLabelsById = {},
-  sectionTitle = 'Member listing',
-  sectionSubtitle = 'Search, sort, and manage member records.',
+  sectionTitle = 'People listing',
+  sectionSubtitle = 'Search, sort, and manage people records.',
   currentViewControlMode = 'menu',
 }: Props) {
   const [search, setSearch] = useState('')
-  const [memberFilter, setMemberFilter] = useState<MemberFilter>('all')
+  const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilter>('all')
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
   const [sortBy, setSortBy] = useState<SortOption>('last_name_asc')
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(DEFAULT_COLUMNS)
   const [rowsPerPage, setRowsPerPage] = useState<RowsPerPage>(DEFAULT_ROWS_PER_PAGE)
@@ -217,13 +226,16 @@ export default function MembersList({
         reverseName.includes(query) ||
         searchableValues.some((value) => value.includes(query))
 
-      const matchesMemberFilter =
-        memberFilter === 'all' ||
-        (memberFilter === 'with_email' && Boolean(member.email)) ||
-        (memberFilter === 'missing_email' && !member.email) ||
-        (memberFilter === 'executive_officers' && isExecutiveOfficer)
+      const matchesRelationshipFilter =
+        relationshipFilter === 'all' || member.primary_relationship_code === relationshipFilter
 
-      return matchesSearch && matchesMemberFilter
+      const matchesQuickFilter =
+        quickFilter === 'all' ||
+        (quickFilter === 'with_email' && Boolean(member.email)) ||
+        (quickFilter === 'missing_email' && !member.email) ||
+        (quickFilter === 'executive_officers' && isExecutiveOfficer)
+
+      return matchesSearch && matchesRelationshipFilter && matchesQuickFilter
     })
 
     return [...filtered].sort((left, right) => {
@@ -252,7 +264,7 @@ export default function MembersList({
         }
       }
     })
-  }, [currentOfficerLabelsById, executiveOfficerLabelsById, memberFilter, members, search, sortBy])
+  }, [currentOfficerLabelsById, executiveOfficerLabelsById, quickFilter, members, relationshipFilter, search, sortBy])
 
   const totalPages = useMemo(() => {
     if (rowsPerPage === 'all') {
@@ -318,14 +330,15 @@ export default function MembersList({
 
   const hasActiveControls =
     search.trim() !== '' ||
-    memberFilter !== 'all' ||
+    relationshipFilter !== 'all' ||
+    quickFilter !== 'all' ||
     sortBy !== 'last_name_asc' ||
     rowsPerPage !== DEFAULT_ROWS_PER_PAGE
 
-  function getDisplayedRole(memberId: string) {
+  function getDisplayedRole(memberId: string, relationshipCode: string) {
     const executiveOfficerLabels = executiveOfficerLabelsById[memberId] ?? []
     const currentOfficerLabels = currentOfficerLabelsById[memberId] ?? []
-    return executiveOfficerLabels[0] ?? (currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : 'Member')
+    return executiveOfficerLabels[0] ?? (currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : labelize(relationshipCode))
   }
 
   function toggleColumn(columnKey: ColumnKey) {
@@ -344,7 +357,8 @@ export default function MembersList({
 
   function resetControls() {
     setSearch('')
-    setMemberFilter('all')
+    setRelationshipFilter('all')
+    setQuickFilter('all')
     setSortBy('last_name_asc')
     setRowsPerPage(DEFAULT_ROWS_PER_PAGE)
     setCurrentPage(1)
@@ -374,7 +388,7 @@ export default function MembersList({
       const baseRow: Record<string, string> = {
         'First name': member.first_name,
         'Last name': member.last_name,
-        'Directory role': getDisplayedRole(member.id),
+        'Directory role': getDisplayedRole(member.id, member.primary_relationship_code),
       }
 
       for (const option of selectedColumnOptions) {
@@ -387,7 +401,7 @@ export default function MembersList({
     const XLSX = await import('xlsx')
     const worksheet = XLSX.utils.json_to_sheet(exportRows)
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Members')
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'People')
 
     const today = new Date().toISOString().slice(0, 10)
     XLSX.writeFile(workbook, `${fileSafe(`${filePrefix}-${today}`)}.xlsx`)
@@ -415,7 +429,7 @@ export default function MembersList({
 
   function openCreateListFromMembers(list: Member[], sourceLabel: string, sourceBadge: string) {
     if (list.length === 0) {
-      setNotice({ tone: 'error', text: `There are no members in ${sourceLabel} to save into a custom list.` })
+      setNotice({ tone: 'error', text: `There are no people in ${sourceLabel} to save into a custom list.` })
       return
     }
 
@@ -461,22 +475,22 @@ export default function MembersList({
     closeMenu()
 
     if (filteredAndSortedMembers.length === 0) {
-      setNotice({ tone: 'error', text: 'There are no members in this filtered view to export.' })
+      setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' })
       return
     }
 
-    await exportMembersAsExcel(filteredAndSortedMembers, 'members from the current filtered view', 'members')
+    await exportMembersAsExcel(filteredAndSortedMembers, 'people from the current filtered view', 'people')
   }
 
   async function handleExportSelectedRows() {
     closeMenu()
 
     if (selectedMembers.length === 0) {
-      setNotice({ tone: 'error', text: 'Select at least one member before exporting.' })
+      setNotice({ tone: 'error', text: 'Select at least one person before exporting.' })
       return
     }
 
-    await exportMembersAsExcel(selectedMembers, 'selected members', 'selected-members')
+    await exportMembersAsExcel(selectedMembers, 'selected people', 'selected-people')
   }
 
   async function handleCopyCurrentViewEmails() {
@@ -488,7 +502,7 @@ export default function MembersList({
     closeMenu()
 
     if (selectedMembers.length === 0) {
-      setNotice({ tone: 'error', text: 'Select at least one member before copying email addresses.' })
+      setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' })
       return
     }
 
@@ -562,23 +576,43 @@ export default function MembersList({
           </div>
         </div>
 
-        <div className="qv-controls qv-controls-directory">
+        <div
+          className="qv-controls qv-controls-directory"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}
+        >
           <select
-            aria-label="Filter members"
-            value={memberFilter}
+            aria-label="Filter people by type"
+            style={{ width: '100%', minWidth: 0 }}
+            value={relationshipFilter}
             onChange={(event) => {
-              setMemberFilter(event.target.value as MemberFilter)
+              setRelationshipFilter(event.target.value as RelationshipFilter)
               setCurrentPage(1)
             }}
           >
-            <option value="all">All members</option>
+            <option value="all">All people</option>
+            <option value="member">Members only</option>
+            <option value="volunteer_only">Volunteers only</option>
+            <option value="prospect">Prospects only</option>
+          </select>
+
+          <select
+            aria-label="Quick filter"
+            style={{ width: '100%', minWidth: 0 }}
+            value={quickFilter}
+            onChange={(event) => {
+              setQuickFilter(event.target.value as QuickFilter)
+              setCurrentPage(1)
+            }}
+          >
+            <option value="all">All records</option>
             <option value="with_email">With email</option>
             <option value="missing_email">Missing email</option>
             <option value="executive_officers">Executive officers</option>
           </select>
 
           <select
-            aria-label="Sort members"
+            aria-label="Sort people"
+            style={{ width: '100%', minWidth: 0 }}
             value={sortBy}
             onChange={(event) => {
               setSortBy(event.target.value as SortOption)
@@ -592,7 +626,8 @@ export default function MembersList({
           </select>
 
           <input
-            aria-label="Search members"
+            aria-label="Search people"
+            style={{ width: '100%', minWidth: 0 }}
             type="text"
             value={search}
             onChange={(event) => {
@@ -606,9 +641,9 @@ export default function MembersList({
         <div className="qv-pagination-toolbar">
           <div className="qv-pagination-left">
             <label className="qv-pagination-meta-group">
-              <span className="qv-pagination-meta-label">Users per page</span>
+              <span className="qv-pagination-meta-label">People per page</span>
               <select
-                aria-label="Users per page"
+                aria-label="People per page"
                 className="qv-pagination-inline-select"
                 value={rowsPerPage}
                 onChange={(event) => handleRowsPerPageChange(event.target.value)}
@@ -622,7 +657,7 @@ export default function MembersList({
 
             <div className="qv-pagination-divider" aria-hidden="true" />
 
-            <p className="qv-pagination-total">{filteredAndSortedMembers.length.toLocaleString()} users</p>
+            <p className="qv-pagination-total">{filteredAndSortedMembers.length.toLocaleString()} people</p>
 
             {rowsPerPage !== 'all' && totalPages > 1 ? (
               <>
@@ -719,9 +754,9 @@ export default function MembersList({
         </div>
 
         {showFieldPicker ? (
-          <div className="qv-inline-field-panel" role="region" aria-label="Choose which member details appear">
+          <div className="qv-inline-field-panel" role="region" aria-label="Choose which person details appear">
             <p className="qv-inline-message" style={{ margin: 0 }}>
-              Choose which member details appear in this session.
+              Choose which person details appear in this session.
             </p>
             <div className="qv-field-picker-grid">
               {COLUMN_OPTIONS.map((option) => (
@@ -741,7 +776,7 @@ export default function MembersList({
 
         {paginatedMembers.length === 0 ? (
           <div className="qv-empty">
-            <p className="qv-empty-title">No members match your search.</p>
+            <p className="qv-empty-title">No people match your search.</p>
             <p className="qv-empty-text">Try a different search, filter, or reset the controls.</p>
           </div>
         ) : (
@@ -751,6 +786,7 @@ export default function MembersList({
                 const currentOfficerLabels = currentOfficerLabelsById[person.id] ?? []
                 const executiveOfficerLabels = executiveOfficerLabelsById[person.id] ?? []
                 const primaryExecutiveLabel = executiveOfficerLabels[0] ?? null
+                const fallbackRoleLabel = labelize(person.primary_relationship_code)
                 const columnCount = Math.max(visibleColumns.length, 1)
                 const gridTemplateColumns = `minmax(180px, 1.2fr) repeat(${columnCount}, minmax(104px, 0.9fr)) auto`
                 const rowMinWidth = 280 + columnCount * 148 + 28
@@ -802,7 +838,7 @@ export default function MembersList({
                                 ? primaryExecutiveLabel
                                 : currentOfficerLabels.length > 0
                                   ? currentOfficerLabels.join(', ')
-                                  : 'Member'}
+                                  : fallbackRoleLabel}
                             </div>
                           </div>
 

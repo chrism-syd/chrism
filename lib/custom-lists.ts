@@ -200,6 +200,58 @@ export async function resolveLegacyCouncilIdForLocalUnit(args: {
   return data?.legacy_council_id ?? null
 }
 
+export async function listValidDirectoryPersonIdsForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+  personIds: string[]
+}) {
+  const uniquePersonIds = [...new Set(args.personIds.filter(Boolean))]
+  if (uniquePersonIds.length === 0) {
+    return [] as string[]
+  }
+
+  const { data: membershipRows, error: membershipError } = await args.admin
+    .from('member_records')
+    .select('legacy_people_id')
+    .eq('local_unit_id', args.localUnitId)
+    .in('legacy_people_id', uniquePersonIds)
+    .is('archived_at', null)
+
+  if (membershipError) {
+    throw new Error(`Could not validate local-unit directory records: ${membershipError.message}`)
+  }
+
+  const scopedPersonIds = [
+    ...new Set(
+      ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
+        .map((row) => row.legacy_people_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+
+  if (scopedPersonIds.length === 0) {
+    return [] as string[]
+  }
+
+  const { data: peopleRows, error: peopleError } = await args.admin
+    .from('people')
+    .select('id')
+    .in('id', scopedPersonIds)
+    .is('archived_at', null)
+
+  if (peopleError) {
+    throw new Error(`Could not validate people in the active directory: ${peopleError.message}`)
+  }
+
+  return [
+    ...new Set(
+      ((peopleRows as Array<{ id: string | null }> | null) ?? [])
+        .map((row) => row.id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+}
+
 export async function listValidMemberPersonIdsForLocalUnit(args: {
   admin: SupabaseClient
   localUnitId: string
@@ -295,7 +347,6 @@ export async function listValidMemberPeopleForLocalUnit(args: {
 
   return decryptPeopleRecords((peopleRows as CustomListPersonSummaryRow[] | null) ?? [])
 }
-
 
 export async function listActiveCustomListShares(args: {
   admin: SupabaseClient

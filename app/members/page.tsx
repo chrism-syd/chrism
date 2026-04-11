@@ -1,18 +1,18 @@
-import AppHeader from '@/app/app-header'
-import MembersList from '@/app/members-list'
-import OrganizationAvatar from '@/app/components/organization-avatar'
-import SectionMenuBar from '@/app/components/section-menu-bar'
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
-import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
-import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
-import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data'
+import AppHeader from '@/app/app-header';
+import MembersList from '@/app/members-list';
+import OrganizationAvatar from '@/app/components/organization-avatar';
+import SectionMenuBar from '@/app/components/section-menu-bar';
+import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access';
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names';
+import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data';
 
 export default async function MembersPage() {
   const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({
     redirectTo: '/me',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
-  })
+  });
 
   if (!localUnitId) {
     return (
@@ -20,33 +20,33 @@ export default async function MembersPage() {
         <div className="qv-shell">
           <AppHeader />
           <div className="qv-error">
-            <strong>Could not load members.</strong>
+            <strong>Could not load people.</strong>
             <p>This view is missing its active local organization context.</p>
           </div>
         </div>
       </main>
-    )
+    );
   }
 
-  let directoryData: Awaited<ReturnType<typeof loadLocalUnitMemberDirectoryData>>
+  let directoryData: Awaited<ReturnType<typeof loadLocalUnitMemberDirectoryData>>;
 
   try {
     directoryData = await loadLocalUnitMemberDirectoryData({
       admin: supabase,
       localUnitId,
-    })
+    });
   } catch (error) {
     return (
       <main className="qv-page">
         <div className="qv-shell">
           <AppHeader />
           <div className="qv-error">
-            <strong>Could not load members.</strong>
+            <strong>Could not load people.</strong>
             <p>{error instanceof Error ? error.message : 'Unknown error'}</p>
           </div>
         </div>
       </main>
-    )
+    );
   }
 
   const { data: organizationData } = council.organization_id
@@ -55,39 +55,41 @@ export default async function MembersPage() {
         .select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
         .eq('id', council.organization_id)
         .maybeSingle()
-    : { data: null }
+    : { data: null };
 
   const organization = organizationData as {
-    display_name: string | null
-    preferred_name: string | null
-    logo_storage_path: string | null
-    logo_alt_text: string | null
+    display_name: string | null;
+    preferred_name: string | null;
+    logo_storage_path: string | null;
+    logo_alt_text: string | null;
     brand_profile?: {
-      code: string | null
-      display_name: string | null
-      logo_storage_bucket: string | null
-      logo_storage_path: string | null
-      logo_alt_text: string | null
-    } | null
-  } | null
+      code: string | null;
+      display_name: string | null;
+      logo_storage_bucket: string | null;
+      logo_storage_path: string | null;
+      logo_alt_text: string | null;
+    } | null;
+  } | null;
 
-  const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin'
+  const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin';
   const filteredPersonIdSet = new Set<string>(
     isPreviewAdminMode && permissions.personId ? [permissions.personId] : []
-  )
+  );
 
-  const members = directoryData.members.filter((person) => !filteredPersonIdSet.has(person.id))
-  const prospects = directoryData.prospects.filter((person) => !filteredPersonIdSet.has(person.id))
+  const allPeople = directoryData.allPeople.filter((person) => !filteredPersonIdSet.has(person.id));
+  const members = directoryData.members.filter((person) => !filteredPersonIdSet.has(person.id));
+  const prospects = directoryData.prospects.filter((person) => !filteredPersonIdSet.has(person.id));
+  const volunteers = directoryData.volunteers.filter((person) => !filteredPersonIdSet.has(person.id));
   const currentOfficerLabelsById = Object.fromEntries(
     Object.entries(directoryData.currentOfficerLabelsById).filter(([personId]) => !filteredPersonIdSet.has(personId))
-  )
+  );
   const executiveOfficerLabelsById = Object.fromEntries(
     Object.entries(directoryData.executiveOfficerLabelsById).filter(([personId]) => !filteredPersonIdSet.has(personId))
-  )
+  );
 
-  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
-  const effectiveBranding = getEffectiveOrganizationBranding(organization)
-  const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
+  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization';
+  const effectiveBranding = getEffectiveOrganizationBranding(organization);
+  const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`;
 
   const switchableLocalUnits = permissions.authUser
     ? (
@@ -100,10 +102,7 @@ export default async function MembersPage() {
       )
         .filter((unit) => unit.local_unit_id !== localUnitId)
         .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
-    : []
-
-  const activeMembers = members.filter((person) => person.council_activity_level_code === 'active')
-  const inactiveMembers = members.filter((person) => person.council_activity_level_code === 'inactive')
+    : [];
 
   return (
     <main className="qv-page">
@@ -128,7 +127,7 @@ export default async function MembersPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            Member Directory
+            People Directory
           </h1>
           <p
             style={{
@@ -140,7 +139,7 @@ export default async function MembersPage() {
               color: 'var(--text-secondary)',
             }}
           >
-            Browse and manage members for your local organization.
+            Browse and manage people for your local organization.
           </p>
         </section>
 
@@ -201,16 +200,16 @@ export default async function MembersPage() {
 
             <div className="qv-stats" style={{ marginTop: 0 }}>
               <div className="qv-stat-card">
+                <div className="qv-stat-number">{allPeople.length}</div>
+                <div className="qv-stat-label">Total people</div>
+              </div>
+              <div className="qv-stat-card">
                 <div className="qv-stat-number">{members.length}</div>
-                <div className="qv-stat-label">Total members</div>
+                <div className="qv-stat-label">Members</div>
               </div>
               <div className="qv-stat-card">
-                <div className="qv-stat-number">{activeMembers.length}</div>
-                <div className="qv-stat-label">Marked Active</div>
-              </div>
-              <div className="qv-stat-card">
-                <div className="qv-stat-number">{inactiveMembers.length}</div>
-                <div className="qv-stat-label">Marked Inactive</div>
+                <div className="qv-stat-number">{volunteers.length}</div>
+                <div className="qv-stat-label">Volunteers</div>
               </div>
               <div className="qv-stat-card">
                 <div className="qv-stat-number">{prospects.length}</div>
@@ -222,18 +221,20 @@ export default async function MembersPage() {
 
         <SectionMenuBar
           items={[
-            { label: 'Add member', href: '/members/new' },
+            { label: 'Add person', href: '/members/new' },
             { label: 'Import Supreme list', href: '/imports/supreme' },
-            { label: 'Archived members', href: '/members/archive' },
+            { label: 'Archived people', href: '/members/archive' },
           ]}
         />
 
         <MembersList
-          members={members}
+          members={allPeople}
           currentOfficerLabelsById={currentOfficerLabelsById}
           executiveOfficerLabelsById={executiveOfficerLabelsById}
+          sectionTitle="People listing"
+          sectionSubtitle="Search, sort, and manage people records."
         />
       </div>
     </main>
-  )
+  );
 }

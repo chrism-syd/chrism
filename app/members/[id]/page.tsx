@@ -4,10 +4,10 @@ import AppHeader from '@/app/app-header'
 import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
-import { decryptPeopleRecord } from '@/lib/security/pii'
-import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
-import { formatDate, listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
+import { formatDate, listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { decryptPeopleRecord } from '@/lib/security/pii'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -82,13 +82,13 @@ export default async function MemberDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const validLocalUnitMemberIds = await listValidMemberPersonIdsForLocalUnit({
+  const validLocalUnitPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
     admin: supabase,
     localUnitId,
     personIds: [id],
   }).catch(() => [])
 
-  const isScopedMember = validLocalUnitMemberIds.includes(id)
+  const isScopedPerson = validLocalUnitPersonIds.includes(id)
 
   const { data: organizationData } = council.organization_id
     ? await supabase
@@ -115,21 +115,20 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
-  const memberScopedPersonPromise = isScopedMember
+  const scopedPersonPromise = isScopedPerson
     ? supabase
         .from('people')
         .select(
           'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
         )
         .eq('id', id)
-        .eq('primary_relationship_code', 'member')
         .is('archived_at', null)
         .maybeSingle<PersonRow>()
     : Promise.resolve({ data: null, error: null })
 
-  const [{ data: memberScopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] =
+  const [{ data: scopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }] =
     await Promise.all([
-      memberScopedPersonPromise,
+      scopedPersonPromise,
       supabase
         .from('person_officer_terms')
         .select(
@@ -162,7 +161,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                 whiteSpace: 'nowrap',
               }}
             >
-              Member Detail
+              Person Detail
             </h1>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
               Review local organization contact, status, and custom list details.
@@ -170,7 +169,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
           </section>
 
           <div className="qv-error">
-            <strong>Could not load member.</strong>
+            <strong>Could not load person.</strong>
             <p>{error.message}</p>
           </div>
         </div>
@@ -180,7 +179,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
   let externalAdminPersonData: PersonRow | null = null
 
-  if (!memberScopedPersonData && permissions.canManageAdmins) {
+  if (!scopedPersonData && permissions.canManageAdmins) {
     const { data: externalPersonData, error: externalPersonError } = await supabase
       .from('people')
       .select(
@@ -219,15 +218,15 @@ export default async function MemberDetailPage({ params }: PageProps) {
     }
   }
 
-  const personData = memberScopedPersonData ?? externalAdminPersonData
+  const personData = scopedPersonData ?? externalAdminPersonData
   const person = personData ? decryptPeopleRecord(personData) : null
-  const isExternalAdminProfile = Boolean(externalAdminPersonData && !memberScopedPersonData)
+  const isExternalAdminProfile = Boolean(externalAdminPersonData && !scopedPersonData)
 
   if (!person) {
     notFound()
   }
 
-  const memberName = formatFullName(person)
+  const personName = formatFullName(person)
   const address = formatAddress(person)
   const currentOfficerLabels = summarizeCurrentOfficerLabels(officerTerms ?? [])
   const executiveOfficerLabels = summarizeExecutiveOfficerLabels(officerTerms ?? [])
@@ -238,7 +237,12 @@ export default async function MemberDetailPage({ params }: PageProps) {
         ? currentOfficerLabels.join(', ')
         : null
 
-  const relationshipLabel = isExternalAdminProfile ? 'Admin Contact' : startCase(person.primary_relationship_code) ?? 'Member'
+  const relationshipLabel =
+    isExternalAdminProfile
+      ? 'Admin Contact'
+      : person.primary_relationship_code === 'volunteer_only'
+        ? 'Volunteer'
+        : startCase(person.primary_relationship_code) ?? 'Person'
   const activityLevelLabel = startCase(person.council_activity_level_code)
   const activityContextLabel = startCase(person.council_activity_context_code)
   const reengagementLabel = startCase(person.council_reengagement_status_code)
@@ -293,10 +297,10 @@ export default async function MemberDetailPage({ params }: PageProps) {
       membership,
       list: customListsById.get(membership.custom_list_id) ?? null,
       lastContactByName: membership.last_contact_by_person_id
-        ? relatedPeopleById.get(membership.last_contact_by_person_id) ?? 'Unknown member'
+        ? relatedPeopleById.get(membership.last_contact_by_person_id) ?? 'Unknown person'
         : null,
       claimedByName: membership.claimed_by_person_id
-        ? relatedPeopleById.get(membership.claimed_by_person_id) ?? 'Unknown member'
+        ? relatedPeopleById.get(membership.claimed_by_person_id) ?? 'Unknown person'
         : null,
     }))
     .filter((item) => item.list)
@@ -324,7 +328,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
               whiteSpace: 'nowrap',
             }}
           >
-            Member Detail
+            Person Detail
           </h1>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
             Review local organization contact, status, and custom list details.
@@ -347,7 +351,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <Link
                       href="/members"
-                      aria-label="Back to members"
+                      aria-label="Back to people"
                       className="qv-link-button"
                       style={{
                         width: 26,
@@ -364,7 +368,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                       ‹
                     </Link>
                     <p className="qv-eyebrow" style={{ margin: 0 }}>
-                      Member Directory
+                      People Directory
                     </p>
                   </div>
 
@@ -379,7 +383,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                         color: 'var(--text-primary)',
                       }}
                     >
-                      {memberName}
+                      {personName}
                     </h2>
 
                     <div className="qv-detail-badges" style={{ marginTop: 0 }}>
@@ -472,7 +476,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
             >
               {!isExternalAdminProfile ? (
                 <Link href={`/members/${person.id}/edit`} className="qv-button-secondary qv-link-button">
-                  Edit member
+                  Edit person
                 </Link>
               ) : null}
 
@@ -487,7 +491,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                     alignItems: 'center',
                   }}
                 >
-                  <DeleteMemberIconButton memberId={person.id} memberName={memberName} />
+                  <DeleteMemberIconButton memberId={person.id} memberName={personName} />
                 </div>
               ) : null}
             </div>
@@ -523,7 +527,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                       </p>
                       <div className="qv-detail-badges" style={{ marginTop: 10 }}>
                         {membership.claimed_by_person_id ? (
-                          <span className="qv-badge qv-badge-soft">Claimed by {claimedByName || 'Unknown member'}</span>
+                          <span className="qv-badge qv-badge-soft">Claimed by {claimedByName || 'Unknown person'}</span>
                         ) : (
                           <span className="qv-badge qv-badge-soft">Unclaimed</span>
                         )}
