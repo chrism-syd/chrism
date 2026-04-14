@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
 import MemberSearchField from '@/app/components/member-search-field'
@@ -46,6 +47,10 @@ type SharedAccessView = {
   granted_at: string
   granted_by_auth_user_id: string | null
   person: PersonSummaryRow | null
+  isPending?: boolean
+  isActive?: boolean
+  hasLinkedUser?: boolean
+  stateLabel?: 'Active' | 'Linked account' | 'Pending sign-in'
 }
 
 type MemberOption = {
@@ -69,7 +74,7 @@ type MembersSort = 'attention' | 'name_az' | 'name_za' | 'contact_newest' | 'con
 type RecentSort = 'newest' | 'oldest' | 'name_az' | 'name_za'
 
 function fullName(person?: PersonSummaryRow | null) {
-  if (!person) return 'Unknown member'
+  if (!person) return 'Unknown person'
   return `${person.first_name} ${person.last_name}`.trim()
 }
 
@@ -217,7 +222,7 @@ function ReviewMemberRow({
 
   let summaryMeta = 'No contact logged yet'
   if (member.last_contact_at) {
-    const lastContactByName = member.lastContactBy ? fullName(member.lastContactBy) : 'Unknown member'
+    const lastContactByName = member.lastContactBy ? fullName(member.lastContactBy) : 'Unknown person'
     summaryMeta = `Last contact ${formatDate(member.last_contact_at)} by ${lastContactByName}`
   }
   if (member.claimedBy) {
@@ -280,7 +285,7 @@ function ReviewMemberRow({
                 <input type="hidden" name="custom_list_id" value={listId} />
                 <input type="hidden" name="custom_list_member_id" value={member.id} />
                 <button type="submit" className="qv-button-primary">
-                  Claim member
+                  Claim person
                 </button>
               </form>
             )
@@ -321,7 +326,7 @@ function ReviewMemberRow({
               triggerLabel={<BootstrapIcon name="trash" className="qv-bi-icon" />}
               triggerClassName="qv-icon-button qv-icon-button-danger"
               triggerStyle={{ marginLeft: 'auto' }}
-              confirmTitle={`Remove this member from “Custom list: ${listName}”?`}
+              confirmTitle={`Remove this person from “Custom list: ${listName}”?`}
               confirmDescription="They will no longer appear on this custom list."
               confirmLabel="Confirm"
               cancelLabel="Cancel"
@@ -376,7 +381,7 @@ function ShareListCard({
       <div className="qv-directory-section-head">
         <div>
           <h2 className="qv-section-title">Share List</h2>
-          <p className="qv-section-subtitle">Only Invited members can view this list.</p>
+          <p className="qv-section-subtitle">Invite people now. Access turns on once their account is linked.</p>
         </div>
         <button type="button" className="qv-button-secondary" onClick={() => setIsExpanded((value) => !value)}>
           Share
@@ -386,7 +391,7 @@ function ShareListCard({
       {isExpanded ? (
         <form action={shareCustomListAction} className="qv-form-grid qv-inline-panel" style={{ marginTop: 16 }}>
           <input type="hidden" name="custom_list_id" value={listId} />
-          <MemberSearchField name="person_id" label="Member" members={shareCandidates} placeholder="Type a member name" required />
+          <MemberSearchField name="person_id" label="Person" members={shareCandidates} placeholder="Type a person name" required />
           <div className="qv-form-actions">
             <button type="button" className="qv-button-secondary" onClick={() => setIsExpanded(false)}>
               Cancel
@@ -402,23 +407,40 @@ function ShareListCard({
         <p className="qv-inline-message" style={{ marginTop: 16 }}>This custom list has not been shared with anyone yet.</p>
       ) : (
         <div className="qv-simple-list" style={{ marginTop: 16 }}>
-          {sharedAccess.map((access) => (
-            <div key={access.id} className="qv-simple-list-row">
-              <div>
-                <div className="qv-list-row-title">{access.person ? fullName(access.person) : access.grantee_email || 'Shared member'}</div>
-                <div className="qv-inline-message" style={{ marginTop: 4 }}>
-                  {access.person?.email || access.grantee_email || 'No email on file'}
+          {sharedAccess.map((access) => {
+            const displayName = access.person ? fullName(access.person) : access.grantee_email || 'Shared person'
+            const displayEmail = access.person?.email || access.grantee_email || 'No email on file'
+            const stateLabel = access.stateLabel || 'Pending sign-in'
+
+            return (
+              <div key={access.id} className="qv-simple-list-row">
+                <div>
+                  <div className="qv-list-row-title">
+                    {access.person?.id ? (
+                      <Link href={`/members/${access.person.id}`} className="qv-link-button" style={{ padding: 0, minHeight: 'unset', border: 'none', background: 'transparent' }}>
+                        {displayName}
+                      </Link>
+                    ) : (
+                      displayName
+                    )}
+                  </div>
+                  <div className="qv-inline-message" style={{ marginTop: 4 }}>
+                    {displayEmail}
+                  </div>
+                  <div className="qv-detail-badges" style={{ marginTop: 8 }}>
+                    <span className={`qv-badge ${stateLabel === 'Pending sign-in' ? 'qv-badge-soft' : ''}`}>{stateLabel}</span>
+                  </div>
                 </div>
+                <form action={revokeCustomListAccessAction}>
+                  <input type="hidden" name="custom_list_id" value={listId} />
+                  <input type="hidden" name="access_id" value={access.id} />
+                  <button type="submit" className="qv-icon-button" aria-label={`Unshare list with ${displayName}`} title="Unshare">
+                    <BootstrapIcon name="x" className="qv-bi-icon" />
+                  </button>
+                </form>
               </div>
-              <form action={revokeCustomListAccessAction}>
-                <input type="hidden" name="custom_list_id" value={listId} />
-                <input type="hidden" name="access_id" value={access.id} />
-                <button type="submit" className="qv-icon-button" aria-label={`Unshare list with ${access.person ? fullName(access.person) : access.grantee_email || 'this member'}`} title="Unshare">
-                  <BootstrapIcon name="x" className="qv-bi-icon" />
-                </button>
-              </form>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </section>
@@ -451,8 +473,8 @@ export default function CustomListDetailClient({
         <section className="qv-card">
           <div className="qv-directory-section-head">
             <div>
-              <h2 className="qv-section-title">Members on this list</h2>
-              <p className="qv-section-subtitle">Claim a member you plan on contacting or have contacted, so others are aware.</p>
+              <h2 className="qv-section-title">People on this list</h2>
+              <p className="qv-section-subtitle">Claim a person you plan on contacting or have contacted, so others are aware.</p>
             </div>
             <div className="qv-section-controls">
               <SortSelect
@@ -469,7 +491,7 @@ export default function CustomListDetailClient({
               />
               {canManage ? (
                 <button type="button" className="qv-button-secondary" onClick={() => setIsAddMemberExpanded((value) => !value)}>
-                  Add member
+                  Add person
                 </button>
               ) : null}
             </div>
@@ -478,11 +500,11 @@ export default function CustomListDetailClient({
           {canManage && isAddMemberExpanded ? (
             <div className="qv-inline-panel qv-member-inline-panel qv-custom-list-add-panel" style={{ marginTop: 16 }}>
               <div className="qv-member-inline-panel-head">
-                <span className="qv-member-inline-panel-title">Add member</span>
+                <span className="qv-member-inline-panel-title">Add person</span>
                 <button
                   type="button"
                   className="qv-icon-button"
-                  aria-label="Close add member panel"
+                  aria-label="Close add person panel"
                   title="Close"
                   onClick={() => setIsAddMemberExpanded(false)}
                 >
@@ -494,10 +516,10 @@ export default function CustomListDetailClient({
                 <input type="hidden" name="custom_list_id" value={listId} />
                 <MemberSearchField
                   name="person_id"
-                  label="Add member"
+                  label="Add person"
                   labelHidden
                   members={addCandidates}
-                  placeholder="Type a member name"
+                  placeholder="Type a person name"
                   required
                 />
                 <button type="submit" className="qv-button-primary">
@@ -509,8 +531,8 @@ export default function CustomListDetailClient({
 
           {sortedMembers.length === 0 ? (
             <div className="qv-empty">
-              <p className="qv-empty-title">This custom list has no members yet.</p>
-              <p className="qv-empty-text">Add members from the directory or use the Add member button here.</p>
+              <p className="qv-empty-title">This custom list has no people yet.</p>
+              <p className="qv-empty-text">Add people from the directory or use the Add person button here.</p>
             </div>
           ) : (
             <div
@@ -535,7 +557,7 @@ export default function CustomListDetailClient({
           <div className="qv-directory-section-head">
             <div>
               <h2 className="qv-section-title">Most recent contact</h2>
-              <p className="qv-section-subtitle">Use this view to scan the members who already have contact logged on this list.</p>
+              <p className="qv-section-subtitle">Use this view to scan the people who already have contact logged on this list.</p>
             </div>
             <SortSelect
               label="Sort by"

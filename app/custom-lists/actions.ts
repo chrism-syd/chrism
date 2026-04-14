@@ -11,7 +11,7 @@ import {
   canViewCustomList,
   hasStrictCustomListLifecycleAccess,
   listManageableLocalUnitIdsForCustomLists,
-  listValidMemberPersonIdsForLocalUnit,
+  listValidDirectoryPersonIdsForLocalUnit,
   normalizeEmail,
   resolveCustomListLocalUnitId,
   resolveLegacyCouncilIdForLocalUnit,
@@ -198,18 +198,18 @@ export async function createCustomListFromMembersAction(
 
   let scopedMemberIds: string[] = []
   try {
-    scopedMemberIds = await listValidMemberPersonIdsForLocalUnit({
+    scopedMemberIds = await listValidDirectoryPersonIdsForLocalUnit({
       admin,
       localUnitId,
       personIds: memberIds,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Please try again.'
-    return { error: `Could not load the members for this list. ${message}` }
+    return { error: `Could not load the people for this list. ${message}` }
   }
 
   if (scopedMemberIds.length === 0) {
-    return { error: 'The selected members are no longer available in the active directory.' }
+    return { error: 'The selected people are no longer available in the active directory.' }
   }
 
   const { data: customListData, error: createError } = await admin
@@ -238,7 +238,7 @@ export async function createCustomListFromMembersAction(
   )
 
   if (memberInsertError) {
-    return { error: `The custom list was created, but we could not add the members. ${memberInsertError.message}` }
+    return { error: `The custom list was created, but we could not add the people. ${memberInsertError.message}` }
   }
 
   revalidatePath('/members')
@@ -420,7 +420,7 @@ export async function shareCustomListAction(formData: FormData) {
   }
 
   const uniquePersonIds = [...new Set(personIds)]
-  const scopedPersonIds = await listValidMemberPersonIdsForLocalUnit({
+  const scopedPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
     admin,
     localUnitId,
     personIds: uniquePersonIds,
@@ -431,7 +431,6 @@ export async function shareCustomListAction(formData: FormData) {
       .from('people')
       .select('id, email')
       .in('id', scopedPersonIds)
-      .eq('primary_relationship_code', 'member')
       .is('archived_at', null),
     scopedPersonIds.length > 0
       ? admin
@@ -442,7 +441,7 @@ export async function shareCustomListAction(formData: FormData) {
   ])
 
   if (peopleError) {
-    throw new Error(`Could not load members to share with. ${peopleError.message}`)
+    throw new Error(`Could not load people to share with. ${peopleError.message}`)
   }
 
   if (linkedUserError) {
@@ -464,13 +463,13 @@ export async function shareCustomListAction(formData: FormData) {
     granted_by_auth_user_id: permissions.authUser?.id ?? null,
   }))
 
+  if (payload.length === 0) {
+    throw new Error('We could not find those people in the active directory for this local organization.')
+  }
+
   const targetUserIds = [
     ...new Set(payload.map((row) => row.user_id).filter((value): value is string => Boolean(value))),
   ]
-
-  if (payload.length === 0 || targetUserIds.length === 0) {
-    throw new Error('That member does not have a linked user account yet, so this list cannot be shared until they sign in.')
-  }
 
   for (const targetUserId of targetUserIds) {
     const { error: grantError } = await admin.rpc('grant_parallel_custom_list_access_to_user', {
@@ -491,7 +490,7 @@ export async function shareCustomListAction(formData: FormData) {
     .upsert(payload, { onConflict: 'custom_list_id,person_id' })
 
   if (error) {
-    throw new Error(`Could not mirror this share in the legacy share table. ${error.message}`)
+    throw new Error(`Could not save this custom list share. ${error.message}`)
   }
 
   revalidatePath('/custom-lists')
@@ -648,7 +647,6 @@ export async function revokeCustomListAccessAction(formData: FormData) {
   revalidatePath(`/custom-lists/${customListId}`)
   redirect(`/custom-lists/${customListId}`)
 }
-
 
 export async function claimCustomListMemberAction(formData: FormData) {
   const customListId = String(formData.get('custom_list_id') ?? '')
@@ -868,14 +866,14 @@ export async function addCustomListMemberAction(formData: FormData) {
     throw new Error('This custom list is missing its local organization link.')
   }
 
-  const scopedPersonIds = await listValidMemberPersonIdsForLocalUnit({
+  const scopedPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
     admin,
     localUnitId,
     personIds: [personId],
   })
 
   if (!scopedPersonIds.includes(personId)) {
-    throw new Error('We could not find that member in this directory.')
+    throw new Error('We could not find that person in this directory.')
   }
 
   const { error } = await admin.from('custom_list_members').upsert(
@@ -889,7 +887,7 @@ export async function addCustomListMemberAction(formData: FormData) {
   )
 
   if (error) {
-    throw new Error(`Could not add that member to this custom list. ${error.message}`)
+    throw new Error(`Could not add that person to this custom list. ${error.message}`)
   }
 
   revalidatePath('/custom-lists')
