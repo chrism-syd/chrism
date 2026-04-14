@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
 import type { AdminCarouselItem } from './page'
 
@@ -17,10 +17,25 @@ function canLinkToMemberProfile(item: AdminCarouselItem) {
 export default function AdminCarousel({ items, revokeAction }: Props) {
   const [index, setIndex] = useState(0)
   const total = items.length
-  const current = items[index] ?? null
 
-  const canPrev = index > 0
-  const canNext = index < total - 1
+  useEffect(() => {
+    if (total === 0) {
+      setIndex(0)
+      return
+    }
+
+    setIndex((currentIndex) => {
+      if (currentIndex < 0) return 0
+      if (currentIndex > total - 1) return total - 1
+      return currentIndex
+    })
+  }, [total])
+
+  const safeIndex = total === 0 ? 0 : Math.min(index, total - 1)
+  const current = items[safeIndex] ?? null
+
+  const canPrev = safeIndex > 0
+  const canNext = safeIndex < total - 1
 
   const dots = useMemo(() => Array.from({ length: total }, (_, idx) => idx), [total])
 
@@ -98,7 +113,7 @@ export default function AdminCarousel({ items, revokeAction }: Props) {
                     height: 10,
                     borderRadius: '999px',
                     border: '1px solid var(--divider)',
-                    background: dot === index ? 'var(--interactive)' : 'transparent',
+                    background: dot === safeIndex ? 'var(--interactive)' : 'transparent',
                     padding: 0,
                   }}
                 />
