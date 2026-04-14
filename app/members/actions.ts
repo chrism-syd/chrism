@@ -318,6 +318,40 @@ export async function updateMemberAction(
   redirect(`/members/${personId}`);
 }
 
+
+export async function restoreMemberAction(formData: FormData) {
+  const personId = formData.get('member_id')
+
+  if (typeof personId !== 'string' || !personId) {
+    redirect('/members/archive?error=We%20could%20not%20tell%20which%20person%20to%20restore.')
+  }
+
+  const { supabase, user, localUnitId } = await getCurrentMemberAdminContext()
+
+  if (!localUnitId) {
+    redirect('/members/archive?error=We%20could%20not%20tell%20which%20local%20organization%20is%20active.')
+  }
+
+  const { error } = await supabase.rpc('restore_local_unit_member_record', {
+    p_local_unit_id: localUnitId,
+    p_person_id: personId,
+    p_actor_user_id: user.id,
+  })
+
+  if (error) {
+    redirect(
+      `/members/archive?error=${encodeURIComponent(
+        `We could not restore this person to the active local organization. ${friendlyPeopleConstraintMessage(error.message)}`
+      )}`
+    )
+  }
+
+  revalidatePath('/')
+  revalidatePath('/members')
+  revalidatePath('/members/archive')
+  redirect('/members')
+}
+
 export async function deleteMemberAction(
   _previousState: DeleteMemberState,
   formData: FormData
@@ -330,7 +364,7 @@ export async function deleteMemberAction(
   }
 
   if (typeof confirmation !== 'string' || confirmation.trim().toUpperCase() !== 'DELETE') {
-    return { error: 'Type DELETE to confirm removing this person from the directory.' };
+    return { error: 'Type DELETE to confirm removing this person from the active local organization directory.' };
   }
 
   const { supabase, user, localUnitId } = await getCurrentMemberAdminContext();
@@ -345,18 +379,20 @@ export async function deleteMemberAction(
     return { error: 'This person is no longer part of the active local organization.' };
   }
 
-  const { error: archiveError } = await supabase
-    .from('people')
-    .update({
-      archived_at: new Date().toISOString(),
-      archived_by_auth_user_id: user.id,
-      updated_by_auth_user_id: user.id,
-    })
-    .eq('id', personId)
-    .is('archived_at', null);
+  const { error: archiveError } = await supabase.rpc(
+    'archive_local_unit_member_record',
+    {
+      p_local_unit_id: localUnitId,
+      p_person_id: personId,
+      p_actor_user_id: user.id,
+      p_reason: 'Removed from active local organization directory',
+    }
+  );
 
   if (archiveError) {
-    return { error: `We could not remove this person right now. ${friendlyPeopleConstraintMessage(archiveError.message)}` };
+    return {
+      error: `We could not remove this person from the active local organization right now. ${friendlyPeopleConstraintMessage(archiveError.message)}`,
+    };
   }
 
   revalidatePath('/');

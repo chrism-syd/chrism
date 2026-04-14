@@ -369,6 +369,27 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     return normalizedEmail ? personByEmail.get(normalizedEmail) ?? null : null
   }
 
+  function resolvedAdminLabel(args: {
+    matchedPerson: PersonRow | null
+    granteeEmail?: string | null
+    userId?: string | null
+  }) {
+    if (args.matchedPerson) {
+      return memberName(args.matchedPerson)
+    }
+
+    const normalizedEmail = normalizeEmail(args.granteeEmail)
+    if (normalizedEmail) {
+      return normalizedEmail
+    }
+
+    if (args.userId) {
+      return `External admin (${args.userId.slice(0, 8)})`
+    }
+
+    return null
+  }
+
   const manualAdmins = [
     ...assignments.map((assignment) => ({
       id: assignment.id,
@@ -428,28 +449,39 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     }
   }
 
-  const currentAdmins = [...dedupedManualAdmins.values(), ...unkeyedManualAdmins].map((assignment) => {
-    const matchedPerson = resolveAssignedPerson({
-      personId: assignment.personId,
-      granteeEmail: assignment.granteeEmail,
-    })
-    const automaticAdminLabels = matchedPerson ? automaticAdminLabelsByPersonId.get(matchedPerson.id) ?? [] : []
-    const currentOfficerLabels = matchedPerson ? currentOfficerLabelsByPersonId.get(matchedPerson.id) ?? [] : []
+  const currentAdmins = [...dedupedManualAdmins.values(), ...unkeyedManualAdmins]
+    .map((assignment) => {
+      const matchedPerson = resolveAssignedPerson({
+        personId: assignment.personId,
+        granteeEmail: assignment.granteeEmail,
+      })
+      const automaticAdminLabels = matchedPerson ? automaticAdminLabelsByPersonId.get(matchedPerson.id) ?? [] : []
+      const currentOfficerLabels = matchedPerson ? currentOfficerLabelsByPersonId.get(matchedPerson.id) ?? [] : []
+      const label = resolvedAdminLabel({
+        matchedPerson,
+        granteeEmail: assignment.granteeEmail,
+        userId: assignment.userId,
+      })
 
-    return {
-      id: assignment.id,
-      assignmentId: assignment.assignmentId,
-      assignmentTable: assignment.assignmentTable,
-      personId: matchedPerson?.id ?? assignment.personId ?? null,
-      label: matchedPerson ? memberName(matchedPerson) : assignment.granteeEmail ?? 'Manual admin grant',
-      automaticAdminLabels,
-      currentOfficerLabels,
-      sourceBadge: assignment.sourceBadge,
-      sortPriority: matchedPerson
-        ? adminSortPriority(currentOfficerLabels.length > 0 ? currentOfficerLabels : automaticAdminLabels)
-        : 100,
-    }
-  })
+      if (!label) {
+        return null
+      }
+
+      return {
+        id: assignment.id,
+        assignmentId: assignment.assignmentId,
+        assignmentTable: assignment.assignmentTable,
+        personId: matchedPerson?.id ?? assignment.personId ?? null,
+        label,
+        automaticAdminLabels,
+        currentOfficerLabels,
+        sourceBadge: assignment.sourceBadge,
+        sortPriority: matchedPerson
+          ? adminSortPriority(currentOfficerLabels.length > 0 ? currentOfficerLabels : automaticAdminLabels)
+          : 100,
+      }
+    })
+    .filter((adminRow): adminRow is NonNullable<typeof adminRow> => Boolean(adminRow))
 
   const manuallyAssignedIdentityKeys = new Set<string>()
   for (const assignment of [...assignments, ...legacyCouncilAssignments]) {
@@ -484,7 +516,30 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       }]
     })
 
-  const sortedAdmins = [...currentAdmins, ...implicitAutomaticAdmins].sort((left, right) => {
+  const dedupedResolvedAdmins = new Map<string, (typeof currentAdmins)[number] | (typeof implicitAutomaticAdmins)[number]>()
+
+  for (const adminRow of [...currentAdmins, ...implicitAutomaticAdmins]) {
+    const identityKey = adminRow.personId
+      ? `person:${adminRow.personId}`
+      : `label:${adminRow.label.toLowerCase()}`
+
+    const existing = dedupedResolvedAdmins.get(identityKey)
+    if (!existing) {
+      dedupedResolvedAdmins.set(identityKey, adminRow)
+      continue
+    }
+
+    if (adminRow.assignmentTable === 'council' && existing.assignmentTable !== 'council') {
+      dedupedResolvedAdmins.set(identityKey, adminRow)
+      continue
+    }
+
+    if (adminRow.assignmentTable === 'organization' && existing.assignmentTable === null) {
+      dedupedResolvedAdmins.set(identityKey, adminRow)
+    }
+  }
+
+  const sortedAdmins = [...dedupedResolvedAdmins.values()].sort((left, right) => {
     if (left.sortPriority !== right.sortPriority) return left.sortPriority - right.sortPriority
     return left.label.localeCompare(right.label)
   })
@@ -588,7 +643,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 Manage identity, officers, and admin access.
               </p>
 
-              {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
+              {switchableLocalUnits.length > 0 ? (
                 <details className="qv-view-menu" style={{ marginTop: 12 }}>
                   <summary>
                     <span>Change local organization</span>
