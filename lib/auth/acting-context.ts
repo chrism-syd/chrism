@@ -158,21 +158,7 @@ async function resolveScopedLocalUnitId(args: {
   const { admin, permissions, areaCode, minimumAccessLevel } = args
 
   if (!permissions.authUser) {
-    if (permissions.activeLocalUnitId) {
-      return permissions.activeLocalUnitId
-    }
-
-    const fallbackCouncilId = getFallbackCouncilId(permissions)
-    if (!fallbackCouncilId) {
-      return null
-    }
-
-    const currentLocalUnit = await findLocalUnitByLegacyCouncilId({
-      admin,
-      councilId: fallbackCouncilId,
-    }).catch(() => null)
-
-    return currentLocalUnit?.id ?? null
+    return permissions.activeLocalUnitId ?? null
   }
 
   if (permissions.isSuperAdmin && permissions.actingMode !== 'normal') {
@@ -222,15 +208,16 @@ async function resolveScopedLocalUnitId(args: {
     return permissions.activeLocalUnitId
   }
 
-  if (permissions.councilId) {
-    const currentLocalUnit = await findLocalUnitByLegacyCouncilId({
-      admin,
-      councilId: permissions.councilId,
-    }).catch(() => null)
+  const contextMatchedLocalUnitId =
+    permissions.activeContextKey
+      ? permissions.availableContexts.find((context) => context.key === permissions.activeContextKey)?.localUnitId ?? null
+      : null
 
-    if (currentLocalUnit?.id && accessibleLocalUnits.some((unit) => unit.local_unit_id === currentLocalUnit.id)) {
-      return currentLocalUnit.id
-    }
+  if (
+    contextMatchedLocalUnitId &&
+    accessibleLocalUnits.some((unit) => unit.local_unit_id === contextMatchedLocalUnitId)
+  ) {
+    return contextMatchedLocalUnitId
   }
 
   const sortedAccessibleLocalUnits = [...accessibleLocalUnits].sort((left, right) =>
@@ -303,12 +290,10 @@ export async function getCurrentActingCouncilContext(options?: {
           minimumAccessLevel: options.minimumAccessLevel,
         })
       : permissions.activeLocalUnitId ??
-        (permissions.councilId
-          ? await findLocalUnitByLegacyCouncilId({
-              admin,
-              councilId: permissions.councilId,
-            }).then((row) => row?.id ?? null)
-          : null)
+        (permissions.activeContextKey
+          ? permissions.availableContexts.find((context) => context.key === permissions.activeContextKey)?.localUnitId ?? null
+          : null) ??
+        null
 
   if (localUnitId) {
     const context = await buildContextFromLocalUnit({
