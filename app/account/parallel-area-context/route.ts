@@ -63,22 +63,6 @@ function pickContextKeyForLocalUnit(args: {
     return exactLocalUnitMatch.key
   }
 
-  const exactCouncilMatch = args.localUnit.legacy_council_id
-    ? staffContexts.find((context) => context.councilId === args.localUnit.legacy_council_id) ?? null
-    : null
-
-  if (exactCouncilMatch?.key) {
-    return exactCouncilMatch.key
-  }
-
-  const exactOrganizationMatch = args.localUnit.legacy_organization_id
-    ? staffContexts.find((context) => context.organizationId === args.localUnit.legacy_organization_id) ?? null
-    : null
-
-  if (exactOrganizationMatch?.key) {
-    return exactOrganizationMatch.key
-  }
-
   return null
 }
 
