@@ -48,6 +48,27 @@ type ExternalInviteeRow = {
   sort_order: number
 }
 
+type EventRow = {
+  id: string
+  local_unit_id: string | null
+  council_id: string
+  title: string
+  description: string | null
+  location_name: string | null
+  location_address: string | null
+  starts_at: string
+  ends_at: string | null
+  status_code: string
+  scope_code: 'home_council_only' | 'multi_council'
+  event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting'
+  requires_rsvp: boolean
+  needs_volunteers: boolean
+  rsvp_deadline_at: string | null
+  volunteer_deadline_at: string | null
+  reminder_enabled: boolean
+  reminder_scheduled_for: string | null
+}
+
 function toDateOnlyValue(value?: string | null) {
   if (!value) return ''
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
@@ -73,7 +94,7 @@ function toDateOnlyValue(value?: string | null) {
 export default async function EditEventPage({ params }: EditEventPageProps) {
   noStore()
   const { id } = await params
-  const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' })
+  const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' })
 
   let organization: OrganizationRow | null = null
   if (council.organization_id) {
@@ -85,14 +106,34 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     organization = (data as OrganizationRow | null) ?? null
   }
 
-  const { data: event, error: eventError } = await supabase
+  let eventQuery = supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
-    .eq('council_id', council.id)
-    .single()
+
+  eventQuery = localUnitId
+    ? eventQuery.eq('local_unit_id', localUnitId)
+    : eventQuery.eq('council_id', council.id)
+
+  let { data: eventData, error: eventError } = await eventQuery.single()
+
+  if ((eventError || !eventData) && localUnitId) {
+    const fallback = await supabase
+      .from('events')
+      .select(
+        'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
+      )
+      .eq('id', id)
+      .eq('council_id', council.id)
+      .single()
+
+    eventData = fallback.data
+    eventError = fallback.error
+  }
+
+  const event = eventData as EventRow | null
 
   if (eventError || !event) notFound()
 

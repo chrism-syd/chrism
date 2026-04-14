@@ -37,14 +37,51 @@ function formatDateTime(value: string) {
 
 function getArchiveStatusLabel(event: ActiveArchivedEventRow) {
   if (event.status_code === 'cancelled') return 'Cancelled'
-  if (event.event_kind_code !== 'standard') return 'Completed'
-  return 'Completed'
+  if (event.status_code === 'completed') return 'Completed'
+  return 'Past'
 }
 
-function getArchiveMetaLabel(event: ActiveArchivedEventRow) {
-  if (event.event_kind_code === 'executive_meeting') return 'Executive meeting'
-  if (event.event_kind_code === 'general_meeting') return 'General meeting'
-  return 'Event'
+function isMeeting(event: ActiveArchivedEventRow) {
+  return event.event_kind_code === 'general_meeting' || event.event_kind_code === 'executive_meeting'
+}
+
+function renderHistoricalEventCard(event: ActiveArchivedEventRow) {
+  return (
+    <Link key={event.id} href={`/events/${event.id}`} className="qv-member-link">
+      <article className="qv-member-row">
+        <div style={{ display: 'grid', gap: 6 }}>
+          <div className="qv-member-name">{event.title}</div>
+          <div className="qv-inline-message">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
+          <div className="qv-inline-message">{event.location_name || 'No location listed'}</div>
+          <div className="qv-inline-message">Event • {getArchiveStatusLabel(event)}</div>
+        </div>
+        <div className="qv-member-row-right">
+          <span className="qv-chevron">›</span>
+        </div>
+      </article>
+    </Link>
+  )
+}
+
+function renderHistoricalMeetingCard(event: ActiveArchivedEventRow) {
+  const meetingLabel =
+    event.event_kind_code === 'executive_meeting' ? 'Executive meeting' : 'General meeting'
+
+  return (
+    <Link key={event.id} href={`/events/${event.id}`} className="qv-member-link">
+      <article className="qv-member-row">
+        <div style={{ display: 'grid', gap: 6 }}>
+          <div className="qv-member-name">{event.title}</div>
+          <div className="qv-inline-message">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
+          <div className="qv-inline-message">{event.location_name || 'No location listed'}</div>
+          <div className="qv-inline-message">{meetingLabel} • Past</div>
+        </div>
+        <div className="qv-member-row-right">
+          <span className="qv-chevron">›</span>
+        </div>
+      </article>
+    </Link>
+  )
 }
 
 export default async function EventArchivePage() {
@@ -55,12 +92,19 @@ export default async function EventArchivePage() {
   })
   const nowIso = new Date().toISOString()
 
-  const [{ data: completedEvents, error: completedError }, { data: deletedEvents, error: deletedError }] = await Promise.all([
+  const [{ data: historicalRows, error: historicalError }, { data: deletedEvents, error: deletedError }] = await Promise.all([
     supabase
       .from('events')
       .select('id, title, starts_at, ends_at, status_code, location_name, event_kind_code')
       .eq(localUnitId ? 'local_unit_id' : 'council_id', localUnitId ?? council.id)
-      .or(`status_code.in.(completed,cancelled),and(event_kind_code.in.(general_meeting,executive_meeting),ends_at.lt.${nowIso})`)
+      .or(
+        [
+          'status_code.in.(completed,cancelled)',
+          `and(event_kind_code.in.(general_meeting,executive_meeting),ends_at.lt.${nowIso})`,
+          `and(event_kind_code.eq.standard,ends_at.lt.${nowIso},status_code.not.in.(draft,completed,cancelled))`,
+          `and(event_kind_code.eq.standard,starts_at.lt.${nowIso},ends_at.is.null,status_code.not.in.(draft,completed,cancelled))`,
+        ].join(',')
+      )
       .order('starts_at', { ascending: false })
       .returns<ActiveArchivedEventRow[]>(),
     supabase
@@ -70,6 +114,10 @@ export default async function EventArchivePage() {
       .order('deleted_at', { ascending: false })
       .returns<DeletedEventArchiveRow[]>(),
   ])
+
+  const allHistoricalRows = historicalRows ?? []
+  const pastMeetings = allHistoricalRows.filter((event) => isMeeting(event))
+  const pastEvents = allHistoricalRows.filter((event) => !isMeeting(event))
 
   return (
     <main className="qv-page">
@@ -84,7 +132,7 @@ export default async function EventArchivePage() {
                 {council.council_number ? ` (${council.council_number})` : ''}
               </p>
               <h1 className="qv-title">Events archive</h1>
-              <p className="qv-subtitle">Completed, cancelled, past meetings, and archived events stay visible here for admins.</p>
+              <p className="qv-subtitle">Past events, past meetings, and manually archived event snapshots stay visible here for admins.</p>
             </div>
             <div className="qv-directory-actions">
               <Link href="/events" className="qv-link-button qv-button-secondary">
@@ -94,44 +142,28 @@ export default async function EventArchivePage() {
           </div>
         </section>
 
-        {completedError || deletedError ? (
+        {historicalError || deletedError ? (
           <section className="qv-card qv-error">
-            Could not load the event archive. {completedError?.message || deletedError?.message}
+            Could not load the event archive. {historicalError?.message || deletedError?.message}
           </section>
         ) : (
           <div className="qv-detail-grid">
             <section className="qv-card">
               <div className="qv-directory-section-head">
                 <div>
-                  <h2 className="qv-section-title">Completed and cancelled</h2>
-                  <p className="qv-section-subtitle">Completed events, cancelled events, and past meetings still appear here for reference.</p>
+                  <h2 className="qv-section-title">Past events</h2>
+                  <p className="qv-section-subtitle">Standard events that ended already or were marked completed or cancelled.</p>
                 </div>
               </div>
 
-              {(completedEvents ?? []).length === 0 ? (
+              {pastEvents.length === 0 ? (
                 <div className="qv-empty">
-                  <h3 className="qv-empty-title">No completed or cancelled events</h3>
-                  <p className="qv-empty-text">Completed events and past meetings will appear here automatically.</p>
+                  <h3 className="qv-empty-title">No past events</h3>
+                  <p className="qv-empty-text">Ended, completed, and cancelled standard events will appear here.</p>
                 </div>
               ) : (
                 <div className="qv-member-list">
-                  {(completedEvents ?? []).map((event) => (
-                    <Link key={event.id} href={`/events/${event.id}`} className="qv-member-link">
-                      <article className="qv-member-row">
-                        <div style={{ display: 'grid', gap: 6 }}>
-                          <div className="qv-member-name">{event.title}</div>
-                          <div className="qv-inline-message">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
-                          <div className="qv-inline-message">{event.location_name || 'No location listed'}</div>
-                          <div className="qv-inline-message">
-                            {getArchiveMetaLabel(event)} • {getArchiveStatusLabel(event)}
-                          </div>
-                        </div>
-                        <div className="qv-member-row-right">
-                          <span className="qv-chevron">›</span>
-                        </div>
-                      </article>
-                    </Link>
-                  ))}
+                  {pastEvents.map((event) => renderHistoricalEventCard(event))}
                 </div>
               )}
             </section>
@@ -139,15 +171,35 @@ export default async function EventArchivePage() {
             <section className="qv-card">
               <div className="qv-directory-section-head">
                 <div>
-                  <h2 className="qv-section-title">Archived from active events</h2>
-                  <p className="qv-section-subtitle">These are snapshots captured when an organizer archived an event.</p>
+                  <h2 className="qv-section-title">Past meetings</h2>
+                  <p className="qv-section-subtitle">General and executive meetings that have already happened.</p>
+                </div>
+              </div>
+
+              {pastMeetings.length === 0 ? (
+                <div className="qv-empty">
+                  <h3 className="qv-empty-title">No past meetings</h3>
+                  <p className="qv-empty-text">Past general and executive meetings will appear here automatically.</p>
+                </div>
+              ) : (
+                <div className="qv-member-list">
+                  {pastMeetings.map((event) => renderHistoricalMeetingCard(event))}
+                </div>
+              )}
+            </section>
+
+            <section className="qv-card">
+              <div className="qv-directory-section-head">
+                <div>
+                  <h2 className="qv-section-title">Manually archived</h2>
+                  <p className="qv-section-subtitle">Snapshots captured when an organizer intentionally removed an event from the active list.</p>
                 </div>
               </div>
 
               {(deletedEvents ?? []).length === 0 ? (
                 <div className="qv-empty">
-                  <h3 className="qv-empty-title">No archived events yet</h3>
-                  <p className="qv-empty-text">Archived events will appear here after they are removed from the active list.</p>
+                  <h3 className="qv-empty-title">No manually archived events yet</h3>
+                  <p className="qv-empty-text">Archived snapshots will appear here after someone archives an active event.</p>
                 </div>
               ) : (
                 <div className="qv-member-list">
