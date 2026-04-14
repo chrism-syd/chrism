@@ -225,7 +225,7 @@ export async function listValidDirectoryPersonIdsForLocalUnit(args: {
     ...new Set(
       ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
         .map((row) => row.legacy_people_id)
-        .filter((value): value is string => Boolean(value))
+        .filter((value): value is string => Boolean(value)),
     ),
   ]
 
@@ -247,65 +247,12 @@ export async function listValidDirectoryPersonIdsForLocalUnit(args: {
     ...new Set(
       ((peopleRows as Array<{ id: string | null }> | null) ?? [])
         .map((row) => row.id)
-        .filter((value): value is string => Boolean(value))
+        .filter((value): value is string => Boolean(value)),
     ),
   ]
 }
 
-export async function listValidMemberPersonIdsForLocalUnit(args: {
-  admin: SupabaseClient
-  localUnitId: string
-  personIds: string[]
-}) {
-  const uniquePersonIds = [...new Set(args.personIds.filter(Boolean))]
-  if (uniquePersonIds.length === 0) {
-    return [] as string[]
-  }
-
-  const { data: membershipRows, error: membershipError } = await args.admin
-    .from('member_records')
-    .select('legacy_people_id')
-    .eq('local_unit_id', args.localUnitId)
-    .in('legacy_people_id', uniquePersonIds)
-    .is('archived_at', null)
-
-  if (membershipError) {
-    throw new Error(`Could not validate local-unit member records: ${membershipError.message}`)
-  }
-
-  const scopedPersonIds = [
-    ...new Set(
-      ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
-        .map((row) => row.legacy_people_id)
-        .filter((value): value is string => Boolean(value))
-    ),
-  ]
-
-  if (scopedPersonIds.length === 0) {
-    return [] as string[]
-  }
-
-  const { data: peopleRows, error: peopleError } = await args.admin
-    .from('people')
-    .select('id')
-    .in('id', scopedPersonIds)
-    .eq('primary_relationship_code', 'member')
-    .is('archived_at', null)
-
-  if (peopleError) {
-    throw new Error(`Could not validate members in the active directory: ${peopleError.message}`)
-  }
-
-  return [
-    ...new Set(
-      ((peopleRows as Array<{ id: string | null }> | null) ?? [])
-        .map((row) => row.id)
-        .filter((value): value is string => Boolean(value))
-    ),
-  ]
-}
-
-export async function listValidMemberPeopleForLocalUnit(args: {
+export async function listValidDirectoryPeopleForLocalUnit(args: {
   admin: SupabaseClient
   localUnitId: string
 }) {
@@ -316,14 +263,14 @@ export async function listValidMemberPeopleForLocalUnit(args: {
     .is('archived_at', null)
 
   if (membershipError) {
-    throw new Error(`Could not load local-unit member records: ${membershipError.message}`)
+    throw new Error(`Could not load local-unit directory records: ${membershipError.message}`)
   }
 
   const personIds = [
     ...new Set(
       ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
         .map((row) => row.legacy_people_id)
-        .filter((value): value is string => Boolean(value))
+        .filter((value): value is string => Boolean(value)),
     ),
   ]
 
@@ -335,17 +282,31 @@ export async function listValidMemberPeopleForLocalUnit(args: {
     .from('people')
     .select('id, first_name, last_name, email, cell_phone, home_phone')
     .in('id', personIds)
-    .eq('primary_relationship_code', 'member')
     .is('archived_at', null)
     .order('last_name', { ascending: true })
     .order('first_name', { ascending: true })
     .returns<CustomListPersonSummaryRow[]>()
 
   if (peopleError) {
-    throw new Error(`Could not load local-unit member directory entries: ${peopleError.message}`)
+    throw new Error(`Could not load local-unit directory entries: ${peopleError.message}`)
   }
 
   return decryptPeopleRecords((peopleRows as CustomListPersonSummaryRow[] | null) ?? [])
+}
+
+export async function listValidMemberPersonIdsForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+  personIds: string[]
+}) {
+  return listValidDirectoryPersonIdsForLocalUnit(args)
+}
+
+export async function listValidMemberPeopleForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+}) {
+  return listValidDirectoryPeopleForLocalUnit(args)
 }
 
 export async function listActiveCustomListShares(args: {
@@ -461,7 +422,7 @@ export async function listSharedCustomListIdsForUser(args: {
     ...new Set(
       rows
         .map((row) => row.custom_list_id)
-        .filter((value): value is string => Boolean(value))
+        .filter((value): value is string => Boolean(value)),
     ),
   ]
 }
@@ -502,7 +463,7 @@ export async function listExplicitlySharedCustomListIdsForUser(args: {
     ...new Set(
       ((data as Array<{ resource_key: string | null }> | null) ?? [])
         .map((row) => row.resource_key)
-        .filter((value): value is string => Boolean(value))
+        .filter((value): value is string => Boolean(value)),
     ),
   ]
 }
@@ -518,7 +479,7 @@ export async function hasExplicitlySharedCustomListsForUser(args: {
 export async function canManageCustomList(
   permissions: CurrentUserPermissions,
   list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
-  admin: SupabaseClient
+  admin: SupabaseClient,
 ) {
   if (isPreviewManagingCurrentCustomList({ permissions, list })) {
     return true
