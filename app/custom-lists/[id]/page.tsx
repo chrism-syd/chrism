@@ -44,11 +44,42 @@ type SharedAccessView = CustomListShareGrantRow & {
   isActive?: boolean
   hasLinkedUser?: boolean
   stateLabel?: 'Active' | 'Linked account' | 'Pending sign-in'
+  personIdentityId?: string | null
 }
 
 function fullName(person?: PersonSummaryRow | null) {
   if (!person) return 'Unknown person'
   return `${person.first_name} ${person.last_name}`.trim()
+}
+
+function sharedAccessScore(row: SharedAccessView) {
+  let score = 0
+  if (row.isActive) score += 100
+  if (row.hasLinkedUser) score += 40
+  if (row.person?.email) score += 20
+  if (row.user_id) score += 10
+  if (row.person_id) score += 5
+  return score
+}
+
+function collapseSharedAccessByIdentity(rows: SharedAccessView[]) {
+  const grouped = new Map<string, SharedAccessView>()
+
+  for (const row of rows) {
+    const key = row.personIdentityId
+      ? `identity:${row.personIdentityId}`
+      : `person:${row.person_id ?? row.id}`
+
+    const existing = grouped.get(key)
+    if (!existing) {
+      grouped.set(key, row)
+      continue
+    }
+
+    grouped.set(key, sharedAccessScore(row) > sharedAccessScore(existing) ? row : existing)
+  }
+
+  return [...grouped.values()]
 }
 
 export default async function CustomListDetailPage({ params }: PageProps) {
@@ -138,7 +169,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     ]),
   ]
 
-  const [peopleResult, linkedUsersResult] = await Promise.all([
+  const [peopleResult, linkedUsersResult, identityLinksResult, currentUserIdentityResult] = await Promise.all([
     peopleIds.length > 0
       ? admin
           .from('people')
@@ -152,6 +183,20 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           .select('id, person_id')
           .in('person_id', peopleIds)
       : Promise.resolve({ data: [] as Array<{ id: string; person_id: string | null }>, error: null }),
+    peopleIds.length > 0
+      ? admin
+          .from('person_identity_links')
+          .select('person_identity_id, person_id')
+          .in('person_id', peopleIds)
+          .is('ended_at', null)
+      : Promise.resolve({ data: [] as Array<{ person_identity_id: string; person_id: string }>, error: null }),
+    permissions.authUser?.id
+      ? admin
+          .from('person_identities')
+          .select('id')
+          .eq('primary_user_id', permissions.authUser.id)
+          .maybeSingle<{ id: string }>()
+      : Promise.resolve({ data: null as { id: string } | null, error: null }),
   ])
 
   if (peopleResult.error) {
@@ -160,6 +205,14 @@ export default async function CustomListDetailPage({ params }: PageProps) {
 
   if (linkedUsersResult.error) {
     throw new Error(`Could not load linked user accounts for this custom list. ${linkedUsersResult.error.message}`)
+  }
+
+  if (identityLinksResult.error) {
+    throw new Error(`Could not load person identity links for this custom list. ${identityLinksResult.error.message}`)
+  }
+
+  if (currentUserIdentityResult.error) {
+    throw new Error(`Could not load the current identity for this custom list. ${currentUserIdentityResult.error.message}`)
   }
 
   const peopleById = new Map<string, PersonSummaryRow>()
@@ -173,6 +226,15 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       .filter((value): value is string => Boolean(value)))
   )
 
+  const identityIdByPersonId = new Map<string, string>()
+  for (const row of ((identityLinksResult.data as Array<{ person_identity_id: string; person_id: string }> | null) ?? [])) {
+    if (row.person_id) {
+      identityIdByPersonId.set(row.person_id, row.person_identity_id)
+    }
+  }
+
+  const currentUserIdentityId = currentUserIdentityResult.data?.id ?? null
+
   const members: CustomListMemberView[] = memberRows.map((row) => ({
     ...row,
     person: peopleById.get(row.person_id) ?? null,
@@ -180,38 +242,57 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     lastContactBy: row.last_contact_by_person_id ? peopleById.get(row.last_contact_by_person_id) ?? null : null,
   }))
 
-  const activeSharedAccess: SharedAccessView[] = accessRows.map((row) => ({
+  const activeSharedAccessRaw: SharedAccessView[] = accessRows.map((row) => ({
     ...row,
     person: row.person_id ? peopleById.get(row.person_id) ?? null : null,
     isPending: false,
     isActive: true,
-    hasLinkedUser: Boolean(row.person_id && linkedUserPersonIds.has(row.person_id)),
+    personIdentityId: row.person_id ? identityIdByPersonId.get(row.person_id) ?? null : null,
+    hasLinkedUser: Boolean(
+      row.person_id &&
+        (
+          linkedUserPersonIds.has(row.person_id) ||
+          (currentUserIdentityId && identityIdByPersonId.get(row.person_id) === currentUserIdentityId)
+        )
+    ),
     stateLabel: 'Active',
   }))
 
   const activeSharedPersonIds = new Set(
-    activeSharedAccess.map((row) => row.person_id).filter((value): value is string => Boolean(value))
+    activeSharedAccessRaw.map((row) => row.person_id).filter((value): value is string => Boolean(value))
   )
   const activeSharedUserIds = new Set(
-    activeSharedAccess.map((row) => row.user_id).filter((value): value is string => Boolean(value))
+    activeSharedAccessRaw.map((row) => row.user_id).filter((value): value is string => Boolean(value))
   )
 
-  const pendingSharedAccess: SharedAccessView[] = pendingAccessRows
+  const pendingSharedAccessRaw: SharedAccessView[] = pendingAccessRows
     .filter((row) => !(row.person_id && activeSharedPersonIds.has(row.person_id)))
     .filter((row) => !(row.user_id && activeSharedUserIds.has(row.user_id)))
     .map((row) => {
-      const hasLinkedUser = Boolean(row.person_id && linkedUserPersonIds.has(row.person_id))
+      const personIdentityId = row.person_id ? identityIdByPersonId.get(row.person_id) ?? null : null
+      const hasLinkedUser = Boolean(
+        row.person_id &&
+          (
+            linkedUserPersonIds.has(row.person_id) ||
+            (currentUserIdentityId && personIdentityId === currentUserIdentityId)
+          )
+      )
+
       return {
         ...row,
         person: row.person_id ? peopleById.get(row.person_id) ?? null : null,
         isPending: !hasLinkedUser,
         isActive: false,
         hasLinkedUser,
+        personIdentityId,
         stateLabel: hasLinkedUser ? 'Linked account' : 'Pending sign-in',
       } satisfies SharedAccessView
     })
 
-  const sharedAccess: SharedAccessView[] = [...activeSharedAccess, ...pendingSharedAccess]
+  const sharedAccess: SharedAccessView[] = collapseSharedAccessByIdentity([
+    ...activeSharedAccessRaw,
+    ...pendingSharedAccessRaw,
+  ])
 
   const sharedPersonIds = new Set(sharedAccess.map((row) => row.person_id).filter((value): value is string => Boolean(value)))
   const listMemberIds = new Set(members.map((member) => member.person_id))

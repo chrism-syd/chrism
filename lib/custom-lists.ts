@@ -210,21 +210,21 @@ export async function listValidDirectoryPersonIdsForLocalUnit(args: {
     return [] as string[]
   }
 
-  const { data: membershipRows, error: membershipError } = await args.admin
-    .from('member_records')
-    .select('legacy_people_id')
+  const { data: scopedRows, error: scopedError } = await args.admin
+    .from('local_unit_people')
+    .select('person_id')
     .eq('local_unit_id', args.localUnitId)
-    .in('legacy_people_id', uniquePersonIds)
-    .is('archived_at', null)
+    .is('ended_at', null)
+    .in('person_id', uniquePersonIds)
 
-  if (membershipError) {
-    throw new Error(`Could not validate local-unit directory records: ${membershipError.message}`)
+  if (scopedError) {
+    throw new Error(`Could not validate local-unit people: ${scopedError.message}`)
   }
 
   const scopedPersonIds = [
     ...new Set(
-      ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
-        .map((row) => row.legacy_people_id)
+      ((scopedRows as Array<{ person_id: string | null }> | null) ?? [])
+        .map((row) => row.person_id)
         .filter((value): value is string => Boolean(value)),
     ),
   ]
@@ -238,6 +238,7 @@ export async function listValidDirectoryPersonIdsForLocalUnit(args: {
     .select('id')
     .in('id', scopedPersonIds)
     .is('archived_at', null)
+    .is('merged_into_person_id', null)
 
   if (peopleError) {
     throw new Error(`Could not validate people in the active directory: ${peopleError.message}`)
@@ -256,20 +257,20 @@ export async function listValidDirectoryPeopleForLocalUnit(args: {
   admin: SupabaseClient
   localUnitId: string
 }) {
-  const { data: membershipRows, error: membershipError } = await args.admin
-    .from('member_records')
-    .select('legacy_people_id')
+  const { data: scopedRows, error: scopedError } = await args.admin
+    .from('local_unit_people')
+    .select('person_id')
     .eq('local_unit_id', args.localUnitId)
-    .is('archived_at', null)
+    .is('ended_at', null)
 
-  if (membershipError) {
-    throw new Error(`Could not load local-unit directory records: ${membershipError.message}`)
+  if (scopedError) {
+    throw new Error(`Could not load local-unit people: ${scopedError.message}`)
   }
 
   const personIds = [
     ...new Set(
-      ((membershipRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
-        .map((row) => row.legacy_people_id)
+      ((scopedRows as Array<{ person_id: string | null }> | null) ?? [])
+        .map((row) => row.person_id)
         .filter((value): value is string => Boolean(value)),
     ),
   ]
@@ -283,6 +284,7 @@ export async function listValidDirectoryPeopleForLocalUnit(args: {
     .select('id, first_name, last_name, email, cell_phone, home_phone')
     .in('id', personIds)
     .is('archived_at', null)
+    .is('merged_into_person_id', null)
     .order('last_name', { ascending: true })
     .order('first_name', { ascending: true })
     .returns<CustomListPersonSummaryRow[]>()
