@@ -187,7 +187,6 @@ function renderInvitedEventList(events: MemberInvitedEvent[]) {
   )
 }
 
-
 function renderCouncilInboxEventList(events: CouncilInboxEvent[]) {
   if (!events.length) return null
 
@@ -413,7 +412,16 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
       (event.ends_at ?? event.starts_at) >= nowIso,
   )
   const draftEvents = standardEvents.filter((event) => event.status_code === 'draft')
-  const scheduledEvents = standardEvents.filter((event) => !['draft', 'completed', 'cancelled'].includes(event.status_code))
+  const scheduledEvents = standardEvents.filter(
+    (event) =>
+      !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
+      (event.ends_at ?? event.starts_at) >= nowIso
+  )
+  const pastEvents = standardEvents.filter(
+    (event) =>
+      !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
+      (event.ends_at ?? event.starts_at) < nowIso
+  )
 
   const standardIds = standardEvents.map((event) => event.id)
   const multiIds = standardEvents.filter((event) => event.scope_code === 'multi_council').map((event) => event.id)
@@ -650,10 +658,22 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                 <div className="qv-directory-section-head">
                   <div>
                     <h2 className="qv-section-title">Scheduled events</h2>
-                    <p className="qv-section-subtitle">{scheduledEvents.length} active</p>
+                    <p className="qv-section-subtitle">{scheduledEvents.length} upcoming or in progress</p>
                   </div>
                 </div>
                 {renderStandardEventList(scheduledEvents)}
+              </section>
+            ) : null}
+
+            {pastEvents.length > 0 ? (
+              <section className="qv-card">
+                <div className="qv-directory-section-head">
+                  <div>
+                    <h2 className="qv-section-title">Past events</h2>
+                    <p className="qv-section-subtitle">{pastEvents.length} ended but not archived</p>
+                  </div>
+                </div>
+                {renderStandardEventList(pastEvents)}
               </section>
             ) : null}
 
@@ -669,7 +689,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
               </section>
             ) : null}
 
-            {scheduledEvents.length === 0 && draftEvents.length === 0 ? (
+            {scheduledEvents.length === 0 && pastEvents.length === 0 && draftEvents.length === 0 ? (
               <section className="qv-card">
                 <EmptyState
                   title="No events yet"
