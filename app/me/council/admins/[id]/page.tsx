@@ -27,6 +27,15 @@ type PersonRow = {
   council_id: string | null
 }
 
+type LinkedMemberRecordRow = {
+  local_unit_id: string | null
+  created_at: string
+  local_unit?: {
+    legacy_council_id: string | null
+    local_unit_kind: string | null
+  } | null
+}
+
 function formatAddress(
   person: Pick<PersonRow, 'address_line_1' | 'address_line_2' | 'city' | 'state_province' | 'postal_code'>
 ) {
@@ -57,7 +66,12 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
 
   const isScopedLocalMember = validLocalUnitMemberIds.includes(id)
 
-  const [{ data: personData, error: personError }, { data: orgAdminRow }, { data: councilAdminRow }, { data: linkedCouncilRow }] = await Promise.all([
+  const [
+    { data: personData, error: personError },
+    { data: orgAdminRow },
+    { data: councilAdminRow },
+    { data: linkedMemberRecordData, error: linkedMemberRecordError },
+  ] = await Promise.all([
     supabase
       .from('people')
       .select(
@@ -83,13 +97,20 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
       .limit(1)
       .maybeSingle(),
     supabase
-      .from('councils')
-      .select('id, name, council_number')
-      .limit(200),
+      .from('member_records')
+      .select('local_unit_id, created_at, local_unit:local_unit_id(legacy_council_id, local_unit_kind)')
+      .eq('legacy_people_id', id)
+      .is('archived_at', null)
+      .order('created_at', { ascending: true })
+      .limit(25),
   ])
 
   if (personError) {
     throw new Error(`Could not load admin contact profile. ${personError.message}`)
+  }
+
+  if (linkedMemberRecordError) {
+    throw new Error(`Could not load linked member records for this admin contact. ${linkedMemberRecordError.message}`)
   }
 
   if (!personData || (!orgAdminRow && !councilAdminRow)) {
@@ -102,8 +123,35 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
     redirect(`/members/${person.id}`)
   }
 
-  const linkedCouncil = ((linkedCouncilRow as Array<{ id: string; name: string | null; council_number: string | null }> | null) ?? []).find(
-    (row) => row.id === person.council_id
+  const linkedMemberRecords = (linkedMemberRecordData as LinkedMemberRecordRow[] | null) ?? []
+  const linkedCouncilIds = [
+    ...new Set(
+      linkedMemberRecords
+        .map((row) => row.local_unit?.legacy_council_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+
+  const { data: linkedCouncilData, error: linkedCouncilError } =
+    linkedCouncilIds.length > 0
+      ? await supabase
+          .from('councils')
+          .select('id, name, council_number')
+          .in('id', linkedCouncilIds)
+      : { data: [] as Array<{ id: string; name: string | null; council_number: string | null }>, error: null }
+
+  if (linkedCouncilError) {
+    throw new Error(`Could not load linked council details for this admin contact. ${linkedCouncilError.message}`)
+  }
+
+  const preferredLinkedCouncilId =
+    linkedMemberRecords.find((row) => row.local_unit?.local_unit_kind === 'council' && row.local_unit?.legacy_council_id)
+      ?.local_unit?.legacy_council_id ??
+    linkedMemberRecords.find((row) => row.local_unit?.legacy_council_id)?.local_unit?.legacy_council_id ??
+    null
+
+  const linkedCouncil = ((linkedCouncilData as Array<{ id: string; name: string | null; council_number: string | null }> | null) ?? []).find(
+    (row) => row.id === preferredLinkedCouncilId
   )
 
   const address = formatAddress(person)
@@ -187,7 +235,7 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
                   <div className="qv-detail-value">
                     {linkedCouncil
                       ? `${linkedCouncil.name ?? 'Council'}${linkedCouncil.council_number ? ` (${linkedCouncil.council_number})` : ''}`
-                      : 'Not linked to a council member record here'}
+                      : 'No linked council member record found'}
                   </div>
                 </div>
               </div>

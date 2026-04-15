@@ -222,6 +222,46 @@ function mergeCapabilities(
   )
 }
 
+function pickPreferredLocalUnitId(args: {
+  availableContexts: AccessContextOption[]
+  requestedAccessContextKey: string | null
+  requestedOperationsLocalUnitId: string | null
+  fallbackLocalUnitId: string | null
+}): string | null {
+  const { availableContexts, requestedAccessContextKey, requestedOperationsLocalUnitId, fallbackLocalUnitId } = args
+
+  const selectedAccessContext = requestedAccessContextKey
+    ? availableContexts.find((context) => context.key === requestedAccessContextKey) ?? null
+    : null
+
+  if (selectedAccessContext?.localUnitId) {
+    return selectedAccessContext.localUnitId
+  }
+
+  if (requestedOperationsLocalUnitId) {
+    const matchingOperationsContext = availableContexts.find(
+      (context) => context.accessLevel !== 'member' && context.localUnitId === requestedOperationsLocalUnitId
+    )
+    if (matchingOperationsContext?.localUnitId) {
+      return matchingOperationsContext.localUnitId
+    }
+  }
+
+  const highestStaffContext = pickDefaultAccessContext(
+    availableContexts.filter((context) => context.accessLevel !== 'member')
+  )
+  if (highestStaffContext?.localUnitId) {
+    return highestStaffContext.localUnitId
+  }
+
+  const defaultContext = pickDefaultAccessContext(availableContexts)
+  if (defaultContext?.localUnitId) {
+    return defaultContext.localUnitId
+  }
+
+  return fallbackLocalUnitId
+}
+
 async function loadParallelAccessState(args: {
   admin: ReturnType<typeof createAdminClient>
   userId: string
@@ -1131,6 +1171,12 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     aggregatedDirectAssignmentCapabilities
   )
 
+  const fallbackLocalUnitId =
+    defaultMemberSeed?.localUnitId ??
+    activeAccessContext?.localUnitId ??
+    requestedOperationsLocalUnitId ??
+    null
+
   let activeLocalUnitId =
     isSuperAdmin && actingMode !== 'normal'
       ? await tryResolveActiveLocalUnitId({
@@ -1138,14 +1184,20 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
           councilId,
           organizationId,
         })
-      : (activeAccessContext?.localUnitId ??
-          (activeAccessContext ? parallelAccessState.localUnitIdByContextKey.get(activeAccessContext.key) ?? null : null)) ??
-        requestedOperationsLocalUnitId ??
-        (await tryResolveActiveLocalUnitId({
-          admin,
-          councilId,
-          organizationId,
-        }))
+      : pickPreferredLocalUnitId({
+          availableContexts,
+          requestedAccessContextKey,
+          requestedOperationsLocalUnitId,
+          fallbackLocalUnitId,
+        })
+
+  if (!activeLocalUnitId && !(isSuperAdmin && actingMode !== 'normal')) {
+    activeLocalUnitId = await tryResolveActiveLocalUnitId({
+      admin,
+      councilId,
+      organizationId,
+    })
+  }
 
   if (shouldApplyRealAccessCapabilities && activeLocalUnitId && !(isSuperAdmin && actingMode === 'member')) {
     const activeCapabilities = mergeCapabilities(

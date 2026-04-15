@@ -10,7 +10,7 @@ import {
   canViewCustomList,
   hasStrictCustomListLifecycleAccess,
   listActiveCustomListShares,
-  listValidMemberPeopleForLocalUnit,
+  listValidDirectoryPeopleForLocalUnit,
   resolveCustomListLocalUnitId,
   type CustomListMemberRow,
   type CustomListRow,
@@ -40,11 +40,46 @@ type CustomListMemberView = CustomListMemberRow & {
 
 type SharedAccessView = CustomListShareGrantRow & {
   person: PersonSummaryRow | null
+  isPending?: boolean
+  isActive?: boolean
+  hasLinkedUser?: boolean
+  stateLabel?: 'Active' | 'Linked account' | 'Pending sign-in'
+  personIdentityId?: string | null
 }
 
 function fullName(person?: PersonSummaryRow | null) {
-  if (!person) return 'Unknown member'
+  if (!person) return 'Unknown person'
   return `${person.first_name} ${person.last_name}`.trim()
+}
+
+function sharedAccessScore(row: SharedAccessView) {
+  let score = 0
+  if (row.isActive) score += 100
+  if (row.hasLinkedUser) score += 40
+  if (row.person?.email) score += 20
+  if (row.user_id) score += 10
+  if (row.person_id) score += 5
+  return score
+}
+
+function collapseSharedAccessByIdentity(rows: SharedAccessView[]) {
+  const grouped = new Map<string, SharedAccessView>()
+
+  for (const row of rows) {
+    const key = row.personIdentityId
+      ? `identity:${row.personIdentityId}`
+      : `person:${row.person_id ?? row.id}`
+
+    const existing = grouped.get(key)
+    if (!existing) {
+      grouped.set(key, row)
+      continue
+    }
+
+    grouped.set(key, sharedAccessScore(row) > sharedAccessScore(existing) ? row : existing)
+  }
+
+  return [...grouped.values()]
 }
 
 export default async function CustomListDetailPage({ params }: PageProps) {
@@ -84,7 +119,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     throw new Error('This custom list is missing its local organization link.')
   }
 
-  const [membersResult, accessRows, eligiblePeople] = await Promise.all([
+  const [membersResult, accessRows, pendingAccessRowsResult, eligiblePeople] = await Promise.all([
     admin
       .from('custom_list_members')
       .select('id, custom_list_id, person_id, claimed_by_person_id, claimed_at, last_contact_at, last_contact_by_person_id, added_at')
@@ -97,8 +132,16 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           customListId: id,
         })
       : Promise.resolve([] as CustomListShareGrantRow[]),
+    canManage
+      ? admin
+          .from('custom_list_access')
+          .select('id, custom_list_id, person_id, user_id, grantee_email, granted_at, granted_by_auth_user_id')
+          .eq('custom_list_id', id)
+          .order('granted_at', { ascending: true })
+          .returns<CustomListShareGrantRow[]>()
+      : Promise.resolve({ data: [] as CustomListShareGrantRow[], error: null }),
     canManage && listLocalUnitId
-      ? listValidMemberPeopleForLocalUnit({
+      ? listValidDirectoryPeopleForLocalUnit({
           admin,
           localUnitId: listLocalUnitId,
         })
@@ -109,7 +152,12 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     throw new Error(`Could not load the members on this custom list. ${membersResult.error.message}`)
   }
 
+  if (pendingAccessRowsResult.error) {
+    throw new Error(`Could not load the saved shares for this custom list. ${pendingAccessRowsResult.error.message}`)
+  }
+
   const memberRows = membersResult.data ?? []
+  const pendingAccessRows = pendingAccessRowsResult.data ?? []
 
   const peopleIds = [
     ...new Set([
@@ -117,40 +165,75 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       ...memberRows.map((row) => row.claimed_by_person_id).filter((value): value is string => Boolean(value)),
       ...memberRows.map((row) => row.last_contact_by_person_id).filter((value): value is string => Boolean(value)),
       ...accessRows.map((row) => row.person_id).filter((value): value is string => Boolean(value)),
+      ...pendingAccessRows.map((row) => row.person_id).filter((value): value is string => Boolean(value)),
     ]),
   ]
 
-  const peoplePromise =
+  const [peopleResult, linkedUsersResult, identityLinksResult, currentUserIdentityResult] = await Promise.all([
     peopleIds.length > 0
       ? admin
           .from('people')
           .select('id, first_name, last_name, email, cell_phone, home_phone')
           .in('id', peopleIds)
           .returns<PersonSummaryRow[]>()
-      : Promise.resolve({ data: [] as PersonSummaryRow[], error: null })
-
-  const shareablePeoplePromise =
-    canManage && eligiblePeople.length > 0
+      : Promise.resolve({ data: [] as PersonSummaryRow[], error: null }),
+    peopleIds.length > 0
       ? admin
           .from('users')
-          .select('person_id')
-          .in('person_id', eligiblePeople.map((person) => person.id))
-      : Promise.resolve({ data: [] as Array<{ person_id: string | null }>, error: null })
-
-  const [peopleResult, shareablePeopleResult] = await Promise.all([peoplePromise, shareablePeoplePromise])
+          .select('id, person_id')
+          .in('person_id', peopleIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; person_id: string | null }>, error: null }),
+    peopleIds.length > 0
+      ? admin
+          .from('person_identity_links')
+          .select('person_identity_id, person_id')
+          .in('person_id', peopleIds)
+          .is('ended_at', null)
+      : Promise.resolve({ data: [] as Array<{ person_identity_id: string; person_id: string }>, error: null }),
+    permissions.authUser?.id
+      ? admin
+          .from('person_identities')
+          .select('id')
+          .eq('primary_user_id', permissions.authUser.id)
+          .maybeSingle<{ id: string }>()
+      : Promise.resolve({ data: null as { id: string } | null, error: null }),
+  ])
 
   if (peopleResult.error) {
-    throw new Error(`Could not load member details for this custom list. ${peopleResult.error.message}`)
+    throw new Error(`Could not load person details for this custom list. ${peopleResult.error.message}`)
   }
 
-  if (shareablePeopleResult.error) {
-    throw new Error(`Could not load shareable members for this custom list. ${shareablePeopleResult.error.message}`)
+  if (linkedUsersResult.error) {
+    throw new Error(`Could not load linked user accounts for this custom list. ${linkedUsersResult.error.message}`)
+  }
+
+  if (identityLinksResult.error) {
+    throw new Error(`Could not load person identity links for this custom list. ${identityLinksResult.error.message}`)
+  }
+
+  if (currentUserIdentityResult.error) {
+    throw new Error(`Could not load the current identity for this custom list. ${currentUserIdentityResult.error.message}`)
   }
 
   const peopleById = new Map<string, PersonSummaryRow>()
   for (const person of decryptPeopleRecords(peopleResult.data ?? [])) {
     peopleById.set(person.id, person)
   }
+
+  const linkedUserPersonIds = new Set(
+    (((linkedUsersResult.data as Array<{ id: string; person_id: string | null }> | null) ?? [])
+      .map((row) => row.person_id)
+      .filter((value): value is string => Boolean(value)))
+  )
+
+  const identityIdByPersonId = new Map<string, string>()
+  for (const row of ((identityLinksResult.data as Array<{ person_identity_id: string; person_id: string }> | null) ?? [])) {
+    if (row.person_id) {
+      identityIdByPersonId.set(row.person_id, row.person_identity_id)
+    }
+  }
+
+  const currentUserIdentityId = currentUserIdentityResult.data?.id ?? null
 
   const members: CustomListMemberView[] = memberRows.map((row) => ({
     ...row,
@@ -159,18 +242,60 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     lastContactBy: row.last_contact_by_person_id ? peopleById.get(row.last_contact_by_person_id) ?? null : null,
   }))
 
-  const sharedAccess: SharedAccessView[] = accessRows.map((row) => ({
+  const activeSharedAccessRaw: SharedAccessView[] = accessRows.map((row) => ({
     ...row,
     person: row.person_id ? peopleById.get(row.person_id) ?? null : null,
+    isPending: false,
+    isActive: true,
+    personIdentityId: row.person_id ? identityIdByPersonId.get(row.person_id) ?? null : null,
+    hasLinkedUser: Boolean(
+      row.person_id &&
+        (
+          linkedUserPersonIds.has(row.person_id) ||
+          (currentUserIdentityId && identityIdByPersonId.get(row.person_id) === currentUserIdentityId)
+        )
+    ),
+    stateLabel: 'Active',
   }))
+
+  const activeSharedPersonIds = new Set(
+    activeSharedAccessRaw.map((row) => row.person_id).filter((value): value is string => Boolean(value))
+  )
+  const activeSharedUserIds = new Set(
+    activeSharedAccessRaw.map((row) => row.user_id).filter((value): value is string => Boolean(value))
+  )
+
+  const pendingSharedAccessRaw: SharedAccessView[] = pendingAccessRows
+    .filter((row) => !(row.person_id && activeSharedPersonIds.has(row.person_id)))
+    .filter((row) => !(row.user_id && activeSharedUserIds.has(row.user_id)))
+    .map((row) => {
+      const personIdentityId = row.person_id ? identityIdByPersonId.get(row.person_id) ?? null : null
+      const hasLinkedUser = Boolean(
+        row.person_id &&
+          (
+            linkedUserPersonIds.has(row.person_id) ||
+            (currentUserIdentityId && personIdentityId === currentUserIdentityId)
+          )
+      )
+
+      return {
+        ...row,
+        person: row.person_id ? peopleById.get(row.person_id) ?? null : null,
+        isPending: !hasLinkedUser,
+        isActive: false,
+        hasLinkedUser,
+        personIdentityId,
+        stateLabel: hasLinkedUser ? 'Linked account' : 'Pending sign-in',
+      } satisfies SharedAccessView
+    })
+
+  const sharedAccess: SharedAccessView[] = collapseSharedAccessByIdentity([
+    ...activeSharedAccessRaw,
+    ...pendingSharedAccessRaw,
+  ])
 
   const sharedPersonIds = new Set(sharedAccess.map((row) => row.person_id).filter((value): value is string => Boolean(value)))
   const listMemberIds = new Set(members.map((member) => member.person_id))
-  const shareablePersonIds = new Set(
-    ((shareablePeopleResult.data as Array<{ person_id: string | null }> | null) ?? [])
-      .map((row) => row.person_id)
-      .filter((value): value is string => Boolean(value))
-  )
 
   const optionList = eligiblePeople.map((person) => ({
     id: person.id,
@@ -178,7 +303,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     email: person.email,
   }))
 
-  const shareCandidates = optionList.filter((person) => shareablePersonIds.has(person.id) && !sharedPersonIds.has(person.id))
+  const shareCandidates = optionList.filter((person) => !sharedPersonIds.has(person.id))
   const addCandidates = optionList.filter((person) => !listMemberIds.has(person.id))
 
   const claimedCount = members.filter((member) => Boolean(member.claimed_by_person_id)).length
@@ -231,11 +356,11 @@ export default async function CustomListDetailPage({ params }: PageProps) {
                 </h1>
 
                 <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: '40ch' }}>
-                  {listData.description || 'A shared member list for follow-up, care, prospects, or any other local-unit use.'}
+                  {listData.description || 'A shared person list for follow-up, care, prospects, or any other local-unit use.'}
                 </p>
 
                 <div className="qv-detail-badges" style={{ marginTop: 2 }}>
-                  <span className="qv-badge">{members.length} member{members.length === 1 ? '' : 's'}</span>
+                  <span className="qv-badge">{members.length} person{members.length === 1 ? '' : 's'}</span>
                   <span className="qv-badge qv-badge-soft">{claimedCount} claimed</span>
                   <span className="qv-badge qv-badge-soft">{contactedCount} contacted</span>
                   {canManage ? <span className="qv-badge qv-badge-soft">Shared with {sharedAccess.length}</span> : null}

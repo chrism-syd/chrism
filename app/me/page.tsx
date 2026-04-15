@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import AccountSummarySection from '@/app/me/account-summary-section'
 import ClaimReviewNoticeCard from '@/app/me/claim-review-notice-card'
+import ProfileBackButton from '@/app/me/profile-back-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getParallelAreaAccessSummary } from '@/lib/auth/parallel-access-summary'
@@ -354,7 +355,10 @@ export default async function MyProfilePage() {
         <section className="qv-hero-card">
           <div className="qv-directory-hero">
             <div className="qv-directory-text">
-              <p className="qv-eyebrow">Profile</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+                <ProfileBackButton />
+                <p className="qv-eyebrow" style={{ margin: 0 }}>Profile</p>
+              </div>
               <h1 className="qv-title">{profileName}</h1>
 
               {affiliationLogos.length > 0 ? (

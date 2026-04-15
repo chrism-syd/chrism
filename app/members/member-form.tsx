@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { createMemberAction, updateMemberAction } from './actions';
-import { EMPTY_MEMBER_FORM_STATE, type MemberFormValues } from './form-state';
+import { EMPTY_MEMBER_FORM_STATE, type MemberFormValues, type PersonRelationshipCode } from './form-state';
 
 function SubmitButton({ label }: { label: string }) {
   return (
@@ -12,6 +12,24 @@ function SubmitButton({ label }: { label: string }) {
     </button>
   );
 }
+
+const RELATIONSHIP_OPTIONS: Array<{ value: PersonRelationshipCode; label: string; description: string }> = [
+  {
+    value: 'member',
+    label: 'Member',
+    description: 'For active or future rostered members.',
+  },
+  {
+    value: 'volunteer_only',
+    label: 'Volunteer',
+    description: 'For people who help but are not members.',
+  },
+  {
+    value: 'prospect',
+    label: 'Prospect',
+    description: 'For people still being invited or followed up with.',
+  },
+];
 
 type MemberFormProps = {
   mode: 'create' | 'edit';
@@ -40,6 +58,64 @@ export default function MemberForm({ mode, initialValues, cancelHref }: MemberFo
           {state.error}
         </div>
       ) : null}
+
+      <div className="qv-form-row">
+        <fieldset
+          className="qv-control"
+          style={{
+            margin: 0,
+            padding: 0,
+            border: 'none',
+            minInlineSize: 0,
+          }}
+        >
+          <legend className="qv-label" style={{ marginBottom: 10 }}>
+            Type
+          </legend>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: 12,
+            }}
+          >
+            {RELATIONSHIP_OPTIONS.map((option) => {
+              const isSelected = values.primary_relationship_code === option.value;
+
+              return (
+                <label
+                  key={option.value}
+                  style={{
+                    display: 'grid',
+                    gap: 6,
+                    borderRadius: 16,
+                    border: isSelected ? '1px solid var(--interactive)' : '1px solid var(--divider-strong)',
+                    background: isSelected ? 'var(--bg-card)' : 'var(--bg-subtle)',
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 0 0 1px rgba(92, 74, 114, 0.12)' : 'none',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                      type="radio"
+                      name="primary_relationship_code"
+                      value={option.value}
+                      defaultChecked={values.primary_relationship_code === option.value}
+                      style={{ width: 16, height: 16, margin: 0 }}
+                    />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{option.label}</span>
+                  </span>
+                  <span style={{ fontSize: 13, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
+                    {option.description}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      </div>
 
       <div className="qv-form-row qv-form-row-3">
         <div className="qv-control">
@@ -93,7 +169,8 @@ export default function MemberForm({ mode, initialValues, cancelHref }: MemberFo
       </div>
 
       <p className="qv-field-hint">
-        Add at least one contact method. Imported Supreme roster rows can stay contact-light, but manual member edits cannot save completely blank contact info.
+        Add at least one contact method. Imported Supreme roster rows can stay contact-light, but manual entries cannot
+        save completely blank contact info.
       </p>
 
       <div className="qv-form-row">
@@ -195,7 +272,7 @@ export default function MemberForm({ mode, initialValues, cancelHref }: MemberFo
         <Link href={cancelHref} className="qv-button-secondary qv-link-button">
           Cancel
         </Link>
-        <SubmitButton label={mode === 'create' ? 'Save member' : 'Save member'} />
+        <SubmitButton label="Save person" />
       </div>
     </form>
   );

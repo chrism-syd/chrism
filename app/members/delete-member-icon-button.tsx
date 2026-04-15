@@ -72,11 +72,11 @@ export default function DeleteMemberIconButton({ memberId, memberName }: { membe
     <div style={overlayStyle()} role="dialog" aria-modal="true" aria-labelledby="delete-member-title">
       <div style={cardStyle()}>
         <h3 id="delete-member-title" className="qv-section-title">
-          Delete {memberName}?
+          Remove {memberName}?
         </h3>
 
         <p style={textStyle()}>
-          This removes the member from the active directory. Type DELETE to confirm.
+          This removes the person from the active directory. Type DELETE to confirm.
         </p>
 
         <form action={formAction} className="qv-delete-form qv-form-grid" style={{ marginTop: 18 }}>
@@ -84,7 +84,7 @@ export default function DeleteMemberIconButton({ memberId, memberName }: { membe
 
           <div className="qv-control">
             <label className="qv-label" htmlFor="member-delete-confirmation">
-              Type DELETE to confirm removing this member from the directory
+              Type DELETE to confirm removing this person from the directory
             </label>
             <input id="member-delete-confirmation" name="confirmation" autoComplete="off" />
           </div>
@@ -100,7 +100,7 @@ export default function DeleteMemberIconButton({ memberId, memberName }: { membe
               Cancel
             </button>
             <button type="submit" className="qv-button-danger qv-link-button">
-              Remove member
+              Remove person
             </button>
           </div>
         </form>
@@ -114,7 +114,7 @@ export default function DeleteMemberIconButton({ memberId, memberName }: { membe
         type="button"
         className="qv-icon-button qv-icon-button-danger"
         onClick={() => setIsOpen(true)}
-        aria-label={`Delete ${memberName}`}
+        aria-label={`Remove ${memberName}`}
       >
         <BootstrapTrashIcon className="qv-bi-icon" />
       </button>

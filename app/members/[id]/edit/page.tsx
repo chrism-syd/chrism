@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import MemberForm from '../../member-form'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { decryptPeopleRecord } from '@/lib/security/pii'
-import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -21,6 +21,7 @@ type PersonRow = {
   city: string | null
   state_province: string | null
   postal_code: string | null
+  primary_relationship_code: string | null
   council_activity_level_code: string | null
   council_activity_context_code: string | null
   council_reengagement_status_code: string | null
@@ -43,7 +44,7 @@ export default async function EditMemberPage({ params }: PageProps) {
     notFound()
   }
 
-  const validPersonIds = await listValidMemberPersonIdsForLocalUnit({
+  const validPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
     admin: supabase,
     localUnitId,
     personIds: [id],
@@ -56,10 +57,9 @@ export default async function EditMemberPage({ params }: PageProps) {
   const { data: personData } = await supabase
     .from('people')
     .select(
-      'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
+      'id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
     )
     .eq('id', id)
-    .eq('primary_relationship_code', 'member')
     .is('archived_at', null)
     .maybeSingle<PersonRow>()
 
@@ -67,7 +67,7 @@ export default async function EditMemberPage({ params }: PageProps) {
 
   if (!person) notFound()
 
-  const memberName = formatFullName(person)
+  const personName = formatFullName(person)
 
   return (
     <main className="qv-page">
@@ -85,10 +85,10 @@ export default async function EditMemberPage({ params }: PageProps) {
               whiteSpace: 'nowrap',
             }}
           >
-            Edit Member
+            Edit Person
           </h1>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
-            Update local organization-managed information for {memberName}.
+            Update local organization-managed information for {personName}.
           </p>
         </section>
 
@@ -98,6 +98,7 @@ export default async function EditMemberPage({ params }: PageProps) {
             cancelHref={`/members/${person.id}`}
             initialValues={{
               member_id: person.id,
+              primary_relationship_code: person.primary_relationship_code ?? 'member',
               first_name: person.first_name ?? '',
               middle_name: person.middle_name ?? '',
               last_name: person.last_name ?? '',

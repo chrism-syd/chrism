@@ -27,6 +27,7 @@ type OrganizationRow = {
 
 type EventRow = {
   id: string;
+  local_unit_id: string | null;
   council_id: string;
   title: string;
   description: string | null;
@@ -216,7 +217,6 @@ function personDisplayName(person: PersonRow) {
   return `${person.first_name} ${person.last_name}`.trim();
 }
 
-
 function getEventStatusLabel(statusCode: string) {
   if (statusCode === 'draft') return 'Draft';
   if (statusCode === 'completed') return 'Completed';
@@ -283,7 +283,7 @@ function tokenPathStyle(): CSSProperties {
 
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = await params;
-  const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' });
+  const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' });
 
   let organization: OrganizationRow | null = null;
 
@@ -297,14 +297,32 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     organization = (data as OrganizationRow | null) ?? null;
   }
 
-  const { data: eventData, error: eventError } = await supabase
+  let eventQuery = supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
-    .eq('id', id)
-    .eq('council_id', council.id)
-    .single();
+    .eq('id', id);
+
+  eventQuery = localUnitId
+    ? eventQuery.eq('local_unit_id', localUnitId)
+    : eventQuery.eq('council_id', council.id);
+
+  let { data: eventData, error: eventError } = await eventQuery.single();
+
+  if ((eventError || !eventData) && localUnitId) {
+    const fallback = await supabase
+      .from('events')
+      .select(
+        'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
+      )
+      .eq('id', id)
+      .eq('council_id', council.id)
+      .single();
+
+    eventData = fallback.data;
+    eventError = fallback.error;
+  }
 
   const event = eventData as EventRow | null;
 
@@ -587,10 +605,6 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     existing.push(attendee);
     personAttendeesByRsvpId.set(attendee.event_person_rsvp_id, existing);
   }
-
-
-
-
 
   return (
     <main className="qv-page">
