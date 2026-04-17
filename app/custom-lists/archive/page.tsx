@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
 import { deleteCustomListAction, restoreCustomListAction } from '@/app/custom-lists/actions'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { getSelectedOperationsLocalUnitId, OPERATIONS_SCOPE_COOKIE } from '@/lib/auth/operations-scope-selection'
 import {
   formatDateTime,
   hasStrictCustomListLifecycleAccess,
@@ -29,9 +31,15 @@ export default async function ArchivedCustomListsPage() {
   }
 
   const admin = createAdminClient()
+  const cookieStore = await cookies()
+  const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
+    rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
+  })
+  const activeScopeLocalUnitId = permissions.activeLocalUnitId ?? selectedLocalUnitId ?? null
+
   const [manageableLocalUnitIds, sharedIds] = await Promise.all([
     listManageableLocalUnitIdsForCustomLists({ admin, permissions }),
-    listSharedCustomListIdsForUser({ admin, permissions }),
+    listSharedCustomListIdsForUser({ admin, permissions, localUnitId: activeScopeLocalUnitId }),
   ])
 
   if (manageableLocalUnitIds.length === 0 && sharedIds.length === 0) {
@@ -49,7 +57,11 @@ export default async function ArchivedCustomListsPage() {
     filters.push(`local_unit_id.in.(${manageableLocalUnitIds.join(',')})`)
   }
   if (sharedIds.length > 0) {
-    filters.push(`id.in.(${sharedIds.join(',')})`)
+    if (activeScopeLocalUnitId) {
+      filters.push(`and(id.in.(${sharedIds.join(',')}),local_unit_id.eq.${activeScopeLocalUnitId})`)
+    } else {
+      filters.push(`id.in.(${sharedIds.join(',')})`)
+    }
   }
 
   if (filters.length === 1) {

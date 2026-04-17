@@ -83,6 +83,139 @@ export function buildCustomListAccessMatch(permissions: CurrentUserPermissions) 
   return parts.length > 0 ? parts.join(',') : null
 }
 
+async function resolveScopedDirectoryPersonIdsForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+}) {
+  const { admin, localUnitId } = args
+
+  const [
+    { data: memberRecordRows, error: memberRecordError },
+    { data: scopedRows, error: scopedError },
+  ] = await Promise.all([
+    admin
+      .from('member_records')
+      .select('legacy_people_id')
+      .eq('local_unit_id', localUnitId)
+      .is('archived_at', null),
+    admin
+      .from('local_unit_people')
+      .select('person_id')
+      .eq('local_unit_id', localUnitId)
+      .is('ended_at', null),
+  ])
+
+  if (memberRecordError) {
+    throw new Error(`Could not load local-unit member records. ${memberRecordError.message}`)
+  }
+
+  if (scopedError) {
+    throw new Error(`Could not load local-unit people: ${scopedError.message}`)
+  }
+
+  const legacyPersonIds = [
+    ...new Set(
+      ((memberRecordRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
+        .map((row) => row.legacy_people_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ]
+
+  const scopedPersonIds = [
+    ...new Set(
+      ((scopedRows as Array<{ person_id: string | null }> | null) ?? [])
+        .map((row) => row.person_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ]
+
+  const candidateIds = [...new Set([...legacyPersonIds, ...scopedPersonIds])]
+  if (candidateIds.length === 0) {
+    return [] as string[]
+  }
+
+  const [{ data: activePeopleRows, error: activePeopleError }, { data: identityRows, error: identityError }] =
+    await Promise.all([
+      admin
+        .from('people')
+        .select('id')
+        .in('id', candidateIds)
+        .is('archived_at', null)
+        .is('merged_into_person_id', null),
+      admin
+        .from('person_identity_links')
+        .select('person_id, person_identity_id')
+        .in('person_id', candidateIds)
+        .is('ended_at', null),
+    ])
+
+  if (activePeopleError) {
+    throw new Error(`Could not validate people in the active directory: ${activePeopleError.message}`)
+  }
+
+  if (identityError) {
+    throw new Error(`Could not load linked person identities. ${identityError.message}`)
+  }
+
+  const activePersonIdSet = new Set(
+    ((activePeopleRows as Array<{ id: string | null }> | null) ?? [])
+      .map((row) => row.id)
+      .filter((value): value is string => Boolean(value)),
+  )
+
+  const activeScopedPersonIds = scopedPersonIds.filter((personId) => activePersonIdSet.has(personId))
+  const activeScopedPersonIdSet = new Set(activeScopedPersonIds)
+
+  const identityIdByPersonId = new Map<string, string>()
+  const scopedPersonIdsByIdentityId = new Map<string, string[]>()
+
+  for (const row of ((identityRows as Array<{ person_id: string; person_identity_id: string }> | null) ?? [])) {
+    if (!row.person_id || !row.person_identity_id) continue
+    identityIdByPersonId.set(row.person_id, row.person_identity_id)
+
+    if (activeScopedPersonIdSet.has(row.person_id)) {
+      const existing = scopedPersonIdsByIdentityId.get(row.person_identity_id) ?? []
+      existing.push(row.person_id)
+      scopedPersonIdsByIdentityId.set(row.person_identity_id, existing)
+    }
+  }
+
+  const resolvedIds: string[] = []
+  const seen = new Set<string>()
+
+  for (const legacyPersonId of legacyPersonIds) {
+    if (!legacyPersonId) continue
+
+    let winnerId: string | null = null
+
+    if (activeScopedPersonIdSet.has(legacyPersonId)) {
+      winnerId = legacyPersonId
+    } else {
+      const identityId = identityIdByPersonId.get(legacyPersonId)
+      const scopedIdentityIds = identityId ? scopedPersonIdsByIdentityId.get(identityId) ?? [] : []
+      winnerId = scopedIdentityIds[0] ?? null
+
+      if (!winnerId && activePersonIdSet.has(legacyPersonId)) {
+        winnerId = legacyPersonId
+      }
+    }
+
+    if (winnerId && !seen.has(winnerId)) {
+      seen.add(winnerId)
+      resolvedIds.push(winnerId)
+    }
+  }
+
+  for (const personId of activeScopedPersonIds) {
+    if (!seen.has(personId)) {
+      seen.add(personId)
+      resolvedIds.push(personId)
+    }
+  }
+
+  return resolvedIds
+}
+
 export async function listManageableLocalUnitIdsForCustomLists(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
@@ -210,70 +343,23 @@ export async function listValidDirectoryPersonIdsForLocalUnit(args: {
     return [] as string[]
   }
 
-  const { data: scopedRows, error: scopedError } = await args.admin
-    .from('local_unit_people')
-    .select('person_id')
-    .eq('local_unit_id', args.localUnitId)
-    .is('ended_at', null)
-    .in('person_id', uniquePersonIds)
+  const resolvedIds = await resolveScopedDirectoryPersonIdsForLocalUnit({
+    admin: args.admin,
+    localUnitId: args.localUnitId,
+  })
 
-  if (scopedError) {
-    throw new Error(`Could not validate local-unit people: ${scopedError.message}`)
-  }
-
-  const scopedPersonIds = [
-    ...new Set(
-      ((scopedRows as Array<{ person_id: string | null }> | null) ?? [])
-        .map((row) => row.person_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ]
-
-  if (scopedPersonIds.length === 0) {
-    return [] as string[]
-  }
-
-  const { data: peopleRows, error: peopleError } = await args.admin
-    .from('people')
-    .select('id')
-    .in('id', scopedPersonIds)
-    .is('archived_at', null)
-    .is('merged_into_person_id', null)
-
-  if (peopleError) {
-    throw new Error(`Could not validate people in the active directory: ${peopleError.message}`)
-  }
-
-  return [
-    ...new Set(
-      ((peopleRows as Array<{ id: string | null }> | null) ?? [])
-        .map((row) => row.id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ]
+  const resolvedIdSet = new Set(resolvedIds)
+  return uniquePersonIds.filter((personId) => resolvedIdSet.has(personId))
 }
 
 export async function listValidDirectoryPeopleForLocalUnit(args: {
   admin: SupabaseClient
   localUnitId: string
 }) {
-  const { data: scopedRows, error: scopedError } = await args.admin
-    .from('local_unit_people')
-    .select('person_id')
-    .eq('local_unit_id', args.localUnitId)
-    .is('ended_at', null)
-
-  if (scopedError) {
-    throw new Error(`Could not load local-unit people: ${scopedError.message}`)
-  }
-
-  const personIds = [
-    ...new Set(
-      ((scopedRows as Array<{ person_id: string | null }> | null) ?? [])
-        .map((row) => row.person_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ]
+  const personIds = await resolveScopedDirectoryPersonIdsForLocalUnit({
+    admin: args.admin,
+    localUnitId: args.localUnitId,
+  })
 
   if (personIds.length === 0) {
     return [] as CustomListPersonSummaryRow[]
@@ -409,6 +495,7 @@ export async function hasStrictCustomListLifecycleAccess(args: {
 export async function listSharedCustomListIdsForUser(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
+  localUnitId?: string | null
 }) {
   const userId = args.permissions.authUser?.id
   if (!userId) {
@@ -418,6 +505,7 @@ export async function listSharedCustomListIdsForUser(args: {
   const rows = await listAccessibleCustomListIdsForUser({
     admin: args.admin,
     userId,
+    localUnitId: args.localUnitId ?? null,
   })
 
   return [
@@ -432,6 +520,7 @@ export async function listSharedCustomListIdsForUser(args: {
 export async function hasSharedCustomListsForUser(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
+  localUnitId?: string | null
 }) {
   const ids = await listSharedCustomListIdsForUser(args)
   return ids.length > 0
@@ -440,22 +529,30 @@ export async function hasSharedCustomListsForUser(args: {
 export async function listExplicitlySharedCustomListIdsForUser(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
+  localUnitId?: string | null
 }) {
   const memberRecordIds = await listLinkedMemberRecordIds({
     admin: args.admin,
     permissions: args.permissions,
+    localUnitId: args.localUnitId ?? null,
   })
 
   if (memberRecordIds.length === 0) {
     return [] as string[]
   }
 
-  const { data, error } = await args.admin
+  let query = args.admin
     .from('resource_access_grants')
-    .select('resource_key')
+    .select('resource_key, local_unit_id')
     .eq('resource_type', 'custom_list')
     .is('revoked_at', null)
     .in('member_record_id', memberRecordIds)
+
+  if (args.localUnitId) {
+    query = query.eq('local_unit_id', args.localUnitId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     throw new Error(`Could not load explicit custom list grants: ${error.message}`)
@@ -463,7 +560,8 @@ export async function listExplicitlySharedCustomListIdsForUser(args: {
 
   return [
     ...new Set(
-      ((data as Array<{ resource_key: string | null }> | null) ?? [])
+      ((data as Array<{ resource_key: string | null; local_unit_id: string | null }> | null) ?? [])
+        .filter((row) => !args.localUnitId || row.local_unit_id === args.localUnitId)
         .map((row) => row.resource_key)
         .filter((value): value is string => Boolean(value)),
     ),
@@ -473,6 +571,7 @@ export async function listExplicitlySharedCustomListIdsForUser(args: {
 export async function hasExplicitlySharedCustomListsForUser(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
+  localUnitId?: string | null
 }) {
   const ids = await listExplicitlySharedCustomListIdsForUser(args)
   return ids.length > 0

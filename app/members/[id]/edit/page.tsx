@@ -31,22 +31,59 @@ function formatFullName(person: Pick<PersonRow, 'first_name' | 'middle_name' | '
   return [person.first_name, person.middle_name, person.last_name].filter(Boolean).join(' ')
 }
 
+async function findScopedLocalUnitIdsForPerson(args: {
+  supabase: any
+  personId: string
+}) {
+  const { data, error } = await args.supabase
+    .from('local_unit_people')
+    .select('local_unit_id')
+    .eq('person_id', args.personId)
+    .is('ended_at', null)
+
+  if (error) {
+    throw new Error(`Could not load local-unit scope for this person. ${error.message}`)
+  }
+
+  return [
+    ...new Set(
+      ((data as Array<{ local_unit_id: string | null }> | null) ?? [])
+        .map((row) => row.local_unit_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ]
+}
+
 export default async function EditMemberPage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, localUnitId } = await getCurrentActingCouncilContext({
+  const actingContext = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
 
-  if (!localUnitId) {
+  const { admin: supabase } = actingContext
+
+  const scopedLocalUnitIds = await findScopedLocalUnitIdsForPerson({
+    supabase,
+    personId: id,
+  }).catch(() => [])
+
+  const preferredLocalUnitId =
+    (actingContext.localUnitId && scopedLocalUnitIds.includes(actingContext.localUnitId)
+      ? actingContext.localUnitId
+      : null) ??
+    scopedLocalUnitIds[0] ??
+    actingContext.localUnitId
+
+  if (!preferredLocalUnitId) {
     notFound()
   }
 
   const validPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
     admin: supabase,
-    localUnitId,
+    localUnitId: preferredLocalUnitId,
     personIds: [id],
   }).catch(() => [])
 

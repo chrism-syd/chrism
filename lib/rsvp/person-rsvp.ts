@@ -14,12 +14,13 @@ function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() || null;
 }
 
-export async function findMatchingPersonIdByEmail(args: {
+async function findScopedPersonIdByEmail(args: {
   supabase: SupabaseClient<any, 'public', any>;
   hostCouncilId: string;
+  localUnitId?: string | null;
   email: string | null;
 }) {
-  const { supabase, hostCouncilId, email } = args;
+  const { supabase, hostCouncilId, localUnitId, email } = args;
 
   if (!email) {
     return null;
@@ -31,7 +32,42 @@ export async function findMatchingPersonIdByEmail(args: {
     return null;
   }
 
-  const { data } = await supabase
+  if (localUnitId) {
+    const { data: scopedRows, error: scopedError } = await supabase
+      .from('local_unit_people')
+      .select('person_id')
+      .eq('local_unit_id', localUnitId)
+      .is('ended_at', null);
+
+    if (scopedError) {
+      throw new Error(`Could not load local-unit people for RSVP matching: ${scopedError.message}`);
+    }
+
+    const scopedPersonIds = ((scopedRows ?? []) as Array<{ person_id: string | null }>)
+      .map((row) => row.person_id)
+      .filter((value): value is string => Boolean(value));
+
+    if (scopedPersonIds.length === 0) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('people')
+      .select('id')
+      .in('id', scopedPersonIds)
+      .or(`email_hash.eq.${emailHash},email.ilike.${email}`)
+      .is('merged_into_person_id', null)
+      .is('archived_at', null)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Could not resolve RSVP person by scoped email: ${error.message}`);
+    }
+
+    return data?.id ?? null;
+  }
+
+  const { data, error } = await supabase
     .from('people')
     .select('id')
     .eq('council_id', hostCouncilId)
@@ -40,6 +76,10 @@ export async function findMatchingPersonIdByEmail(args: {
     .is('archived_at', null)
     .maybeSingle();
 
+  if (error) {
+    throw new Error(`Could not resolve RSVP person by council email: ${error.message}`);
+  }
+
   return data?.id ?? null;
 }
 
@@ -47,12 +87,53 @@ async function ensureNoDuplicateActiveSubmission(args: {
   supabase: SupabaseClient<any, 'public', any>;
   eventId: string;
   matchedPersonId: string | null;
+  matchedIdentityId: string | null;
   primaryEmail: string | null;
   existingSubmissionId?: string | null;
 }) {
-  const { supabase, eventId, matchedPersonId, primaryEmail, existingSubmissionId } = args;
+  const { supabase, eventId, matchedPersonId, matchedIdentityId, primaryEmail, existingSubmissionId } = args;
 
-  if (matchedPersonId) {
+  if (matchedIdentityId) {
+    const { data: activeRows, error: activeRowsError } = await supabase
+      .from('event_person_rsvps')
+      .select('id, matched_person_id')
+      .eq('event_id', eventId)
+      .eq('status_code', 'active');
+
+    if (activeRowsError) {
+      throw new Error(`Could not check for an existing RSVP: ${activeRowsError.message}`);
+    }
+
+    const activePersonIds = ((activeRows ?? []) as Array<{ id: string; matched_person_id: string | null }>)
+      .map((row) => row.matched_person_id)
+      .filter((value): value is string => Boolean(value));
+
+    if (activePersonIds.length > 0) {
+      const { data: identityRows, error: identityRowsError } = await supabase
+        .from('person_identity_links')
+        .select('person_id, person_identity_id')
+        .in('person_id', activePersonIds)
+        .is('ended_at', null);
+
+      if (identityRowsError) {
+        throw new Error(`Could not check for an existing RSVP identity: ${identityRowsError.message}`);
+      }
+
+      const identityIdByPersonId = new Map<string, string>()
+      for (const row of ((identityRows ?? []) as Array<{ person_id: string; person_identity_id: string }>)) {
+        identityIdByPersonId.set(row.person_id, row.person_identity_id)
+      }
+
+      const conflictingRow = ((activeRows ?? []) as Array<{ id: string; matched_person_id: string | null }>).find((row) => {
+        if (!row.matched_person_id) return false
+        return identityIdByPersonId.get(row.matched_person_id) === matchedIdentityId && row.id !== existingSubmissionId
+      })
+
+      if (conflictingRow) {
+        throw new Error('This person is already on the volunteer list for this event.');
+      }
+    }
+  } else if (matchedPersonId) {
     const { data, error } = await supabase
       .from('event_person_rsvps')
       .select('id')
@@ -93,6 +174,7 @@ export async function savePersonRsvpSubmission(args: {
   supabase: SupabaseClient<any, 'public', any>;
   eventId: string;
   hostCouncilId: string;
+  localUnitId?: string | null;
   primaryName: string;
   primaryEmail: string | null;
   primaryPhone: string | null;
@@ -107,6 +189,7 @@ export async function savePersonRsvpSubmission(args: {
     supabase,
     eventId,
     hostCouncilId,
+    localUnitId = null,
     primaryName,
     primaryEmail,
     primaryPhone,
@@ -122,16 +205,34 @@ export async function savePersonRsvpSubmission(args: {
   const now = new Date().toISOString();
   const matchedPrimaryPersonId =
     explicitMatchedPersonId ??
-    (await findMatchingPersonIdByEmail({
+    (await findScopedPersonIdByEmail({
       supabase,
       hostCouncilId,
+      localUnitId,
       email: normalizedPrimaryEmail,
     }));
+
+  let matchedIdentityId: string | null = null
+  if (matchedPrimaryPersonId) {
+    const { data: identityData, error: identityError } = await supabase
+      .from('person_identity_links')
+      .select('person_identity_id')
+      .eq('person_id', matchedPrimaryPersonId)
+      .is('ended_at', null)
+      .maybeSingle()
+
+    if (identityError) {
+      throw new Error(`Could not resolve the volunteer identity: ${identityError.message}`);
+    }
+
+    matchedIdentityId = identityData?.person_identity_id ?? null
+  }
 
   await ensureNoDuplicateActiveSubmission({
     supabase,
     eventId,
     matchedPersonId: matchedPrimaryPersonId,
+    matchedIdentityId,
     primaryEmail: normalizedPrimaryEmail,
     existingSubmissionId,
   });
@@ -218,9 +319,10 @@ export async function savePersonRsvpSubmission(args: {
       const attendeePhone = attendee.uses_primary_contact ? primaryPhone : attendee.attendee_phone;
 
       return {
-        matched_person_id: await findMatchingPersonIdByEmail({
+        matched_person_id: await findScopedPersonIdByEmail({
           supabase,
           hostCouncilId,
+          localUnitId,
           email: attendeeEmail,
         }),
         attendee_name: attendee.attendee_name,

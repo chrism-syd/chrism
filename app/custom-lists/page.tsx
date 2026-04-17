@@ -108,24 +108,15 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
     permissions.actingMode === 'admin' &&
     Boolean(permissions.activeLocalUnitId)
 
-  const [realManageableLocalUnitIds, realSharedListIds] = await Promise.all([
-    permissions.hasStaffAccess
-      ? listManageableLocalUnitIdsForCustomLists({ admin, permissions })
-      : Promise.resolve([] as string[]),
-    listExplicitlySharedCustomListIdsForUser({ admin, permissions }),
-  ])
+  const realManageableLocalUnitIds = permissions.hasStaffAccess
+    ? await listManageableLocalUnitIdsForCustomLists({ admin, permissions })
+    : []
 
   const manageableLocalUnitIds = isPreviewAdminMode
     ? permissions.activeLocalUnitId
       ? [permissions.activeLocalUnitId]
       : []
     : realManageableLocalUnitIds
-
-  const sharedListIds = isPreviewAdminMode ? [] : realSharedListIds
-
-  if (!permissions.hasStaffAccess && sharedListIds.length === 0) {
-    redirect('/me')
-  }
 
   const activeManageLocalUnitId =
     isPreviewAdminMode
@@ -135,6 +126,25 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
           ? permissions.activeLocalUnitId
           : null) ??
         (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
+
+  const previewScopedLocalUnitId =
+    isPreviewAdminMode
+      ? permissions.activeLocalUnitId ?? null
+      : (selectedLocalUnitId ?? permissions.activeLocalUnitId ?? null)
+
+  const sharedScopeLocalUnitId = activeManageLocalUnitId ?? previewScopedLocalUnitId
+
+  const realSharedListIds = await listExplicitlySharedCustomListIdsForUser({
+    admin,
+    permissions,
+    localUnitId: sharedScopeLocalUnitId,
+  })
+
+  const sharedListIds = isPreviewAdminMode ? [] : realSharedListIds
+
+  if (!permissions.hasStaffAccess && sharedListIds.length === 0) {
+    redirect('/me')
+  }
 
   const manageScopeLocalUnitIds =
     activeManageLocalUnitId && manageableLocalUnitIds.includes(activeManageLocalUnitId)

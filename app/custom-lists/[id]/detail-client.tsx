@@ -51,6 +51,10 @@ type SharedAccessView = {
   isActive?: boolean
   hasLinkedUser?: boolean
   stateLabel?: 'Active' | 'Linked account' | 'Pending sign-in'
+  personIds?: string[]
+  accessIds?: string[]
+  userIds?: string[]
+  profileHref?: string | null
 }
 
 type MemberOption = {
@@ -416,8 +420,8 @@ function ShareListCard({
               <div key={access.id} className="qv-simple-list-row">
                 <div>
                   <div className="qv-list-row-title">
-                    {access.person?.id ? (
-                      <Link href={`/members/${access.person.id}`} className="qv-link-button" style={{ padding: 0, minHeight: 'unset', border: 'none', background: 'transparent' }}>
+                    {access.profileHref ? (
+                      <Link href={access.profileHref} className="qv-link-button" style={{ padding: 0, minHeight: 'unset', border: 'none', background: 'transparent' }}>
                         {displayName}
                       </Link>
                     ) : (
@@ -433,7 +437,15 @@ function ShareListCard({
                 </div>
                 <form action={revokeCustomListAccessAction}>
                   <input type="hidden" name="custom_list_id" value={listId} />
-                  <input type="hidden" name="access_id" value={access.id} />
+                  {(access.accessIds ?? [access.id]).map((accessId) => (
+                    <input key={accessId} type="hidden" name="access_ids" value={accessId} />
+                  ))}
+                  {(access.personIds ?? (access.person_id ? [access.person_id] : [])).map((personId) => (
+                    <input key={personId} type="hidden" name="person_ids" value={personId} />
+                  ))}
+                  {(access.userIds ?? (access.user_id ? [access.user_id] : [])).map((userId) => (
+                    <input key={userId} type="hidden" name="user_ids" value={userId} />
+                  ))}
                   <button type="submit" className="qv-icon-button" aria-label={`Unshare list with ${displayName}`} title="Unshare">
                     <BootstrapIcon name="x" className="qv-bi-icon" />
                   </button>

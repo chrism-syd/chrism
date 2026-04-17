@@ -1,7 +1,21 @@
 # Handoff — Apr 14
 
+## Current highest-priority connected seam:
+- `app/custom-lists/[id]/page.tsx`
+- `app/custom-lists/[id]/detail-client.tsx`
+- `app/custom-lists/actions.ts`
+
+## Required behavior:
+- collapsed shared-access rows must preserve enough identity-aware payload for actions
+- loader must emit route-safe `profileHref`
+- client must use `profileHref`
+- revoke must operate on full collapsed identity payload, not a single compatibility row id
+
 ## Working style for future helpers
-- Prefer production-ready files and file replacements over long manual snippets.
+- work from repo state directly
+- treat connected bugs holistically across loader/client/actions
+- return production-ready full-file replacements over long manual snippets
+- preserve the larger migration away from council_id as primary truth
 - Prefer changed files only, not full repo bundles, unless explicitly requested.
 - Keep changes surgical.
 - Help Syd checkpoint work with sensible git commits and pushes.

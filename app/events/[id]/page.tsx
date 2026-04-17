@@ -368,6 +368,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       { data: personSummaryData, error: personSummaryError },
       { data: personRsvpData, error: personRsvpError },
       { data: messageJobsData, error: messageJobsError },
+      { data: scopedPeopleIdsData, error: scopedPeopleIdsError },
       { data: peopleData, error: peopleError },
       { data: externalInviteeData, error: externalInviteeError },
     ] = await Promise.all([
@@ -401,17 +402,35 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
         .order('created_at', { ascending: false })
         .limit(20)
         .returns<MessageJobRow[]>(),
-      supabase
-        .from('people')
-        .select(
-          'id, first_name, last_name, directory_display_name_override, email, cell_phone'
-        )
-        .eq('council_id', council.id)
-        .is('archived_at', null)
-        .is('merged_into_person_id', null)
-        .order('last_name', { ascending: true })
-        .order('first_name', { ascending: true })
-        .returns<PersonRow[]>(),
+      localUnitId
+        ? supabase
+            .from('local_unit_people')
+            .select('person_id')
+            .eq('local_unit_id', localUnitId)
+            .is('ended_at', null)
+        : Promise.resolve({ data: [] as Array<{ person_id: string | null }>, error: null }),
+      localUnitId
+        ? supabase
+            .from('people')
+            .select(
+              'id, first_name, last_name, directory_display_name_override, email, cell_phone'
+            )
+            .is('archived_at', null)
+            .is('merged_into_person_id', null)
+            .order('last_name', { ascending: true })
+            .order('first_name', { ascending: true })
+            .returns<PersonRow[]>()
+        : supabase
+            .from('people')
+            .select(
+              'id, first_name, last_name, directory_display_name_override, email, cell_phone'
+            )
+            .eq('council_id', council.id)
+            .is('archived_at', null)
+            .is('merged_into_person_id', null)
+            .order('last_name', { ascending: true })
+            .order('first_name', { ascending: true })
+            .returns<PersonRow[]>(),
       supabase
         .from('event_external_invitees')
         .select(
@@ -428,6 +447,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       personSummaryError ||
       personRsvpError ||
       messageJobsError ||
+      scopedPeopleIdsError ||
       peopleError ||
       externalInviteeError
     ) {
@@ -448,7 +468,18 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       (hostInviteData as { rsvp_link_token: string } | null)?.rsvp_link_token ?? null;
     externalInvitees = externalInviteeData ?? [];
 
-    hostVolunteerMembers = decryptPeopleRecords(peopleData ?? []).map((person) => ({
+    const scopedPersonIds = new Set(
+      ((scopedPeopleIdsData as Array<{ person_id: string | null }> | null) ?? [])
+        .map((row) => row.person_id)
+        .filter((value): value is string => Boolean(value))
+    )
+
+    const decryptedPeople = decryptPeopleRecords(peopleData ?? [])
+    const scopedPeople = localUnitId
+      ? decryptedPeople.filter((person) => scopedPersonIds.has(person.id))
+      : decryptedPeople
+
+    hostVolunteerMembers = scopedPeople.map((person) => ({
       id: person.id,
       display_name: personDisplayName(person),
       email: person.email?.trim() ?? null,

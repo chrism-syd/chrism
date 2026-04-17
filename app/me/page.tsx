@@ -25,7 +25,6 @@ type LinkedPersonRow = {
 }
 
 type CouncilRow = { name: string | null; council_number: string | null }
-
 type OrganizationProfileRow = OrganizationNameRecord & {
   id: string
   logo_storage_path: string | null
@@ -38,7 +37,6 @@ type OrganizationProfileRow = OrganizationNameRecord & {
     logo_alt_text: string | null
   } | null
 }
-
 type PendingProfileChangeRow = {
   proposed_first_name: string | null
   proposed_last_name: string | null
@@ -50,14 +48,12 @@ type PendingProfileChangeRow = {
   cell_phone_change_requested: boolean
   home_phone_change_requested: boolean
 }
-
 type ReviewedProfileChangeRow = PendingProfileChangeRow & {
   id: string
   reviewed_at: string | null
   status_code: 'approved' | 'rejected'
   decision_notice_cleared_at: string | null
 }
-
 type PendingClaimNoticeRow = {
   id: string
   status_code: 'approved' | 'rejected'
@@ -67,14 +63,12 @@ type PendingClaimNoticeRow = {
   requested_council_number: string | null
   requested_city: string | null
 }
-
 type AffiliationMembershipRow = {
   organization_id: string
   is_primary_membership: boolean | null
   source_code: string | null
   membership_status_code: string | null
 }
-
 type RejectedFieldNotice = { requestId: string; reviewedAt: string | null }
 type RejectedFieldNoticeMap = Partial<Record<'email' | 'cell_phone' | 'home_phone', RejectedFieldNotice>>
 
@@ -149,6 +143,17 @@ export default async function MyProfilePage() {
     ? adminSupabase.from('councils').select('name, council_number').eq('id', permissions.councilId).maybeSingle<CouncilRow>()
     : Promise.resolve({ data: null as CouncilRow | null })
 
+  const memberRecordPromise =
+    permissions.personId && permissions.activeLocalUnitId
+      ? adminSupabase
+          .from('member_records')
+          .select('preferred_display_name')
+          .eq('local_unit_id', permissions.activeLocalUnitId)
+          .eq('legacy_people_id', permissions.personId)
+          .is('archived_at', null)
+          .maybeSingle<{ preferred_display_name: string | null }>()
+      : Promise.resolve({ data: null as { preferred_display_name: string | null } | null })
+
   const organizationPromise = permissions.organizationId
     ? adminSupabase
         .from('organizations')
@@ -201,10 +206,11 @@ export default async function MyProfilePage() {
     .limit(1)
     .maybeSingle<PendingClaimNoticeRow>()
 
-  const [personResult, councilResult, organizationResult, membershipsResult, pendingResult, reviewedResult, claimNoticeResult] =
+  const [personResult, councilResult, memberRecordResult, organizationResult, membershipsResult, pendingResult, reviewedResult, claimNoticeResult] =
     await Promise.all([
       personPromise,
       councilPromise,
+      memberRecordPromise,
       organizationPromise,
       membershipsPromise,
       pendingChangesPromise,
@@ -215,6 +221,7 @@ export default async function MyProfilePage() {
   const linkedPerson = personResult.data ? decryptPeopleRecord(personResult.data) : null
   const currentCouncil = councilResult.data ?? null
   const currentOrganization = organizationResult.data ?? null
+  const currentPreferredName = memberRecordResult.data?.preferred_display_name ?? linkedPerson?.nickname ?? null
   const pendingProfileChanges = pendingResult.data ? decryptProfileChangeRequestRecord(pendingResult.data) : null
   const rejectedFieldNotices = buildRejectedFieldNotices(
     decryptProfileChangeRequestRecords((reviewedResult.data as ReviewedProfileChangeRow[] | null) ?? []) as ReviewedProfileChangeRow[]
@@ -248,39 +255,24 @@ export default async function MyProfilePage() {
     : { data: [] as OrganizationProfileRow[] }
 
   const affiliationOrganizations = (affiliationOrganizationsResult.data ?? []).map((organization) => {
-  const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
-  const effectiveBranding = getEffectiveOrganizationBranding(organization)
+    const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
+    const effectiveBranding = getEffectiveOrganizationBranding(organization)
+    const ownLogoPath = organization.logo_storage_path?.trim().toLowerCase() || null
+    const brandProfileCode = organization.brand_profile?.code?.trim().toLowerCase() || null
+    const brandProfileLogoPath = organization.brand_profile?.logo_storage_path?.trim().toLowerCase() || null
+    const hasDistinctLocalOverride = Boolean(ownLogoPath) && Boolean(brandProfileLogoPath) && ownLogoPath !== brandProfileLogoPath
+    const dedupeKey = hasDistinctLocalOverride ? `local:${ownLogoPath}` : brandProfileCode ? `brand:${brandProfileCode}` : brandProfileLogoPath ? `brand-logo:${brandProfileLogoPath}` : ownLogoPath ? `local:${ownLogoPath}` : `org:${organization.id}`
 
-  const ownLogoPath = organization.logo_storage_path?.trim().toLowerCase() || null
-  const brandProfileCode = organization.brand_profile?.code?.trim().toLowerCase() || null
-  const brandProfileLogoPath = organization.brand_profile?.logo_storage_path?.trim().toLowerCase() || null
-
-  const hasDistinctLocalOverride =
-    Boolean(ownLogoPath) &&
-    Boolean(brandProfileLogoPath) &&
-    ownLogoPath !== brandProfileLogoPath
-
-  const dedupeKey =
-    hasDistinctLocalOverride
-      ? `local:${ownLogoPath}`
-      : brandProfileCode
-        ? `brand:${brandProfileCode}`
-        : brandProfileLogoPath
-          ? `brand-logo:${brandProfileLogoPath}`
-          : ownLogoPath
-            ? `local:${ownLogoPath}`
-            : `org:${organization.id}`
-
-  return {
-    ...organization,
-    isCurrent: organization.id === permissions.organizationId,
-    isPrimaryMembership: membership?.is_primary_membership ?? false,
-    displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
-    effective_logo_storage_path: effectiveBranding.logo_storage_path,
-    effective_logo_alt_text: effectiveBranding.logo_alt_text,
-    dedupe_key: dedupeKey,
-  }
-})
+    return {
+      ...organization,
+      isCurrent: organization.id === permissions.organizationId,
+      isPrimaryMembership: membership?.is_primary_membership ?? false,
+      displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
+      effective_logo_storage_path: effectiveBranding.logo_storage_path,
+      effective_logo_alt_text: effectiveBranding.logo_alt_text,
+      dedupe_key: dedupeKey,
+    }
+  })
 
   affiliationOrganizations.sort((left, right) => {
     if (left.isCurrent !== right.isCurrent) return left.isCurrent ? -1 : 1
@@ -288,16 +280,7 @@ export default async function MyProfilePage() {
     return left.displayLabel.localeCompare(right.displayLabel)
   })
 
-  const affiliationLogoGroups = new Map<
-    string,
-    Array<{
-      id: string
-      displayLabel: string
-      logo_storage_path: string | null
-      logo_alt_text: string | null
-      isCurrent: boolean
-    }>
-  >()
+  const affiliationLogoGroups = new Map<string, Array<{ id: string; displayLabel: string; logo_storage_path: string | null; logo_alt_text: string | null; isCurrent: boolean }>>()
 
   for (const organization of affiliationOrganizations) {
     const key = organization.dedupe_key
@@ -324,7 +307,7 @@ export default async function MyProfilePage() {
   })
 
   const profileName = linkedPerson
-    ? formatDisplayName(linkedPerson.first_name, linkedPerson.last_name, linkedPerson.nickname)
+    ? formatDisplayName(linkedPerson.first_name, linkedPerson.last_name, currentPreferredName)
     : permissions.email ?? 'Signed in'
   const officialRecordName = linkedPerson
     ? [linkedPerson.first_name, linkedPerson.middle_name, linkedPerson.last_name].filter(Boolean).join(' ')
@@ -388,7 +371,7 @@ export default async function MyProfilePage() {
           officialName={officialRecordName}
           firstName={linkedPerson?.first_name ?? null}
           lastName={linkedPerson?.last_name ?? null}
-          preferredName={linkedPerson?.nickname ?? null}
+          preferredName={currentPreferredName}
           email={linkedPerson?.email ?? permissions.email ?? null}
           cellPhone={linkedPerson?.cell_phone ?? null}
           homePhone={linkedPerson?.home_phone ?? null}
@@ -399,13 +382,12 @@ export default async function MyProfilePage() {
                   email: pendingProfileChanges.proposed_email,
                   cell_phone: pendingProfileChanges.proposed_cell_phone,
                   home_phone: pendingProfileChanges.proposed_home_phone,
-                  preferred_name: null,
                   email_requested: pendingProfileChanges.email_change_requested,
                   cell_phone_requested: pendingProfileChanges.cell_phone_change_requested,
                   home_phone_requested: pendingProfileChanges.home_phone_change_requested,
                   first_name: pendingProfileChanges.proposed_first_name,
                   last_name: pendingProfileChanges.proposed_last_name,
-                  preferred_name: pendingProfileChanges.proposed_preferred_name,
+                  preferred_name: null,
                 }
               : null
           }

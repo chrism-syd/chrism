@@ -27,6 +27,7 @@ export async function hasResourceAccess(args: {
 export async function listAccessibleCustomListIdsForUser(args: {
   admin?: ReturnType<typeof createAdminClient>
   userId: string
+  localUnitId?: string | null
 }) {
   const admin = args.admin ?? createAdminClient()
   const { data, error } = await admin.rpc('list_accessible_custom_lists_for_user', {
@@ -37,8 +38,14 @@ export async function listAccessibleCustomListIdsForUser(args: {
     throw new Error(`Could not list accessible custom lists: ${error.message}`)
   }
 
-  return ((data ?? []) as Array<{ custom_list_id: string; local_unit_id: string | null }>)
+  const rows = ((data ?? []) as Array<{ custom_list_id: string; local_unit_id: string | null }>)
     .filter((row) => Boolean(row.custom_list_id))
+
+  if (!args.localUnitId) {
+    return rows
+  }
+
+  return rows.filter((row) => row.local_unit_id === args.localUnitId)
 }
 
 export async function hasEventManagementAccess(args: {

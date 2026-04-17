@@ -45,6 +45,10 @@ type SharedAccessView = CustomListShareGrantRow & {
   hasLinkedUser?: boolean
   stateLabel?: 'Active' | 'Linked account' | 'Pending sign-in'
   personIdentityId?: string | null
+  personIds?: string[]
+  accessIds?: string[]
+  userIds?: string[]
+  profileHref?: string | null
 }
 
 function fullName(person?: PersonSummaryRow | null) {
@@ -62,7 +66,14 @@ function sharedAccessScore(row: SharedAccessView) {
   return score
 }
 
-function collapseSharedAccessByIdentity(rows: SharedAccessView[]) {
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
+}
+
+function collapseSharedAccessByIdentity(
+  rows: SharedAccessView[],
+  validScopedPersonIds: Set<string>,
+) {
   const grouped = new Map<string, SharedAccessView>()
 
   for (const row of rows) {
@@ -72,11 +83,35 @@ function collapseSharedAccessByIdentity(rows: SharedAccessView[]) {
 
     const existing = grouped.get(key)
     if (!existing) {
-      grouped.set(key, row)
+      grouped.set(key, {
+        ...row,
+        personIds: uniqueStrings([row.person_id]),
+        accessIds: uniqueStrings([row.id]),
+        userIds: uniqueStrings([row.user_id]),
+        profileHref: row.person_id && validScopedPersonIds.has(row.person_id) ? `/members/${row.person_id}` : null,
+      })
       continue
     }
 
-    grouped.set(key, sharedAccessScore(row) > sharedAccessScore(existing) ? row : existing)
+    const candidateWinner = sharedAccessScore(row) > sharedAccessScore(existing) ? row : existing
+    const mergedPersonIds = uniqueStrings([...(existing.personIds ?? []), existing.person_id, row.person_id])
+    const mergedAccessIds = uniqueStrings([...(existing.accessIds ?? []), existing.id, row.id])
+    const mergedUserIds = uniqueStrings([...(existing.userIds ?? []), existing.user_id, row.user_id])
+    const scopedWinnerPersonId =
+      mergedPersonIds.find((personId) => validScopedPersonIds.has(personId)) ?? null
+
+    grouped.set(key, {
+      ...candidateWinner,
+      person_id: scopedWinnerPersonId ?? candidateWinner.person_id,
+      person:
+        scopedWinnerPersonId && scopedWinnerPersonId !== candidateWinner.person_id
+          ? rows.find((candidate) => candidate.person_id === scopedWinnerPersonId)?.person ?? candidateWinner.person
+          : candidateWinner.person,
+      personIds: mergedPersonIds,
+      accessIds: mergedAccessIds,
+      userIds: mergedUserIds,
+      profileHref: scopedWinnerPersonId ? `/members/${scopedWinnerPersonId}` : null,
+    })
   }
 
   return [...grouped.values()]
@@ -158,6 +193,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
 
   const memberRows = membersResult.data ?? []
   const pendingAccessRows = pendingAccessRowsResult.data ?? []
+  const validScopedPersonIds = new Set(eligiblePeople.map((person) => person.id))
 
   const peopleIds = [
     ...new Set([
@@ -166,6 +202,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       ...memberRows.map((row) => row.last_contact_by_person_id).filter((value): value is string => Boolean(value)),
       ...accessRows.map((row) => row.person_id).filter((value): value is string => Boolean(value)),
       ...pendingAccessRows.map((row) => row.person_id).filter((value): value is string => Boolean(value)),
+      ...eligiblePeople.map((row) => row.id),
     ]),
   ]
 
@@ -259,10 +296,10 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   }))
 
   const activeSharedPersonIds = new Set(
-    activeSharedAccessRaw.map((row) => row.person_id).filter((value): value is string => Boolean(value))
+    activeSharedAccessRaw.flatMap((row) => row.person_id ? [row.person_id] : [])
   )
   const activeSharedUserIds = new Set(
-    activeSharedAccessRaw.map((row) => row.user_id).filter((value): value is string => Boolean(value))
+    activeSharedAccessRaw.flatMap((row) => row.user_id ? [row.user_id] : [])
   )
 
   const pendingSharedAccessRaw: SharedAccessView[] = pendingAccessRows
@@ -289,12 +326,14 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       } satisfies SharedAccessView
     })
 
-  const sharedAccess: SharedAccessView[] = collapseSharedAccessByIdentity([
-    ...activeSharedAccessRaw,
-    ...pendingSharedAccessRaw,
-  ])
+  const sharedAccess: SharedAccessView[] = collapseSharedAccessByIdentity(
+    [...activeSharedAccessRaw, ...pendingSharedAccessRaw],
+    validScopedPersonIds,
+  )
 
-  const sharedPersonIds = new Set(sharedAccess.map((row) => row.person_id).filter((value): value is string => Boolean(value)))
+  const sharedPersonIds = new Set(
+    sharedAccess.flatMap((row) => row.personIds ?? (row.person_id ? [row.person_id] : []))
+  )
   const listMemberIds = new Set(members.map((member) => member.person_id))
 
   const optionList = eligiblePeople.map((person) => ({

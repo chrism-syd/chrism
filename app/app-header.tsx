@@ -54,7 +54,11 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
       : await Promise.allSettled([
           listMemberInvitedEvents({ admin, permissions, limit: 6 }),
           getPublicMeetingsHref({ admin, councilId: permissions.councilId }),
-          hasExplicitlySharedCustomListsForUser({ admin, permissions }),
+          hasExplicitlySharedCustomListsForUser({
+            admin,
+            permissions,
+            localUnitId: permissions.activeLocalUnitId ?? null,
+          }),
         ])
 
     if (memberInvitedEventsResult.status === 'fulfilled') {

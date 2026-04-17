@@ -566,56 +566,71 @@ export async function shareCustomListAction(formData: FormData) {
 
 export async function revokeCustomListAccessAction(formData: FormData) {
   const customListId = String(formData.get('custom_list_id') ?? '')
-  const accessId = String(formData.get('access_id') ?? '')
+  const accessIds = [...new Set(formData.getAll('access_ids').map(String).filter(Boolean))]
+  const personIds = [...new Set(formData.getAll('person_ids').map(String).filter(Boolean))]
+  const userIds = [...new Set(formData.getAll('user_ids').map(String).filter(Boolean))]
 
-  if (!customListId || !accessId) {
+  if (!customListId) {
     redirect('/custom-lists')
   }
 
-  const { admin, permissions, canManage } = await loadCustomListForAction(customListId)
+  const { admin, permissions, list, canManage } = await loadCustomListForAction(customListId)
   if (!canManage) {
     redirect(`/custom-lists/${customListId}`)
   }
 
-  const { data: liveShareRow, error: liveShareError } = await admin
-    .from('v_effective_resource_access')
-    .select('resource_access_grant_id, person_id, user_id')
-    .eq('resource_access_grant_id', accessId)
-    .eq('resource_type', 'custom_list')
-    .eq('resource_key', customListId)
-    .eq('is_effective', true)
-    .maybeSingle<{ resource_access_grant_id: string; person_id: string | null; user_id: string | null }>()
+  const resolvedPersonIds = new Set(personIds)
+  const targetUserIds = new Set(userIds)
 
-  if (liveShareError) {
-    throw new Error(`Could not load the live custom list share. ${liveShareError.message}`)
+  if (accessIds.length > 0) {
+    const { data: directAccessRows, error: directAccessRowsError } = await admin
+      .from('custom_list_access')
+      .select('id, person_id, user_id')
+      .eq('custom_list_id', customListId)
+      .in('id', accessIds)
+
+    if (directAccessRowsError) {
+      throw new Error(`Could not load the selected custom list shares. ${directAccessRowsError.message}`)
+    }
+
+    for (const row of ((directAccessRows as Array<{ id: string; person_id: string | null; user_id: string | null }> | null) ?? [])) {
+      if (row.person_id) resolvedPersonIds.add(row.person_id)
+      if (row.user_id) targetUserIds.add(row.user_id)
+    }
   }
 
-  const { data: legacyAccessRow, error: legacyAccessError } = await admin
-    .from('custom_list_access')
-    .select('id, person_id, user_id, grantee_email')
-    .eq('id', accessId)
-    .eq('custom_list_id', customListId)
-    .maybeSingle<{ id: string; person_id: string | null; user_id: string | null; grantee_email: string | null }>()
+  if (resolvedPersonIds.size > 0) {
+    const { data: personAccessRows, error: personAccessRowsError } = await admin
+      .from('custom_list_access')
+      .select('id, person_id, user_id')
+      .eq('custom_list_id', customListId)
+      .in('person_id', [...resolvedPersonIds])
 
-  if (legacyAccessError) {
-    throw new Error(`Could not load the compatibility share row. ${legacyAccessError.message}`)
+    if (personAccessRowsError) {
+      throw new Error(`Could not load grouped person-based shares. ${personAccessRowsError.message}`)
+    }
+
+    for (const row of ((personAccessRows as Array<{ id: string; person_id: string | null; user_id: string | null }> | null) ?? [])) {
+      if (row.person_id) resolvedPersonIds.add(row.person_id)
+      if (row.user_id) targetUserIds.add(row.user_id)
+    }
   }
 
-  const resolvedPersonIds = new Set<string>()
-  const targetUserIds = new Set<string>()
+  if (targetUserIds.size > 0) {
+    const { data: userAccessRows, error: userAccessRowsError } = await admin
+      .from('custom_list_access')
+      .select('id, person_id, user_id')
+      .eq('custom_list_id', customListId)
+      .in('user_id', [...targetUserIds])
 
-  if (liveShareRow?.person_id) {
-    resolvedPersonIds.add(liveShareRow.person_id)
-  }
-  if (legacyAccessRow?.person_id) {
-    resolvedPersonIds.add(legacyAccessRow.person_id)
-  }
+    if (userAccessRowsError) {
+      throw new Error(`Could not load grouped user-based shares. ${userAccessRowsError.message}`)
+    }
 
-  if (liveShareRow?.user_id) {
-    targetUserIds.add(liveShareRow.user_id)
-  }
-  if (legacyAccessRow?.user_id) {
-    targetUserIds.add(legacyAccessRow.user_id)
+    for (const row of ((userAccessRows as Array<{ id: string; person_id: string | null; user_id: string | null }> | null) ?? [])) {
+      if (row.person_id) resolvedPersonIds.add(row.person_id)
+      if (row.user_id) targetUserIds.add(row.user_id)
+    }
   }
 
   if (resolvedPersonIds.size > 0) {
@@ -636,6 +651,34 @@ export async function revokeCustomListAccessAction(formData: FormData) {
         resolvedPersonIds.add(row.person_id)
       }
     }
+  }
+
+  let memberRecordIdsToRevoke: string[] = []
+
+  if (resolvedPersonIds.size > 0 && list.local_unit_id) {
+    const { data: memberRecordRows, error: memberRecordRowsError } = await admin
+      .from('member_records')
+      .select('id, legacy_people_id, local_unit_id, archived_at')
+      .eq('local_unit_id', list.local_unit_id)
+      .in('legacy_people_id', [...resolvedPersonIds])
+
+    if (memberRecordRowsError) {
+      throw new Error(`Could not load member records for this share revoke. ${memberRecordRowsError.message}`)
+    }
+
+    memberRecordIdsToRevoke = [
+      ...new Set(
+        ((memberRecordRows as Array<{
+          id: string
+          legacy_people_id: string | null
+          local_unit_id: string | null
+          archived_at: string | null
+        }> | null) ?? [])
+          .filter((row) => !row.archived_at)
+          .map((row) => row.id)
+          .filter((value): value is string => Boolean(value))
+      ),
+    ]
   }
 
   if (resolvedPersonIds.size > 0) {
@@ -667,7 +710,35 @@ export async function revokeCustomListAccessAction(formData: FormData) {
     }
   }
 
-  let deleteLegacyError: string | null = null
+  if (memberRecordIdsToRevoke.length > 0 && list.local_unit_id) {
+    const now = new Date().toISOString()
+    const { error: revokeGrantRowsError } = await admin
+      .from('resource_access_grants')
+      .update({
+        revoked_at: now,
+      })
+      .eq('resource_type', 'custom_list')
+      .eq('resource_key', customListId)
+      .eq('local_unit_id', list.local_unit_id)
+      .is('revoked_at', null)
+      .in('member_record_id', memberRecordIdsToRevoke)
+
+    if (revokeGrantRowsError) {
+      throw new Error(`Could not revoke the underlying custom list grant rows. ${revokeGrantRowsError.message}`)
+    }
+  }
+
+  const deleteErrors: string[] = []
+
+  if (accessIds.length > 0) {
+    const { error } = await admin
+      .from('custom_list_access')
+      .delete()
+      .eq('custom_list_id', customListId)
+      .in('id', accessIds)
+
+    if (error) deleteErrors.push(error.message)
+  }
 
   if (resolvedPersonIds.size > 0) {
     const { error } = await admin
@@ -676,37 +747,21 @@ export async function revokeCustomListAccessAction(formData: FormData) {
       .eq('custom_list_id', customListId)
       .in('person_id', [...resolvedPersonIds])
 
-    if (error) {
-      deleteLegacyError = error.message
-    }
+    if (error) deleteErrors.push(error.message)
   }
 
-  if (targetUserIds.size > 0 && !deleteLegacyError) {
+  if (targetUserIds.size > 0) {
     const { error } = await admin
       .from('custom_list_access')
       .delete()
       .eq('custom_list_id', customListId)
       .in('user_id', [...targetUserIds])
 
-    if (error) {
-      deleteLegacyError = error.message
-    }
+    if (error) deleteErrors.push(error.message)
   }
 
-  if (!deleteLegacyError && legacyAccessRow?.id) {
-    const { error } = await admin
-      .from('custom_list_access')
-      .delete()
-      .eq('id', legacyAccessRow.id)
-      .eq('custom_list_id', customListId)
-
-    if (error) {
-      deleteLegacyError = error.message
-    }
-  }
-
-  if (deleteLegacyError) {
-    throw new Error(`Could not clean up the compatibility share row. ${deleteLegacyError}`)
+  if (deleteErrors.length > 0) {
+    throw new Error(`Could not clean up the compatibility share row. ${deleteErrors.join(' | ')}`)
   }
 
   revalidatePath('/custom-lists')

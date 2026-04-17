@@ -51,6 +51,9 @@ Now added:
 Meaning:
 - one hidden identity can link many org-private `people` rows
 - this allows “same real human across multiple local org records” without breaking org privacy
+- A single concrete member/person record cannot be active in more than one local org.
+- If the same human belongs to multiple local orgs, each org gets its own record.
+- Cross-org sameness is represented only through hidden identity linkage.
 
 ### 5. User principal layer
 Current user principal:
