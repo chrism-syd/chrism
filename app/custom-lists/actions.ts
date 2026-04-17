@@ -12,6 +12,7 @@ import {
   hasStrictCustomListLifecycleAccess,
   listManageableLocalUnitIdsForCustomLists,
   listValidDirectoryPersonIdsForLocalUnit,
+  mapPersonIdsToScopedDirectoryPersonIdsForLocalUnit,
   normalizeEmail,
   resolveCustomListLocalUnitId,
   resolveLegacyCouncilIdForLocalUnit,
@@ -486,18 +487,21 @@ export async function shareCustomListAction(formData: FormData) {
   }
 
   const uniquePersonIds = [...new Set(personIds)]
-  const scopedPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
+  const scopedPersonIdMap = await mapPersonIdsToScopedDirectoryPersonIdsForLocalUnit({
     admin,
     localUnitId,
     personIds: uniquePersonIds,
   })
+  const scopedPersonIds = [...new Set(scopedPersonIdMap.values())]
 
   const [{ data: peopleRows, error: peopleError }, { data: linkedUserRows, error: linkedUserError }] = await Promise.all([
-    admin
-      .from('people')
-      .select('id, email')
-      .in('id', scopedPersonIds)
-      .is('archived_at', null),
+    scopedPersonIds.length > 0
+      ? admin
+          .from('people')
+          .select('id, email')
+          .in('id', scopedPersonIds)
+          .is('archived_at', null)
+      : Promise.resolve({ data: [] as Array<{ id: string; email: string | null }>, error: null }),
     scopedPersonIds.length > 0
       ? admin
           .from('users')
@@ -987,19 +991,20 @@ export async function addCustomListMemberAction(formData: FormData) {
     throw new Error('This custom list is missing its local organization link.')
   }
 
-  const scopedPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
+  const scopedPersonIdMap = await mapPersonIdsToScopedDirectoryPersonIdsForLocalUnit({
     admin,
     localUnitId,
     personIds: [personId],
   })
+  const scopedPersonId = scopedPersonIdMap.get(personId)
 
-  if (!scopedPersonIds.includes(personId)) {
+  if (!scopedPersonId) {
     throw new Error('We could not find that person in this directory.')
   }
 
   const selectedIdentityId = await findIdentityIdByPersonId({
     admin,
-    personId,
+    personId: scopedPersonId,
   })
 
   const { data: existingRows, error: existingRowsError } = await admin
@@ -1015,7 +1020,7 @@ export async function addCustomListMemberAction(formData: FormData) {
     .map((row) => row.person_id)
     .filter((value): value is string => Boolean(value))
 
-  if (existingPersonIds.includes(personId)) {
+  if (existingPersonIds.includes(scopedPersonId)) {
     revalidatePath('/custom-lists')
     revalidatePath(`/custom-lists/${customListId}`)
     revalidatePath('/members')
@@ -1042,7 +1047,7 @@ export async function addCustomListMemberAction(formData: FormData) {
 
   const { error } = await admin.from('custom_list_members').insert({
     custom_list_id: customListId,
-    person_id: personId,
+    person_id: scopedPersonId,
     added_by_auth_user_id: permissions.authUser?.id ?? null,
   })
 

@@ -6,8 +6,8 @@ type MemberOption = {
   id: string;
   name: string;
   email: string | null;
-  secondaryLabel?: string | null;
-  searchText?: string | null;
+  subtitle?: string | null;
+  searchTokens?: string[];
 };
 
 type MemberSearchFieldProps = {
@@ -21,6 +21,16 @@ type MemberSearchFieldProps = {
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
+}
+
+function buildSearchHaystack(member: MemberOption) {
+  return normalize(
+    [
+      member.name,
+      member.email ?? '',
+      ...(member.searchTokens ?? []),
+    ].join(' ')
+  );
 }
 
 export default function MemberSearchField({
@@ -43,10 +53,7 @@ export default function MemberSearchField({
 
     const list = !query
       ? members
-      : members.filter((member) => {
-          const haystack = normalize(member.searchText || `${member.name} ${member.secondaryLabel || ''} ${member.email || ''}`);
-          return haystack.includes(query);
-        });
+      : members.filter((member) => buildSearchHaystack(member).includes(query));
 
     return list.slice(0, 12);
   }, [members, searchQuery]);
@@ -64,7 +71,10 @@ export default function MemberSearchField({
   }, []);
 
   useEffect(() => {
-    if (highlightedIndex < 0) return;
+    if (highlightedIndex < 0) {
+      return;
+    }
+
     resultRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
   }, [highlightedIndex]);
 
@@ -80,7 +90,9 @@ export default function MemberSearchField({
   }
 
   function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (!showResults && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) setShowResults(true);
+    if (!showResults && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      setShowResults(true);
+    }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -137,9 +149,29 @@ export default function MemberSearchField({
       </label>
 
       {showResults ? (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 6, border: '1px solid var(--divider)', borderRadius: 16, background: 'var(--bg-card)', padding: 8, display: 'grid', gap: 6, maxHeight: 300, overflowY: 'auto', boxShadow: '0 10px 24px rgba(0, 0, 0, 0.08)' }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            marginTop: 6,
+            border: '1px solid var(--divider)',
+            borderRadius: 16,
+            background: 'var(--bg-card)',
+            padding: 8,
+            display: 'grid',
+            gap: 6,
+            maxHeight: 300,
+            overflowY: 'auto',
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.08)',
+          }}
+        >
           {filteredMembers.length === 0 ? (
-            <div style={{ padding: 12, fontSize: 14, color: 'var(--text-secondary)' }}>No matching members found.</div>
+            <div style={{ padding: 12, fontSize: 14, color: 'var(--text-secondary)' }}>
+              No matching members found.
+            </div>
           ) : (
             filteredMembers.map((member, index) => {
               const isHighlighted = index === highlightedIndex;
@@ -155,11 +187,22 @@ export default function MemberSearchField({
                     selectMember(member);
                   }}
                   className="qv-link-button qv-button-secondary"
-                  style={{ justifyContent: 'flex-start', textAlign: 'left', width: '100%', borderColor: isHighlighted ? 'var(--text-primary)' : undefined, background: isHighlighted ? 'var(--bg-sunken)' : undefined }}
+                  style={{
+                    justifyContent: 'flex-start',
+                    textAlign: 'left',
+                    width: '100%',
+                    borderColor: isHighlighted ? 'var(--text-primary)' : undefined,
+                    background: isHighlighted ? 'var(--bg-sunken)' : undefined,
+                    paddingBlock: member.subtitle ? 10 : undefined,
+                  }}
                 >
-                  <span style={{ display: 'grid', gap: 2 }}>
+                  <span style={{ display: 'grid', gap: member.subtitle ? 3 : 0 }}>
                     <span>{member.name}</span>
-                    {member.secondaryLabel ? <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{member.secondaryLabel}</span> : null}
+                    {member.subtitle ? (
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                        {member.subtitle}
+                      </span>
+                    ) : null}
                   </span>
                 </button>
               );

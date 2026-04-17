@@ -27,6 +27,7 @@ type PersonSummaryRow = {
   id: string
   first_name: string
   last_name: string
+  preferred_display_name: string | null
   email: string | null
   cell_phone: string | null
   home_phone: string | null
@@ -51,9 +52,61 @@ type SharedAccessView = CustomListShareGrantRow & {
   profileHref?: string | null
 }
 
+type MemberOption = {
+  id: string
+  name: string
+  email: string | null
+  subtitle?: string | null
+  searchTokens?: string[]
+}
+
 function fullName(person?: PersonSummaryRow | null) {
   if (!person) return 'Unknown person'
   return `${person.first_name} ${person.last_name}`.trim()
+}
+
+function displayFullName(person?: PersonSummaryRow | null) {
+  if (!person) return 'Unknown person'
+  const preferred = person.preferred_display_name?.trim()
+  if (!preferred) return fullName(person)
+
+  const legalLastName = person.last_name?.trim() ?? ''
+  if (!legalLastName) return preferred
+  if (preferred.toLowerCase().endsWith(legalLastName.toLowerCase())) return preferred
+
+  return `${preferred} ${legalLastName}`.trim()
+}
+
+function memberSubtitle(person?: PersonSummaryRow | null) {
+  if (!person) return null
+  const shownName = displayFullName(person).trim().toLowerCase()
+  const legalName = fullName(person).trim().toLowerCase()
+  return shownName === legalName ? null : fullName(person)
+}
+
+function buildMemberOption(person: PersonSummaryRow): MemberOption {
+  const shownName = displayFullName(person)
+  const legalName = fullName(person)
+  const preferredName = person.preferred_display_name?.trim() ?? ''
+  const reverseName = `${person.last_name}, ${person.first_name}`.trim()
+
+  return {
+    id: person.id,
+    name: shownName,
+    email: person.email,
+    subtitle: memberSubtitle(person),
+    searchTokens: [
+      person.first_name,
+      person.last_name,
+      preferredName,
+      legalName,
+      shownName,
+      reverseName,
+      person.email ?? '',
+      person.cell_phone ?? '',
+      person.home_phone ?? '',
+    ].filter(Boolean),
+  }
 }
 
 function sharedAccessScore(row: SharedAccessView) {
@@ -252,9 +305,16 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     throw new Error(`Could not load the current identity for this custom list. ${currentUserIdentityResult.error.message}`)
   }
 
+  const preferredDisplayNameByPersonId = new Map<string, string | null>(
+    eligiblePeople.map((person) => [person.id, person.preferred_display_name ?? null] as const)
+  )
+
   const peopleById = new Map<string, PersonSummaryRow>()
   for (const person of decryptPeopleRecords(peopleResult.data ?? [])) {
-    peopleById.set(person.id, person)
+    peopleById.set(person.id, {
+      ...person,
+      preferred_display_name: preferredDisplayNameByPersonId.get(person.id) ?? null,
+    })
   }
 
   const linkedUserPersonIds = new Set(
@@ -296,10 +356,10 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   }))
 
   const activeSharedPersonIds = new Set(
-    activeSharedAccessRaw.flatMap((row) => row.person_id ? [row.person_id] : [])
+    activeSharedAccessRaw.map((row) => row.person_id).filter((value): value is string => Boolean(value))
   )
   const activeSharedUserIds = new Set(
-    activeSharedAccessRaw.flatMap((row) => row.user_id ? [row.user_id] : [])
+    activeSharedAccessRaw.map((row) => row.user_id).filter((value): value is string => Boolean(value))
   )
 
   const pendingSharedAccessRaw: SharedAccessView[] = pendingAccessRows
@@ -336,11 +396,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   )
   const listMemberIds = new Set(members.map((member) => member.person_id))
 
-  const optionList = eligiblePeople.map((person) => ({
-    id: person.id,
-    name: fullName(person),
-    email: person.email,
-  }))
+  const optionList = eligiblePeople.map(buildMemberOption)
 
   const shareCandidates = optionList.filter((person) => !sharedPersonIds.has(person.id))
   const addCandidates = optionList.filter((person) => !listMemberIds.has(person.id))

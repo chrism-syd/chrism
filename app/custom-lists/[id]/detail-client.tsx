@@ -19,6 +19,7 @@ type PersonSummaryRow = {
   id: string
   first_name: string
   last_name: string
+  preferred_display_name?: string | null
   email: string | null
   cell_phone: string | null
   home_phone: string | null
@@ -61,6 +62,8 @@ type MemberOption = {
   id: string
   name: string
   email: string | null
+  subtitle?: string | null
+  searchTokens?: string[]
 }
 
 type Props = {
@@ -80,6 +83,37 @@ type RecentSort = 'newest' | 'oldest' | 'name_az' | 'name_za'
 function fullName(person?: PersonSummaryRow | null) {
   if (!person) return 'Unknown person'
   return `${person.first_name} ${person.last_name}`.trim()
+}
+
+function combinedDisplayName(person?: PersonSummaryRow | null) {
+  if (!person) return 'Unknown person'
+
+  const legalFirst = person.first_name?.trim() ?? ''
+  const legalLast = person.last_name?.trim() ?? ''
+  const legalFull = `${legalFirst} ${legalLast}`.trim()
+
+  const preferredRaw = person.preferred_display_name?.trim() ?? ''
+  if (!preferredRaw) return legalFull
+
+  const preferredLower = preferredRaw.toLowerCase()
+  const legalFirstLower = legalFirst.toLowerCase()
+  const legalFullLower = legalFull.toLowerCase()
+  const legalLastLower = legalLast.toLowerCase()
+
+  if (preferredLower === legalFirstLower || preferredLower === legalFullLower) {
+    return legalFull
+  }
+
+  const preferredWithoutLast =
+    legalLast && preferredLower.endsWith(legalLastLower)
+      ? preferredRaw.slice(0, preferredRaw.length - legalLast.length).trim()
+      : preferredRaw
+
+  if (!preferredWithoutLast) {
+    return legalFull
+  }
+
+  return `${legalFirst} (${preferredWithoutLast}) ${legalLast}`.replace(/\s+/g, ' ').trim()
 }
 
 function bestPhone(person?: PersonSummaryRow | null) {
@@ -241,7 +275,7 @@ function ReviewMemberRow({
       <summary className="qv-review-row-summary">
         <div className="qv-review-row-headline">
           <div className="qv-review-row-main">
-            <div className="qv-review-row-name">{fullName(member.person)}</div>
+            <div className="qv-review-row-name">{combinedDisplayName(member.person)}</div>
             <div className="qv-review-row-meta">{summaryMeta}</div>
           </div>
           <span className="qv-review-row-arrow" aria-hidden="true">
@@ -412,7 +446,7 @@ function ShareListCard({
       ) : (
         <div className="qv-simple-list" style={{ marginTop: 16 }}>
           {sharedAccess.map((access) => {
-            const displayName = access.person ? fullName(access.person) : access.grantee_email || 'Shared person'
+            const displayName = access.person ? combinedDisplayName(access.person) : access.grantee_email || 'Shared person'
             const displayEmail = access.person?.email || access.grantee_email || 'No email on file'
             const stateLabel = access.stateLabel || 'Pending sign-in'
 

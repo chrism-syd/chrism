@@ -60,6 +60,7 @@ export type CustomListPersonSummaryRow = {
   id: string
   first_name: string
   last_name: string
+  preferred_display_name: string | null
   email: string | null
   cell_phone: string | null
   home_phone: string | null
@@ -333,23 +334,81 @@ export async function resolveLegacyCouncilIdForLocalUnit(args: {
   return data?.legacy_council_id ?? null
 }
 
-export async function listValidDirectoryPersonIdsForLocalUnit(args: {
+export async function mapPersonIdsToScopedDirectoryPersonIdsForLocalUnit(args: {
   admin: SupabaseClient
   localUnitId: string
   personIds: string[]
 }) {
-  const uniquePersonIds = [...new Set(args.personIds.filter(Boolean))]
-  if (uniquePersonIds.length === 0) {
-    return [] as string[]
-  }
-
+  const uniqueRequestedPersonIds = [...new Set(args.personIds.filter(Boolean))]
   const resolvedIds = await resolveScopedDirectoryPersonIdsForLocalUnit({
     admin: args.admin,
     localUnitId: args.localUnitId,
   })
 
+  if (uniqueRequestedPersonIds.length === 0 || resolvedIds.length === 0) {
+    return new Map<string, string>()
+  }
+
+  const requestedIdSet = new Set(uniqueRequestedPersonIds)
+  const candidateIds = [...new Set([...resolvedIds, ...uniqueRequestedPersonIds])]
+
+  const { data, error } = await args.admin
+    .from('person_identity_links')
+    .select('person_id, person_identity_id')
+    .in('person_id', candidateIds)
+    .is('ended_at', null)
+
+  if (error) {
+    throw new Error(`Could not map people to local-unit directory entries. ${error.message}`)
+  }
+
+  const identityIdByPersonId = new Map<string, string>()
+  for (const row of ((data as Array<{ person_id: string; person_identity_id: string }> | null) ?? [])) {
+    if (row.person_id && row.person_identity_id) {
+      identityIdByPersonId.set(row.person_id, row.person_identity_id)
+    }
+  }
+
+  const scopedWinnerByIdentityId = new Map<string, string>()
+  for (const resolvedId of resolvedIds) {
+    const identityId = identityIdByPersonId.get(resolvedId)
+    if (identityId && !scopedWinnerByIdentityId.has(identityId)) {
+      scopedWinnerByIdentityId.set(identityId, resolvedId)
+    }
+  }
+
+  const mappedIds = new Map<string, string>()
   const resolvedIdSet = new Set(resolvedIds)
-  return uniquePersonIds.filter((personId) => resolvedIdSet.has(personId))
+
+  for (const personId of uniqueRequestedPersonIds) {
+    if (resolvedIdSet.has(personId)) {
+      mappedIds.set(personId, personId)
+      continue
+    }
+
+    const identityId = identityIdByPersonId.get(personId)
+    const scopedWinnerId = identityId ? scopedWinnerByIdentityId.get(identityId) ?? null : null
+    if (scopedWinnerId) {
+      mappedIds.set(personId, scopedWinnerId)
+    }
+  }
+
+  for (const resolvedId of resolvedIds) {
+    if (requestedIdSet.has(resolvedId)) {
+      mappedIds.set(resolvedId, resolvedId)
+    }
+  }
+
+  return mappedIds
+}
+
+export async function listValidDirectoryPersonIdsForLocalUnit(args: {
+  admin: SupabaseClient
+  localUnitId: string
+  personIds: string[]
+}) {
+  const mappedIds = await mapPersonIdsToScopedDirectoryPersonIdsForLocalUnit(args)
+  return [...new Set(mappedIds.values())]
 }
 
 export async function listValidDirectoryPeopleForLocalUnit(args: {
@@ -365,21 +424,43 @@ export async function listValidDirectoryPeopleForLocalUnit(args: {
     return [] as CustomListPersonSummaryRow[]
   }
 
-  const { data: peopleRows, error: peopleError } = await args.admin
-    .from('people')
-    .select('id, first_name, last_name, email, cell_phone, home_phone')
-    .in('id', personIds)
-    .is('archived_at', null)
-    .is('merged_into_person_id', null)
-    .order('last_name', { ascending: true })
-    .order('first_name', { ascending: true })
-    .returns<CustomListPersonSummaryRow[]>()
+  const [{ data: peopleRows, error: peopleError }, { data: memberRecordRows, error: memberRecordError }] = await Promise.all([
+    args.admin
+      .from('people')
+      .select('id, first_name, last_name, email, cell_phone, home_phone')
+      .in('id', personIds)
+      .is('archived_at', null)
+      .is('merged_into_person_id', null)
+      .order('last_name', { ascending: true })
+      .order('first_name', { ascending: true })
+      .returns<Array<Omit<CustomListPersonSummaryRow, 'preferred_display_name'>>>(),
+    args.admin
+      .from('member_records')
+      .select('legacy_people_id, preferred_display_name')
+      .eq('local_unit_id', args.localUnitId)
+      .is('archived_at', null)
+      .in('legacy_people_id', personIds),
+  ])
 
   if (peopleError) {
     throw new Error(`Could not load local-unit directory entries: ${peopleError.message}`)
   }
 
-  return decryptPeopleRecords((peopleRows as CustomListPersonSummaryRow[] | null) ?? [])
+  if (memberRecordError) {
+    throw new Error(`Could not load preferred display names for this local unit. ${memberRecordError.message}`)
+  }
+
+  const preferredDisplayNameByPersonId = new Map<string, string | null>()
+  for (const row of ((memberRecordRows as Array<{ legacy_people_id: string | null; preferred_display_name: string | null }> | null) ?? [])) {
+    if (row.legacy_people_id && !preferredDisplayNameByPersonId.has(row.legacy_people_id)) {
+      preferredDisplayNameByPersonId.set(row.legacy_people_id, row.preferred_display_name ?? null)
+    }
+  }
+
+  return decryptPeopleRecords((peopleRows as Array<Omit<CustomListPersonSummaryRow, 'preferred_display_name'>> | null) ?? []).map((person) => ({
+    ...person,
+    preferred_display_name: preferredDisplayNameByPersonId.get(person.id) ?? null,
+  }))
 }
 
 export async function listValidMemberPersonIdsForLocalUnit(args: {
