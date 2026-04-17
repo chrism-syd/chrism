@@ -2,9 +2,17 @@ import Link from 'next/link';
 import AppHeader from '@/app/app-header';
 import OrganizationAvatar from '@/app/components/organization-avatar';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
-import { formatHonorificLabel, formatOfficerLabel, type OfficerScopeCode } from '@/lib/members/officer-roles';
-import { getEffectiveOrganizationBranding, getOrganizationContextLabel, type OrganizationBrandingRecord } from '@/lib/organizations/names';
-import { decryptPeopleRecords } from '@/lib/security/pii';
+import {
+  formatHonorificLabel,
+  formatOfficerLabel,
+  type OfficerScopeCode,
+} from '@/lib/members/officer-roles';
+import { loadLocalUnitMemberDirectoryData, type DirectoryPerson } from '@/lib/members/directory-data';
+import {
+  getEffectiveOrganizationBranding,
+  getOrganizationContextLabel,
+  type OrganizationBrandingRecord,
+} from '@/lib/organizations/names';
 
 type OfficerTermRow = {
   id: string;
@@ -16,15 +24,23 @@ type OfficerTermRow = {
   service_end_year: number | null;
 };
 
-type PersonRow = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-};
+function normalize(value: string | null | undefined) {
+  return (value ?? '').trim().toLowerCase();
+}
 
-function personName(person: PersonRow) {
+function legalFullName(person: Pick<DirectoryPerson, 'first_name' | 'last_name'>) {
   return `${person.first_name} ${person.last_name}`.trim();
+}
+
+function displayFullName(person: Pick<DirectoryPerson, 'first_name' | 'last_name' | 'preferred_display_name'>) {
+  const preferred = person.preferred_display_name?.trim();
+  if (!preferred) return legalFullName(person);
+
+  const legalLastName = person.last_name?.trim() ?? '';
+  if (!legalLastName) return preferred;
+  if (normalize(preferred).endsWith(normalize(legalLastName))) return preferred;
+
+  return `${preferred} ${legalLastName}`.trim();
 }
 
 function formatTermRange(startYear: number, endYear: number | null) {
@@ -102,36 +118,12 @@ export default async function OfficersPage() {
     minimumAccessLevel: 'edit_manage',
   });
 
-  const memberRecordResult = localUnitId
-    ? await admin
-        .from('member_records')
-        .select('legacy_people_id')
-        .eq('local_unit_id', localUnitId)
-        .is('archived_at', null)
-    : { data: [], error: null };
-
-  const localUnitPersonIds = [
-    ...new Set(
-      (((memberRecordResult.data as Array<{ legacy_people_id: string | null }> | null) ?? [])
-        .map((row) => row.legacy_people_id)
-        .filter((value): value is string => Boolean(value)))
-    ),
-  ];
-
-  const [{ data: termData }, { data: personData }, { data: organizationData }] = await Promise.all([
+  const [{ data: termData }, { data: organizationData }, directoryData] = await Promise.all([
     admin
       .from('person_officer_terms')
       .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year')
       .eq('council_id', council.id)
       .order('service_start_year', { ascending: false }),
-    localUnitPersonIds.length > 0
-      ? admin
-          .from('people')
-          .select('id, first_name, last_name, email')
-          .in('id', localUnitPersonIds)
-          .eq('primary_relationship_code', 'member')
-          .is('archived_at', null)
-      : Promise.resolve({ data: [] as PersonRow[] }),
     permissions.organizationId
       ? admin
           .from('organizations')
@@ -139,9 +131,23 @@ export default async function OfficersPage() {
           .eq('id', permissions.organizationId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    localUnitId
+      ? loadLocalUnitMemberDirectoryData({
+          admin,
+          localUnitId,
+        })
+      : Promise.resolve({
+          allPeople: [],
+          members: [],
+          prospects: [],
+          volunteers: [],
+          currentOfficerLabelsById: {},
+          executiveOfficerLabelsById: {},
+          officerCount: 0,
+        }),
   ]);
 
-  const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? []);
+  const people = directoryData.members;
   const peopleById = new Map(people.map((person) => [person.id, person]));
   const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) => peopleById.has(term.person_id));
   const organization = (organizationData as OrganizationBrandingRecord | null) ?? null;
@@ -199,14 +205,27 @@ export default async function OfficersPage() {
             <div className="qv-member-list">
               {currentTerms.map((term) => {
                 const person = peopleById.get(term.person_id);
+                const displayName = person ? displayFullName(person) : 'Member not found';
+                const legalName = person ? legalFullName(person) : null;
+                const showLegalName = person ? normalize(displayName) !== normalize(legalName) : false;
+
                 return (
                   <Link key={term.id} href={person ? `/members/${person.id}` : '#'} className="qv-member-link">
                     <div className="qv-member-row">
                       <div className="qv-member-main">
                         <div className="qv-member-text">
-                          <div className="qv-member-name">{person ? personName(person) : 'Member not found'}</div>
-                          <div className="qv-member-meta">{formatOfficerLabel({ scope: term.office_scope_code, code: term.office_code, rank: term.office_rank })}</div>
-                          <div className="qv-member-meta">Started {formatTermRange(term.service_start_year, term.service_end_year)}</div>
+                          <div className="qv-member-name">{displayName}</div>
+                          <div className="qv-member-meta">
+                            {showLegalName ? legalName : formatOfficerLabel({ scope: term.office_scope_code, code: term.office_code, rank: term.office_rank })}
+                          </div>
+                          <div className="qv-member-meta">
+                            {showLegalName
+                              ? formatOfficerLabel({ scope: term.office_scope_code, code: term.office_code, rank: term.office_rank })
+                              : `Started ${formatTermRange(term.service_start_year, term.service_end_year)}`}
+                          </div>
+                          {showLegalName ? (
+                            <div className="qv-member-meta">Started {formatTermRange(term.service_start_year, term.service_end_year)}</div>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -233,14 +252,21 @@ export default async function OfficersPage() {
             <div className="qv-member-list">
               {honorificGroups.map((group) => {
                 const person = peopleById.get(group.person_id);
+                const displayName = person ? displayFullName(person) : 'Member not found';
+                const legalName = person ? legalFullName(person) : null;
+                const showLegalName = person ? normalize(displayName) !== normalize(legalName) : false;
+
                 return (
                   <Link key={`${group.person_id}-${group.label}-${group.start_year}-${group.end_year}`} href={person ? `/members/${person.id}` : '#'} className="qv-member-link">
                     <div className="qv-member-row">
                       <div className="qv-member-main">
                         <div className="qv-member-text">
-                          <div className="qv-member-name">{person ? personName(person) : 'Member not found'}</div>
-                          <div className="qv-member-meta">{group.label}</div>
-                          <div className="qv-member-meta">{formatTermRange(group.start_year, group.end_year)}</div>
+                          <div className="qv-member-name">{displayName}</div>
+                          <div className="qv-member-meta">{showLegalName ? legalName : group.label}</div>
+                          <div className="qv-member-meta">{showLegalName ? group.label : formatTermRange(group.start_year, group.end_year)}</div>
+                          {showLegalName ? (
+                            <div className="qv-member-meta">{formatTermRange(group.start_year, group.end_year)}</div>
+                          ) : null}
                         </div>
                       </div>
                     </div>

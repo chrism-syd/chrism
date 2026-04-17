@@ -28,6 +28,8 @@ type PersonRow = {
 }
 
 type LinkedMemberRecordRow = {
+  legacy_people_id: string | null
+  preferred_display_name: string | null
   local_unit_id: string | null
   created_at: string
   local_unit?: {
@@ -42,6 +44,28 @@ function formatAddress(
   const line1 = [person.address_line_1, person.address_line_2].filter(Boolean).join(', ')
   const line2 = [person.city, person.state_province, person.postal_code].filter(Boolean).join(', ')
   return [line1, line2].filter(Boolean).join(' • ')
+}
+
+function normalize(value: string | null | undefined) {
+  return (value ?? '').trim().toLowerCase()
+}
+
+function legalFullName(person: Pick<PersonRow, 'first_name' | 'last_name'>) {
+  return `${person.first_name} ${person.last_name}`.trim()
+}
+
+function displayFullName(args: {
+  person: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'>
+  preferredDisplayName?: string | null
+}) {
+  const preferred = args.preferredDisplayName?.trim() || args.person.nickname?.trim() || null
+  if (!preferred) return legalFullName(args.person)
+
+  const legalLastName = args.person.last_name?.trim() ?? ''
+  if (!legalLastName) return preferred
+  if (normalize(preferred).endsWith(normalize(legalLastName))) return preferred
+
+  return `${preferred} ${legalLastName}`.trim()
 }
 
 export default async function ExternalAdminProfilePage({ params }: PageProps) {
@@ -70,7 +94,7 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
     { data: personData, error: personError },
     { data: orgAdminRow },
     { data: councilAdminRow },
-    { data: linkedMemberRecordData, error: linkedMemberRecordError },
+    { data: identityRow, error: identityError },
   ] = await Promise.all([
     supabase
       .from('people')
@@ -97,20 +121,19 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
       .limit(1)
       .maybeSingle(),
     supabase
-      .from('member_records')
-      .select('local_unit_id, created_at, local_unit:local_unit_id(legacy_council_id, local_unit_kind)')
-      .eq('legacy_people_id', id)
-      .is('archived_at', null)
-      .order('created_at', { ascending: true })
-      .limit(25),
+      .from('person_identity_links')
+      .select('person_identity_id')
+      .eq('person_id', id)
+      .is('ended_at', null)
+      .maybeSingle<{ person_identity_id: string }>(),
   ])
 
   if (personError) {
     throw new Error(`Could not load admin contact profile. ${personError.message}`)
   }
 
-  if (linkedMemberRecordError) {
-    throw new Error(`Could not load linked member records for this admin contact. ${linkedMemberRecordError.message}`)
+  if (identityError) {
+    throw new Error(`Could not load linked identity context for this admin contact. ${identityError.message}`)
   }
 
   if (!personData || (!orgAdminRow && !councilAdminRow)) {
@@ -123,7 +146,39 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
     redirect(`/members/${person.id}`)
   }
 
+  const linkedPersonIds =
+    identityRow?.person_identity_id
+      ? (
+          await supabase
+            .from('person_identity_links')
+            .select('person_id')
+            .eq('person_identity_id', identityRow.person_identity_id)
+            .is('ended_at', null)
+        ).data?.map((row) => row.person_id).filter((value): value is string => Boolean(value)) ?? [id]
+      : [id]
+
+  const { data: linkedMemberRecordData, error: linkedMemberRecordError } =
+    linkedPersonIds.length > 0
+      ? await supabase
+          .from('member_records')
+          .select('legacy_people_id, preferred_display_name, local_unit_id, created_at, local_unit:local_unit_id(legacy_council_id, local_unit_kind)')
+          .in('legacy_people_id', linkedPersonIds)
+          .is('archived_at', null)
+          .order('created_at', { ascending: true })
+          .limit(50)
+      : { data: [] as LinkedMemberRecordRow[], error: null }
+
+  if (linkedMemberRecordError) {
+    throw new Error(`Could not load linked member records for this admin contact. ${linkedMemberRecordError.message}`)
+  }
+
   const linkedMemberRecords = (linkedMemberRecordData as LinkedMemberRecordRow[] | null) ?? []
+  const preferredLinkedCouncilId =
+    linkedMemberRecords.find((row) => row.local_unit?.local_unit_kind === 'council' && row.local_unit?.legacy_council_id)
+      ?.local_unit?.legacy_council_id ??
+    linkedMemberRecords.find((row) => row.local_unit?.legacy_council_id)?.local_unit?.legacy_council_id ??
+    null
+
   const linkedCouncilIds = [
     ...new Set(
       linkedMemberRecords
@@ -144,18 +199,22 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
     throw new Error(`Could not load linked council details for this admin contact. ${linkedCouncilError.message}`)
   }
 
-  const preferredLinkedCouncilId =
-    linkedMemberRecords.find((row) => row.local_unit?.local_unit_kind === 'council' && row.local_unit?.legacy_council_id)
-      ?.local_unit?.legacy_council_id ??
-    linkedMemberRecords.find((row) => row.local_unit?.legacy_council_id)?.local_unit?.legacy_council_id ??
-    null
-
   const linkedCouncil = ((linkedCouncilData as Array<{ id: string; name: string | null; council_number: string | null }> | null) ?? []).find(
     (row) => row.id === preferredLinkedCouncilId
   )
 
+  const preferredDisplayName =
+    linkedMemberRecords.find((row) => row.legacy_people_id === id)?.preferred_display_name ??
+    linkedMemberRecords.find((row) => Boolean(row.preferred_display_name))?.preferred_display_name ??
+    null
+
   const address = formatAddress(person)
-  const displayName = [person.nickname?.trim() || person.first_name, person.last_name].filter(Boolean).join(' ')
+  const displayName = displayFullName({
+    person,
+    preferredDisplayName,
+  })
+  const legalName = legalFullName(person)
+  const showLegalName = normalize(displayName) !== normalize(legalName)
 
   return (
     <main className="qv-page">
@@ -168,6 +227,11 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
               <p className="qv-eyebrow">Organization settings</p>
               <h1 className="qv-title">{displayName}</h1>
               <p className="qv-subtitle">Organization admin contact profile. This person has admin access without being treated as a local member record in this organization.</p>
+              {showLegalName ? (
+                <p className="qv-inline-message" style={{ marginTop: 10 }}>
+                  {legalName}
+                </p>
+              ) : null}
               <div className="qv-detail-badges">
                 <span className="qv-badge">Admin contact</span>
                 {orgAdminRow ? <span className="qv-badge qv-badge-soft">Organization assignment</span> : null}

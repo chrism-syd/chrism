@@ -7,6 +7,7 @@ import { decryptPeopleRecords } from '@/lib/security/pii';
 type ArchivedMemberRecordRow = {
   id: string;
   legacy_people_id: string | null;
+  preferred_display_name: string | null;
   archived_at: string | null;
   lifecycle_state: string | null;
 };
@@ -42,6 +43,28 @@ function startCase(value: string | null) {
     .join(' ');
 }
 
+function normalize(value: string | null | undefined) {
+  return (value ?? '').trim().toLowerCase();
+}
+
+function legalFullName(person: Pick<ArchivedPersonRow, 'first_name' | 'last_name'>) {
+  return `${person.first_name} ${person.last_name}`.trim();
+}
+
+function displayFullName(args: {
+  person: Pick<ArchivedPersonRow, 'first_name' | 'last_name'>;
+  preferredDisplayName?: string | null;
+}) {
+  const preferred = args.preferredDisplayName?.trim();
+  if (!preferred) return legalFullName(args.person);
+
+  const legalLastName = args.person.last_name?.trim() ?? '';
+  if (!legalLastName) return preferred;
+  if (normalize(preferred).endsWith(normalize(legalLastName))) return preferred;
+
+  return `${preferred} ${legalLastName}`.trim();
+}
+
 export default async function ArchivedMembersPage({
   searchParams,
 }: {
@@ -60,16 +83,17 @@ export default async function ArchivedMembersPage({
   const archivedMemberRecordsResult = localUnitId
     ? await supabase
         .from('member_records')
-        .select('id, legacy_people_id, archived_at, lifecycle_state')
+        .select('id, legacy_people_id, preferred_display_name, archived_at, lifecycle_state')
         .eq('local_unit_id', localUnitId)
         .eq('lifecycle_state', 'archived')
         .not('archived_at', 'is', null)
-        .order('archived_at', { ascending: false })
         .returns<ArchivedMemberRecordRow[]>()
     : { data: [] as ArchivedMemberRecordRow[], error: null };
 
   const error = archivedMemberRecordsResult.error ?? null;
-  const archivedMemberRecords = archivedMemberRecordsResult.data ?? [];
+  const archivedMemberRecords = (archivedMemberRecordsResult.data ?? []).sort((left, right) =>
+    new Date(right.archived_at ?? 0).getTime() - new Date(left.archived_at ?? 0).getTime()
+  );
 
   const archivedPersonIds = [
     ...new Set(
@@ -144,29 +168,43 @@ export default async function ArchivedMembersPage({
             </div>
 
             <div className="qv-member-list">
-              {archivedEntries.map(({ memberRecord, person }) => (
-                <div key={memberRecord.id} className="qv-member-row">
-                  <div style={{ display: 'grid', gap: 6 }}>
-                    <div className="qv-member-name">{person!.first_name} {person!.last_name}</div>
-                    <div className="qv-inline-message" style={{ color: 'var(--text-primary)' }}>
-                      {startCase(person!.primary_relationship_code)}
-                    </div>
-                    <div className="qv-inline-message" style={{ color: 'var(--text-primary)' }}>
-                      {person!.email || person!.cell_phone || 'No contact information on file'}
-                    </div>
-                    <div className="qv-inline-message">Archived {formatDateTime(memberRecord.archived_at)}</div>
-                  </div>
+              {archivedEntries.map(({ memberRecord, person }) => {
+                const displayName = displayFullName({
+                  person: person!,
+                  preferredDisplayName: memberRecord.preferred_display_name,
+                });
+                const legalName = legalFullName(person!);
+                const showLegalName = normalize(displayName) !== normalize(legalName);
 
-                  <div className="qv-member-row-right">
-                    <form action={restoreMemberAction}>
-                      <input type="hidden" name="member_id" value={person!.id} />
-                      <button type="submit" className="qv-link-button qv-button-secondary">
-                        Restore
-                      </button>
-                    </form>
+                return (
+                  <div key={memberRecord.id} className="qv-member-row">
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      <div className="qv-member-name">{displayName}</div>
+                      <div className="qv-inline-message" style={{ color: 'var(--text-primary)' }}>
+                        {showLegalName ? legalName : startCase(person!.primary_relationship_code)}
+                      </div>
+                      {showLegalName ? (
+                        <div className="qv-inline-message" style={{ color: 'var(--text-primary)' }}>
+                          {startCase(person!.primary_relationship_code)}
+                        </div>
+                      ) : null}
+                      <div className="qv-inline-message" style={{ color: 'var(--text-primary)' }}>
+                        {person!.email || person!.cell_phone || 'No contact information on file'}
+                      </div>
+                      <div className="qv-inline-message">Archived {formatDateTime(memberRecord.archived_at)}</div>
+                    </div>
+
+                    <div className="qv-member-row-right">
+                      <form action={restoreMemberAction}>
+                        <input type="hidden" name="member_id" value={person!.id} />
+                        <button type="submit" className="qv-link-button qv-button-secondary">
+                          Restore
+                        </button>
+                      </form>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

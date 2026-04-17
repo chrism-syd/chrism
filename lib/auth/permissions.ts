@@ -181,6 +181,21 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
 }
 
+function buildPersonIdOrFilter(args: {
+  userId: string
+  personIds: string[]
+  normalizedEmail: string | null
+}) {
+  const { userId, personIds, normalizedEmail } = args
+  return [
+    `user_id.eq.${userId}`,
+    personIds.length > 0 ? `person_id.in.(${personIds.join(',')})` : '',
+    normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
+  ]
+    .filter(Boolean)
+    .join(',')
+}
+
 function createEmptyParallelUnitCapabilities(): ParallelUnitCapabilities {
   return {
     members: false,
@@ -714,9 +729,49 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       (row): row is LinkedMemberRelationshipRow & { local_unit_id: string } => Boolean(row.local_unit_id)
     )
 
+  const linkedMemberRelationshipPersonIds = uniqueStrings(
+    linkedMemberRelationships.map((row) => row.member_record?.legacy_people_id ?? null)
+  )
+
+  const identitySeedPersonIds = uniqueStrings([
+    appUser?.person_id,
+    derivedOfficerEmailPersonId,
+    ...linkedMemberRelationshipPersonIds,
+  ])
+
+  let linkedIdentityPersonIds = [...identitySeedPersonIds]
+
+  if (identitySeedPersonIds.length > 0) {
+    const { data: identitySeedData } = await admin
+      .from('person_identity_links')
+      .select('person_identity_id')
+      .in('person_id', identitySeedPersonIds)
+      .is('ended_at', null)
+
+    const identityIds = uniqueStrings(
+      ((identitySeedData as Array<{ person_identity_id: string | null }> | null) ?? []).map(
+        (row) => row.person_identity_id
+      )
+    )
+
+    if (identityIds.length > 0) {
+      const { data: identityLinkData } = await admin
+        .from('person_identity_links')
+        .select('person_id')
+        .in('person_identity_id', identityIds)
+        .is('ended_at', null)
+
+      linkedIdentityPersonIds = uniqueStrings([
+        ...identitySeedPersonIds,
+        ...(((identityLinkData as Array<{ person_id: string | null }> | null) ?? []).map((row) => row.person_id)),
+      ])
+    }
+  }
+
   if (!personId) {
     personId =
-      linkedMemberRelationships.find((row) => row.member_record?.legacy_people_id)?.member_record?.legacy_people_id ??
+      linkedMemberRelationshipPersonIds[0] ??
+      linkedIdentityPersonIds[0] ??
       null
   }
 
@@ -726,35 +781,27 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
         .from('council_admin_assignments')
         .select('council_id, person_id')
         .eq('is_active', true)
-        .or(
-          [
-            `user_id.eq.${user.id}`,
-            personId ? `person_id.eq.${personId}` : '',
-            normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
-          ]
-            .filter(Boolean)
-            .join(',')
-        )
+        .or(buildPersonIdOrFilter({
+          userId: user.id,
+          personIds: linkedIdentityPersonIds,
+          normalizedEmail,
+        }))
         .limit(25),
       admin
         .from('organization_admin_assignments')
         .select('organization_id, person_id')
         .eq('is_active', true)
-        .or(
-          [
-            `user_id.eq.${user.id}`,
-            personId ? `person_id.eq.${personId}` : '',
-            normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
-          ]
-            .filter(Boolean)
-            .join(',')
-        )
+        .or(buildPersonIdOrFilter({
+          userId: user.id,
+          personIds: linkedIdentityPersonIds,
+          normalizedEmail,
+        }))
         .limit(25),
-      personId
+      linkedIdentityPersonIds.length > 0
         ? admin
             .from('person_officer_terms')
             .select('council_id, office_scope_code, office_code')
-            .eq('person_id', personId)
+            .in('person_id', linkedIdentityPersonIds)
             .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
             .limit(25)
         : Promise.resolve({ data: [] as AutomaticCouncilAdminTermRow[] }),
@@ -781,6 +828,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     personId =
       councilAdminAssignments.find((assignment) => assignment.person_id)?.person_id ??
       organizationAdminAssignments.find((assignment) => assignment.person_id)?.person_id ??
+      linkedIdentityPersonIds[0] ??
       null
   }
 
@@ -988,11 +1036,10 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const organizationProfiles =
     organizationIds.length > 0
-      ? (((
-          await admin
-            .from('organizations')
-            .select('id, display_name, preferred_name')
-            .in('id', organizationIds)
+      ? (((await admin
+          .from('organizations')
+          .select('id, display_name, preferred_name')
+          .in('id', organizationIds)
         ).data as OrganizationProfileRow[] | null) ?? [])
       : []
 
@@ -1047,11 +1094,13 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     mergedOrganizationProfiles.find((organization) => organization.id === defaultOrganizationId)?.display_name ??
     null
 
+  const identityAnchorPersonId = personId
+
   appUser = await ensureAppUserRow({
     admin,
     authUserId: user.id,
     existingAppUser: appUser,
-    personId,
+    personId: identityAnchorPersonId,
     isSuperAdmin,
   })
 
@@ -1302,6 +1351,33 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     }
   }
 
+  let scopedPersonId = personId
+
+  if (activeLocalUnitId) {
+    const relationshipScopedPersonId =
+      linkedMemberRelationships.find(
+        (row) => row.local_unit_id === activeLocalUnitId && row.member_record?.legacy_people_id
+      )?.member_record?.legacy_people_id ?? null
+
+    if (relationshipScopedPersonId) {
+      scopedPersonId = relationshipScopedPersonId
+    } else if (linkedIdentityPersonIds.length > 0) {
+      const { data: scopedMemberRecordData } = await admin
+        .from('member_records')
+        .select('legacy_people_id')
+        .eq('local_unit_id', activeLocalUnitId)
+        .in('legacy_people_id', linkedIdentityPersonIds)
+        .is('archived_at', null)
+        .limit(1)
+        .maybeSingle()
+
+      const scopedMemberRecord = scopedMemberRecordData as { legacy_people_id: string | null } | null
+      if (scopedMemberRecord?.legacy_people_id) {
+        scopedPersonId = scopedMemberRecord.legacy_people_id
+      }
+    }
+  }
+
   const currentViewLabel = isSuperAdmin
     ? getSuperAdminViewLabel({ mode: actingMode, organizationName })
     : activeAccessContext && defaultContext && activeAccessContext.key !== defaultContext.key
@@ -1339,7 +1415,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     organizationId,
     organizationName,
     councilId,
-    personId,
+    personId: scopedPersonId,
     email: normalizedEmail,
     availableContexts,
     activeContextKey: activeAccessContext?.key ?? null,
