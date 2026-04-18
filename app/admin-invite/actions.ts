@@ -1,4 +1,3 @@
-
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -34,18 +33,22 @@ export async function acceptAdminInvitationAction(formData: FormData) {
   }
 
   try {
-    await acceptOrganizationAdminInvitation({
+    const acceptance = await acceptOrganizationAdminInvitation({
       invitationId,
       rawToken,
       acceptedByAuthUserId: permissions.authUser.id,
       acceptedByPersonId: permissions.personId,
       acceptedByEmail: permissions.email ?? '',
     })
+
+    revalidatePath('/me')
+    revalidatePath('/me/council')
+    if (acceptance.personId) {
+      revalidatePath(`/me/council/admins/${acceptance.personId}`)
+    }
   } catch (error) {
     redirectToInvite(rawToken, error instanceof Error ? error.message : 'We could not accept that invite right now.')
   }
 
-  revalidatePath('/me')
-  revalidatePath('/me/council')
   redirect('/me/council?notice=Admin invite accepted.')
 }

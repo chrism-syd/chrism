@@ -84,22 +84,29 @@ begin
     returning id into v_member_record_id;
   end if;
 
+  update public.local_unit_people
+     set ended_at = null,
+         updated_at = now()
+   where local_unit_id = p_local_unit_id
+     and person_id = p_person_id;
+
   insert into public.local_unit_people (
     local_unit_id,
     person_id,
     created_at,
     updated_at
   )
-  values (
+  select
     p_local_unit_id,
     p_person_id,
     now(),
     now()
-  )
-  on conflict (local_unit_id, person_id)
-  do update
-     set ended_at = null,
-         updated_at = now();
+  where not exists (
+    select 1
+    from public.local_unit_people lup
+    where lup.local_unit_id = p_local_unit_id
+      and lup.person_id = p_person_id
+  );
 
   return v_member_record_id;
 end;
@@ -247,22 +254,29 @@ begin
    where id = p_person_id
      and archived_at is not null;
 
+  update public.local_unit_people
+     set ended_at = null,
+         updated_at = now()
+   where local_unit_id = p_local_unit_id
+     and person_id = p_person_id;
+
   insert into public.local_unit_people (
     local_unit_id,
     person_id,
     created_at,
     updated_at
   )
-  values (
+  select
     p_local_unit_id,
     p_person_id,
     now(),
     now()
-  )
-  on conflict (local_unit_id, person_id)
-  do update
-     set ended_at = null,
-         updated_at = now();
+  where not exists (
+    select 1
+    from public.local_unit_people lup
+    where lup.local_unit_id = p_local_unit_id
+      and lup.person_id = p_person_id
+  );
 
   perform app.write_audit_log(
     coalesce(v_local_unit.legacy_council_id, v_person.council_id),

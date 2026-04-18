@@ -156,6 +156,22 @@ export async function loadLocalUnitMemberDirectoryData(args: {
     }
   }
 
+  const { data: externalAdminAssignments, error: externalAdminAssignmentsError } = await admin
+    .from('organization_admin_assignments')
+    .select('person_id')
+    .eq('is_active', true)
+    .in('person_id', personIds)
+
+  if (externalAdminAssignmentsError) {
+    throw new Error(`Could not load external admin assignments for this local unit. ${externalAdminAssignmentsError.message}`)
+  }
+
+  const externalAdminPersonIdSet = new Set(
+    ((externalAdminAssignments as Array<{ person_id: string | null }> | null) ?? [])
+      .map((row) => row.person_id)
+      .filter((value): value is string => Boolean(value))
+  )
+
   const localUnit = (localUnitData as DirectoryLocalUnitRow | null) ?? null
 
   const [{ data: peopleData, error: peopleError }, { data: officerTermsData, error: officerTermsError }] = await Promise.all([
@@ -183,10 +199,12 @@ export async function loadLocalUnitMemberDirectoryData(args: {
   if (officerTermsError) throw new Error(`Could not load officer terms for this local unit. ${officerTermsError.message}`)
 
   return buildDirectoryData({
-    people: decryptPeopleRecords<Omit<DirectoryPerson, 'preferred_display_name'>>(peopleData ?? []).map((person) => ({
-      ...person,
-      preferred_display_name: preferredNameByPersonId.get(person.id) ?? null,
-    })),
+    people: decryptPeopleRecords<Omit<DirectoryPerson, 'preferred_display_name'>>(peopleData ?? [])
+      .filter((person) => !externalAdminPersonIdSet.has(person.id))
+      .map((person) => ({
+        ...person,
+        preferred_display_name: preferredNameByPersonId.get(person.id) ?? null,
+      })),
     officerTerms: officerTermsData ?? [],
   })
 }

@@ -6,6 +6,7 @@ import {
   saveOrganizationAdminAssignment,
 } from '@/lib/organizations/admin-assignments'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { protectPeoplePayload } from '@/lib/security/pii'
 
 export type OrganizationAdminInvitationStatusCode = 'pending' | 'accepted' | 'revoked' | 'expired'
 
@@ -294,6 +295,136 @@ export async function sendOrganizationAdminInvitationEmail(args: {
   })
 }
 
+function inferNameParts(fullName: string | null, email: string | null) {
+  const source = fullName?.trim() || email?.split('@')[0]?.replace(/[._-]+/g, ' ')?.trim() || 'Admin Contact'
+  const parts = source.split(/\s+/).filter(Boolean)
+  if (parts.length <= 1) {
+    return {
+      firstName: parts[0] ?? 'Admin',
+      lastName: 'Contact',
+    }
+  }
+
+  return {
+    firstName: parts.slice(0, -1).join(' '),
+    lastName: parts.slice(-1)[0] ?? 'Contact',
+  }
+}
+
+async function ensureAcceptedInvitePerson(args: {
+  authUserId: string
+  acceptedByPersonId?: string | null
+  acceptedByEmail: string
+  inviteeName?: string | null
+  councilId?: string | null
+}) {
+  const admin = createAdminClient()
+
+  if (args.acceptedByPersonId) {
+    const { error: linkExistingError } = await admin
+      .from('users')
+      .update({
+        person_id: args.acceptedByPersonId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', args.authUserId)
+
+    if (linkExistingError) {
+      throw new Error(linkExistingError.message)
+    }
+
+    return args.acceptedByPersonId
+  }
+
+  const normalizedEmail = normalizeAdminInviteEmail(args.acceptedByEmail)
+  if (!normalizedEmail) {
+    throw new Error('This invite is missing a valid accepted email address.')
+  }
+
+  const { data: currentUser, error: currentUserError } = await admin
+    .from('users')
+    .select('person_id')
+    .eq('id', args.authUserId)
+    .maybeSingle<{ person_id: string | null }>()
+
+  if (currentUserError) {
+    throw new Error(currentUserError.message)
+  }
+
+  if (currentUser?.person_id) {
+    return currentUser.person_id
+  }
+
+  const { data: matchingPerson, error: matchingPersonError } = await admin
+    .from('people')
+    .select('id, primary_relationship_code')
+    .ilike('email', normalizedEmail)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string; primary_relationship_code: string | null }>()
+
+  if (matchingPersonError) {
+    throw new Error(matchingPersonError.message)
+  }
+
+  const personId = matchingPerson?.id
+  if (personId) {
+    const { error: linkMatchedError } = await admin
+      .from('users')
+      .update({
+        person_id: personId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', args.authUserId)
+
+    if (linkMatchedError) {
+      throw new Error(linkMatchedError.message)
+    }
+
+    return personId
+  }
+
+  const names = inferNameParts(normalizeAdminInviteText(args.inviteeName ?? null), normalizedEmail)
+
+  const payload = protectPeoplePayload({
+    council_id: args.councilId ?? null,
+    first_name: names.firstName,
+    last_name: names.lastName,
+    email: normalizedEmail,
+    primary_relationship_code: 'volunteer_only',
+    volunteer_context_code: 'other',
+    created_source_code: 'supreme_import',
+    council_activity_level_code: 'active',
+    is_provisional_member: true,
+    created_by_auth_user_id: args.authUserId,
+    updated_by_auth_user_id: args.authUserId,
+  })
+
+  const { data: insertedPerson, error: insertError } = await admin
+    .from('people')
+    .insert(payload)
+    .select('id')
+    .maybeSingle<{ id: string }>()
+
+  if (insertError || !insertedPerson?.id) {
+    throw new Error(insertError?.message ?? 'Could not create the invited admin profile.')
+  }
+
+  const { error: linkCreatedError } = await admin
+    .from('users')
+    .update({
+      person_id: insertedPerson.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', args.authUserId)
+
+  if (linkCreatedError) {
+    throw new Error(linkCreatedError.message)
+  }
+
+  return insertedPerson.id
+}
+
 export async function getOrganizationAdminInvitationByRawToken(rawToken: string) {
   const admin = createAdminClient()
   const tokenHash = hashToken(rawToken)
@@ -362,10 +493,18 @@ export async function acceptOrganizationAdminInvitation(args: {
     throw new Error(`This invite is for ${invitation.invitee_email}. Sign in with that email to accept it.`)
   }
 
+  const ensuredPersonId = await ensureAcceptedInvitePerson({
+    authUserId: args.acceptedByAuthUserId,
+    acceptedByPersonId: args.acceptedByPersonId,
+    acceptedByEmail,
+    inviteeName: invitation.invitee_name,
+    councilId: invitation.council_id,
+  })
+
   const savedAssignment = await saveOrganizationAdminAssignment({
     organizationId: invitation.organization_id,
     actorUserId: args.acceptedByAuthUserId,
-    personId: args.acceptedByPersonId ?? null,
+    personId: ensuredPersonId,
     userId: args.acceptedByAuthUserId,
     granteeEmail: acceptedByEmail,
     sourceCode: 'admin_invitation',
@@ -387,6 +526,11 @@ export async function acceptOrganizationAdminInvitation(args: {
 
   if (error) {
     throw new Error(error.message)
+  }
+
+  return {
+    assignmentId: savedAssignment.id,
+    personId: ensuredPersonId,
   }
 }
 
