@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import MemberForm from '../../member-form'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
@@ -63,7 +63,7 @@ export default async function EditMemberPage({ params }: PageProps) {
     minimumAccessLevel: 'edit_manage',
   })
 
-  const { admin: supabase } = actingContext
+  const { admin: supabase, permissions } = actingContext
 
   const scopedLocalUnitIds = await findScopedLocalUnitIdsForPerson({
     supabase,
@@ -76,6 +76,31 @@ export default async function EditMemberPage({ params }: PageProps) {
       : null) ??
     scopedLocalUnitIds[0] ??
     actingContext.localUnitId
+
+  const isScopedInActiveLocalUnit = Boolean(
+    actingContext.localUnitId && scopedLocalUnitIds.includes(actingContext.localUnitId)
+  )
+
+  const { data: activeOrgAdminAssignment, error: activeOrgAdminAssignmentError } = permissions.organizationId
+    ? await supabase
+        .from('organization_admin_assignments')
+        .select('id')
+        .eq('organization_id', permissions.organizationId)
+        .eq('person_id', id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle<{ id: string }>()
+    : { data: null, error: null }
+
+  if (activeOrgAdminAssignmentError) {
+    throw new Error(`Could not verify organization admin scope for this person. ${activeOrgAdminAssignmentError.message}`)
+  }
+
+  const isExternalAdminContact = Boolean(activeOrgAdminAssignment?.id) && !isScopedInActiveLocalUnit
+
+  if (isExternalAdminContact) {
+    redirect(`/me/council/admins/${id}`)
+  }
 
   if (!preferredLocalUnitId) {
     notFound()

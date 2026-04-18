@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
@@ -10,7 +10,7 @@ import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '
 import { decryptPeopleRecord } from '@/lib/security/pii'
 
 type PageProps = { params: Promise<{ id: string }> }
-type PersonRow = { id: string; first_name: string; middle_name: string | null; last_name: string; email: string | null; cell_phone: string | null; home_phone: string | null; other_phone: string | null; address_line_1: string | null; address_line_2: string | null; city: string | null; state_province: string | null; postal_code: string | null; primary_relationship_code: string | null; council_id?: string | null; nickname?: string | null; council_activity_level_code: string | null; council_activity_context_code: string | null; council_reengagement_status_code: string | null }
+type PersonRow = { id: string; first_name: string; middle_name: string | null; last_name: string; email: string | null; cell_phone: string | null; home_phone: string | null; other_phone: string | null; address_line_1: string | null; address_line_2: string | null; city: string | null; state_province: string | null; postal_code: string | null; primary_relationship_code: string | null; council_activity_level_code: string | null; council_activity_context_code: string | null; council_reengagement_status_code: string | null }
 type MemberCustomListMembershipRow = { id: string; custom_list_id: string; claimed_by_person_id: string | null; last_contact_at: string | null; last_contact_by_person_id: string | null }
 type MemberCustomListRow = { id: string; local_unit_id: string | null; council_id: string | null; name: string; description: string | null }
 
@@ -37,38 +37,58 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const validLocalUnitPersonIds = await listValidDirectoryPersonIdsForLocalUnit({ admin: supabase, localUnitId, personIds: [id] }).catch(() => [])
   const isScopedPerson = validLocalUnitPersonIds.includes(id)
 
+  const { data: activeOrgAdminAssignment, error: activeOrgAdminAssignmentError } = permissions.organizationId
+    ? await supabase
+        .from('organization_admin_assignments')
+        .select('id')
+        .eq('organization_id', permissions.organizationId)
+        .eq('person_id', id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle<{ id: string }>()
+    : { data: null, error: null }
+
+  if (activeOrgAdminAssignmentError) {
+    throw new Error(`Could not verify organization admin scope for this person. ${activeOrgAdminAssignmentError.message}`)
+  }
+
+  if (activeOrgAdminAssignment?.id) {
+    const { data: visibleDirectoryPerson } = await supabase
+      .from('member_records')
+      .select('id')
+      .eq('local_unit_id', localUnitId)
+      .eq('legacy_people_id', id)
+      .is('archived_at', null)
+      .maybeSingle<{ id: string }>()
+
+    if (!visibleDirectoryPerson) {
+      redirect(`/me/council/admins/${id}`)
+    }
+  }
+
+  if (!isScopedPerson) {
+    notFound()
+  }
+
   const { data: organizationData } = council.organization_id ? await supabase.from('organizations').select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)').eq('id', council.organization_id).maybeSingle() : { data: null }
 
   const organization = organizationData as { display_name: string | null; preferred_name: string | null; logo_storage_path: string | null; logo_alt_text: string | null; brand_profile?: { code: string | null; display_name: string | null; logo_storage_bucket: string | null; logo_storage_path: string | null; logo_alt_text: string | null } | null } | null
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
-  const scopedPersonPromise = isScopedPerson ? supabase.from('people').select('id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code').eq('id', id).is('archived_at', null).maybeSingle<PersonRow>() : Promise.resolve({ data: null, error: null })
+  const scopedPersonPromise = supabase.from('people').select('id, first_name, middle_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code').eq('id', id).is('archived_at', null).maybeSingle<PersonRow>()
 
   const [{ data: scopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }, { data: memberRecordData, error: memberRecordError }] = await Promise.all([
     scopedPersonPromise,
     supabase.from('person_officer_terms').select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes').eq('person_id', id).eq('council_id', council.id).returns<OfficerTermRow[]>(),
     supabase.from('custom_list_members').select('id, custom_list_id, claimed_by_person_id, last_contact_at, last_contact_by_person_id').eq('person_id', id).returns<MemberCustomListMembershipRow[]>(),
-    isScopedPerson ? supabase.from('member_records').select('preferred_display_name').eq('local_unit_id', localUnitId).eq('legacy_people_id', id).is('archived_at', null).maybeSingle<{ preferred_display_name: string | null }>() : Promise.resolve({ data: null as { preferred_display_name: string | null } | null, error: null }),
+    supabase.from('member_records').select('preferred_display_name').eq('local_unit_id', localUnitId).eq('legacy_people_id', id).is('archived_at', null).maybeSingle<{ preferred_display_name: string | null }>(),
   ])
 
   if (error) return <main className="qv-page"><div className="qv-shell"><AppHeader /><section style={{ display: 'grid', gap: 14, marginTop: 12, marginBottom: 18 }}><h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em', whiteSpace: 'nowrap' }}>Person Detail</h1><p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>Review local organization contact, status, and custom list details.</p></section><div className="qv-error"><strong>Could not load person.</strong><p>{error.message}</p></div></div></main>
   if (memberRecordError) throw new Error(`Could not load the local-org member record. ${memberRecordError.message}`)
 
-  let externalAdminPersonData: PersonRow | null = null
-  if (!scopedPersonData && permissions.canManageAdmins) {
-    const { data: externalPersonData, error: externalPersonError } = await supabase.from('people').select('id, first_name, middle_name, last_name, nickname, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code, council_id').eq('id', id).is('archived_at', null).maybeSingle<PersonRow>()
-    if (externalPersonError) throw new Error(`Could not load external admin profile. ${externalPersonError.message}`)
-    if (externalPersonData) {
-      const { data: orgAdminRow } = await supabase.from('organization_admin_assignments').select('id').eq('organization_id', permissions.organizationId).eq('person_id', id).eq('is_active', true).limit(1).maybeSingle()
-      const { data: councilAdminRow } = await supabase.from('council_admin_assignments').select('id').eq('council_id', council.id).eq('person_id', id).eq('is_active', true).limit(1).maybeSingle()
-      if (orgAdminRow || councilAdminRow) externalAdminPersonData = externalPersonData
-    }
-  }
-
-  const personData = scopedPersonData ?? externalAdminPersonData
-  const person = personData ? decryptPeopleRecord(personData) : null
-  const isExternalAdminProfile = Boolean(externalAdminPersonData && !scopedPersonData)
+  const person = scopedPersonData ? decryptPeopleRecord(scopedPersonData) : null
   if (!person) notFound()
 
   const legalName = formatFullName(person)
@@ -79,7 +99,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const currentOfficerLabels = summarizeCurrentOfficerLabels(officerTerms ?? [])
   const executiveOfficerLabels = summarizeExecutiveOfficerLabels(officerTerms ?? [])
   const officerSummary = executiveOfficerLabels.length > 0 ? executiveOfficerLabels.join(', ') : currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : null
-  const relationshipLabel = isExternalAdminProfile ? 'Admin Contact' : person.primary_relationship_code === 'volunteer_only' ? 'Volunteer' : startCase(person.primary_relationship_code) ?? 'Person'
+  const relationshipLabel = person.primary_relationship_code === 'volunteer_only' ? 'Volunteer' : startCase(person.primary_relationship_code) ?? 'Person'
   const activityLevelLabel = startCase(person.council_activity_level_code)
   const activityContextLabel = startCase(person.council_activity_context_code)
   const reengagementLabel = startCase(person.council_reengagement_status_code)
@@ -138,8 +158,8 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
       <div className="qv-section-menu-shell" style={{ marginTop: -22 }}>
         <div style={{ position: 'relative', minHeight: 58, paddingInline: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {!isExternalAdminProfile ? <Link href={`/members/${person.id}/edit`} className="qv-button-secondary qv-link-button">Edit person</Link> : null}
-          {permissions.isCouncilAdmin && !isExternalAdminProfile ? <div style={{ position: 'absolute', right: 28, top: 0, bottom: 0, display: 'flex', alignItems: 'center' }}><DeleteMemberIconButton memberId={person.id} memberName={personName} /></div> : null}
+          <Link href={`/members/${person.id}/edit`} className="qv-button-secondary qv-link-button">Edit person</Link>
+          {permissions.isCouncilAdmin ? <div style={{ position: 'absolute', right: 28, top: 0, bottom: 0, display: 'flex', alignItems: 'center' }}><DeleteMemberIconButton memberId={person.id} memberName={personName} /></div> : null}
         </div>
       </div>
     </section>
