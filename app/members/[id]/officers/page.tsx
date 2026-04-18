@@ -1,7 +1,10 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import MemberOfficerServiceSection from '@/app/members/member-officer-service-section'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
+import { decryptPeopleRecord } from '@/lib/security/pii'
 import { type OfficerTermRow } from '@/lib/members/officer-roles'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -14,32 +17,53 @@ type PersonRow = {
 
 export default async function MemberOfficerTermsPage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, council } = await getCurrentActingCouncilContext({
+  const { admin: supabase, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
 
-  const { data: person } = await supabase
+  if (!localUnitId) {
+    notFound()
+  }
+
+  const validLocalUnitPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
+    admin: supabase,
+    localUnitId,
+    personIds: [id],
+  }).catch(() => [])
+
+  if (!validLocalUnitPersonIds.includes(id)) {
+    notFound()
+  }
+
+  const { data: personData, error: personError } = await supabase
     .from('people')
     .select('id, first_name, last_name')
     .eq('id', id)
-    .eq('council_id', council.id)
-    .eq('primary_relationship_code', 'member')
+    .is('archived_at', null)
     .maybeSingle<PersonRow>()
 
-  if (!person) {
-    return null
+  if (personError) {
+    throw new Error(`Could not load person officer history. ${personError.message}`)
   }
 
-  const { data: officerTerms } = await supabase
+  if (!personData) {
+    notFound()
+  }
+
+  const person = decryptPeopleRecord(personData)
+
+  const { data: officerTerms, error: officerTermsError } = await supabase
     .from('person_officer_terms')
     .select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes')
     .eq('person_id', person.id)
-    .eq('council_id', council.id)
-    .order('service_start_year', { ascending: false })
     .returns<OfficerTermRow[]>()
+
+  if (officerTermsError) {
+    throw new Error(`Could not load officer history. ${officerTermsError.message}`)
+  }
 
   return (
     <main className="qv-page">
