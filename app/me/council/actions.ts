@@ -22,6 +22,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   formatOfficerLabel,
   getOfficerRoleOption,
+  isAutomaticCouncilAdminTerm,
   type OfficerScopeCode,
 } from '@/lib/members/officer-roles'
 import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
@@ -190,6 +191,100 @@ async function saveOfficerRoleEmail(args: {
   }
 }
 
+async function personStillHasAutomaticAdmin(args: {
+  admin: ReturnType<typeof createAdminClient>
+  councilId: string
+  personId: string
+  excludeTermId?: string | null
+}) {
+  const query = args.admin
+    .from('person_officer_terms')
+    .select('id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, notes')
+    .eq('council_id', args.councilId)
+    .eq('person_id', args.personId)
+    .is('service_end_year', null)
+
+  const { data, error } = await (args.excludeTermId
+    ? query.neq('id', args.excludeTermId)
+    : query).returns<Array<{
+      id: string
+      office_scope_code: string
+      office_code: string
+      office_rank: number | null
+      service_start_year: number
+      service_end_year: number | null
+      notes: string | null
+    }>>()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return ((data ?? []) as Array<{
+    id: string
+    office_scope_code: string
+    office_code: string
+    office_rank: number | null
+    service_start_year: number
+    service_end_year: number | null
+    notes: string | null
+  }>).some((term) =>
+    isAutomaticCouncilAdminTerm({
+      id: term.id,
+      person_id: args.personId,
+      office_scope_code: term.office_scope_code as OfficerScopeCode,
+      office_code: term.office_code,
+      office_label: formatOfficerLabel({
+        scope: term.office_scope_code as OfficerScopeCode,
+        code: term.office_code,
+        rank: term.office_rank,
+      }),
+      office_rank: term.office_rank,
+      service_start_year: term.service_start_year,
+      service_end_year: term.service_end_year,
+      notes: term.notes,
+    })
+  )
+}
+
+function revalidateCouncilSurfaces() {
+  revalidatePath('/')
+  revalidatePath('/me')
+  revalidatePath('/me/council')
+  revalidatePath('/me/claim-organization')
+  revalidatePath('/members/officers')
+  revalidatePath('/super-admin/organization-claims')
+}
+
+function formatYearRange(startYear: number, endYear: number | null) {
+  if (endYear == null || endYear === startYear) {
+    return `${startYear}`
+  }
+
+  return `${startYear} to ${endYear}`
+}
+
+function rangesOverlap(
+  left: { start: number; end: number | null },
+  right: { start: number; end: number | null }
+) {
+  const leftEnd = left.end ?? Number.POSITIVE_INFINITY
+  const rightEnd = right.end ?? Number.POSITIVE_INFINITY
+
+  return left.start <= rightEnd && right.start <= leftEnd
+}
+
+function revalidateOfficerSurfaces(personId: string | null) {
+  revalidateCouncilSurfaces()
+  revalidatePath('/members')
+
+  if (personId) {
+    revalidatePath(`/members/${personId}`)
+    revalidatePath(`/members/${personId}/edit`)
+    revalidatePath(`/members/${personId}/officers`)
+  }
+}
+
 export async function saveOfficerRoleEmailAction(formData: FormData) {
   const context = await requireOrganizationSettingsAccess()
   const termId = textValue(formData, 'term_id')
@@ -234,44 +329,6 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
 
   revalidateOfficerSurfaces(term.person_id)
   redirectToCouncilPage({ notice: email ? 'Officer email saved.' : 'Officer email cleared.' })
-}
-
-function revalidateCouncilSurfaces() {
-  revalidatePath('/')
-  revalidatePath('/me')
-  revalidatePath('/me/council')
-  revalidatePath('/me/claim-organization')
-  revalidatePath('/members/officers')
-  revalidatePath('/super-admin/organization-claims')
-}
-
-function formatYearRange(startYear: number, endYear: number | null) {
-  if (endYear == null || endYear === startYear) {
-    return `${startYear}`
-  }
-
-  return `${startYear} to ${endYear}`
-}
-
-function rangesOverlap(
-  left: { start: number; end: number | null },
-  right: { start: number; end: number | null }
-) {
-  const leftEnd = left.end ?? Number.POSITIVE_INFINITY
-  const rightEnd = right.end ?? Number.POSITIVE_INFINITY
-
-  return left.start <= rightEnd && right.start <= leftEnd
-}
-
-function revalidateOfficerSurfaces(personId: string | null) {
-  revalidateCouncilSurfaces()
-  revalidatePath('/members')
-
-  if (personId) {
-    revalidatePath(`/members/${personId}`)
-    revalidatePath(`/members/${personId}/edit`)
-    revalidatePath(`/members/${personId}/officers`)
-  }
 }
 
 export async function updateCouncilDetailsAction(formData: FormData) {
@@ -446,9 +503,27 @@ export async function revokeCouncilAdminAction(formData: FormData) {
   const context = await requireOrganizationAdminManager()
   const assignmentId = textValue(formData, 'assignment_id')
   const assignmentTable = textValue(formData, 'assignment_table')
+  const personId = textValue(formData, 'person_id')
 
   if (!assignmentId) {
     redirectToCouncilPage({ error: 'We could not tell which admin assignment to remove.' })
+  }
+
+  if (personId) {
+    const admin = createAdminClient()
+    const stillAutomatic = await personStillHasAutomaticAdmin({
+      admin,
+      councilId: context.council.id,
+      personId,
+    }).catch((error) => {
+      throw error
+    })
+
+    if (stillAutomatic) {
+      redirectToCouncilPage({
+        notice: 'Manual admin access removed. Officer-derived admin access remains active.',
+      })
+    }
   }
 
   try {
@@ -512,9 +587,24 @@ export async function addOfficerTermAction(formData: FormData) {
   const resolvedOfficeScopeCode = officeScopeCode as OfficerScopeCode
   const resolvedOfficeCode = officeCode as string
   const startYear = Number(startYearValue)
-  const endYear = endYearValue ? Number(endYearValue) : null
+  const endYear =
+    endYearValue && endYearValue.toLowerCase() !== 'current'
+      ? Number(endYearValue)
+      : null
   const rank = rankValue ? Number(rankValue) : null
   const option = getOfficerRoleOption(resolvedOfficeScopeCode, resolvedOfficeCode)
+
+  if (!Number.isFinite(startYear)) {
+    redirectToCouncilPage({ error: 'Enter a valid start year before saving this officer term.' })
+  }
+
+  if (endYearValue && endYearValue.toLowerCase() !== 'current' && !Number.isFinite(endYear as number)) {
+    redirectToCouncilPage({ error: 'Enter a valid end year before saving this officer term.' })
+  }
+
+  if (endYear != null && endYear < startYear) {
+    redirectToCouncilPage({ error: 'End year cannot be earlier than the start year.' })
+  }
 
   const admin = createAdminClient()
 
@@ -588,7 +678,7 @@ export async function addOfficerTermAction(formData: FormData) {
     if (isRedirectError(emailError)) {
       throw emailError
     }
-    const message = emailError instanceof Error ? emailError.message : 'Officer term saved, but the office email could not be saved.'
+    const message = emailError instanceof Error ? error.message : 'Officer term saved, but the office email could not be saved.'
     revalidateCouncilSurfaces()
     redirectToCouncilPage({ error: `Officer term saved. ${message}` })
   }
@@ -630,7 +720,7 @@ export async function removeOfficerTermAction(formData: FormData) {
   const admin = createAdminClient()
   const { data: existingTerm, error: existingTermError } = await admin
     .from('person_officer_terms')
-    .select('id, person_id, service_end_year')
+    .select('id, person_id, office_scope_code, office_code, office_rank, service_end_year')
     .eq('id', termId)
     .eq('council_id', context.council.id)
     .maybeSingle()
@@ -659,6 +749,36 @@ export async function removeOfficerTermAction(formData: FormData) {
 
   if (error) {
     redirectToCouncilPage({ error: error.message })
+  }
+
+  if (isAutomaticCouncilAdminTerm({
+    id: existingTerm.id,
+    person_id: existingTerm.person_id,
+    office_scope_code: existingTerm.office_scope_code as OfficerScopeCode,
+    office_code: existingTerm.office_code,
+    office_label: formatOfficerLabel({
+      scope: existingTerm.office_scope_code as OfficerScopeCode,
+      code: existingTerm.office_code,
+      rank: existingTerm.office_rank ?? null,
+    }),
+    office_rank: existingTerm.office_rank ?? null,
+    service_start_year: currentYear,
+    service_end_year: null,
+    notes: null,
+  })) {
+    const stillAutomatic = await personStillHasAutomaticAdmin({
+      admin,
+      councilId: context.council.id,
+      personId: existingTerm.person_id,
+      excludeTermId: existingTerm.id,
+    }).catch((lookupError) => {
+      throw lookupError
+    })
+
+    if (!stillAutomatic) {
+      revalidateOfficerSurfaces(existingTerm.person_id)
+      redirectToCouncilPage({ notice: 'Officer term ended.' })
+    }
   }
 
   revalidateOfficerSurfaces(existingTerm.person_id)
