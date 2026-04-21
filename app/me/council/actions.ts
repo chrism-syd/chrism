@@ -545,11 +545,44 @@ export async function revokeCouncilAdminAction(formData: FormData) {
         throw new Error(error.message)
       }
     } else {
-      await deactivateOrganizationAdminAssignment({
-        assignmentId,
-        organizationId: context.permissions.organizationId!,
-        actorUserId: context.permissions.authUser!.id,
-      })
+      const admin = createAdminClient()
+      const nowIso = new Date().toISOString()
+
+      const { data: existingAssignment, error: lookupError } = await admin
+        .from('organization_admin_assignments')
+        .select('id, organization_id')
+        .eq('id', assignmentId)
+        .maybeSingle<{ id: string; organization_id: string }>()
+
+      if (lookupError) {
+        throw new Error(lookupError.message)
+      }
+
+      if (!existingAssignment) {
+        throw new Error('That organization admin assignment could not be found.')
+      }
+
+      const { data: updatedRows, error } = await admin
+        .from('organization_admin_assignments')
+        .update({
+          is_active: false,
+          revoked_at: nowIso,
+          revoked_by_user_id: context.permissions.authUser!.id,
+          revoked_notes: null,
+          updated_by_user_id: context.permissions.authUser!.id,
+          updated_at: nowIso,
+        })
+        .eq('id', assignmentId)
+        .eq('organization_id', existingAssignment.organization_id)
+        .select('id, is_active, revoked_at, updated_at')
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error('No matching organization admin assignment was updated.')
+      }
     }
   } catch (error) {
     if (isRedirectError(error)) {
@@ -642,6 +675,39 @@ export async function addOfficerTermAction(formData: FormData) {
       error:
         `This member already has ${duplicateLabel} recorded for the ${startYear} fraternal year. Refresh the page before trying again.`,
     })
+  }
+
+  if (resolvedOfficeScopeCode === 'council' && resolvedOfficeCode === 'trustee') {
+    if (rank == null || !Number.isFinite(rank)) {
+      redirectToCouncilPage({ error: 'Please choose trustee rank 1, 2, or 3 before saving.' })
+    }
+
+    if (![1, 2, 3].includes(rank)) {
+      redirectToCouncilPage({ error: 'Trustee rank must be 1, 2, or 3.' })
+    }
+
+    const { data: conflictingTrusteeTerms, error: conflictingTrusteeTermsError } = await admin
+      .from('person_officer_terms')
+      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date')
+      .eq('council_id', context.council.id)
+      .eq('office_scope_code', 'council')
+      .eq('office_code', 'trustee')
+      .eq('office_rank', rank)
+
+    if (conflictingTrusteeTermsError) {
+      redirectToCouncilPage({ error: conflictingTrusteeTermsError.message })
+    }
+
+    const activeConflictingTrustee = (conflictingTrusteeTerms ?? []).find((term) =>
+      term.person_id !== resolvedPersonId &&
+      isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true })
+    )
+
+    if (activeConflictingTrustee) {
+      redirectToCouncilPage({
+        error: `There is already an active Trustee (${rank === 1 ? '3-Year' : rank === 2 ? '2-Year' : '1-Year'}). End or rotate that trustee before assigning another.`,
+      })
+    }
   }
 
   const overlappingTerm = (existingTerms ?? []).find((term) =>

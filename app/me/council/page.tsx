@@ -509,40 +509,26 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       }]
     })
 
-  const dedupedResolvedAdmins = new Map<string, (typeof currentAdmins)[number] | (typeof implicitAutomaticAdmins)[number]>()
-
-  for (const adminRow of [...currentAdmins, ...implicitAutomaticAdmins]) {
-    const identityKey = adminRow.personId
-      ? `person:${adminRow.personId}`
-      : `label:${adminRow.label.toLowerCase()}`
-
-    const existing = dedupedResolvedAdmins.get(identityKey)
-    if (!existing) {
-      dedupedResolvedAdmins.set(identityKey, adminRow)
-      continue
-    }
-
-    if (adminRow.assignmentTable === 'council' && existing.assignmentTable !== 'council') {
-      dedupedResolvedAdmins.set(identityKey, adminRow)
-      continue
-    }
-
-    if (adminRow.assignmentTable === 'organization' && existing.assignmentTable === null) {
-      dedupedResolvedAdmins.set(identityKey, adminRow)
-    }
-  }
-
-  const sortedAdmins = [...dedupedResolvedAdmins.values()].sort((left, right) => {
+  const sortedAdmins = [...currentAdmins, ...implicitAutomaticAdmins].sort((left, right) => {
     if (left.sortPriority !== right.sortPriority) return left.sortPriority - right.sortPriority
-    return left.label.localeCompare(right.label)
+    if (left.label !== right.label) return left.label.localeCompare(right.label)
+
+    const leftIsManual = left.assignmentTable !== null
+    const rightIsManual = right.assignmentTable !== null
+    if (leftIsManual !== rightIsManual) return leftIsManual ? -1 : 1
+
+    return left.id.localeCompare(right.id)
   })
 
   const adminCards: AdminCarouselItem[] = sortedAdmins.map((adminRow) => {
-    const roleLabel = adminRow.automaticAdminLabels.length > 0
-      ? `${adminRow.automaticAdminLabels.join(', ')} admin`
-      : adminRow.currentOfficerLabels.length > 0
-        ? `${adminRow.currentOfficerLabels[0]} admin`
-        : 'Organization admin'
+    const isManualAssignment = adminRow.assignmentTable !== null
+    const roleLabel = isManualAssignment
+      ? 'Organization admin'
+      : adminRow.automaticAdminLabels.length > 0
+        ? `${adminRow.automaticAdminLabels.join(', ')} admin`
+        : adminRow.currentOfficerLabels.length > 0
+          ? `${adminRow.currentOfficerLabels[0]} admin`
+          : 'Organization admin'
 
     const removeDescription = adminRow.automaticAdminLabels.length > 0
       ? `This removes the manual assignment for ${adminRow.label}, but their current officer role will still keep admin access active.`
