@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   summarizeCurrentOfficerLabels,
   summarizeExecutiveOfficerLabels,
+  getKnightsOfColumbusFraternalYearForDate,
+  isOfficerTermActive,
   type OfficerTermRow,
 } from '@/lib/members/officer-roles'
 import { decryptPeopleRecords } from '@/lib/security/pii'
@@ -59,14 +61,28 @@ function buildDirectoryData(args: {
   const currentOfficerLabelsById: Record<string, string[]> = Object.fromEntries(
     uniquePersonIds.map((personId) => [
       personId,
-      summarizeCurrentOfficerLabels(officerTerms.filter((term) => term.person_id === personId)),
+      summarizeCurrentOfficerLabels(
+        officerTerms.filter(
+          (term) =>
+            term.person_id === personId &&
+            isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true })
+        ),
+        getKnightsOfColumbusFraternalYearForDate()
+      ),
     ] as const)
   )
 
   const executiveOfficerLabelsById: Record<string, string[]> = Object.fromEntries(
     uniquePersonIds.map((personId) => [
       personId,
-      summarizeExecutiveOfficerLabels(officerTerms.filter((term) => term.person_id === personId)),
+      summarizeExecutiveOfficerLabels(
+        officerTerms.filter(
+          (term) =>
+            term.person_id === personId &&
+            isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true })
+        ),
+        getKnightsOfColumbusFraternalYearForDate()
+      ),
     ] as const)
   )
 
@@ -103,7 +119,7 @@ export async function loadCouncilMemberDirectoryData(args: {
       .returns<Array<Omit<DirectoryPerson, 'preferred_display_name'>>>(),
     admin
       .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes')
+      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
       .eq('council_id', councilId)
       .returns<OfficerTermWithPerson[]>(),
   ])
@@ -156,22 +172,6 @@ export async function loadLocalUnitMemberDirectoryData(args: {
     }
   }
 
-  const { data: externalAdminAssignments, error: externalAdminAssignmentsError } = await admin
-    .from('organization_admin_assignments')
-    .select('person_id')
-    .eq('is_active', true)
-    .in('person_id', personIds)
-
-  if (externalAdminAssignmentsError) {
-    throw new Error(`Could not load external admin assignments for this local unit. ${externalAdminAssignmentsError.message}`)
-  }
-
-  const externalAdminPersonIdSet = new Set(
-    ((externalAdminAssignments as Array<{ person_id: string | null }> | null) ?? [])
-      .map((row) => row.person_id)
-      .filter((value): value is string => Boolean(value))
-  )
-
   const localUnit = (localUnitData as DirectoryLocalUnitRow | null) ?? null
 
   const [{ data: peopleData, error: peopleError }, { data: officerTermsData, error: officerTermsError }] = await Promise.all([
@@ -189,7 +189,7 @@ export async function loadLocalUnitMemberDirectoryData(args: {
     localUnit?.legacy_council_id
       ? admin
           .from('person_officer_terms')
-          .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes')
+          .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
           .eq('council_id', localUnit.legacy_council_id)
           .returns<OfficerTermWithPerson[]>()
       : Promise.resolve({ data: [] as OfficerTermWithPerson[], error: null }),
@@ -200,7 +200,6 @@ export async function loadLocalUnitMemberDirectoryData(args: {
 
   return buildDirectoryData({
     people: decryptPeopleRecords<Omit<DirectoryPerson, 'preferred_display_name'>>(peopleData ?? [])
-      .filter((person) => !externalAdminPersonIdSet.has(person.id))
       .map((person) => ({
         ...person,
         preferred_display_name: preferredNameByPersonId.get(person.id) ?? null,

@@ -32,6 +32,7 @@ export type OfficerTermRow = {
   office_rank: number | null
   service_start_year: number
   service_end_year: number | null
+  manual_end_effective_date?: string | null
   notes: string | null
 }
 
@@ -174,8 +175,16 @@ export function getOfficerRoleOption(
   )
 }
 
+function getCurrentDateParts() {
+  const now = new Date()
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  }
+}
+
 function getCurrentYear() {
-  return new Date().getFullYear()
+  return getCurrentDateParts().year
 }
 
 function toTitleCase(value: string) {
@@ -243,11 +252,32 @@ export function formatHonorificLabel(value: HonorificInput) {
   return normalized
 }
 
-export function isCurrentOfficerTerm(term: OfficerTermRow, referenceYear = getCurrentYear()) {
+export function getKnightsOfColumbusFraternalYearForDate(referenceDate = new Date()) {
+  const year = referenceDate.getFullYear()
+  const month = referenceDate.getMonth() + 1
+  return month >= 7 ? year : year - 1
+}
+
+export function isCurrentOfficerTerm(
+  term: OfficerTermRow,
+  referenceYear = getCurrentYear()
+) {
   return term.service_start_year <= referenceYear && (term.service_end_year == null || term.service_end_year >= referenceYear)
 }
 
-export const isOfficerTermCurrent = isCurrentOfficerTerm
+export function isOfficerTermCurrent(
+  term: OfficerTermRow,
+  options?: {
+    currentYear?: number
+    useKnightsOfColumbusFraternalYear?: boolean
+  }
+) {
+  const currentYear =
+    options?.currentYear ??
+    (options?.useKnightsOfColumbusFraternalYear ? getKnightsOfColumbusFraternalYearForDate() : getCurrentYear())
+
+  return isCurrentOfficerTerm(term, currentYear)
+}
 
 export function isExecutiveCommitteeOffice(
   officeScopeCode: OfficerScopeCode,
@@ -316,28 +346,32 @@ export function summarizeCurrentOfficerLabels(
   terms: OfficerTermRow[],
   referenceYear = getCurrentYear()
 ) {
-  return terms
-    .filter((term) => isCurrentOfficerTerm(term, referenceYear))
-    .sort((a, b) => {
-      const aLabel = formatOfficerLabel(a)
-      const bLabel = formatOfficerLabel(b)
-      return aLabel.localeCompare(bLabel)
-    })
-    .map((term) => formatOfficerLabel(term))
+  return [...new Set(
+    terms
+      .filter((term) => isCurrentOfficerTerm(term, referenceYear))
+      .sort((a, b) => {
+        const aLabel = formatOfficerLabel(a)
+        const bLabel = formatOfficerLabel(b)
+        return aLabel.localeCompare(bLabel)
+      })
+      .map((term) => formatOfficerLabel(term))
+  )]
 }
 
 export function summarizeExecutiveOfficerLabels(
   terms: OfficerTermRow[],
   referenceYear = getCurrentYear()
 ) {
-  return terms
-    .filter((term) => isCurrentOfficerTerm(term, referenceYear) && isExecutiveCommitteeTerm(term))
-    .sort((a, b) => {
-      const aLabel = formatOfficerLabel(a)
-      const bLabel = formatOfficerLabel(b)
-      return aLabel.localeCompare(bLabel)
-    })
-    .map((term) => formatOfficerLabel(term))
+  return [...new Set(
+    terms
+      .filter((term) => isCurrentOfficerTerm(term, referenceYear) && isExecutiveCommitteeTerm(term))
+      .sort((a, b) => {
+        const aLabel = formatOfficerLabel(a)
+        const bLabel = formatOfficerLabel(b)
+        return aLabel.localeCompare(bLabel)
+      })
+      .map((term) => formatOfficerLabel(term))
+  )]
 }
 
 export function summarizeLastingHonorifics(terms: OfficerTermRow[]) {
@@ -372,4 +406,44 @@ export function summarizeHonorificSuffixes(terms: OfficerTermRow[]) {
   }
 
   return [...suffixes].sort((a, b) => a.localeCompare(b))
+}
+
+
+export function isOfficerTermActiveAtDate(
+  term: OfficerTermRow,
+  options?: {
+    referenceDate?: Date
+    useKnightsOfColumbusFraternalYear?: boolean
+  }
+) {
+  const referenceDate = options?.referenceDate ?? new Date()
+  const referenceYear = options?.useKnightsOfColumbusFraternalYear
+    ? getKnightsOfColumbusFraternalYearForDate(referenceDate)
+    : referenceDate.getFullYear()
+
+  const inNaturalWindow =
+    term.service_start_year <= referenceYear &&
+    (term.service_end_year == null || term.service_end_year >= referenceYear)
+
+  if (!inNaturalWindow) {
+    return false
+  }
+
+  if (!term.manual_end_effective_date) {
+    return true
+  }
+
+  const manualEnd = new Date(`${term.manual_end_effective_date}T00:00:00`)
+  return manualEnd.getTime() > referenceDate.getTime()
+}
+
+export function isOfficerTermActive(
+  term: OfficerTermRow,
+  options?: {
+    referenceDate?: Date
+    useKnightsOfColumbusFraternalYear?: boolean
+  }
+) {
+  return isOfficerTermActiveAtDate(term, options)
+
 }

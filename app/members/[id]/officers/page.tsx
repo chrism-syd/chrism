@@ -5,7 +5,7 @@ import MemberOfficerServiceSection from '@/app/members/member-officer-service-se
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { decryptPeopleRecord } from '@/lib/security/pii'
-import { type OfficerTermRow } from '@/lib/members/officer-roles'
+import { isOfficerTermActive, type OfficerTermRow } from '@/lib/members/officer-roles'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -57,7 +57,7 @@ export default async function MemberOfficerTermsPage({ params }: PageProps) {
 
   const { data: officerTerms, error: officerTermsError } = await supabase
     .from('person_officer_terms')
-    .select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes')
+    .select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
     .eq('person_id', person.id)
     .returns<OfficerTermRow[]>()
 

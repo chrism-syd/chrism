@@ -5,6 +5,7 @@ import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
 import {
   formatHonorificLabel,
   formatOfficerLabel,
+  isOfficerTermActive,
   type OfficerScopeCode,
 } from '@/lib/members/officer-roles';
 import { loadLocalUnitMemberDirectoryData, type DirectoryPerson } from '@/lib/members/directory-data';
@@ -22,6 +23,7 @@ type OfficerTermRow = {
   office_rank: number | null;
   service_start_year: number;
   service_end_year: number | null;
+  manual_end_effective_date: string | null;
 };
 
 function normalize(value: string | null | undefined) {
@@ -121,7 +123,7 @@ export default async function OfficersPage() {
   const [{ data: termData }, { data: organizationData }, directoryData] = await Promise.all([
     admin
       .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year')
+      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date')
       .eq('council_id', council.id)
       .order('service_start_year', { ascending: false }),
     permissions.organizationId
@@ -152,7 +154,16 @@ export default async function OfficersPage() {
   const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) => peopleById.has(term.person_id));
   const organization = (organizationData as OrganizationBrandingRecord | null) ?? null;
 
-  const currentTerms = terms.filter((term) => term.service_end_year == null);
+  const currentTerms = Array.from(
+    new Map(
+      terms
+        .filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
+        .map((term) => [
+          `${term.person_id}:${term.office_scope_code}:${term.office_code}:${term.office_rank ?? 'none'}`,
+          term,
+        ])
+    ).values()
+  );
   const honorificGroups = buildHonorificGroups(terms);
   const organizationLabel = getOrganizationContextLabel({
     organization,

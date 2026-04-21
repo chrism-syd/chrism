@@ -18,7 +18,10 @@ import {
 } from './actions'
 import {
   formatOfficerLabel,
+  getKnightsOfColumbusFraternalYearForDate,
   isAutomaticCouncilAdminTerm,
+  isOfficerTermCurrent,
+  isOfficerTermActive,
   OFFICER_ROLE_OPTIONS,
   type OfficerScopeCode,
 } from '@/lib/members/officer-roles'
@@ -245,9 +248,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .order('created_at', { ascending: true }),
     admin
       .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, office_label')
+      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
       .eq('council_id', council.id)
-      .is('service_end_year', null)
       .order('service_start_year', { ascending: false }),
     admin
       .from('officer_role_emails')
@@ -287,9 +289,10 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       : [],
   ])
 
+  const currentFraternalYear = getKnightsOfColumbusFraternalYearForDate()
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
   const legacyCouncilAssignments = (legacyCouncilAssignmentData as LegacyCouncilAdminAssignmentRow[] | null) ?? []
-  const officerTerms = (officerData as OfficerTermRow[] | null) ?? []
+  const officerTerms = ((officerData as OfficerTermRow[] | null) ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
   const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
   const pendingInvitations = (pendingInvitationData as PendingInvitationRow[] | null) ?? []
   const organization = (organizationData as OrganizationRow | null) ?? null
@@ -593,7 +596,16 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     email: null,
   }
 
-  const sortedOfficerTerms = [...officerTerms].sort((left, right) => {
+  const dedupedOfficerTerms = Array.from(
+    new Map(
+      officerTerms.map((term) => [
+        `${term.person_id}:${term.office_scope_code}:${term.office_code}:${term.office_rank ?? 'none'}`,
+        term,
+      ])
+    ).values()
+  )
+
+  const sortedOfficerTerms = [...dedupedOfficerTerms].sort((left, right) => {
     const priorityDifference = officeSortPriority(left) - officeSortPriority(right)
     if (priorityDifference !== 0) return priorityDifference
     const leftName = memberName(personById.get(left.person_id) ?? fallbackMember)

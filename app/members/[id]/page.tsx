@@ -5,7 +5,7 @@ import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { formatDate, listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
-import { summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
+import { getKnightsOfColumbusFraternalYearForDate, isOfficerTermActive, summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 
@@ -16,7 +16,7 @@ type MemberCustomListRow = { id: string; local_unit_id: string | null; council_i
 
 function formatAddress(person: Pick<PersonRow, 'address_line_1' | 'address_line_2' | 'city' | 'state_province' | 'postal_code'>) {
   const line1 = [person.address_line_1, person.address_line_2].filter(Boolean).join(', ')
-  const line2 = [person.city, person.state_province, person.postal_code].filter(Boolean).join(', ')
+  const line2 = [person.city, person.state_province, person.postal_code].filter(Boolean).join(' • ')
   return [line1, line2].filter(Boolean).join(' • ')
 }
 function startCase(value: string | null) { if (!value) return null; return value.split('_').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ') }
@@ -80,7 +80,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
   const [{ data: scopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }, { data: memberRecordData, error: memberRecordError }] = await Promise.all([
     scopedPersonPromise,
-    supabase.from('person_officer_terms').select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, notes').eq('person_id', id).eq('council_id', council.id).returns<OfficerTermRow[]>(),
+    supabase.from('person_officer_terms').select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes').eq('person_id', id).eq('council_id', council.id).returns<OfficerTermRow[]>(),
     supabase.from('custom_list_members').select('id, custom_list_id, claimed_by_person_id, last_contact_at, last_contact_by_person_id').eq('person_id', id).returns<MemberCustomListMembershipRow[]>(),
     supabase.from('member_records').select('preferred_display_name').eq('local_unit_id', localUnitId).eq('legacy_people_id', id).is('archived_at', null).maybeSingle<{ preferred_display_name: string | null }>(),
   ])
@@ -96,8 +96,10 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const personName = formatDisplayName({ firstName: person.first_name, lastName: person.last_name, preferredDisplayName })
   const showLegalName = normalize(personName) !== normalize(legalName)
   const address = formatAddress(person)
-  const currentOfficerLabels = summarizeCurrentOfficerLabels(officerTerms ?? [])
-  const executiveOfficerLabels = summarizeExecutiveOfficerLabels(officerTerms ?? [])
+  const currentFraternalYear = getKnightsOfColumbusFraternalYearForDate()
+  const activeOfficerTerms = (officerTerms ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
+  const currentOfficerLabels = summarizeCurrentOfficerLabels(activeOfficerTerms, currentFraternalYear)
+  const executiveOfficerLabels = summarizeExecutiveOfficerLabels(activeOfficerTerms, currentFraternalYear)
   const officerSummary = executiveOfficerLabels.length > 0 ? executiveOfficerLabels.join(', ') : currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : null
   const relationshipLabel = person.primary_relationship_code === 'volunteer_only' ? 'Volunteer' : startCase(person.primary_relationship_code) ?? 'Person'
   const activityLevelLabel = startCase(person.council_activity_level_code)
