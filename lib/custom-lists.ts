@@ -450,17 +450,24 @@ export async function listValidDirectoryPeopleForLocalUnit(args: {
     throw new Error(`Could not load preferred display names for this local unit. ${memberRecordError.message}`)
   }
 
+  const activeLocalRosterPersonIds = new Set<string>()
   const preferredDisplayNameByPersonId = new Map<string, string | null>()
   for (const row of ((memberRecordRows as Array<{ legacy_people_id: string | null; preferred_display_name: string | null }> | null) ?? [])) {
-    if (row.legacy_people_id && !preferredDisplayNameByPersonId.has(row.legacy_people_id)) {
+    if (!row.legacy_people_id) continue
+
+    activeLocalRosterPersonIds.add(row.legacy_people_id)
+
+    if (!preferredDisplayNameByPersonId.has(row.legacy_people_id)) {
       preferredDisplayNameByPersonId.set(row.legacy_people_id, row.preferred_display_name ?? null)
     }
   }
 
-  return decryptPeopleRecords((peopleRows as Array<Omit<CustomListPersonSummaryRow, 'preferred_display_name'>> | null) ?? []).map((person) => ({
-    ...person,
-    preferred_display_name: preferredDisplayNameByPersonId.get(person.id) ?? null,
-  }))
+  return decryptPeopleRecords((peopleRows as Array<Omit<CustomListPersonSummaryRow, 'preferred_display_name'>> | null) ?? [])
+    .filter((person) => activeLocalRosterPersonIds.has(person.id))
+    .map((person) => ({
+      ...person,
+      preferred_display_name: preferredDisplayNameByPersonId.get(person.id) ?? null,
+    }))
 }
 
 export async function listValidMemberPersonIdsForLocalUnit(args: {
