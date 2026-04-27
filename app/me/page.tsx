@@ -241,6 +241,7 @@ export default async function MyProfilePage() {
     ...new Set(
       [
         ...affiliationMemberships.map((membership) => membership.organization_id),
+        ...permissions.availableContexts.map((context) => context.organizationId),
         permissions.organizationId ?? null,
       ].filter((value): value is string => Boolean(value))
     ),
