@@ -134,11 +134,26 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
 
   const sharedScopeLocalUnitId = activeManageLocalUnitId ?? previewScopedLocalUnitId
 
-  const realSharedListIds = await listExplicitlySharedCustomListIdsForUser({
-    admin,
-    permissions,
-    localUnitId: sharedScopeLocalUnitId,
-  })
+  const shouldIncludeSharedLists = !activeManageLocalUnitId
+
+  const scopedSharedListIds = shouldIncludeSharedLists
+    ? await listExplicitlySharedCustomListIdsForUser({
+        admin,
+        permissions,
+        localUnitId: sharedScopeLocalUnitId,
+      })
+    : []
+
+  const fallbackSharedListIds =
+    shouldIncludeSharedLists && scopedSharedListIds.length === 0
+      ? await listExplicitlySharedCustomListIdsForUser({
+          admin,
+          permissions,
+          localUnitId: null,
+        })
+      : []
+
+  const realSharedListIds = scopedSharedListIds.length > 0 ? scopedSharedListIds : fallbackSharedListIds
 
   const sharedListIds = isPreviewAdminMode ? [] : realSharedListIds
 

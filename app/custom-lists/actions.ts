@@ -494,7 +494,11 @@ export async function shareCustomListAction(formData: FormData) {
   })
   const scopedPersonIds = [...new Set(scopedPersonIdMap.values())]
 
-  const [{ data: peopleRows, error: peopleError }, { data: linkedUserRows, error: linkedUserError }] = await Promise.all([
+  const [
+    { data: peopleRows, error: peopleError },
+    { data: linkedUserRows, error: linkedUserError },
+    { data: memberRecordRows, error: memberRecordError },
+  ] = await Promise.all([
     scopedPersonIds.length > 0
       ? admin
           .from('people')
@@ -508,6 +512,14 @@ export async function shareCustomListAction(formData: FormData) {
           .select('id, person_id')
           .in('person_id', scopedPersonIds)
       : Promise.resolve({ data: [] as Array<{ id: string; person_id: string | null }>, error: null }),
+    scopedPersonIds.length > 0
+      ? admin
+          .from('member_records')
+          .select('id, legacy_people_id')
+          .eq('local_unit_id', localUnitId)
+          .is('archived_at', null)
+          .in('legacy_people_id', scopedPersonIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; legacy_people_id: string | null }>, error: null }),
   ])
 
   if (peopleError) {
@@ -518,10 +530,54 @@ export async function shareCustomListAction(formData: FormData) {
     throw new Error(`Could not load linked user accounts for sharing. ${linkedUserError.message}`)
   }
 
+  if (memberRecordError) {
+    throw new Error(`Could not load linked member records for sharing. ${memberRecordError.message}`)
+  }
+
   const linkedUserIdByPersonId = new Map<string, string>()
   for (const row of ((linkedUserRows as Array<{ id: string; person_id: string | null }> | null) ?? [])) {
     if (row.person_id) {
       linkedUserIdByPersonId.set(row.person_id, row.id)
+    }
+  }
+
+  const memberRecordIdByPersonId = new Map<string, string>()
+  for (const row of ((memberRecordRows as Array<{ id: string; legacy_people_id: string | null }> | null) ?? [])) {
+    if (row.legacy_people_id && !memberRecordIdByPersonId.has(row.legacy_people_id)) {
+      memberRecordIdByPersonId.set(row.legacy_people_id, row.id)
+    }
+  }
+
+  const memberRecordIds = [...new Set(memberRecordIdByPersonId.values())]
+  const memberRecordIdByLinkedUserId = new Map<string, string>()
+  if (memberRecordIds.length > 0) {
+    const { data: relationshipRows, error: relationshipError } = await admin
+      .from('user_unit_relationships')
+      .select('user_id, member_record_id')
+      .eq('local_unit_id', localUnitId)
+      .eq('status', 'active')
+      .is('ended_at', null)
+      .in('member_record_id', memberRecordIds)
+
+    if (relationshipError) {
+      throw new Error(`Could not load linked local user relationships for sharing. ${relationshipError.message}`)
+    }
+
+    const userIdByMemberRecordId = new Map<string, string>()
+    for (const row of ((relationshipRows as Array<{ user_id: string | null; member_record_id: string | null }> | null) ?? [])) {
+      if (row.user_id && row.member_record_id) {
+        userIdByMemberRecordId.set(row.member_record_id, row.user_id)
+      }
+    }
+
+    for (const [personId, memberRecordId] of memberRecordIdByPersonId.entries()) {
+      const linkedUserId = userIdByMemberRecordId.get(memberRecordId)
+      if (linkedUserId) {
+        memberRecordIdByLinkedUserId.set(linkedUserId, memberRecordId)
+      }
+      if (linkedUserId && !linkedUserIdByPersonId.has(personId)) {
+        linkedUserIdByPersonId.set(personId, linkedUserId)
+      }
     }
   }
 
@@ -541,7 +597,68 @@ export async function shareCustomListAction(formData: FormData) {
     ...new Set(payload.map((row) => row.user_id).filter((value): value is string => Boolean(value))),
   ]
 
-  for (const targetUserId of targetUserIds) {
+  const directlyGrantableUserIds = targetUserIds.filter((targetUserId) => memberRecordIdByLinkedUserId.has(targetUserId))
+  const rpcGrantUserIds = targetUserIds.filter((targetUserId) => !memberRecordIdByLinkedUserId.has(targetUserId))
+
+  if (directlyGrantableUserIds.length > 0) {
+    const directGrantRows = directlyGrantableUserIds.map((targetUserId) => ({
+      local_unit_id: localUnitId,
+      member_record_id: memberRecordIdByLinkedUserId.get(targetUserId) as string,
+      resource_type: 'custom_list',
+      resource_key: customListId,
+      access_level: 'interact',
+      source_code: 'manual',
+      granted_at: new Date().toISOString(),
+      revoked_at: null,
+      created_by_auth_user_id: permissions.authUser?.id ?? null,
+      updated_by_auth_user_id: permissions.authUser?.id ?? null,
+      updated_at: new Date().toISOString(),
+    }))
+
+    for (const directGrantRow of directGrantRows) {
+      const { data: existingGrant, error: existingGrantError } = await admin
+        .from('resource_access_grants')
+        .select('id')
+        .eq('local_unit_id', directGrantRow.local_unit_id)
+        .eq('member_record_id', directGrantRow.member_record_id)
+        .eq('resource_type', directGrantRow.resource_type)
+        .eq('resource_key', directGrantRow.resource_key)
+        .maybeSingle<{ id: string }>()
+
+      if (existingGrantError) {
+        throw new Error(`Could not check existing custom list access right now. ${existingGrantError.message}`)
+      }
+
+      if (existingGrant?.id) {
+        const { error: directGrantUpdateError } = await admin
+          .from('resource_access_grants')
+          .update({
+            access_level: directGrantRow.access_level,
+            source_code: directGrantRow.source_code,
+            granted_at: directGrantRow.granted_at,
+            expires_at: null,
+            revoked_at: null,
+            updated_by_auth_user_id: directGrantRow.updated_by_auth_user_id,
+            updated_at: directGrantRow.updated_at,
+          })
+          .eq('id', existingGrant.id)
+
+        if (directGrantUpdateError) {
+          throw new Error(`Could not update custom list access right now. ${directGrantUpdateError.message}`)
+        }
+      } else {
+        const { error: directGrantInsertError } = await admin
+          .from('resource_access_grants')
+          .insert(directGrantRow)
+
+        if (directGrantInsertError) {
+          throw new Error(`Could not grant custom list access right now. ${directGrantInsertError.message}`)
+        }
+      }
+    }
+  }
+
+  for (const targetUserId of rpcGrantUserIds) {
     const { error: grantError } = await admin.rpc('grant_parallel_custom_list_access_to_user', {
       p_actor_user_id: permissions.authUser?.id ?? null,
       p_target_user_id: targetUserId,
