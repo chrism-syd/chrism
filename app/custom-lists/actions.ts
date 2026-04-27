@@ -1013,41 +1013,25 @@ export async function logCustomListContactAction(formData: FormData) {
 
   const { data: memberRow, error: memberError } = await admin
     .from('custom_list_members')
-    .select('id, claimed_by_person_id')
+    .select('id')
     .eq('id', customListMemberId)
     .eq('custom_list_id', customListId)
-    .maybeSingle<{ id: string; claimed_by_person_id: string | null }>()
+    .maybeSingle<{ id: string }>()
 
   if (memberError || !memberRow) {
     throw new Error('We could not find that list member.')
   }
 
-  if (memberRow.claimed_by_person_id && memberRow.claimed_by_person_id !== permissions.personId) {
-    throw new Error('This member is already claimed by someone else on the list.')
-  }
-
   const now = new Date().toISOString()
   const contactDate = parseContactDateInput(String(formData.get('contact_date') ?? ''))
-  const payload: {
-    claimed_by_person_id: string
-    claimed_at?: string
-    last_contact_at: string
-    last_contact_by_person_id: string
-    updated_at: string
-  } = {
-    claimed_by_person_id: permissions.personId,
-    last_contact_at: contactDate,
-    last_contact_by_person_id: permissions.personId,
-    updated_at: now,
-  }
-
-  if (!memberRow.claimed_by_person_id) {
-    payload.claimed_at = now
-  }
 
   const { error } = await admin
     .from('custom_list_members')
-    .update(payload)
+    .update({
+      last_contact_at: contactDate,
+      last_contact_by_person_id: permissions.personId,
+      updated_at: now,
+    })
     .eq('id', customListMemberId)
     .eq('custom_list_id', customListId)
 
