@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CurrentUserPermissions } from '@/lib/auth/permissions'
-import { findLocalUnitByLegacyCouncilId, hasAreaAccess } from '@/lib/auth/area-access'
+import { findLocalUnitByLegacyCouncilId, hasAreaAccess, listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { hasResourceAccess, listAccessibleCustomListIdsForUser } from '@/lib/auth/resource-access'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 
@@ -224,44 +224,16 @@ export async function listManageableLocalUnitIdsForCustomLists(args: {
   const authUserId = args.permissions.authUser?.id
   if (!authUserId) return [] as string[]
 
-  const { data: relationshipRows, error: relationshipError } = await args.admin
-    .from('user_unit_relationships')
-    .select('local_unit_id, member_record_id')
-    .eq('user_id', authUserId)
-    .eq('status', 'active')
-
-  if (relationshipError) {
-    throw new Error(`Could not load custom list relationships: ${relationshipError.message}`)
-  }
-
-  const relationshipData =
-    ((relationshipRows as Array<{ local_unit_id: string; member_record_id: string | null }> | null) ?? []).filter(
-      (row) => Boolean(row.member_record_id),
-    )
-
-  const memberRecordIds = relationshipData
-    .map((row) => row.member_record_id)
-    .filter((value): value is string => Boolean(value))
-
-  if (memberRecordIds.length === 0) {
-    return [] as string[]
-  }
-
-  const { data: grantRows, error: grantError } = await args.admin
-    .from('area_access_grants')
-    .select('local_unit_id')
-    .eq('area_code', 'custom_lists')
-    .eq('access_level', 'manage')
-    .is('revoked_at', null)
-    .in('member_record_id', memberRecordIds)
-
-  if (grantError) {
-    throw new Error(`Could not load custom list management grants: ${grantError.message}`)
-  }
+  const rows = await listAccessibleLocalUnitsForArea({
+    admin: args.admin as ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>,
+    userId: authUserId,
+    areaCode: 'custom_lists',
+    minimumAccessLevel: 'manage',
+  })
 
   return [
     ...new Set(
-      ((grantRows as Array<{ local_unit_id: string }> | null) ?? [])
+      rows
         .map((row) => row.local_unit_id)
         .filter(Boolean),
     ),

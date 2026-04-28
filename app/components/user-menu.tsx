@@ -64,7 +64,7 @@ export default function UserMenu({ links, email, accessContext, devMode, operati
 
           {operationsScopeSwitcher ? <OperationsScopeSwitcher switchableAreas={operationsScopeSwitcher} /> : null}
 
-          {accessContext && accessContext.contexts.length > 1 && devMode ? (
+          {accessContext && accessContext.contexts.length > 1 ? (
             <>
               <div className="qv-user-menu-divider" />
               <AccessContextSwitcher
