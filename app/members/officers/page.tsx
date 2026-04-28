@@ -6,7 +6,7 @@ import {
   formatHonorificLabel,
   formatOfficerLabel,
   isOfficerTermActive,
-  type OfficerScopeCode,
+  type OfficerTermRow,
 } from '@/lib/members/officer-roles';
 import { loadLocalUnitMemberDirectoryData, type DirectoryPerson } from '@/lib/members/directory-data';
 import {
@@ -14,17 +14,6 @@ import {
   getOrganizationContextLabel,
   type OrganizationBrandingRecord,
 } from '@/lib/organizations/names';
-
-type OfficerTermRow = {
-  id: string;
-  person_id: string;
-  office_scope_code: OfficerScopeCode;
-  office_code: string;
-  office_rank: number | null;
-  service_start_year: number;
-  service_end_year: number | null;
-  manual_end_effective_date: string | null;
-};
 
 function normalize(value: string | null | undefined) {
   return (value ?? '').trim().toLowerCase();
@@ -123,7 +112,7 @@ export default async function OfficersPage() {
   const [{ data: termData }, { data: organizationData }, directoryData] = await Promise.all([
     admin
       .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date')
+      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
       .eq('council_id', council.id)
       .order('service_start_year', { ascending: false }),
     permissions.organizationId
@@ -151,7 +140,10 @@ export default async function OfficersPage() {
 
   const people = directoryData.members;
   const peopleById = new Map(people.map((person) => [person.id, person]));
-  const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) => peopleById.has(term.person_id));
+  const terms = ((termData as OfficerTermRow[] | null) ?? []).filter(
+    (term): term is OfficerTermRow & { person_id: string } =>
+      typeof term.person_id === 'string' && peopleById.has(term.person_id)
+  );
   const organization = (organizationData as OrganizationBrandingRecord | null) ?? null;
 
   const currentTerms = Array.from(

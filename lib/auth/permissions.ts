@@ -223,18 +223,20 @@ function createFullManagementCapabilities(): ParallelUnitCapabilities {
 function mergeCapabilities(
   ...capabilities: Array<ParallelUnitCapabilities | null | undefined>
 ): ParallelUnitCapabilities {
-  return capabilities.reduce(
-    (merged, current) => ({
-      members: merged.members || Boolean(current?.members),
-      events: merged.events || Boolean(current?.events),
-      eventResource: merged.eventResource || Boolean(current?.eventResource),
-      customLists: merged.customLists || Boolean(current?.customLists),
-      claims: merged.claims || Boolean(current?.claims),
-      admins: merged.admins || Boolean(current?.admins),
-      localUnitSettings: merged.localUnitSettings || Boolean(current?.localUnitSettings),
-    }),
-    createEmptyParallelUnitCapabilities()
-  )
+  return capabilities
+    .filter((capability): capability is ParallelUnitCapabilities => Boolean(capability))
+    .reduce<ParallelUnitCapabilities>(
+      (merged, current) => ({
+        members: merged.members || current.members,
+        events: merged.events || current.events,
+        eventResource: merged.eventResource || current.eventResource,
+        customLists: merged.customLists || current.customLists,
+        claims: merged.claims || current.claims,
+        admins: merged.admins || current.admins,
+        localUnitSettings: merged.localUnitSettings || current.localUnitSettings,
+      }),
+      createEmptyParallelUnitCapabilities()
+    )
 }
 
 function pickPreferredLocalUnitId(args: {

@@ -174,21 +174,11 @@ export default function AccountSummarySection({
 }) {
   const [state, action, isPending] = useActionState(submitProfileChangeRequest, initialState);
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
-  const [dismissedRejectedNoticeKeys, setDismissedRejectedNoticeKeys] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setDismissedRejectedNoticeKeys(loadDismissedRejectedNotices());
-  }, []);
+  const [dismissedRejectedNoticeKeys, setDismissedRejectedNoticeKeys] = useState<Set<string>>(() => loadDismissedRejectedNotices());
 
   const isEditing = useMemo(() => Object.values(editingFields).some(Boolean), [editingFields]);
   const pendingSubmission = useMemo(() => hasPendingSubmission(pendingValues), [pendingValues]);
   const lockEditing = state.status === 'success' || pendingSubmission;
-
-  useEffect(() => {
-    if (lockEditing && Object.keys(editingFields).length > 0) {
-      setEditingFields({});
-    }
-  }, [lockEditing, editingFields]);
 
   function enableField(field: string) {
     if (lockEditing || isPending) return;

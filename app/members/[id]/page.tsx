@@ -34,7 +34,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({ redirectTo: '/members', areaCode: 'members', minimumAccessLevel: 'edit_manage' })
   if (!localUnitId) notFound()
 
-  const validLocalUnitPersonIds = await listValidDirectoryPersonIdsForLocalUnit({ admin: supabase, localUnitId, personIds: [id] }).catch(() => [])
+  const validLocalUnitPersonIds = await listValidDirectoryPersonIdsForLocalUnit({ admin: supabase, localUnitId, personIds: [id] }).catch((): string[] => [])
   const isScopedPerson = validLocalUnitPersonIds.includes(id)
 
   const { data: activeOrgAdminAssignment, error: activeOrgAdminAssignmentError } = permissions.organizationId

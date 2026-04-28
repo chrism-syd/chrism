@@ -232,21 +232,10 @@ async function personStillHasAutomaticAdmin(args: {
     service_end_year: number | null
     notes: string | null
   }>).some((term) =>
-    isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }) &&
+    isOfficerTermActive({ ...term, office_label: '' }, { useKnightsOfColumbusFraternalYear: true }) &&
     isAutomaticCouncilAdminTerm({
-      id: term.id,
-      person_id: args.personId,
       office_scope_code: term.office_scope_code as OfficerScopeCode,
       office_code: term.office_code,
-      office_label: formatOfficerLabel({
-        scope: term.office_scope_code as OfficerScopeCode,
-        code: term.office_code,
-        rank: term.office_rank,
-      }),
-      office_rank: term.office_rank,
-      service_start_year: term.service_start_year,
-      service_end_year: term.service_end_year,
-      notes: term.notes,
     })
   )
 }

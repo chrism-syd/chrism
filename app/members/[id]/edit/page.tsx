@@ -1,9 +1,11 @@
 import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import MemberForm from '../../member-form'
+import type { PersonRelationshipCode } from '../../form-state'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { decryptPeopleRecord } from '@/lib/security/pii'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -21,7 +23,7 @@ type PersonRow = {
   city: string | null
   state_province: string | null
   postal_code: string | null
-  primary_relationship_code: string | null
+  primary_relationship_code: PersonRelationshipCode | null
   council_activity_level_code: string | null
   council_activity_context_code: string | null
   council_reengagement_status_code: string | null
@@ -32,9 +34,9 @@ function formatFullName(person: Pick<PersonRow, 'first_name' | 'middle_name' | '
 }
 
 async function findScopedLocalUnitIdsForPerson(args: {
-  supabase: any
+  supabase: ReturnType<typeof createAdminClient>
   personId: string
-}) {
+}): Promise<string[]> {
   const { data, error } = await args.supabase
     .from('local_unit_people')
     .select('local_unit_id')
@@ -68,7 +70,7 @@ export default async function EditMemberPage({ params }: PageProps) {
   const scopedLocalUnitIds = await findScopedLocalUnitIdsForPerson({
     supabase,
     personId: id,
-  }).catch(() => [])
+  }).catch((): string[] => [])
 
   const preferredLocalUnitId =
     (actingContext.localUnitId && scopedLocalUnitIds.includes(actingContext.localUnitId)
@@ -110,7 +112,7 @@ export default async function EditMemberPage({ params }: PageProps) {
     admin: supabase,
     localUnitId: preferredLocalUnitId,
     personIds: [id],
-  }).catch(() => [])
+  }).catch((): string[] => [])
 
   if (!validPersonIds.includes(id)) {
     notFound()

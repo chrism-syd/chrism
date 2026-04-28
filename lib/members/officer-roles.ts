@@ -33,7 +33,7 @@ export type OfficerTermRow = {
   service_start_year: number
   service_end_year: number | null
   manual_end_effective_date?: string | null
-  notes: string | null
+  notes?: string | null
 }
 
 type OfficerLabelInput =

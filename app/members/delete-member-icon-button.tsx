@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState, type CSSProperties } from 'react'
+import { useActionState, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { deleteMemberAction } from './actions'
 import { EMPTY_DELETE_MEMBER_STATE } from './form-state'
@@ -60,13 +60,7 @@ function BootstrapTrashIcon({ className }: { className?: string }) {
 
 export default function DeleteMemberIconButton({ memberId, memberName }: { memberId: string; memberName: string }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
   const [state, formAction] = useActionState(deleteMemberAction, EMPTY_DELETE_MEMBER_STATE)
-
-  useEffect(() => {
-    setIsMounted(true)
-    return () => setIsMounted(false)
-  }, [])
 
   const dialog = isOpen ? (
     <div style={overlayStyle()} role="dialog" aria-modal="true" aria-labelledby="delete-member-title">
@@ -119,7 +113,7 @@ export default function DeleteMemberIconButton({ memberId, memberName }: { membe
         <BootstrapTrashIcon className="qv-bi-icon" />
       </button>
 
-      {isMounted && dialog ? createPortal(dialog, document.body) : null}
+      {dialog ? createPortal(dialog, document.body) : null}
     </>
   )
 }

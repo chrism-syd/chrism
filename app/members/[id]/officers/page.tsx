@@ -5,7 +5,7 @@ import MemberOfficerServiceSection from '@/app/members/member-officer-service-se
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
 import { decryptPeopleRecord } from '@/lib/security/pii'
-import { isOfficerTermActive, type OfficerTermRow } from '@/lib/members/officer-roles'
+import type { OfficerTermRow } from '@/lib/members/officer-roles'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -32,7 +32,7 @@ export default async function MemberOfficerTermsPage({ params }: PageProps) {
     admin: supabase,
     localUnitId,
     personIds: [id],
-  }).catch(() => [])
+  }).catch((): string[] => [])
 
   if (!validLocalUnitPersonIds.includes(id)) {
     notFound()

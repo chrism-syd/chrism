@@ -58,7 +58,7 @@ type EventRow = {
   location_address: string | null
   starts_at: string
   ends_at: string | null
-  status_code: string
+  status_code: 'draft' | 'scheduled' | 'completed' | 'cancelled'
   scope_code: 'home_council_only' | 'multi_council'
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting'
   requires_rsvp: boolean
