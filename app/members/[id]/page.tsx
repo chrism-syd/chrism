@@ -12,7 +12,7 @@ import { decryptPeopleRecord } from '@/lib/security/pii'
 type PageProps = { params: Promise<{ id: string }> }
 type PersonRow = { id: string; first_name: string; middle_name: string | null; last_name: string; email: string | null; cell_phone: string | null; home_phone: string | null; other_phone: string | null; address_line_1: string | null; address_line_2: string | null; city: string | null; state_province: string | null; postal_code: string | null; primary_relationship_code: string | null; council_activity_level_code: string | null; council_activity_context_code: string | null; council_reengagement_status_code: string | null }
 type MemberCustomListMembershipRow = { id: string; custom_list_id: string; claimed_by_person_id: string | null; last_contact_at: string | null; last_contact_by_person_id: string | null }
-type MemberCustomListRow = { id: string; local_unit_id: string | null; council_id: string | null; name: string; description: string | null }
+type MemberCustomListRow = { id: string; local_unit_id: string | null; name: string; description: string | null }
 
 function formatAddress(person: Pick<PersonRow, 'address_line_1' | 'address_line_2' | 'city' | 'state_province' | 'postal_code'>) {
   const line1 = [person.address_line_1, person.address_line_2].filter(Boolean).join(', ')
@@ -111,7 +111,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const relatedPeopleIds = [...new Set([...customListMemberships.map((membership) => membership.last_contact_by_person_id).filter((value): value is string => Boolean(value)), ...customListMemberships.map((membership) => membership.claimed_by_person_id).filter((value): value is string => Boolean(value))])]
 
   const [customListsResult, relatedPeopleResult] = await Promise.all([
-    customListIds.length > 0 ? supabase.from('custom_lists').select('id, local_unit_id, council_id, name, description').in('id', customListIds).or(`local_unit_id.eq.${localUnitId},and(local_unit_id.is.null,council_id.eq.${council.id})`).is('archived_at', null).returns<MemberCustomListRow[]>() : Promise.resolve({ data: [] as MemberCustomListRow[] }),
+    customListIds.length > 0 ? supabase.from('custom_lists').select('id, local_unit_id, name, description').in('id', customListIds).eq('local_unit_id', localUnitId).is('archived_at', null).returns<MemberCustomListRow[]>() : Promise.resolve({ data: [] as MemberCustomListRow[] }),
     relatedPeopleIds.length > 0 ? supabase.from('people').select('id, first_name, last_name').in('id', relatedPeopleIds).returns<Array<{ id: string; first_name: string; last_name: string }>>() : Promise.resolve({ data: [] as Array<{ id: string; first_name: string; last_name: string }> }),
   ])
 
