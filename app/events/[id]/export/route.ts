@@ -9,6 +9,7 @@ type RouteContext = {
 
 type EventRow = {
   id: string;
+  local_unit_id: string | null;
   council_id: string;
   title: string;
   starts_at: string;
@@ -166,19 +167,37 @@ function exportHeader(): Array<keyof ExportRow> {
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const { admin, council } = await getCurrentActingCouncilContextForEvent({
+  const { admin, council, localUnitId } = await getCurrentActingCouncilContextForEvent({
     eventId: id,
     redirectTo: '/me',
   });
 
-  const { data: eventData, error: eventError } = await admin
+  const eventSelect =
+    'id, local_unit_id, council_id, title, starts_at, ends_at, location_name, location_address, scope_code';
+
+  let eventQuery = admin
     .from('events')
-    .select(
-      'id, council_id, title, starts_at, ends_at, location_name, location_address, scope_code'
-    )
-    .eq('id', id)
-    .eq('council_id', council.id)
-    .single();
+    .select(eventSelect)
+    .eq('id', id);
+
+  eventQuery = localUnitId
+    ? eventQuery.eq('local_unit_id', localUnitId)
+    : eventQuery.eq('council_id', council.id);
+
+  let { data: eventData, error: eventError } = await eventQuery.single();
+
+  if ((eventError || !eventData) && localUnitId) {
+    const fallback = await admin
+      .from('events')
+      .select(eventSelect)
+      .eq('id', id)
+      .eq('council_id', council.id)
+      .is('local_unit_id', null)
+      .single();
+
+    eventData = fallback.data;
+    eventError = fallback.error;
+  }
 
   const event = eventData as EventRow | null;
 

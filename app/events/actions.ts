@@ -533,6 +533,7 @@ async function loadOwnedEvent(args: {
     .select(selectClause)
     .eq('id', eventId)
     .eq('council_id', councilId)
+    .is('local_unit_id', null)
     .single();
 
   const event = data as EventRow | null;

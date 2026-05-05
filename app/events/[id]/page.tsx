@@ -318,6 +318,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       )
       .eq('id', id)
       .eq('council_id', council.id)
+      .is('local_unit_id', null)
       .single();
 
     eventData = fallback.data;

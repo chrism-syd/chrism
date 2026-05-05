@@ -384,10 +384,17 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
         .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
     : []
 
-  const { data: eventsData, error: eventsError } = await supabase
+  let eventsQuery = supabase
     .from('events')
     .select('id, title, location_name, starts_at, ends_at, status_code, scope_code, requires_rsvp, needs_volunteers, event_kind_code')
-    .eq('council_id', council.id)
+
+  eventsQuery = localUnitId
+    ? eventsQuery.or(
+        `local_unit_id.eq.${localUnitId},and(local_unit_id.is.null,council_id.eq.${council.id})`
+      )
+    : eventsQuery.eq('council_id', council.id)
+
+  const { data: eventsData, error: eventsError } = await eventsQuery
     .order('starts_at', { ascending: true })
     .returns<EventRow[]>()
 

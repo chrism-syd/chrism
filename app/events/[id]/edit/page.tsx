@@ -127,6 +127,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       )
       .eq('id', id)
       .eq('council_id', council.id)
+      .is('local_unit_id', null)
       .single()
 
     eventData = fallback.data

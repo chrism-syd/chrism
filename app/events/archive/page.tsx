@@ -84,6 +84,10 @@ function renderHistoricalMeetingCard(event: ActiveArchivedEventRow) {
   )
 }
 
+function andFilter(conditions: string[]) {
+  return conditions.length === 1 ? conditions[0] : `and(${conditions.join(',')})`
+}
+
 export default async function EventArchivePage() {
   const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContext({
     redirectTo: '/events',
@@ -92,25 +96,47 @@ export default async function EventArchivePage() {
   })
   const nowIso = new Date().toISOString()
 
-  const [{ data: historicalRows, error: historicalError }, { data: deletedEvents, error: deletedError }] = await Promise.all([
-    supabase
-      .from('events')
-      .select('id, title, starts_at, ends_at, status_code, location_name, event_kind_code')
-      .eq(localUnitId ? 'local_unit_id' : 'council_id', localUnitId ?? council.id)
-      .or(
-        [
-          'status_code.in.(completed,cancelled)',
-          `and(event_kind_code.in.(general_meeting,executive_meeting),ends_at.lt.${nowIso})`,
-          `and(event_kind_code.eq.standard,ends_at.lt.${nowIso},status_code.not.in.(draft,completed,cancelled))`,
-          `and(event_kind_code.eq.standard,starts_at.lt.${nowIso},ends_at.is.null,status_code.not.in.(draft,completed,cancelled))`,
-        ].join(',')
+  const historicalEventSelect = 'id, title, starts_at, ends_at, status_code, location_name, event_kind_code'
+  const historicalEventFilterGroups = [
+    ['status_code.in.(completed,cancelled)'],
+    ['event_kind_code.in.(general_meeting,executive_meeting)', `ends_at.lt.${nowIso}`],
+    ['event_kind_code.eq.standard', `ends_at.lt.${nowIso}`, 'status_code.not.in.(draft,completed,cancelled)'],
+    ['event_kind_code.eq.standard', `starts_at.lt.${nowIso}`, 'ends_at.is.null', 'status_code.not.in.(draft,completed,cancelled)'],
+  ]
+  const historicalEventScopeFilters = localUnitId
+    ? [
+        ...historicalEventFilterGroups.map((filters) =>
+          andFilter([`local_unit_id.eq.${localUnitId}`, ...filters])
+        ),
+        ...historicalEventFilterGroups.map((filters) =>
+          andFilter(['local_unit_id.is.null', `council_id.eq.${council.id}`, ...filters])
+        ),
+      ].join(',')
+    : historicalEventFilterGroups.map(andFilter).join(',')
+
+  let historicalEventsQuery = supabase
+    .from('events')
+    .select(historicalEventSelect)
+
+  historicalEventsQuery = localUnitId
+    ? historicalEventsQuery.or(historicalEventScopeFilters)
+    : historicalEventsQuery.eq('council_id', council.id).or(historicalEventScopeFilters)
+
+  let deletedEventsQuery = supabase
+    .from('event_archives')
+    .select('id, original_event_id, title, starts_at, ends_at, status_code, location_name, deleted_at')
+
+  deletedEventsQuery = localUnitId
+    ? deletedEventsQuery.or(
+        `local_unit_id.eq.${localUnitId},and(local_unit_id.is.null,council_id.eq.${council.id})`
       )
+    : deletedEventsQuery.eq('council_id', council.id)
+
+  const [{ data: historicalRows, error: historicalError }, { data: deletedEvents, error: deletedError }] = await Promise.all([
+    historicalEventsQuery
       .order('starts_at', { ascending: false })
       .returns<ActiveArchivedEventRow[]>(),
-    supabase
-      .from('event_archives')
-      .select('id, original_event_id, title, starts_at, ends_at, status_code, location_name, deleted_at')
-      .eq(localUnitId ? 'local_unit_id' : 'council_id', localUnitId ?? council.id)
+    deletedEventsQuery
       .order('deleted_at', { ascending: false })
       .returns<DeletedEventArchiveRow[]>(),
   ])

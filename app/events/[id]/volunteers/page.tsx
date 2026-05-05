@@ -21,6 +21,7 @@ type OrganizationRow = {
 
 type EventRow = {
   id: string;
+  local_unit_id: string | null;
   council_id: string;
   title: string;
   description: string | null;
@@ -151,7 +152,7 @@ function groupDisplayName(name: string, number?: string | null) {
 
 export default async function EventVolunteersPage({ params }: VolunteersPageProps) {
   const { id } = await params;
-  const { admin: supabase, council } = await getCurrentActingCouncilContextForEvent({
+  const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContextForEvent({
     eventId: id,
     redirectTo: '/events',
   });
@@ -168,14 +169,32 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
     organization = (data as OrganizationRow | null) ?? null;
   }
 
-  const { data: eventData, error: eventError } = await supabase
+  const eventSelect =
+    'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at';
+
+  let eventQuery = supabase
     .from('events')
-    .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at'
-    )
-    .eq('id', id)
-    .eq('council_id', council.id)
-    .single();
+    .select(eventSelect)
+    .eq('id', id);
+
+  eventQuery = localUnitId
+    ? eventQuery.eq('local_unit_id', localUnitId)
+    : eventQuery.eq('council_id', council.id);
+
+  let { data: eventData, error: eventError } = await eventQuery.single();
+
+  if ((eventError || !eventData) && localUnitId) {
+    const fallback = await supabase
+      .from('events')
+      .select(eventSelect)
+      .eq('id', id)
+      .eq('council_id', council.id)
+      .is('local_unit_id', null)
+      .single();
+
+    eventData = fallback.data;
+    eventError = fallback.error;
+  }
 
   const event = eventData as EventRow | null;
 
