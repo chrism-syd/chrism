@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CurrentUserPermissions } from '@/lib/auth/permissions'
-import { findLocalUnitByLegacyCouncilId, hasAreaAccess, listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
+import { hasAreaAccess, listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { hasResourceAccess, listAccessibleCustomListIdsForUser } from '@/lib/auth/resource-access'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 
@@ -271,22 +271,9 @@ async function listLinkedMemberRecordIds(args: {
 
 export async function resolveCustomListLocalUnitId(args: {
   admin: SupabaseClient
-  list: Pick<CustomListRow, 'local_unit_id' | 'council_id'>
+  list: Pick<CustomListRow, 'local_unit_id'>
 }) {
-  if (args.list.local_unit_id) {
-    return args.list.local_unit_id
-  }
-
-  if (!args.list.council_id) {
-    return null
-  }
-
-  const localUnit = await findLocalUnitByLegacyCouncilId({
-    admin: args.admin,
-    councilId: args.list.council_id,
-  })
-
-  return localUnit?.id ?? null
+  return args.list.local_unit_id ?? null
 }
 
 export async function resolveLegacyCouncilIdForLocalUnit(args: {
@@ -488,7 +475,7 @@ export async function listActiveCustomListShares(args: {
 
 function isPreviewManagingCurrentCustomList(args: {
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>
+  list: Pick<CustomListRow, 'local_unit_id'>
 }) {
   const { permissions, list } = args
 
@@ -496,21 +483,17 @@ function isPreviewManagingCurrentCustomList(args: {
     return false
   }
 
-  if (permissions.activeLocalUnitId && list.local_unit_id && permissions.activeLocalUnitId === list.local_unit_id) {
-    return true
-  }
-
-  if (permissions.councilId && list.council_id && permissions.councilId === list.council_id) {
-    return true
-  }
-
-  return false
+  return Boolean(
+    permissions.activeLocalUnitId &&
+      list.local_unit_id &&
+      permissions.activeLocalUnitId === list.local_unit_id
+  )
 }
 
 export async function hasStrictCustomListLifecycleAccess(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'id' | 'local_unit_id' | 'council_id'>
+  list: Pick<CustomListRow, 'id' | 'local_unit_id'>
 }) {
   if (isPreviewManagingCurrentCustomList({ permissions: args.permissions, list: args.list })) {
     return true
@@ -639,7 +622,7 @@ export async function hasExplicitlySharedCustomListsForUser(args: {
 
 export async function canManageCustomList(
   permissions: CurrentUserPermissions,
-  list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
+  list: Pick<CustomListRow, 'local_unit_id'>,
   admin: SupabaseClient,
 ) {
   if (isPreviewManagingCurrentCustomList({ permissions, list })) {
@@ -672,7 +655,7 @@ export async function canManageCustomList(
 export async function canViewCustomList(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'id' | 'council_id' | 'local_unit_id'>
+  list: Pick<CustomListRow, 'id' | 'local_unit_id'>
 }) {
   if (isPreviewManagingCurrentCustomList({ permissions: args.permissions, list: args.list })) {
     return true

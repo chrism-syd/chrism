@@ -15,7 +15,6 @@ import {
   mapPersonIdsToScopedDirectoryPersonIdsForLocalUnit,
   normalizeEmail,
   resolveCustomListLocalUnitId,
-  resolveLegacyCouncilIdForLocalUnit,
   type CustomListRow,
 } from '@/lib/custom-lists'
 import { decryptPeopleRecords } from '@/lib/security/pii'
@@ -233,15 +232,6 @@ export async function createCustomListFromMembersAction(
     return { error: 'Choose a local organization before creating a custom list.' }
   }
 
-  const legacyCouncilId = await resolveLegacyCouncilIdForLocalUnit({
-    admin,
-    localUnitId,
-  })
-
-  if (!legacyCouncilId) {
-    return { error: 'This local organization is missing its required council bridge for custom list writes.' }
-  }
-
   const authUserId = permissions.authUser.id
 
   let scopedMemberIds: string[] = []
@@ -282,7 +272,7 @@ export async function createCustomListFromMembersAction(
   const { data: customListData, error: createError } = await admin
     .from('custom_lists')
     .insert({
-      council_id: legacyCouncilId,
+      council_id: null,
       local_unit_id: localUnitId,
       name,
       description: descriptionValue || null,
