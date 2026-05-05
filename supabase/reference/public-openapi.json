@@ -27229,10 +27229,10 @@
     "custom_lists": {
       "required": [
         "id",
-        "council_id",
         "name",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "local_unit_id"
       ],
       "properties": {
         "id": {
@@ -27242,7 +27242,7 @@
           "type": "string"
         },
         "council_id": {
-          "description": "Note:\nThis is a Foreign Key to `councils.id`.<fk table='councils' column='id'/>",
+          "description": "Deprecated compatibility column. Must remain null; local_unit_id is canonical custom-list owner.\n\nNote:\nThis is a Foreign Key to `councils.id`.<fk table='councils' column='id'/>",
           "format": "uuid",
           "type": "string"
         },
@@ -35307,6 +35307,7 @@
     },
     "rowFilter.custom_lists.council_id": {
       "name": "council_id",
+      "description": "Deprecated compatibility column. Must remain null; local_unit_id is canonical custom-list owner.",
       "required": false,
       "in": "query",
       "type": "string"

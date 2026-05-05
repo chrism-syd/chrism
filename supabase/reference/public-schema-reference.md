@@ -1,6 +1,6 @@
 # Supabase Public Schema Reference
 
-Fetched: 2026-05-05T22:27:53.839Z
+Fetched: 2026-05-05T23:34:56.951Z
 Source: Supabase REST OpenAPI
 Schema: standard public schema
 Tables: 131
@@ -278,7 +278,7 @@ Operations: delete, get, patch, post
 | Column | Type | Required | Default | Key | References |
 | --- | --- | --- | --- | --- | --- |
 | id | uuid | yes | gen_random_uuid() | PK |  |
-| council_id | uuid | yes |  |  | councils.id |
+| council_id | uuid | no |  |  | councils.id |
 | name | text | yes |  |  |  |
 | description | text | no |  |  |  |
 | created_at | timestamp with time zone | yes | now() |  |  |
@@ -287,7 +287,7 @@ Operations: delete, get, patch, post
 | updated_by_auth_user_id | uuid | no |  |  | users.id |
 | archived_at | timestamp with time zone | no |  |  |  |
 | archived_by_auth_user_id | uuid | no |  |  | users.id |
-| local_unit_id | uuid | no |  |  | local_units.id |
+| local_unit_id | uuid | yes |  |  | local_units.id |
 
 ## daily_reading_entries
 

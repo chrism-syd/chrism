@@ -758,12 +758,12 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_by_auth_user_id: string | null
-          council_id: string
+          council_id: string | null
           created_at: string
           created_by_auth_user_id: string | null
           description: string | null
           id: string
-          local_unit_id: string | null
+          local_unit_id: string
           name: string
           updated_at: string
           updated_by_auth_user_id: string | null
@@ -771,12 +771,12 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           archived_by_auth_user_id?: string | null
-          council_id: string
+          council_id?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
           description?: string | null
           id?: string
-          local_unit_id?: string | null
+          local_unit_id: string
           name: string
           updated_at?: string
           updated_by_auth_user_id?: string | null
@@ -784,12 +784,12 @@ export type Database = {
         Update: {
           archived_at?: string | null
           archived_by_auth_user_id?: string | null
-          council_id?: string
+          council_id?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
           description?: string | null
           id?: string
-          local_unit_id?: string | null
+          local_unit_id?: string
           name?: string
           updated_at?: string
           updated_by_auth_user_id?: string | null

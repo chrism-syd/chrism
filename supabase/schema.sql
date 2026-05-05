@@ -3392,7 +3392,7 @@ ALTER TABLE "public"."custom_list_members" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."custom_lists" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "council_id" "uuid" NOT NULL,
+    "council_id" "uuid",
     "name" "text" NOT NULL,
     "description" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
@@ -3401,11 +3401,16 @@ CREATE TABLE IF NOT EXISTS "public"."custom_lists" (
     "updated_by_auth_user_id" "uuid",
     "archived_at" timestamp with time zone,
     "archived_by_auth_user_id" "uuid",
-    "local_unit_id" "uuid"
+    "local_unit_id" "uuid" NOT NULL,
+    CONSTRAINT "custom_lists_council_id_must_be_null" CHECK (("council_id" IS NULL))
 );
 
 
 ALTER TABLE "public"."custom_lists" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."custom_lists"."council_id" IS 'Deprecated compatibility column. Must remain null; local_unit_id is canonical custom-list owner.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."daily_reading_entries" (

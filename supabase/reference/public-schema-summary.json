@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-05-05T22:27:53.839Z",
+  "fetchedAt": "2026-05-05T23:34:56.951Z",
   "source": "Supabase REST OpenAPI",
   "schema": "standard public schema",
   "tableCount": 131,
@@ -1548,14 +1548,14 @@
         {
           "name": "council_id",
           "type": "uuid",
-          "required": true,
+          "required": false,
           "default": null,
           "primaryKey": false,
           "foreignKey": {
             "table": "councils",
             "column": "id"
           },
-          "description": "Note:\nThis is a Foreign Key to `councils.id`.<fk table='councils' column='id'/>"
+          "description": "Deprecated compatibility column. Must remain null; local_unit_id is canonical custom-list owner.\n\nNote:\nThis is a Foreign Key to `councils.id`.<fk table='councils' column='id'/>"
         },
         {
           "name": "name",
@@ -1641,7 +1641,7 @@
         {
           "name": "local_unit_id",
           "type": "uuid",
-          "required": false,
+          "required": true,
           "default": null,
           "primaryKey": false,
           "foreignKey": {
