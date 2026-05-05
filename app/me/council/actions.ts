@@ -7,7 +7,6 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { isParallelAreaAccessEnabled } from '@/lib/auth/feature-flags'
 import {
-  deactivateOrganizationAdminAssignment,
   normalizeAdminGrantEmail,
   saveOrganizationAdminAssignment,
 } from '@/lib/organizations/admin-assignments'
@@ -24,8 +23,6 @@ import {
   getOfficerRoleOption,
   isAutomaticCouncilAdminTerm,
   type OfficerScopeCode,
-  getKnightsOfColumbusFraternalYearForDate,
-  isOfficerTermCurrent,
   isOfficerTermActive,
 } from '@/lib/members/officer-roles'
 import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
@@ -649,7 +646,6 @@ export async function addOfficerTermAction(formData: FormData) {
     redirectToCouncilPage({ error: existingTermsError.message })
   }
 
-  const currentFraternalYear = getKnightsOfColumbusFraternalYearForDate()
   const sameRoleTermInFraternalYear = (existingTerms ?? []).find((term) =>
     term.office_scope_code === resolvedOfficeScopeCode &&
     term.office_code === resolvedOfficeCode &&

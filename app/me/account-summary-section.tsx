@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { submitProfileChangeRequest } from '@/app/me/actions';
 
 type PendingValues = {
@@ -154,7 +154,6 @@ export default function AccountSummarySection({
   addressHelpText,
   pendingValues,
   rejectedNotices,
-  allowStandaloneIdentityEdit = false,
   readOnly = false,
   readOnlyMessage = null,
 }: {

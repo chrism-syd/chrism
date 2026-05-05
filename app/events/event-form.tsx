@@ -220,10 +220,10 @@ export default function EventForm({
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(
     initialValues?.reminder_enabled ?? false
   )
-  const [invitedCouncils, setInvitedCouncils] = useState<InvitedCouncilDraft[]>(
+  const [invitedCouncils] = useState<InvitedCouncilDraft[]>(
     initialValues?.invited_councils?.length ? initialValues.invited_councils : [emptyInviteRow()]
   )
-  const [externalInvitees, setExternalInvitees] = useState<ExternalInviteeDraft[]>(
+  const [externalInvitees] = useState<ExternalInviteeDraft[]>(
     initialValues?.external_invitees?.length
       ? initialValues.external_invitees
       : [emptyExternalInviteeRow()]
@@ -232,7 +232,7 @@ export default function EventForm({
   const [showInviteCouncils, setShowInviteCouncils] = useState<boolean>(
     hasInviteCouncilValues(initialValues?.invited_councils ?? [])
   )
-  const [showExternalInvitees, setShowExternalInvitees] = useState<boolean>(
+  const [showExternalInvitees] = useState<boolean>(
     hasExternalInviteeValues(initialValues?.external_invitees ?? [])
   )
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -248,66 +248,7 @@ export default function EventForm({
   const shouldShowInviteSection = eventType === 'multi_council_event'
   const hasPublishedBaseline =
     mode === 'edit' && Boolean(initialValues?.status_code) && initialValues?.status_code !== 'draft'
-  const hasExternalInviteeContent = hasExternalInviteeValues(externalInvitees)
-  const canCollapseExternalInvitees =
-    showExternalInvitees && externalInvitees.length === 1 && !hasExternalInviteeContent
   const eventTypeLabels = getEventTypeLabels(initialValues?.organizationTypeCode)
-
-  function updateInviteRow(index: number, field: keyof InvitedCouncilDraft, value: string) {
-    setInvitedCouncils((current) =>
-      current.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row))
-    )
-  }
-
-  function addInviteRow() {
-    setShowInviteCouncils(true)
-    setInvitedCouncils((current) => [...current, emptyInviteRow()])
-  }
-
-  function removeInviteRow(index: number) {
-    setInvitedCouncils((current) => {
-      if (current.length === 1) {
-        setShowInviteCouncils(false)
-        return [emptyInviteRow()]
-      }
-
-      const next = current.filter((_, rowIndex) => rowIndex !== index)
-      if (!hasInviteCouncilValues(next)) {
-        setShowInviteCouncils(false)
-      }
-      return next
-    })
-  }
-
-  function updateExternalInviteeRow(
-    index: number,
-    field: keyof ExternalInviteeDraft,
-    value: string
-  ) {
-    setExternalInvitees((current) =>
-      current.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row))
-    )
-  }
-
-  function addExternalInviteeRow() {
-    setShowExternalInvitees(true)
-    setExternalInvitees((current) => [...current, emptyExternalInviteeRow()])
-  }
-
-  function removeExternalInviteeRow(index: number) {
-    setExternalInvitees((current) => {
-      if (current.length === 1) {
-        setShowExternalInvitees(false)
-        return [emptyExternalInviteeRow()]
-      }
-
-      const next = current.filter((_, rowIndex) => rowIndex !== index)
-      if (!hasExternalInviteeValues(next)) {
-        setShowExternalInvitees(false)
-      }
-      return next
-    })
-  }
 
   function enableRsvp() {
     setRequiresRsvp(true)
@@ -323,11 +264,6 @@ export default function EventForm({
 
   function disableVolunteers() {
     setNeedsVolunteers(false)
-  }
-
-  function collapseExternalInvitees() {
-    setShowExternalInvitees(false)
-    setExternalInvitees([emptyExternalInviteeRow()])
   }
 
   function enableReminder() {

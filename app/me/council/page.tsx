@@ -18,9 +18,7 @@ import {
 } from './actions'
 import {
   formatOfficerLabel,
-  getKnightsOfColumbusFraternalYearForDate,
   isAutomaticCouncilAdminTerm,
-  isOfficerTermCurrent,
   isOfficerTermActive,
   OFFICER_ROLE_OPTIONS,
   type OfficerScopeCode,
@@ -289,7 +287,6 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       : [],
   ])
 
-  const currentFraternalYear = getKnightsOfColumbusFraternalYearForDate()
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
   const legacyCouncilAssignments = (legacyCouncilAssignmentData as LegacyCouncilAdminAssignmentRow[] | null) ?? []
   const officerTerms = ((officerData as OfficerTermRow[] | null) ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
