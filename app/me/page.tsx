@@ -63,12 +63,6 @@ type PendingClaimNoticeRow = {
   requested_council_number: string | null
   requested_city: string | null
 }
-type AffiliationMembershipRow = {
-  organization_id: string
-  is_primary_membership: boolean | null
-  source_code: string | null
-  membership_status_code: string | null
-}
 type RejectedFieldNotice = { requestId: string; reviewedAt: string | null }
 type RejectedFieldNoticeMap = Partial<Record<'email' | 'cell_phone' | 'home_phone', RejectedFieldNotice>>
 
@@ -162,14 +156,6 @@ export default async function MyProfilePage() {
         .maybeSingle<OrganizationProfileRow>()
     : Promise.resolve({ data: null as OrganizationProfileRow | null })
 
-  const membershipsPromise = permissions.personId
-    ? adminSupabase
-        .from('organization_memberships')
-        .select('organization_id, is_primary_membership, source_code, membership_status_code')
-        .eq('person_id', permissions.personId)
-        .returns<AffiliationMembershipRow[]>()
-    : Promise.resolve({ data: [] as AffiliationMembershipRow[] })
-
   const pendingChangesPromise = permissions.personId
     ? adminSupabase
         .from('person_profile_change_requests')
@@ -206,13 +192,12 @@ export default async function MyProfilePage() {
     .limit(1)
     .maybeSingle<PendingClaimNoticeRow>()
 
-  const [personResult, councilResult, memberRecordResult, organizationResult, membershipsResult, pendingResult, reviewedResult, claimNoticeResult] =
+  const [personResult, councilResult, memberRecordResult, organizationResult, pendingResult, reviewedResult, claimNoticeResult] =
     await Promise.all([
       personPromise,
       councilPromise,
       memberRecordPromise,
       organizationPromise,
-      membershipsPromise,
       pendingChangesPromise,
       reviewedChangesPromise,
       claimNoticePromise,
@@ -227,7 +212,6 @@ export default async function MyProfilePage() {
     decryptProfileChangeRequestRecords((reviewedResult.data as ReviewedProfileChangeRow[] | null) ?? []) as ReviewedProfileChangeRow[]
   )
   const claimNotice = claimNoticeResult.data ?? null
-  const affiliationMemberships = membershipsResult.data ?? []
 
   const organizationLabel = permissions.organizationId
     ? getOrganizationContextLabel({
@@ -240,7 +224,6 @@ export default async function MyProfilePage() {
   const affiliationOrganizationIds = [
     ...new Set(
       [
-        ...affiliationMemberships.map((membership) => membership.organization_id),
         ...permissions.availableContexts.map((context) => context.organizationId),
         permissions.organizationId ?? null,
       ].filter((value): value is string => Boolean(value))
@@ -256,7 +239,6 @@ export default async function MyProfilePage() {
     : { data: [] as OrganizationProfileRow[] }
 
   const affiliationOrganizations = (affiliationOrganizationsResult.data ?? []).map((organization) => {
-    const membership = affiliationMemberships.find((item) => item.organization_id === organization.id) ?? null
     const effectiveBranding = getEffectiveOrganizationBranding(organization)
     const ownLogoPath = organization.logo_storage_path?.trim().toLowerCase() || null
     const brandProfileCode = organization.brand_profile?.code?.trim().toLowerCase() || null
@@ -267,7 +249,6 @@ export default async function MyProfilePage() {
     return {
       ...organization,
       isCurrent: organization.id === permissions.organizationId,
-      isPrimaryMembership: membership?.is_primary_membership ?? false,
       displayLabel: getEffectiveOrganizationName(organization) ?? 'Organization',
       effective_logo_storage_path: effectiveBranding.logo_storage_path,
       effective_logo_alt_text: effectiveBranding.logo_alt_text,
@@ -277,7 +258,6 @@ export default async function MyProfilePage() {
 
   affiliationOrganizations.sort((left, right) => {
     if (left.isCurrent !== right.isCurrent) return left.isCurrent ? -1 : 1
-    if (left.isPrimaryMembership !== right.isPrimaryMembership) return left.isPrimaryMembership ? -1 : 1
     return left.displayLabel.localeCompare(right.displayLabel)
   })
 

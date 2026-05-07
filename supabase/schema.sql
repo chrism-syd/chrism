@@ -5292,12 +5292,14 @@ CREATE OR REPLACE VIEW "public"."v_effective_admin_package_access" AS
     "local_unit_name",
     "bool_or"((("area_code" = 'members'::"public"."member_area_code") AND ("access_level" = ANY (ARRAY['edit_manage'::"public"."area_access_level", 'manage'::"public"."area_access_level"])) AND "is_effective")) AS "can_manage_members",
     "bool_or"((("area_code" = 'events'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) AS "can_manage_events",
-    "bool_or"((("area_code" = 'custom_lists'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) AS "can_manage_custom_lists",
+    "bool_or"((("area_code" = 'custom_lists'::"public"."member_area_code") AND ("access_level" = ANY (ARRAY['interact'::"public"."area_access_level", 'manage'::"public"."area_access_level"])) AND "is_effective")) AS "can_manage_custom_lists",
     "bool_or"((("area_code" = 'claims'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) AS "can_manage_claims",
     "bool_or"((("area_code" = 'admins'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) AS "can_manage_admins",
     "bool_or"((("area_code" = 'local_unit_settings'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) AS "can_manage_local_unit_settings"
-   FROM "public"."v_effective_area_access"
-  GROUP BY "user_id", "person_id", "local_unit_id", "local_unit_name";
+   FROM "public"."v_effective_area_access" "v"
+  WHERE ("user_id" IS NOT NULL)
+  GROUP BY "user_id", "person_id", "local_unit_id", "local_unit_name"
+ HAVING ("bool_or"((("area_code" = 'members'::"public"."member_area_code") AND ("access_level" = ANY (ARRAY['edit_manage'::"public"."area_access_level", 'manage'::"public"."area_access_level"])) AND "is_effective")) OR "bool_or"((("area_code" = 'events'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) OR "bool_or"((("area_code" = 'custom_lists'::"public"."member_area_code") AND ("access_level" = ANY (ARRAY['interact'::"public"."area_access_level", 'manage'::"public"."area_access_level"])) AND "is_effective")) OR "bool_or"((("area_code" = 'claims'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) OR "bool_or"((("area_code" = 'admins'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")) OR "bool_or"((("area_code" = 'local_unit_settings'::"public"."member_area_code") AND ("access_level" = 'manage'::"public"."area_access_level") AND "is_effective")));
 
 
 ALTER VIEW "public"."v_effective_admin_package_access" OWNER TO "postgres";

@@ -318,7 +318,20 @@ async function loadParallelAccessState(args: {
 
     const rows = (data as unknown as EffectiveAdminPackageRow[] | null) ?? []
     for (const row of rows) {
-      if (!row.local_unit_id) continue
+      if (
+        !row.local_unit_id ||
+        !(
+          row.can_manage_members ||
+          row.can_manage_events ||
+          row.can_manage_custom_lists ||
+          row.can_manage_claims ||
+          row.can_manage_admins ||
+          row.can_manage_local_unit_settings
+        )
+      ) {
+        continue
+      }
+
       const capabilities = remember(row.local_unit_id)
       capabilities.members = capabilities.members || Boolean(row.can_manage_members)
       capabilities.events = capabilities.events || Boolean(row.can_manage_events)
@@ -499,7 +512,20 @@ async function loadParallelAccessState(args: {
 
   for (const localUnit of localUnits) {
     const capabilities = capabilityByLocalUnitId.get(localUnit.id)
-    if (!capabilities) continue
+    if (
+      !capabilities ||
+      !(
+        capabilities.members ||
+        capabilities.events ||
+        capabilities.eventResource ||
+        capabilities.customLists ||
+        capabilities.claims ||
+        capabilities.admins ||
+        capabilities.localUnitSettings
+      )
+    ) {
+      continue
+    }
 
     const council = localUnit.legacy_council_id ? councilMap.get(localUnit.legacy_council_id) ?? null : null
     const organizationId = localUnit.legacy_organization_id ?? council?.organization_id ?? null
