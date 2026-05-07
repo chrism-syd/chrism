@@ -378,6 +378,7 @@ export async function getCurrentActingCouncilContextForEvent(options: {
 
   const canUseEventCouncil = Boolean(
     event?.council_id &&
+      !event.local_unit_id &&
       (
         (permissions.isSuperAdmin && permissions.actingMode !== 'normal' && event.council_id === permissions.councilId) ||
         event.council_id === permissions.councilId ||

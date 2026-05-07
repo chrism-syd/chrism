@@ -154,7 +154,7 @@ export default function MemberOfficerServiceSection({
               </div>
 
               <div className="qv-member-row-right">
-                {isOfficerTermCurrent(term, yearNow) ? <span className="qv-badge">Current</span> : null}
+                {isOfficerTermCurrent(term, { currentYear: yearNow }) ? <span className="qv-badge">Current</span> : null}
                 <ConfirmActionButton
                   triggerLabel="Remove"
                   confirmTitle="Remove officer term?"

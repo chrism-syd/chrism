@@ -156,52 +156,46 @@ async function savePreferredNameAcrossLinkedMemberRecords(args: {
   admin: ReturnType<typeof createAdminClient>;
   personId: string;
   preferredDisplayName: string | null;
+  activeLocalUnitId?: string | null;
 }) {
-  const { admin, personId, preferredDisplayName } = args;
+  const { admin, personId, preferredDisplayName, activeLocalUnitId } = args;
+  const now = new Date().toISOString();
 
-  const { data: identityRow, error: identityError } = await admin
-    .from('person_identity_links')
-    .select('person_identity_id')
-    .eq('person_id', personId)
-    .is('ended_at', null)
-    .maybeSingle<{ person_identity_id: string }>();
+  if (activeLocalUnitId) {
+    const { data: updatedRows, error } = await admin
+      .from('member_records')
+      .update({
+        preferred_display_name: preferredDisplayName,
+        updated_at: now,
+      })
+      .eq('local_unit_id', activeLocalUnitId)
+      .eq('legacy_people_id', personId)
+      .is('archived_at', null)
+      .select('id');
 
-  if (identityError) {
-    return { ok: false as const, message: 'We could not load your linked member records right now. Please try again.' };
-  }
-
-  let targetPersonIds: string[] = [personId];
-
-  if (identityRow?.person_identity_id) {
-    const { data: identityLinks, error: identityLinksError } = await admin
-      .from('person_identity_links')
-      .select('person_id')
-      .eq('person_identity_id', identityRow.person_identity_id)
-      .is('ended_at', null);
-
-    if (identityLinksError) {
-      return { ok: false as const, message: 'We could not load your linked member records right now. Please try again.' };
+    if (error) {
+      return { ok: false as const, message: 'We could not save your preferred name right now. Please try again.' };
     }
 
-    targetPersonIds = [
-      ...new Set(
-        ((identityLinks as Array<{ person_id: string | null }> | null) ?? [])
-          .map((row) => row.person_id)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    ];
+    if ((updatedRows ?? []).length > 0) {
+      return { ok: true as const, message: 'Your preferred name has been saved.' };
+    }
   }
 
-  const { error } = await admin
-    .from('member_records')
-    .update({
-      preferred_display_name: preferredDisplayName,
-      updated_at: new Date().toISOString(),
-    })
-    .in('legacy_people_id', targetPersonIds)
-    .is('archived_at', null);
+  const payload = protectPeoplePayload({
+    nickname: preferredDisplayName,
+    updated_by_auth_user_id: undefined,
+  });
 
-  if (error) {
+  const { error: peopleUpdateError } = await admin
+    .from('people')
+    .update({
+      ...payload,
+      updated_at: now,
+    })
+    .eq('id', personId);
+
+  if (peopleUpdateError) {
     return { ok: false as const, message: 'We could not save your preferred name right now. Please try again.' };
   }
 
@@ -331,6 +325,7 @@ export async function submitProfileChangeRequest(
       admin,
       personId,
       preferredDisplayName: desiredPreferredName,
+      activeLocalUnitId: permissions.activeLocalUnitId,
     });
 
     if (!preferredNameSaveResult.ok) {

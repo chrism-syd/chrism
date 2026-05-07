@@ -19,6 +19,7 @@ import {
 import {
   formatOfficerLabel,
   isAutomaticCouncilAdminTerm,
+  isOfficerTermActive,
   OFFICER_ROLE_OPTIONS,
   type OfficerScopeCode,
 } from '@/lib/members/officer-roles'
@@ -245,9 +246,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .order('created_at', { ascending: true }),
     admin
       .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, office_label')
+      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
       .eq('council_id', council.id)
-      .is('service_end_year', null)
       .order('service_start_year', { ascending: false }),
     admin
       .from('officer_role_emails')
@@ -289,7 +289,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
   const legacyCouncilAssignments = (legacyCouncilAssignmentData as LegacyCouncilAdminAssignmentRow[] | null) ?? []
-  const officerTerms = (officerData as OfficerTermRow[] | null) ?? []
+  const officerTerms = ((officerData as OfficerTermRow[] | null) ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
   const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
   const pendingInvitations = (pendingInvitationData as PendingInvitationRow[] | null) ?? []
   const organization = (organizationData as OrganizationRow | null) ?? null
@@ -506,40 +506,26 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       }]
     })
 
-  const dedupedResolvedAdmins = new Map<string, (typeof currentAdmins)[number] | (typeof implicitAutomaticAdmins)[number]>()
-
-  for (const adminRow of [...currentAdmins, ...implicitAutomaticAdmins]) {
-    const identityKey = adminRow.personId
-      ? `person:${adminRow.personId}`
-      : `label:${adminRow.label.toLowerCase()}`
-
-    const existing = dedupedResolvedAdmins.get(identityKey)
-    if (!existing) {
-      dedupedResolvedAdmins.set(identityKey, adminRow)
-      continue
-    }
-
-    if (adminRow.assignmentTable === 'council' && existing.assignmentTable !== 'council') {
-      dedupedResolvedAdmins.set(identityKey, adminRow)
-      continue
-    }
-
-    if (adminRow.assignmentTable === 'organization' && existing.assignmentTable === null) {
-      dedupedResolvedAdmins.set(identityKey, adminRow)
-    }
-  }
-
-  const sortedAdmins = [...dedupedResolvedAdmins.values()].sort((left, right) => {
+  const sortedAdmins = [...currentAdmins, ...implicitAutomaticAdmins].sort((left, right) => {
     if (left.sortPriority !== right.sortPriority) return left.sortPriority - right.sortPriority
-    return left.label.localeCompare(right.label)
+    if (left.label !== right.label) return left.label.localeCompare(right.label)
+
+    const leftIsManual = left.assignmentTable !== null
+    const rightIsManual = right.assignmentTable !== null
+    if (leftIsManual !== rightIsManual) return leftIsManual ? -1 : 1
+
+    return left.id.localeCompare(right.id)
   })
 
   const adminCards: AdminCarouselItem[] = sortedAdmins.map((adminRow) => {
-    const roleLabel = adminRow.automaticAdminLabels.length > 0
-      ? `${adminRow.automaticAdminLabels.join(', ')} admin`
-      : adminRow.currentOfficerLabels.length > 0
-        ? `${adminRow.currentOfficerLabels[0]} admin`
-        : 'Organization admin'
+    const isManualAssignment = adminRow.assignmentTable !== null
+    const roleLabel = isManualAssignment
+      ? 'Organization admin'
+      : adminRow.automaticAdminLabels.length > 0
+        ? `${adminRow.automaticAdminLabels.join(', ')} admin`
+        : adminRow.currentOfficerLabels.length > 0
+          ? `${adminRow.currentOfficerLabels[0]} admin`
+          : 'Organization admin'
 
     const removeDescription = adminRow.automaticAdminLabels.length > 0
       ? `This removes the manual assignment for ${adminRow.label}, but their current officer role will still keep admin access active.`
@@ -593,7 +579,16 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     email: null,
   }
 
-  const sortedOfficerTerms = [...officerTerms].sort((left, right) => {
+  const dedupedOfficerTerms = Array.from(
+    new Map(
+      officerTerms.map((term) => [
+        `${term.person_id}:${term.office_scope_code}:${term.office_code}:${term.office_rank ?? 'none'}`,
+        term,
+      ])
+    ).values()
+  )
+
+  const sortedOfficerTerms = [...dedupedOfficerTerms].sort((left, right) => {
     const priorityDifference = officeSortPriority(left) - officeSortPriority(right)
     if (priorityDifference !== 0) return priorityDifference
     const leftName = memberName(personById.get(left.person_id) ?? fallbackMember)

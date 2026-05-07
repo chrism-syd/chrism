@@ -65,6 +65,7 @@ async function syncParallelAdminPackageGrant(args: {
   note?: string | null
 }) {
   if (!args.targetUserId) return
+  if (args.sourceCode === 'admin_invitation') return
 
   const localUnitId = await pickPrimaryLocalUnitIdForOrganization({ organizationId: args.organizationId })
   if (!localUnitId) return
@@ -91,6 +92,7 @@ async function syncParallelAdminPackageRevoke(args: {
   note?: string | null
 }) {
   if (!args.targetUserId) return
+  if (args.sourceCode === 'admin_invitation') return
 
   const localUnitId = await pickPrimaryLocalUnitIdForOrganization({ organizationId: args.organizationId })
   if (!localUnitId) return

@@ -9,8 +9,8 @@ import { getSelectedOperationsLocalUnitId, OPERATIONS_SCOPE_COOKIE } from '@/lib
 import {
   formatDateTime,
   hasStrictCustomListLifecycleAccess,
+  listExplicitlySharedCustomListIdsForUser,
   listManageableLocalUnitIdsForCustomLists,
-  listSharedCustomListIdsForUser,
   type CustomListRow,
 } from '@/lib/custom-lists'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -35,14 +35,56 @@ export default async function ArchivedCustomListsPage() {
   const selectedLocalUnitId = getSelectedOperationsLocalUnitId({
     rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
   })
-  const activeScopeLocalUnitId = permissions.activeLocalUnitId ?? selectedLocalUnitId ?? null
 
-  const [manageableLocalUnitIds, sharedIds] = await Promise.all([
-    listManageableLocalUnitIdsForCustomLists({ admin, permissions }),
-    listSharedCustomListIdsForUser({ admin, permissions, localUnitId: activeScopeLocalUnitId }),
-  ])
+  const isPreviewAdminMode =
+    permissions.isSuperAdmin &&
+    permissions.actingMode === 'admin' &&
+    Boolean(permissions.activeLocalUnitId)
 
-  if (manageableLocalUnitIds.length === 0 && sharedIds.length === 0) {
+  const realManageableLocalUnitIds = permissions.hasStaffAccess
+    ? await listManageableLocalUnitIdsForCustomLists({ admin, permissions })
+    : []
+
+  const manageableLocalUnitIds = isPreviewAdminMode
+    ? permissions.activeLocalUnitId
+      ? [permissions.activeLocalUnitId]
+      : []
+    : realManageableLocalUnitIds
+
+  const activeManageLocalUnitId =
+    isPreviewAdminMode
+      ? permissions.activeLocalUnitId
+      : (selectedLocalUnitId && manageableLocalUnitIds.includes(selectedLocalUnitId) ? selectedLocalUnitId : null) ??
+        (permissions.activeLocalUnitId && manageableLocalUnitIds.includes(permissions.activeLocalUnitId)
+          ? permissions.activeLocalUnitId
+          : null) ??
+        (manageableLocalUnitIds.length === 1 ? manageableLocalUnitIds[0] : null)
+
+  const previewScopedLocalUnitId =
+    isPreviewAdminMode
+      ? permissions.activeLocalUnitId ?? null
+      : (selectedLocalUnitId ?? permissions.activeLocalUnitId ?? null)
+
+  const sharedScopeLocalUnitId = activeManageLocalUnitId ?? previewScopedLocalUnitId
+
+  const realSharedListIds = await listExplicitlySharedCustomListIdsForUser({
+    admin,
+    permissions,
+    localUnitId: sharedScopeLocalUnitId,
+  })
+
+  const sharedListIds = isPreviewAdminMode ? [] : realSharedListIds
+
+  if (!permissions.hasStaffAccess && sharedListIds.length === 0) {
+    redirect('/me')
+  }
+
+  const manageScopeLocalUnitIds =
+    activeManageLocalUnitId && manageableLocalUnitIds.includes(activeManageLocalUnitId)
+      ? [activeManageLocalUnitId]
+      : manageableLocalUnitIds
+
+  if (manageScopeLocalUnitIds.length === 0 && sharedListIds.length === 0) {
     redirect('/me')
   }
 
@@ -53,15 +95,13 @@ export default async function ArchivedCustomListsPage() {
     .order('archived_at', { ascending: false })
 
   const filters: string[] = []
-  if (manageableLocalUnitIds.length > 0) {
-    filters.push(`local_unit_id.in.(${manageableLocalUnitIds.join(',')})`)
+
+  if (manageScopeLocalUnitIds.length > 0) {
+    filters.push(`local_unit_id.in.(${manageScopeLocalUnitIds.join(',')})`)
   }
-  if (sharedIds.length > 0) {
-    if (activeScopeLocalUnitId) {
-      filters.push(`and(id.in.(${sharedIds.join(',')}),local_unit_id.eq.${activeScopeLocalUnitId})`)
-    } else {
-      filters.push(`id.in.(${sharedIds.join(',')})`)
-    }
+
+  if (sharedListIds.length > 0) {
+    filters.push(`id.in.(${sharedListIds.join(',')})`)
   }
 
   if (filters.length === 1) {

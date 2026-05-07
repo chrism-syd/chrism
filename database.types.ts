@@ -14,6 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
+      _archive_council_admin_assignments: {
+        Row: {
+          council_id: string | null
+          created_at: string | null
+          created_by_user_id: string | null
+          grantee_email: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          person_id: string | null
+          updated_at: string | null
+          updated_by_user_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          council_id?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          grantee_email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          person_id?: string | null
+          updated_at?: string | null
+          updated_by_user_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          council_id?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          grantee_email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          person_id?: string | null
+          updated_at?: string | null
+          updated_by_user_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      _archive_custom_list_access: {
+        Row: {
+          created_at: string | null
+          custom_list_id: string | null
+          granted_at: string | null
+          granted_by_auth_user_id: string | null
+          grantee_email: string | null
+          id: string | null
+          person_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_list_id?: string | null
+          granted_at?: string | null
+          granted_by_auth_user_id?: string | null
+          grantee_email?: string | null
+          id?: string | null
+          person_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_list_id?: string | null
+          granted_at?: string | null
+          granted_by_auth_user_id?: string | null
+          grantee_email?: string | null
+          id?: string | null
+          person_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      _archive_organization_admin_assignments: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string | null
+          grant_notes: string | null
+          grantee_email: string | null
+          id: string | null
+          is_active: boolean | null
+          organization_claim_request_id: string | null
+          organization_id: string | null
+          person_id: string | null
+          revoked_at: string | null
+          revoked_by_user_id: string | null
+          revoked_notes: string | null
+          source_code: string | null
+          updated_at: string | null
+          updated_by_user_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id?: string | null
+          grant_notes?: string | null
+          grantee_email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          organization_claim_request_id?: string | null
+          organization_id?: string | null
+          person_id?: string | null
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          revoked_notes?: string | null
+          source_code?: string | null
+          updated_at?: string | null
+          updated_by_user_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string | null
+          grant_notes?: string | null
+          grantee_email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          organization_claim_request_id?: string | null
+          organization_id?: string | null
+          person_id?: string | null
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          revoked_notes?: string | null
+          source_code?: string | null
+          updated_at?: string | null
+          updated_by_user_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       access_scope_source_types: {
         Row: {
           code: string
@@ -58,6 +193,76 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      area_access_grants: {
+        Row: {
+          access_level: Database["public"]["Enums"]["area_access_level"]
+          area_code: Database["public"]["Enums"]["member_area_code"]
+          created_at: string
+          created_by_auth_user_id: string | null
+          expires_at: string | null
+          granted_at: string
+          id: string
+          local_unit_id: string
+          member_record_id: string
+          revoked_at: string | null
+          source_code: Database["public"]["Enums"]["grant_source_code"]
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          access_level: Database["public"]["Enums"]["area_access_level"]
+          area_code: Database["public"]["Enums"]["member_area_code"]
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          expires_at?: string | null
+          granted_at?: string
+          id?: string
+          local_unit_id: string
+          member_record_id: string
+          revoked_at?: string | null
+          source_code?: Database["public"]["Enums"]["grant_source_code"]
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["area_access_level"]
+          area_code?: Database["public"]["Enums"]["member_area_code"]
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          expires_at?: string | null
+          granted_at?: string
+          id?: string
+          local_unit_id?: string
+          member_record_id?: string
+          revoked_at?: string | null
+          source_code?: Database["public"]["Enums"]["grant_source_code"]
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "area_access_grants_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_log: {
         Row: {
@@ -138,6 +343,87 @@ export type Database = {
           updated_by_auth_user_id?: string | null
         }
         Relationships: []
+      }
+      catechism_references: {
+        Row: {
+          body_excerpt: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          reference_code: string
+          slug: string
+          source_1: string | null
+          source_2: string | null
+          summary: string | null
+          title: string | null
+          updated_at: string
+          workbook_catechism_id: string | null
+        }
+        Insert: {
+          body_excerpt?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reference_code: string
+          slug: string
+          source_1?: string | null
+          source_2?: string | null
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          workbook_catechism_id?: string | null
+        }
+        Update: {
+          body_excerpt?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reference_code?: string
+          slug?: string
+          source_1?: string | null
+          source_2?: string | null
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          workbook_catechism_id?: string | null
+        }
+        Relationships: []
+      }
+      catechism_topics: {
+        Row: {
+          catechism_reference_id: string
+          created_at: string
+          relevance_score: number | null
+          topic_id: string
+        }
+        Insert: {
+          catechism_reference_id: string
+          created_at?: string
+          relevance_score?: number | null
+          topic_id: string
+        }
+        Update: {
+          catechism_reference_id?: string
+          created_at?: string
+          relevance_score?: number | null
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catechism_topics_catechism_reference_id_fkey"
+            columns: ["catechism_reference_id"]
+            isOneToOne: false
+            referencedRelation: "catechism_references"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catechism_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       council_activity_context_types: {
         Row: {
@@ -361,6 +647,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "custom_list_access_custom_list_id_fkey"
+            columns: ["custom_list_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_custom_list_access_audit"
+            referencedColumns: ["custom_list_id"]
+          },
+          {
             foreignKeyName: "custom_list_access_granted_by_auth_user_id_fkey"
             columns: ["granted_by_auth_user_id"]
             isOneToOne: false
@@ -439,6 +732,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "custom_list_members_custom_list_id_fkey"
+            columns: ["custom_list_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_custom_list_access_audit"
+            referencedColumns: ["custom_list_id"]
+          },
+          {
             foreignKeyName: "custom_list_members_last_contact_by_person_id_fkey"
             columns: ["last_contact_by_person_id"]
             isOneToOne: false
@@ -458,11 +758,12 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_by_auth_user_id: string | null
-          council_id: string
+          council_id: string | null
           created_at: string
           created_by_auth_user_id: string | null
           description: string | null
           id: string
+          local_unit_id: string
           name: string
           updated_at: string
           updated_by_auth_user_id: string | null
@@ -470,11 +771,12 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           archived_by_auth_user_id?: string | null
-          council_id: string
+          council_id?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
           description?: string | null
           id?: string
+          local_unit_id: string
           name: string
           updated_at?: string
           updated_by_auth_user_id?: string | null
@@ -482,11 +784,12 @@ export type Database = {
         Update: {
           archived_at?: string | null
           archived_by_auth_user_id?: string | null
-          council_id?: string
+          council_id?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
           description?: string | null
           id?: string
+          local_unit_id?: string
           name?: string
           updated_at?: string
           updated_by_auth_user_id?: string | null
@@ -514,10 +817,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "custom_lists_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_lists_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
             foreignKeyName: "custom_lists_updated_by_auth_user_id_fkey"
             columns: ["updated_by_auth_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_reading_entries: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          reading_date: string
+          scripture_passage_id: string | null
+          spiritual_content_item_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reading_date: string
+          scripture_passage_id?: string | null
+          spiritual_content_item_id?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reading_date?: string
+          scripture_passage_id?: string | null
+          spiritual_content_item_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reading_entries_scripture_passage_id_fkey"
+            columns: ["scripture_passage_id"]
+            isOneToOne: false
+            referencedRelation: "scripture_passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reading_entries_spiritual_content_item_id_fkey"
+            columns: ["spiritual_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
             referencedColumns: ["id"]
           },
         ]
@@ -574,8 +942,10 @@ export type Database = {
           ends_at: string | null
           event_kind_code: string | null
           id: string
+          local_unit_id: string | null
           location_address: string | null
           location_name: string | null
+          needs_volunteers: boolean
           original_event_id: string | null
           reminder_days_before: number | null
           reminder_enabled: boolean
@@ -586,6 +956,7 @@ export type Database = {
           starts_at: string | null
           status_code: string | null
           title: string
+          volunteer_deadline_at: string | null
         }
         Insert: {
           council_id: string
@@ -596,8 +967,10 @@ export type Database = {
           ends_at?: string | null
           event_kind_code?: string | null
           id?: string
+          local_unit_id?: string | null
           location_address?: string | null
           location_name?: string | null
+          needs_volunteers?: boolean
           original_event_id?: string | null
           reminder_days_before?: number | null
           reminder_enabled?: boolean
@@ -608,6 +981,7 @@ export type Database = {
           starts_at?: string | null
           status_code?: string | null
           title: string
+          volunteer_deadline_at?: string | null
         }
         Update: {
           council_id?: string
@@ -618,8 +992,10 @@ export type Database = {
           ends_at?: string | null
           event_kind_code?: string | null
           id?: string
+          local_unit_id?: string | null
           location_address?: string | null
           location_name?: string | null
+          needs_volunteers?: boolean
           original_event_id?: string | null
           reminder_days_before?: number | null
           reminder_enabled?: boolean
@@ -630,6 +1006,7 @@ export type Database = {
           starts_at?: string | null
           status_code?: string | null
           title?: string
+          volunteer_deadline_at?: string | null
         }
         Relationships: [
           {
@@ -645,6 +1022,147 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_archives_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_archives_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      event_assignment_roles: {
+        Row: {
+          code: string
+          label: string
+          precedence: number
+        }
+        Insert: {
+          code: string
+          label: string
+          precedence?: number
+        }
+        Update: {
+          code?: string
+          label?: string
+          precedence?: number
+        }
+        Relationships: []
+      }
+      event_assignments: {
+        Row: {
+          assignment_scope: Database["public"]["Enums"]["event_assignment_scope_code"]
+          created_at: string
+          created_by_auth_user_id: string | null
+          event_id: string | null
+          id: string
+          legacy_event_kind_code: string | null
+          local_unit_id: string
+          member_record_id: string
+          notes: string | null
+          role_code: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          assignment_scope: Database["public"]["Enums"]["event_assignment_scope_code"]
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          event_id?: string | null
+          id?: string
+          legacy_event_kind_code?: string | null
+          local_unit_id: string
+          member_record_id: string
+          notes?: string | null
+          role_code?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          assignment_scope?: Database["public"]["Enums"]["event_assignment_scope_code"]
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          event_id?: string | null
+          id?: string
+          legacy_event_kind_code?: string | null
+          local_unit_id?: string
+          member_record_id?: string
+          notes?: string | null
+          role_code?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_council_rsvp_rollups"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_host_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_person_rsvp_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_assignments_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_assignments_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "event_assignments_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_assignments_role_code_fkey"
+            columns: ["role_code"]
+            isOneToOne: false
+            referencedRelation: "event_assignment_roles"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -722,6 +1240,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_council_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_council_rsvps_event_invited_council_id_fkey"
@@ -817,6 +1342,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_external_invitees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_external_invitees_updated_by_user_id_fkey"
@@ -919,6 +1451,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_invited_councils_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_invited_councils_invited_council_id_fkey"
@@ -1035,6 +1574,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_message_jobs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_message_jobs_event_invited_council_id_fkey"
@@ -1251,6 +1797,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "event_person_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "event_person_rsvps_matched_person_id_fkey"
             columns: ["matched_person_id"]
             isOneToOne: false
@@ -1339,6 +1892,13 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_rsvp_volunteers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_event_assignment_audit"
+            referencedColumns: ["event_id"]
+          },
         ]
       }
       event_scope_types: {
@@ -1384,11 +1944,13 @@ export type Database = {
           created_by_user_id: string
           description: string | null
           display_timezone: string
-          ends_at: string
+          ends_at: string | null
           event_kind_code: string
           id: string
+          local_unit_id: string | null
           location_address: string | null
           location_name: string | null
+          needs_volunteers: boolean
           reminder_days_before: number | null
           reminder_enabled: boolean
           reminder_scheduled_for: string | null
@@ -1400,6 +1962,7 @@ export type Database = {
           title: string
           updated_at: string
           updated_by_user_id: string | null
+          volunteer_deadline_at: string | null
         }
         Insert: {
           council_id: string
@@ -1407,11 +1970,13 @@ export type Database = {
           created_by_user_id: string
           description?: string | null
           display_timezone?: string
-          ends_at: string
+          ends_at?: string | null
           event_kind_code?: string
           id?: string
+          local_unit_id?: string | null
           location_address?: string | null
           location_name?: string | null
+          needs_volunteers?: boolean
           reminder_days_before?: number | null
           reminder_enabled?: boolean
           reminder_scheduled_for?: string | null
@@ -1423,6 +1988,7 @@ export type Database = {
           title: string
           updated_at?: string
           updated_by_user_id?: string | null
+          volunteer_deadline_at?: string | null
         }
         Update: {
           council_id?: string
@@ -1430,11 +1996,13 @@ export type Database = {
           created_by_user_id?: string
           description?: string | null
           display_timezone?: string
-          ends_at?: string
+          ends_at?: string | null
           event_kind_code?: string
           id?: string
+          local_unit_id?: string | null
           location_address?: string | null
           location_name?: string | null
+          needs_volunteers?: boolean
           reminder_days_before?: number | null
           reminder_enabled?: boolean
           reminder_scheduled_for?: string | null
@@ -1446,6 +2014,7 @@ export type Database = {
           title?: string
           updated_at?: string
           updated_by_user_id?: string | null
+          volunteer_deadline_at?: string | null
         }
         Relationships: [
           {
@@ -1461,6 +2030,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
           },
           {
             foreignKeyName: "events_scope_code_fkey"
@@ -1484,6 +2067,805 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      import_st_patricks_7689_members: {
+        Row: {
+          address_line_1: string | null
+          assembly_number: string | null
+          birth_date: string | null
+          city: string | null
+          council_number: string | null
+          country_code: string | null
+          exempt: string | null
+          first_degree_date: string | null
+          first_name: string | null
+          last_name: string | null
+          member_class: string | null
+          member_number: string | null
+          member_type: string | null
+          middle_name: string | null
+          postal_code: string | null
+          province_state: string | null
+          reentry_date: string | null
+          second_degree_date: string | null
+          suffix: string | null
+          third_degree_date: string | null
+          title: string | null
+          years_service: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          assembly_number?: string | null
+          birth_date?: string | null
+          city?: string | null
+          council_number?: string | null
+          country_code?: string | null
+          exempt?: string | null
+          first_degree_date?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          member_class?: string | null
+          member_number?: string | null
+          member_type?: string | null
+          middle_name?: string | null
+          postal_code?: string | null
+          province_state?: string | null
+          reentry_date?: string | null
+          second_degree_date?: string | null
+          suffix?: string | null
+          third_degree_date?: string | null
+          title?: string | null
+          years_service?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          assembly_number?: string | null
+          birth_date?: string | null
+          city?: string | null
+          council_number?: string | null
+          country_code?: string | null
+          exempt?: string | null
+          first_degree_date?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          member_class?: string | null
+          member_number?: string | null
+          member_type?: string | null
+          middle_name?: string | null
+          postal_code?: string | null
+          province_state?: string | null
+          reentry_date?: string | null
+          second_degree_date?: string | null
+          suffix?: string | null
+          third_degree_date?: string | null
+          title?: string | null
+          years_service?: string | null
+        }
+        Relationships: []
+      }
+      intake_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by_auth_user_id: string | null
+          id: string
+          intake_item_id: string
+          member_record_id: string
+          resolved_at: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by_auth_user_id?: string | null
+          id?: string
+          intake_item_id: string
+          member_record_id: string
+          resolved_at?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by_auth_user_id?: string | null
+          id?: string
+          intake_item_id?: string
+          member_record_id?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_assignments_intake_item_id_fkey"
+            columns: ["intake_item_id"]
+            isOneToOne: false
+            referencedRelation: "intake_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_assignments_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_items: {
+        Row: {
+          created_at: string
+          created_by_auth_user_id: string | null
+          id: string
+          intake_type_id: string
+          local_unit_id: string
+          message: string | null
+          sender_email: string
+          sender_name: string
+          sender_phone: string | null
+          status_code: Database["public"]["Enums"]["intake_item_status_code"]
+          subject: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          intake_type_id: string
+          local_unit_id: string
+          message?: string | null
+          sender_email: string
+          sender_name: string
+          sender_phone?: string | null
+          status_code?: Database["public"]["Enums"]["intake_item_status_code"]
+          subject?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          intake_type_id?: string
+          local_unit_id?: string
+          message?: string | null
+          sender_email?: string
+          sender_name?: string
+          sender_phone?: string | null
+          status_code?: Database["public"]["Enums"]["intake_item_status_code"]
+          subject?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_items_intake_type_id_fkey"
+            columns: ["intake_type_id"]
+            isOneToOne: false
+            referencedRelation: "intake_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_items_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_items_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      intake_types: {
+        Row: {
+          created_at: string
+          created_by_auth_user_id: string | null
+          display_label: string
+          id: string
+          is_active: boolean
+          is_public: boolean
+          local_unit_id: string
+          type_code: string
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_label: string
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          local_unit_id: string
+          type_code: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_label?: string
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          local_unit_id?: string
+          type_code?: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_types_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_types_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      legacy_fossil_resolutions: {
+        Row: {
+          id: string
+          notes: string | null
+          resolution_code: string
+          resolved_at: string
+          resolved_by_auth_user_id: string | null
+          source_row_id: string
+          source_table: string
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          resolution_code?: string
+          resolved_at?: string
+          resolved_by_auth_user_id?: string | null
+          source_row_id: string
+          source_table: string
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          resolution_code?: string
+          resolved_at?: string
+          resolved_by_auth_user_id?: string | null
+          source_row_id?: string
+          source_table?: string
+        }
+        Relationships: []
+      }
+      local_role_definitions: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          id: string
+          is_active: boolean
+          is_single_seat: boolean
+          label: string
+          local_unit_id: string
+          precedence: number
+          role_kind: Database["public"]["Enums"]["role_kind"]
+          source_template_id: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_single_seat?: boolean
+          label: string
+          local_unit_id: string
+          precedence?: number
+          role_kind: Database["public"]["Enums"]["role_kind"]
+          source_template_id?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_single_seat?: boolean
+          label?: string
+          local_unit_id?: string
+          precedence?: number
+          role_kind?: Database["public"]["Enums"]["role_kind"]
+          source_template_id?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_role_definitions_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_role_definitions_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      local_unit_custom_fields: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          id: string
+          is_active: boolean
+          label: string
+          local_unit_id: string
+          source_template_code: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          local_unit_id: string
+          source_template_code?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          local_unit_id?: string
+          source_template_code?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_custom_fields_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_custom_fields_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      local_unit_parish_affiliations: {
+        Row: {
+          created_at: string
+          created_by_auth_user_id: string | null
+          id: string
+          local_unit_id: string
+          parish_local_unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          local_unit_id: string
+          parish_local_unit_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          local_unit_id?: string
+          parish_local_unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_parish_affiliations_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_parish_affiliations_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "local_unit_parish_affiliations_parish_local_unit_id_fkey"
+            columns: ["parish_local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_parish_affiliations_parish_local_unit_id_fkey"
+            columns: ["parish_local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      local_unit_people: {
+        Row: {
+          created_at: string
+          created_by_auth_user_id: string | null
+          ended_at: string | null
+          id: string
+          linked_at: string
+          linked_by_auth_user_id: string | null
+          local_unit_id: string
+          person_id: string
+          source_code: string
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          ended_at?: string | null
+          id?: string
+          linked_at?: string
+          linked_by_auth_user_id?: string | null
+          local_unit_id: string
+          person_id: string
+          source_code?: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          ended_at?: string | null
+          id?: string
+          linked_at?: string
+          linked_by_auth_user_id?: string | null
+          local_unit_id?: string
+          person_id?: string
+          source_code?: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_people_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_people_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "local_unit_people_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_units: {
+        Row: {
+          city: string | null
+          country_code: string | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          display_name: string
+          id: string
+          legacy_council_id: string | null
+          legacy_organization_id: string | null
+          local_unit_kind: Database["public"]["Enums"]["local_unit_kind"]
+          official_name: string
+          organization_family_id: string
+          postal_code: string | null
+          province_state: string | null
+          status: Database["public"]["Enums"]["local_unit_status"]
+          timezone: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+          visibility: string
+        }
+        Insert: {
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_name: string
+          id?: string
+          legacy_council_id?: string | null
+          legacy_organization_id?: string | null
+          local_unit_kind: Database["public"]["Enums"]["local_unit_kind"]
+          official_name: string
+          organization_family_id: string
+          postal_code?: string | null
+          province_state?: string | null
+          status?: Database["public"]["Enums"]["local_unit_status"]
+          timezone?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+          visibility?: string
+        }
+        Update: {
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_name?: string
+          id?: string
+          legacy_council_id?: string | null
+          legacy_organization_id?: string | null
+          local_unit_kind?: Database["public"]["Enums"]["local_unit_kind"]
+          official_name?: string
+          organization_family_id?: string
+          postal_code?: string | null
+          province_state?: string | null
+          status?: Database["public"]["Enums"]["local_unit_status"]
+          timezone?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_units_legacy_council_id_fkey"
+            columns: ["legacy_council_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_units_legacy_organization_id_fkey"
+            columns: ["legacy_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_units_organization_family_id_fkey"
+            columns: ["organization_family_id"]
+            isOneToOne: false
+            referencedRelation: "organization_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_records: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          archived_at: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          legacy_council_id: string | null
+          legacy_people_id: string | null
+          lifecycle_state: Database["public"]["Enums"]["member_record_lifecycle_state"]
+          local_unit_id: string
+          member_number: string | null
+          middle_name: string | null
+          phone: string | null
+          postal_code: string | null
+          preferred_display_name: string | null
+          province_state: string | null
+          suffix: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          archived_at?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          legacy_council_id?: string | null
+          legacy_people_id?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["member_record_lifecycle_state"]
+          local_unit_id: string
+          member_number?: string | null
+          middle_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          preferred_display_name?: string | null
+          province_state?: string | null
+          suffix?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          archived_at?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          legacy_council_id?: string | null
+          legacy_people_id?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["member_record_lifecycle_state"]
+          local_unit_id?: string
+          member_number?: string | null
+          middle_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          preferred_display_name?: string | null
+          province_state?: string | null
+          suffix?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_records_legacy_council_id_fkey"
+            columns: ["legacy_council_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_records_legacy_people_id_fkey"
+            columns: ["legacy_people_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_records_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_records_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      membership_claim_requests: {
+        Row: {
+          created_at: string
+          id: string
+          local_unit_id: string
+          member_number: string | null
+          requester_email: string
+          requester_name: string
+          requester_phone: string | null
+          requester_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by_auth_user_id: string | null
+          reviewer_notes: string | null
+          status_code: Database["public"]["Enums"]["membership_claim_status_code"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          local_unit_id: string
+          member_number?: string | null
+          requester_email: string
+          requester_name: string
+          requester_phone?: string | null
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by_auth_user_id?: string | null
+          reviewer_notes?: string | null
+          status_code?: Database["public"]["Enums"]["membership_claim_status_code"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          local_unit_id?: string
+          member_number?: string | null
+          requester_email?: string
+          requester_name?: string
+          requester_phone?: string | null
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by_auth_user_id?: string | null
+          reviewer_notes?: string | null
+          status_code?: Database["public"]["Enums"]["membership_claim_status_code"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_claim_requests_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_claim_requests_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+        ]
+      }
+      migration_review_queue: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          payload: Json
+          resolved_at: string | null
+          resolved_by_auth_user_id: string | null
+          review_type: string
+          source_row_id: string
+          source_table: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payload?: Json
+          resolved_at?: string | null
+          resolved_by_auth_user_id?: string | null
+          review_type: string
+          source_row_id: string
+          source_table: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payload?: Json
+          resolved_at?: string | null
+          resolved_by_auth_user_id?: string | null
+          review_type?: string
+          source_row_id?: string
+          source_table?: string
+        }
+        Relationships: []
       }
       note_types: {
         Row: {
@@ -1889,11 +3271,17 @@ export type Database = {
         Row: {
           created_at: string
           created_by_user_id: string | null
+          grant_notes: string | null
           grantee_email: string | null
           id: string
           is_active: boolean
+          organization_claim_request_id: string | null
           organization_id: string
           person_id: string | null
+          revoked_at: string | null
+          revoked_by_user_id: string | null
+          revoked_notes: string | null
+          source_code: string
           updated_at: string
           updated_by_user_id: string | null
           user_id: string | null
@@ -1901,11 +3289,17 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_user_id?: string | null
+          grant_notes?: string | null
           grantee_email?: string | null
           id?: string
           is_active?: boolean
+          organization_claim_request_id?: string | null
           organization_id: string
           person_id?: string | null
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          revoked_notes?: string | null
+          source_code?: string
           updated_at?: string
           updated_by_user_id?: string | null
           user_id?: string | null
@@ -1913,16 +3307,29 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_user_id?: string | null
+          grant_notes?: string | null
           grantee_email?: string | null
           id?: string
           is_active?: boolean
+          organization_claim_request_id?: string | null
           organization_id?: string
           person_id?: string | null
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          revoked_notes?: string | null
+          source_code?: string
           updated_at?: string
           updated_by_user_id?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_admin_assignment_organization_claim_request_i_fkey"
+            columns: ["organization_claim_request_id"]
+            isOneToOne: false
+            referencedRelation: "organization_claim_requests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organization_admin_assignments_organization_id_fkey"
             columns: ["organization_id"]
@@ -1939,23 +3346,295 @@ export type Database = {
           },
         ]
       }
+      organization_admin_invitations: {
+        Row: {
+          accepted_assignment_id: string | null
+          accepted_at: string | null
+          accepted_by_auth_user_id: string | null
+          council_id: string | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          expires_at: string
+          id: string
+          invited_by_auth_user_id: string | null
+          invitee_email: string
+          invitee_name: string | null
+          notes: string | null
+          organization_id: string
+          revoked_at: string | null
+          revoked_by_auth_user_id: string | null
+          revoked_notes: string | null
+          selector: string
+          status_code: string
+          token_hash: string
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          accepted_assignment_id?: string | null
+          accepted_at?: string | null
+          accepted_by_auth_user_id?: string | null
+          council_id?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          expires_at: string
+          id?: string
+          invited_by_auth_user_id?: string | null
+          invitee_email: string
+          invitee_name?: string | null
+          notes?: string | null
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by_auth_user_id?: string | null
+          revoked_notes?: string | null
+          selector: string
+          status_code?: string
+          token_hash: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          accepted_assignment_id?: string | null
+          accepted_at?: string | null
+          accepted_by_auth_user_id?: string | null
+          council_id?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          expires_at?: string
+          id?: string
+          invited_by_auth_user_id?: string | null
+          invitee_email?: string
+          invitee_name?: string | null
+          notes?: string | null
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by_auth_user_id?: string | null
+          revoked_notes?: string | null
+          selector?: string
+          status_code?: string
+          token_hash?: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_admin_invitations_accepted_assignment_id_fkey"
+            columns: ["accepted_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "organization_admin_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_admin_invitations_council_id_fkey"
+            columns: ["council_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_admin_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_claim_requests: {
+        Row: {
+          approved_assignment_id: string | null
+          claimant_official_name: string | null
+          claimant_preferred_name: string | null
+          council_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          decision_notice_dismissed_at: string | null
+          id: string
+          initiated_via_code: string
+          organization_id: string | null
+          request_notes: string | null
+          request_type_code: string
+          requested_at: string
+          requested_by_auth_user_id: string | null
+          requested_by_person_id: string | null
+          requested_city: string | null
+          requested_council_name: string | null
+          requested_council_number: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_notice_dismissed_at: string | null
+          requester_notice_dismissed_by_auth_user_id: string | null
+          requester_phone: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by_auth_user_id: string | null
+          status_code: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          approved_assignment_id?: string | null
+          claimant_official_name?: string | null
+          claimant_preferred_name?: string | null
+          council_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          decision_notice_dismissed_at?: string | null
+          id?: string
+          initiated_via_code?: string
+          organization_id?: string | null
+          request_notes?: string | null
+          request_type_code?: string
+          requested_at?: string
+          requested_by_auth_user_id?: string | null
+          requested_by_person_id?: string | null
+          requested_city?: string | null
+          requested_council_name?: string | null
+          requested_council_number?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_notice_dismissed_at?: string | null
+          requester_notice_dismissed_by_auth_user_id?: string | null
+          requester_phone?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_auth_user_id?: string | null
+          status_code?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          approved_assignment_id?: string | null
+          claimant_official_name?: string | null
+          claimant_preferred_name?: string | null
+          council_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          decision_notice_dismissed_at?: string | null
+          id?: string
+          initiated_via_code?: string
+          organization_id?: string | null
+          request_notes?: string | null
+          request_type_code?: string
+          requested_at?: string
+          requested_by_auth_user_id?: string | null
+          requested_by_person_id?: string | null
+          requested_city?: string | null
+          requested_council_name?: string | null
+          requested_council_number?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_notice_dismissed_at?: string | null
+          requester_notice_dismissed_by_auth_user_id?: string | null
+          requester_phone?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_auth_user_id?: string | null
+          status_code?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_claim_requests_approved_assignment_id_fkey"
+            columns: ["approved_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "organization_admin_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_claim_requests_claimant_person_id_fkey"
+            columns: ["requested_by_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_claim_requests_council_id_fkey"
+            columns: ["council_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_claim_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_families: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          created_by_auth_user_id: string | null
+          display_name: string
+          id: string
+          legacy_organization_id: string | null
+          terminology_json: Json
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_name: string
+          id?: string
+          legacy_organization_id?: string | null
+          terminology_json?: Json
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_name?: string
+          id?: string
+          legacy_organization_id?: string | null
+          terminology_json?: Json
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_families_legacy_organization_id_fkey"
+            columns: ["legacy_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_kofc_profiles: {
         Row: {
           council_number: string
           created_at: string
+          lookup_city: string | null
           organization_id: string
+          parish_associations: string[] | null
           updated_at: string
         }
         Insert: {
           council_number: string
           created_at?: string
+          lookup_city?: string | null
           organization_id: string
+          parish_associations?: string[] | null
           updated_at?: string
         }
         Update: {
           council_number?: string
           created_at?: string
+          lookup_city?: string | null
           organization_id?: string
+          parish_associations?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -2511,7 +4190,7 @@ export type Database = {
           changed_at: string
           changed_by_auth_user_id: string | null
           changed_fields: Json
-          council_id: string
+          council_id: string | null
           id: string
           new_values: Json
           old_values: Json
@@ -2521,7 +4200,7 @@ export type Database = {
           changed_at?: string
           changed_by_auth_user_id?: string | null
           changed_fields?: Json
-          council_id: string
+          council_id?: string | null
           id?: string
           new_values?: Json
           old_values?: Json
@@ -2531,7 +4210,7 @@ export type Database = {
           changed_at?: string
           changed_by_auth_user_id?: string | null
           changed_fields?: Json
-          council_id?: string
+          council_id?: string | null
           id?: string
           new_values?: Json
           old_values?: Json
@@ -2666,6 +4345,110 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_identities: {
+        Row: {
+          created_at: string
+          created_by_auth_user_id: string | null
+          display_name: string | null
+          id: string
+          normalized_email_hash: string | null
+          normalized_phone_hash: string | null
+          primary_user_id: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_name?: string | null
+          id?: string
+          normalized_email_hash?: string | null
+          normalized_phone_hash?: string | null
+          primary_user_id?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          display_name?: string | null
+          id?: string
+          normalized_email_hash?: string | null
+          normalized_phone_hash?: string | null
+          primary_user_id?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_identities_primary_user_id_fkey"
+            columns: ["primary_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_identity_links: {
+        Row: {
+          confidence_code: string
+          created_at: string
+          created_by_auth_user_id: string | null
+          ended_at: string | null
+          id: string
+          link_source: string
+          linked_at: string
+          notes: string | null
+          person_id: string
+          person_identity_id: string
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          confidence_code?: string
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          ended_at?: string | null
+          id?: string
+          link_source?: string
+          linked_at?: string
+          notes?: string | null
+          person_id: string
+          person_identity_id: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          confidence_code?: string
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          ended_at?: string | null
+          id?: string
+          link_source?: string
+          linked_at?: string
+          notes?: string | null
+          person_id?: string
+          person_identity_id?: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_identity_links_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_identity_links_person_identity_id_fkey"
+            columns: ["person_identity_id"]
+            isOneToOne: false
+            referencedRelation: "person_identities"
             referencedColumns: ["id"]
           },
         ]
@@ -2835,7 +4618,10 @@ export type Database = {
           council_id: string
           created_at: string
           created_by_auth_user_id: string | null
+          end_reason: string | null
+          ended_by_auth_user_id: string | null
           id: string
+          manual_end_effective_date: string | null
           notes: string | null
           office_code: string
           office_label: string
@@ -2851,7 +4637,10 @@ export type Database = {
           council_id: string
           created_at?: string
           created_by_auth_user_id?: string | null
+          end_reason?: string | null
+          ended_by_auth_user_id?: string | null
           id?: string
+          manual_end_effective_date?: string | null
           notes?: string | null
           office_code: string
           office_label: string
@@ -2867,7 +4656,10 @@ export type Database = {
           council_id?: string
           created_at?: string
           created_by_auth_user_id?: string | null
+          end_reason?: string | null
+          ended_by_auth_user_id?: string | null
           id?: string
+          manual_end_effective_date?: string | null
           notes?: string | null
           office_code?: string
           office_label?: string
@@ -2924,8 +4716,10 @@ export type Database = {
           proposed_cell_phone_hash: string | null
           proposed_email: string | null
           proposed_email_hash: string | null
+          proposed_first_name: string | null
           proposed_home_phone: string | null
           proposed_home_phone_hash: string | null
+          proposed_last_name: string | null
           proposed_preferred_name: string | null
           requested_at: string
           requested_by_auth_user_id: string
@@ -2948,8 +4742,10 @@ export type Database = {
           proposed_cell_phone_hash?: string | null
           proposed_email?: string | null
           proposed_email_hash?: string | null
+          proposed_first_name?: string | null
           proposed_home_phone?: string | null
           proposed_home_phone_hash?: string | null
+          proposed_last_name?: string | null
           proposed_preferred_name?: string | null
           requested_at?: string
           requested_by_auth_user_id: string
@@ -2972,8 +4768,10 @@ export type Database = {
           proposed_cell_phone_hash?: string | null
           proposed_email?: string | null
           proposed_email_hash?: string | null
+          proposed_first_name?: string | null
           proposed_home_phone?: string | null
           proposed_home_phone_hash?: string | null
+          proposed_last_name?: string | null
           proposed_preferred_name?: string | null
           requested_at?: string
           requested_by_auth_user_id?: string
@@ -3053,6 +4851,676 @@ export type Database = {
           is_active?: boolean
           label?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      resource_access_grants: {
+        Row: {
+          access_level: Database["public"]["Enums"]["area_access_level"]
+          created_at: string
+          created_by_auth_user_id: string | null
+          expires_at: string | null
+          granted_at: string
+          id: string
+          local_unit_id: string
+          member_record_id: string
+          resource_key: string
+          resource_type: Database["public"]["Enums"]["resource_type_code"]
+          revoked_at: string | null
+          source_code: Database["public"]["Enums"]["grant_source_code"]
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          access_level: Database["public"]["Enums"]["area_access_level"]
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          expires_at?: string | null
+          granted_at?: string
+          id?: string
+          local_unit_id: string
+          member_record_id: string
+          resource_key: string
+          resource_type: Database["public"]["Enums"]["resource_type_code"]
+          revoked_at?: string | null
+          source_code?: Database["public"]["Enums"]["grant_source_code"]
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["area_access_level"]
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          expires_at?: string | null
+          granted_at?: string
+          id?: string
+          local_unit_id?: string
+          member_record_id?: string
+          resource_key?: string
+          resource_type?: Database["public"]["Enums"]["resource_type_code"]
+          revoked_at?: string | null
+          source_code?: Database["public"]["Enums"]["grant_source_code"]
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_assignments: {
+        Row: {
+          active_override: boolean | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          end_year: number | null
+          id: string
+          local_role_definition_id: string
+          member_record_id: string
+          start_year: number | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          active_override?: boolean | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          end_year?: number | null
+          id?: string
+          local_role_definition_id: string
+          member_record_id: string
+          start_year?: number | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          active_override?: boolean | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          end_year?: number | null
+          id?: string
+          local_role_definition_id?: string
+          member_record_id?: string
+          start_year?: number | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_assignments_local_role_definition_id_fkey"
+            columns: ["local_role_definition_id"]
+            isOneToOne: false
+            referencedRelation: "local_role_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_assignments_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saint_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          saint_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          saint_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          saint_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saint_aliases_saint_id_fkey"
+            columns: ["saint_id"]
+            isOneToOne: false
+            referencedRelation: "saints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saint_topics: {
+        Row: {
+          created_at: string
+          notes: string | null
+          relevance_score: number | null
+          saint_id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          notes?: string | null
+          relevance_score?: number | null
+          saint_id: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          notes?: string | null
+          relevance_score?: number | null
+          saint_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saint_topics_saint_id_fkey"
+            columns: ["saint_id"]
+            isOneToOne: false
+            referencedRelation: "saints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saint_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saints: {
+        Row: {
+          canonical_name: string
+          canonization_status: string | null
+          common_name: string | null
+          created_at: string
+          data_tier: string | null
+          era_label: string | null
+          feast_day: number | null
+          feast_month: number | null
+          id: string
+          is_active: boolean
+          patron_summary: string | null
+          review_status: string | null
+          short_bio: string | null
+          slug: string
+          source_1: string | null
+          source_2: string | null
+          updated_at: string
+          workbook_saint_id: string | null
+        }
+        Insert: {
+          canonical_name: string
+          canonization_status?: string | null
+          common_name?: string | null
+          created_at?: string
+          data_tier?: string | null
+          era_label?: string | null
+          feast_day?: number | null
+          feast_month?: number | null
+          id?: string
+          is_active?: boolean
+          patron_summary?: string | null
+          review_status?: string | null
+          short_bio?: string | null
+          slug: string
+          source_1?: string | null
+          source_2?: string | null
+          updated_at?: string
+          workbook_saint_id?: string | null
+        }
+        Update: {
+          canonical_name?: string
+          canonization_status?: string | null
+          common_name?: string | null
+          created_at?: string
+          data_tier?: string | null
+          era_label?: string | null
+          feast_day?: number | null
+          feast_month?: number | null
+          id?: string
+          is_active?: boolean
+          patron_summary?: string | null
+          review_status?: string | null
+          short_bio?: string | null
+          slug?: string
+          source_1?: string | null
+          source_2?: string | null
+          updated_at?: string
+          workbook_saint_id?: string | null
+        }
+        Relationships: []
+      }
+      scripture_passages: {
+        Row: {
+          book: string
+          chapter_end: number | null
+          chapter_start: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          reference_label: string
+          slug: string
+          summary: string | null
+          text_excerpt: string | null
+          translation_code: string | null
+          updated_at: string
+          verse_end: number | null
+          verse_start: number | null
+        }
+        Insert: {
+          book: string
+          chapter_end?: number | null
+          chapter_start?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reference_label: string
+          slug: string
+          summary?: string | null
+          text_excerpt?: string | null
+          translation_code?: string | null
+          updated_at?: string
+          verse_end?: number | null
+          verse_start?: number | null
+        }
+        Update: {
+          book?: string
+          chapter_end?: number | null
+          chapter_start?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          reference_label?: string
+          slug?: string
+          summary?: string | null
+          text_excerpt?: string | null
+          translation_code?: string | null
+          updated_at?: string
+          verse_end?: number | null
+          verse_start?: number | null
+        }
+        Relationships: []
+      }
+      scripture_topics: {
+        Row: {
+          created_at: string
+          relevance_score: number | null
+          scripture_passage_id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          relevance_score?: number | null
+          scripture_passage_id: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          relevance_score?: number | null
+          scripture_passage_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scripture_topics_scripture_passage_id_fkey"
+            columns: ["scripture_passage_id"]
+            isOneToOne: false
+            referencedRelation: "scripture_passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scripture_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spiritual_content_items: {
+        Row: {
+          authority_level: string | null
+          body_html: string | null
+          body_markdown: string | null
+          content_kind: Database["public"]["Enums"]["spiritual_content_kind"]
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary_variant: boolean | null
+          is_published: boolean
+          language_code: string
+          notes: string | null
+          prayer_type: Database["public"]["Enums"]["prayer_type_code"] | null
+          published_at: string | null
+          record_type: string
+          slug: string
+          sort_order: number
+          source_body: string | null
+          source_label: string | null
+          source_url: string | null
+          summary: string | null
+          territory_code: string | null
+          text_status: Database["public"]["Enums"]["spiritual_text_status_code"]
+          title: string
+          updated_at: string
+          variant_label: string | null
+          workbook_prayer_id: string | null
+        }
+        Insert: {
+          authority_level?: string | null
+          body_html?: string | null
+          body_markdown?: string | null
+          content_kind: Database["public"]["Enums"]["spiritual_content_kind"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary_variant?: boolean | null
+          is_published?: boolean
+          language_code?: string
+          notes?: string | null
+          prayer_type?: Database["public"]["Enums"]["prayer_type_code"] | null
+          published_at?: string | null
+          record_type?: string
+          slug: string
+          sort_order?: number
+          source_body?: string | null
+          source_label?: string | null
+          source_url?: string | null
+          summary?: string | null
+          territory_code?: string | null
+          text_status?: Database["public"]["Enums"]["spiritual_text_status_code"]
+          title: string
+          updated_at?: string
+          variant_label?: string | null
+          workbook_prayer_id?: string | null
+        }
+        Update: {
+          authority_level?: string | null
+          body_html?: string | null
+          body_markdown?: string | null
+          content_kind?: Database["public"]["Enums"]["spiritual_content_kind"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary_variant?: boolean | null
+          is_published?: boolean
+          language_code?: string
+          notes?: string | null
+          prayer_type?: Database["public"]["Enums"]["prayer_type_code"] | null
+          published_at?: string | null
+          record_type?: string
+          slug?: string
+          sort_order?: number
+          source_body?: string | null
+          source_label?: string | null
+          source_url?: string | null
+          summary?: string | null
+          territory_code?: string | null
+          text_status?: Database["public"]["Enums"]["spiritual_text_status_code"]
+          title?: string
+          updated_at?: string
+          variant_label?: string | null
+          workbook_prayer_id?: string | null
+        }
+        Relationships: []
+      }
+      spiritual_content_relationships: {
+        Row: {
+          child_content_item_id: string
+          created_at: string
+          id: string
+          parent_content_item_id: string
+          relationship_kind: Database["public"]["Enums"]["content_relationship_kind"]
+        }
+        Insert: {
+          child_content_item_id: string
+          created_at?: string
+          id?: string
+          parent_content_item_id: string
+          relationship_kind: Database["public"]["Enums"]["content_relationship_kind"]
+        }
+        Update: {
+          child_content_item_id?: string
+          created_at?: string
+          id?: string
+          parent_content_item_id?: string
+          relationship_kind?: Database["public"]["Enums"]["content_relationship_kind"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spiritual_content_relationships_child_content_item_id_fkey"
+            columns: ["child_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spiritual_content_relationships_parent_content_item_id_fkey"
+            columns: ["parent_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spiritual_content_saints: {
+        Row: {
+          created_at: string
+          relationship_kind: Database["public"]["Enums"]["content_saint_relationship_kind"]
+          saint_id: string
+          spiritual_content_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          relationship_kind?: Database["public"]["Enums"]["content_saint_relationship_kind"]
+          saint_id: string
+          spiritual_content_item_id: string
+        }
+        Update: {
+          created_at?: string
+          relationship_kind?: Database["public"]["Enums"]["content_saint_relationship_kind"]
+          saint_id?: string
+          spiritual_content_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spiritual_content_saints_saint_id_fkey"
+            columns: ["saint_id"]
+            isOneToOne: false
+            referencedRelation: "saints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spiritual_content_saints_spiritual_content_item_id_fkey"
+            columns: ["spiritual_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spiritual_content_scopes: {
+        Row: {
+          created_at: string
+          id: string
+          local_unit_id: string | null
+          organization_family_id: string | null
+          scope_kind: Database["public"]["Enums"]["spiritual_scope_kind"]
+          spiritual_content_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          local_unit_id?: string | null
+          organization_family_id?: string | null
+          scope_kind: Database["public"]["Enums"]["spiritual_scope_kind"]
+          spiritual_content_item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          local_unit_id?: string | null
+          organization_family_id?: string | null
+          scope_kind?: Database["public"]["Enums"]["spiritual_scope_kind"]
+          spiritual_content_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spiritual_content_scopes_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spiritual_content_scopes_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "spiritual_content_scopes_organization_family_id_fkey"
+            columns: ["organization_family_id"]
+            isOneToOne: false
+            referencedRelation: "organization_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spiritual_content_scopes_spiritual_content_item_id_fkey"
+            columns: ["spiritual_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spiritual_content_topics: {
+        Row: {
+          created_at: string
+          relevance_score: number | null
+          spiritual_content_item_id: string
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          relevance_score?: number | null
+          spiritual_content_item_id: string
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          relevance_score?: number | null
+          spiritual_content_item_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spiritual_content_topics_spiritual_content_item_id_fkey"
+            columns: ["spiritual_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spiritual_content_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spiritual_topic_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          topic_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          topic_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spiritual_topic_aliases_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spiritual_topics: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          source_kind: string | null
+          source_ref: string | null
+          topic_group: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          source_kind?: string | null
+          source_ref?: string | null
+          topic_group?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          source_kind?: string | null
+          source_ref?: string | null
+          topic_group?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3279,6 +5747,200 @@ export type Database = {
           },
         ]
       }
+      user_saved_saints: {
+        Row: {
+          id: string
+          saint_id: string
+          saved_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          saint_id: string
+          saved_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          saint_id?: string
+          saved_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_saints_saint_id_fkey"
+            columns: ["saint_id"]
+            isOneToOne: false
+            referencedRelation: "saints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_saved_saints_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_saved_spiritual_items: {
+        Row: {
+          id: string
+          saved_at: string
+          spiritual_content_item_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          saved_at?: string
+          spiritual_content_item_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          saved_at?: string
+          spiritual_content_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_spiritual_items_spiritual_content_item_id_fkey"
+            columns: ["spiritual_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_saved_spiritual_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_spiritual_activity: {
+        Row: {
+          activity_code: string
+          created_at: string
+          daily_reading_entry_id: string | null
+          id: string
+          payload_json: Json
+          spiritual_content_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_code: string
+          created_at?: string
+          daily_reading_entry_id?: string | null
+          id?: string
+          payload_json?: Json
+          spiritual_content_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_code?: string
+          created_at?: string
+          daily_reading_entry_id?: string | null
+          id?: string
+          payload_json?: Json
+          spiritual_content_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_spiritual_activity_daily_reading_entry_id_fkey"
+            columns: ["daily_reading_entry_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reading_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_spiritual_activity_spiritual_content_item_id_fkey"
+            columns: ["spiritual_content_item_id"]
+            isOneToOne: false
+            referencedRelation: "spiritual_content_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_spiritual_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_unit_relationships: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          created_by_auth_user_id: string | null
+          ended_at: string | null
+          id: string
+          is_primary_parish: boolean
+          local_unit_id: string
+          member_record_id: string | null
+          relationship_kind: Database["public"]["Enums"]["relationship_kind"]
+          status: Database["public"]["Enums"]["relationship_status"]
+          updated_at: string
+          updated_by_auth_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          ended_at?: string | null
+          id?: string
+          is_primary_parish?: boolean
+          local_unit_id: string
+          member_record_id?: string | null
+          relationship_kind: Database["public"]["Enums"]["relationship_kind"]
+          status?: Database["public"]["Enums"]["relationship_status"]
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          ended_at?: string | null
+          id?: string
+          is_primary_parish?: boolean
+          local_unit_id?: string
+          member_record_id?: string | null
+          relationship_kind?: Database["public"]["Enums"]["relationship_kind"]
+          status?: Database["public"]["Enums"]["relationship_status"]
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_unit_relationships_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_unit_relationships_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "user_unit_relationships_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           council_id: string | null
@@ -3424,6 +6086,401 @@ export type Database = {
           },
         ]
       }
+      v_auth_effective_admin_package_access: {
+        Row: {
+          can_manage_admins: boolean | null
+          can_manage_claims: boolean | null
+          can_manage_custom_lists: boolean | null
+          can_manage_events: boolean | null
+          can_manage_local_unit_settings: boolean | null
+          can_manage_members: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_auth_effective_area_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["area_access_level"] | null
+          area_access_grant_id: string | null
+          area_code: Database["public"]["Enums"]["member_area_code"] | null
+          expires_at: string | null
+          granted_at: string | null
+          is_effective: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          member_record_id: string | null
+          person_id: string | null
+          revoked_at: string | null
+          source_code: Database["public"]["Enums"]["grant_source_code"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_auth_effective_resource_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["area_access_level"] | null
+          expires_at: string | null
+          granted_at: string | null
+          is_effective: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          member_record_id: string | null
+          person_id: string | null
+          resource_access_grant_id: string | null
+          resource_key: string | null
+          resource_type:
+            | Database["public"]["Enums"]["resource_type_code"]
+            | null
+          revoked_at: string | null
+          source_code: Database["public"]["Enums"]["grant_source_code"] | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_records_legacy_people_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_effective_admin_package_access: {
+        Row: {
+          can_manage_admins: boolean | null
+          can_manage_claims: boolean | null
+          can_manage_custom_lists: boolean | null
+          can_manage_events: boolean | null
+          can_manage_local_unit_settings: boolean | null
+          can_manage_members: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_effective_area_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["area_access_level"] | null
+          area_access_grant_id: string | null
+          area_code: Database["public"]["Enums"]["member_area_code"] | null
+          expires_at: string | null
+          granted_at: string | null
+          is_effective: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          member_record_id: string | null
+          person_id: string | null
+          revoked_at: string | null
+          source_code: Database["public"]["Enums"]["grant_source_code"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_effective_event_management_access: {
+        Row: {
+          event_id: string | null
+          is_effective: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          member_record_id: string | null
+          person_id: string | null
+          role_code: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_effective_resource_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["area_access_level"] | null
+          expires_at: string | null
+          granted_at: string | null
+          is_effective: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          member_record_id: string | null
+          person_id: string | null
+          resource_access_grant_id: string | null
+          resource_key: string | null
+          resource_type:
+            | Database["public"]["Enums"]["resource_type_code"]
+            | null
+          revoked_at: string | null
+          source_code: Database["public"]["Enums"]["grant_source_code"] | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_records_legacy_people_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "resource_access_grants_member_record_id_fkey"
+            columns: ["member_record_id"]
+            isOneToOne: false
+            referencedRelation: "member_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_legacy_retirement_status: {
+        Row: {
+          checked_at: string | null
+          council_admin_rows: number | null
+          custom_list_access_rows: number | null
+          gap_free: boolean | null
+          organization_admin_rows: number | null
+          unresolved_legacy_write_count: number | null
+        }
+        Relationships: []
+      }
+      v_parallel_admin_package_audit: {
+        Row: {
+          has_admins_package: boolean | null
+          has_claims_package: boolean | null
+          has_custom_lists_package: boolean | null
+          has_events_package: boolean | null
+          has_local_unit_settings_package: boolean | null
+          has_members_package: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_records_legacy_people_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_parallel_custom_list_access_audit: {
+        Row: {
+          custom_list_id: string | null
+          custom_list_name: string | null
+          has_parallel_resource_access: boolean | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_lists_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_lists_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "member_records_legacy_people_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_parallel_event_assignment_audit: {
+        Row: {
+          assignment_scope:
+            | Database["public"]["Enums"]["event_assignment_scope_code"]
+            | null
+          event_id: string | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          role_code: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "v_parallel_admin_package_audit"
+            referencedColumns: ["local_unit_id"]
+          },
+          {
+            foreignKeyName: "member_records_legacy_people_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_parallel_event_assignment_redundancy: {
+        Row: {
+          covered_by_assignment_id: string | null
+          covered_by_scope:
+            | Database["public"]["Enums"]["event_assignment_scope_code"]
+            | null
+          event_id: string | null
+          event_title: string | null
+          local_unit_id: string | null
+          local_unit_name: string | null
+          member_record_id: string | null
+          redundancy_reason: string | null
+          redundant_assignment_id: string | null
+          redundant_assignment_scope:
+            | Database["public"]["Enums"]["event_assignment_scope_code"]
+            | null
+          role_code: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_parallel_legacy_gap_report: {
+        Row: {
+          custom_list_id: string | null
+          event_id: string | null
+          gap_type: string | null
+          legacy_owner_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          source_row_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_parallel_legacy_gap_report_live: {
+        Row: {
+          custom_list_id: string | null
+          event_id: string | null
+          gap_type: string | null
+          legacy_owner_id: string | null
+          local_unit_name: string | null
+          person_id: string | null
+          source_row_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_parallel_null_user_fossils: {
+        Row: {
+          created_at: string | null
+          grantee_email: string | null
+          legacy_owner_id: string | null
+          local_unit_name: string | null
+          notes: string | null
+          person_id: string | null
+          source_row_id: string | null
+          source_table: string | null
+        }
+        Relationships: []
+      }
+      v_parallel_null_user_fossils_all: {
+        Row: {
+          created_at: string | null
+          grantee_email: string | null
+          legacy_owner_id: string | null
+          local_unit_name: string | null
+          notes: string | null
+          person_id: string | null
+          source_row_id: string | null
+          source_table: string | null
+        }
+        Relationships: []
+      }
+      v_parallel_resolved_null_user_fossils: {
+        Row: {
+          created_at: string | null
+          fossil_resolved_at: string | null
+          grantee_email: string | null
+          legacy_owner_id: string | null
+          local_unit_name: string | null
+          notes: string | null
+          person_id: string | null
+          resolution_code: string | null
+          resolution_notes: string | null
+          resolved_by_auth_user_id: string | null
+          source_row_id: string | null
+          source_table: string | null
+        }
+        Relationships: []
+      }
+      v_parallel_retirement_readiness: {
+        Row: {
+          council_admin_legacy_write_count: number | null
+          custom_list_access_legacy_write_count: number | null
+          custom_list_gap_count: number | null
+          event_gap_count: number | null
+          gap_free: boolean | null
+          org_admin_gap_count: number | null
+          organization_admin_legacy_write_count: number | null
+        }
+        Relationships: []
+      }
+      v_parallel_retirement_readiness_live: {
+        Row: {
+          custom_list_gap_count: number | null
+          event_gap_count: number | null
+          gap_free: boolean | null
+          org_admin_gap_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_supreme_import_row: {
@@ -3466,8 +6523,347 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_membership_claim_request_to_admin_package: {
+        Args: {
+          p_actor_user_id: string
+          p_claim_request_id: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      archive_local_unit_member_record:
+        | {
+            Args: {
+              p_actor_user_id: string
+              p_local_unit_id: string
+              p_person_id: string
+              p_reason?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_local_unit_id: string
+              p_person_id: string
+              p_reason?: string
+            }
+            Returns: string
+          }
+      auth_accessible_custom_lists: {
+        Args: never
+        Returns: {
+          custom_list_id: string
+          local_unit_id: string
+        }[]
+      }
+      auth_accessible_local_units_for_area: {
+        Args: {
+          p_area_code: Database["public"]["Enums"]["member_area_code"]
+          p_min_access_level: Database["public"]["Enums"]["area_access_level"]
+        }
+        Returns: {
+          access_level: Database["public"]["Enums"]["area_access_level"]
+          area_code: Database["public"]["Enums"]["member_area_code"]
+          local_unit_id: string
+          local_unit_name: string
+        }[]
+      }
+      auth_can_manage_person: {
+        Args: { p_person_id: string }
+        Returns: boolean
+      }
+      auth_can_manage_person_assignments: {
+        Args: { p_person_id: string }
+        Returns: boolean
+      }
+      auth_can_manage_person_notes: {
+        Args: { p_person_id: string }
+        Returns: boolean
+      }
+      auth_has_area_access: {
+        Args: {
+          p_area_code: Database["public"]["Enums"]["member_area_code"]
+          p_local_unit_id: string
+          p_min_access_level: Database["public"]["Enums"]["area_access_level"]
+        }
+        Returns: boolean
+      }
+      auth_has_event_management_access:
+        | { Args: { p_event_id: string }; Returns: boolean }
+        | {
+            Args: { p_event_id: string; p_local_unit_id: string }
+            Returns: boolean
+          }
+      auth_has_resource_access: {
+        Args: {
+          p_local_unit_id: string
+          p_min_access_level: Database["public"]["Enums"]["area_access_level"]
+          p_resource_key: string
+          p_resource_type: Database["public"]["Enums"]["resource_type_code"]
+        }
+        Returns: boolean
+      }
+      auth_manageable_event_ids: {
+        Args: { p_local_unit_id?: string }
+        Returns: {
+          event_id: string
+          local_unit_id: string
+        }[]
+      }
+      backfill_missing_parallel_admin_packages: {
+        Args: {
+          p_actor_user_id: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+        }
+        Returns: number
+      }
+      backfill_missing_parallel_custom_list_grants: {
+        Args: {
+          p_actor_user_id: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+        }
+        Returns: number
+      }
+      backfill_missing_parallel_event_managers: {
+        Args: { p_actor_user_id: string }
+        Returns: number
+      }
+      cleanup_parallel_invite_package_subject: {
+        Args: { p_local_unit_id: string; p_target_user_id: string }
+        Returns: undefined
+      }
+      cleanup_redundant_event_assignments: {
+        Args: { p_actor_user_id?: string }
+        Returns: number
+      }
       current_user_council_id: { Args: never; Returns: string }
+      ensure_member_record_for_person_local_unit: {
+        Args: { p_local_unit_id: string; p_person_id: string }
+        Returns: string
+      }
+      ensure_parallel_member_for_user_and_local_unit: {
+        Args: {
+          p_fallback_email?: string
+          p_fallback_invitee_name?: string
+          p_local_unit_id: string
+          p_user_id: string
+        }
+        Returns: {
+          member_record_id: string
+          user_unit_relationship_id: string
+        }[]
+      }
+      ensure_parallel_membership_for_org_admin_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
+      ensure_user_unit_relationship_for_user_member: {
+        Args: {
+          p_is_active?: boolean
+          p_local_unit_id: string
+          p_member_record_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       generate_rsvp_token: { Args: never; Returns: string }
+      grant_parallel_admin_package_to_user: {
+        Args: {
+          p_actor_user_id: string
+          p_fallback_email?: string
+          p_fallback_invitee_name?: string
+          p_local_unit_id: string
+          p_note?: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      grant_parallel_custom_list_access_to_user: {
+        Args: {
+          p_access_level?: Database["public"]["Enums"]["area_access_level"]
+          p_actor_user_id: string
+          p_custom_list_id: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      has_area_access: {
+        Args: {
+          p_area_code: Database["public"]["Enums"]["member_area_code"]
+          p_local_unit_id: string
+          p_min_access_level: Database["public"]["Enums"]["area_access_level"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      has_event_management_access:
+        | { Args: { p_event_id: string; p_user_id: string }; Returns: boolean }
+        | {
+            Args: {
+              p_event_id: string
+              p_local_unit_id: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
+      has_resource_access: {
+        Args: {
+          p_local_unit_id: string
+          p_min_access_level: Database["public"]["Enums"]["area_access_level"]
+          p_resource_key: string
+          p_resource_type: Database["public"]["Enums"]["resource_type_code"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      list_accessible_custom_lists_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          custom_list_id: string
+          local_unit_id: string
+        }[]
+      }
+      list_accessible_local_units_for_area: {
+        Args: {
+          p_area_code: Database["public"]["Enums"]["member_area_code"]
+          p_min_access_level: Database["public"]["Enums"]["area_access_level"]
+          p_user_id: string
+        }
+        Returns: {
+          access_level: Database["public"]["Enums"]["area_access_level"]
+          area_code: Database["public"]["Enums"]["member_area_code"]
+          local_unit_id: string
+          local_unit_name: string
+        }[]
+      }
+      list_manageable_event_ids_for_user:
+        | {
+            Args: { p_user_id: string }
+            Returns: {
+              event_id: string
+            }[]
+          }
+        | {
+            Args: { p_local_unit_id?: string; p_user_id: string }
+            Returns: {
+              event_id: string
+              local_unit_id: string
+            }[]
+          }
+      list_super_admin_preview_local_units: {
+        Args: never
+        Returns: {
+          display_name: string
+          legacy_council_id: string
+          legacy_organization_id: string
+          local_unit_id: string
+          official_name: string
+        }[]
+      }
+      parallel_grant_source_rank: {
+        Args: { p_source: Database["public"]["Enums"]["grant_source_code"] }
+        Returns: number
+      }
+      reject_membership_claim_request_in_parallel: {
+        Args: {
+          p_actor_user_id: string
+          p_claim_request_id: string
+          p_note?: string
+        }
+        Returns: string
+      }
+      resolve_null_user_fossils: {
+        Args: {
+          p_actor_user_id?: string
+          p_notes?: string
+          p_source_row_ids?: string[]
+          p_source_table?: string
+        }
+        Returns: number
+      }
+      restore_local_unit_member_record:
+        | {
+            Args: { p_local_unit_id: string; p_person_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_actor_user_id: string
+              p_local_unit_id: string
+              p_person_id: string
+            }
+            Returns: string
+          }
+      revoke_parallel_admin_package_from_user: {
+        Args: {
+          p_actor_user_id: string
+          p_local_unit_id: string
+          p_note?: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+          p_target_user_id: string
+        }
+        Returns: number
+      }
+      revoke_parallel_custom_list_access_from_user: {
+        Args: {
+          p_actor_user_id: string
+          p_custom_list_id: string
+          p_source_code?: Database["public"]["Enums"]["grant_source_code"]
+          p_target_user_id: string
+        }
+        Returns: number
+      }
+      revoke_parallel_event_assignment_from_user: {
+        Args: {
+          p_actor_user_id: string
+          p_event_id: string
+          p_role_code?: string
+          p_target_user_id: string
+        }
+        Returns: number
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_organization_admin_assignment_from_council_admin_assignmen: {
+        Args: { p_council_assignment_id: string }
+        Returns: undefined
+      }
+      sync_parallel_admin_package_from_council_admin_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
+      sync_parallel_admin_package_from_org_admin_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
+      sync_parallel_area_grants_from_org_admin_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
+      upsert_parallel_admin_package_for_member: {
+        Args: {
+          p_created_at?: string
+          p_is_active: boolean
+          p_local_unit_id: string
+          p_member_record_id: string
+          p_source_code: Database["public"]["Enums"]["grant_source_code"]
+          p_updated_at?: string
+        }
+        Returns: undefined
+      }
+      upsert_parallel_event_assignment_for_user: {
+        Args: {
+          p_actor_user_id: string
+          p_event_id: string
+          p_note?: string
+          p_role_code?: string
+          p_target_user_id: string
+        }
+        Returns: string
+      }
       user_belongs_to_council: {
         Args: { target_council_id: string }
         Returns: boolean
@@ -3480,7 +6876,93 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      area_access_level: "read_only" | "edit_manage" | "manage" | "interact"
+      content_relationship_kind:
+        | "variant"
+        | "child"
+        | "related"
+        | "companion"
+        | "source"
+      content_saint_relationship_kind: "about" | "to" | "through" | "patron"
+      event_assignment_scope_code: "all_events" | "event" | "event_kind"
+      grant_source_code:
+        | "manual"
+        | "title_default"
+        | "invite_package"
+        | "legacy_backfill"
+        | "system"
+      intake_item_status_code: "unread" | "read" | "in_progress" | "complete"
+      local_unit_kind:
+        | "council"
+        | "parish"
+        | "conference"
+        | "ministry"
+        | "chapter"
+        | "other"
+      local_unit_status: "active" | "inactive" | "archived" | "quarantine"
+      member_area_code:
+        | "members"
+        | "events"
+        | "custom_lists"
+        | "claims"
+        | "admins"
+        | "local_unit_settings"
+      member_record_lifecycle_state: "active" | "inactive" | "archived"
+      membership_claim_status_code:
+        | "pending"
+        | "approved"
+        | "denied"
+        | "withdrawn"
+        | "expired"
+      prayer_type_code:
+        | "traditional"
+        | "litany"
+        | "novena"
+        | "chaplet"
+        | "intercession"
+        | "blessing"
+        | "collect"
+        | "devotion"
+        | "other"
+        | "common_prayer"
+        | "consecration"
+        | "devotional_grouping"
+        | "discernment_prayer"
+        | "doxology"
+        | "family_prayer"
+        | "intercessory"
+        | "marian"
+        | "saint_intercession"
+        | "work_prayer"
+        | "Petition"
+        | "Discernment"
+      relationship_kind: "linked_member_record" | "parish_self_claim"
+      relationship_status: "active" | "inactive" | "archived"
+      resource_type_code: "custom_list" | "event" | "event_type" | "all_events"
+      role_kind: "officer" | "service"
+      spiritual_content_kind:
+        | "prayer"
+        | "daily_reading"
+        | "reflection"
+        | "saint_profile"
+        | "scripture_passage"
+        | "catechism_reference"
+      spiritual_scope_kind: "global" | "organization_family" | "local_unit"
+      spiritual_text_status_code:
+        | "draft"
+        | "review"
+        | "approved"
+        | "published"
+        | "retired"
+        | "normative"
+        | "official_devotional_text"
+        | "private_devotional_text"
+        | "official_group_prayer"
+        | "traditional_prayer"
+        | "popular_devotional_text"
+        | "custom_user_text"
+        | "sourced_devotional_text"
+        | "editorial_extract"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3607,6 +7089,102 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      area_access_level: ["read_only", "edit_manage", "manage", "interact"],
+      content_relationship_kind: [
+        "variant",
+        "child",
+        "related",
+        "companion",
+        "source",
+      ],
+      content_saint_relationship_kind: ["about", "to", "through", "patron"],
+      event_assignment_scope_code: ["all_events", "event", "event_kind"],
+      grant_source_code: [
+        "manual",
+        "title_default",
+        "invite_package",
+        "legacy_backfill",
+        "system",
+      ],
+      intake_item_status_code: ["unread", "read", "in_progress", "complete"],
+      local_unit_kind: [
+        "council",
+        "parish",
+        "conference",
+        "ministry",
+        "chapter",
+        "other",
+      ],
+      local_unit_status: ["active", "inactive", "archived", "quarantine"],
+      member_area_code: [
+        "members",
+        "events",
+        "custom_lists",
+        "claims",
+        "admins",
+        "local_unit_settings",
+      ],
+      member_record_lifecycle_state: ["active", "inactive", "archived"],
+      membership_claim_status_code: [
+        "pending",
+        "approved",
+        "denied",
+        "withdrawn",
+        "expired",
+      ],
+      prayer_type_code: [
+        "traditional",
+        "litany",
+        "novena",
+        "chaplet",
+        "intercession",
+        "blessing",
+        "collect",
+        "devotion",
+        "other",
+        "common_prayer",
+        "consecration",
+        "devotional_grouping",
+        "discernment_prayer",
+        "doxology",
+        "family_prayer",
+        "intercessory",
+        "marian",
+        "saint_intercession",
+        "work_prayer",
+        "Petition",
+        "Discernment",
+      ],
+      relationship_kind: ["linked_member_record", "parish_self_claim"],
+      relationship_status: ["active", "inactive", "archived"],
+      resource_type_code: ["custom_list", "event", "event_type", "all_events"],
+      role_kind: ["officer", "service"],
+      spiritual_content_kind: [
+        "prayer",
+        "daily_reading",
+        "reflection",
+        "saint_profile",
+        "scripture_passage",
+        "catechism_reference",
+      ],
+      spiritual_scope_kind: ["global", "organization_family", "local_unit"],
+      spiritual_text_status_code: [
+        "draft",
+        "review",
+        "approved",
+        "published",
+        "retired",
+        "normative",
+        "official_devotional_text",
+        "private_devotional_text",
+        "official_group_prayer",
+        "traditional_prayer",
+        "popular_devotional_text",
+        "custom_user_text",
+        "sourced_devotional_text",
+        "editorial_extract",
+      ],
+    },
   },
 } as const

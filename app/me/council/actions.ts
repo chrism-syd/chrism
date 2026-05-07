@@ -7,7 +7,6 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { isParallelAreaAccessEnabled } from '@/lib/auth/feature-flags'
 import {
-  deactivateOrganizationAdminAssignment,
   normalizeAdminGrantEmail,
   saveOrganizationAdminAssignment,
 } from '@/lib/organizations/admin-assignments'
@@ -22,7 +21,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   formatOfficerLabel,
   getOfficerRoleOption,
+  isAutomaticCouncilAdminTerm,
   type OfficerScopeCode,
+  isOfficerTermActive,
 } from '@/lib/members/officer-roles'
 import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
 
@@ -190,6 +191,90 @@ async function saveOfficerRoleEmail(args: {
   }
 }
 
+async function personStillHasAutomaticAdmin(args: {
+  admin: ReturnType<typeof createAdminClient>
+  councilId: string
+  personId: string
+  excludeTermId?: string | null
+}) {
+  const query = args.admin
+    .from('person_officer_terms')
+    .select('id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
+    .eq('council_id', args.councilId)
+    .eq('person_id', args.personId)
+
+  const { data, error } = await (args.excludeTermId
+    ? query.neq('id', args.excludeTermId)
+    : query).returns<Array<{
+      id: string
+      office_scope_code: string
+      office_code: string
+      office_rank: number | null
+      service_start_year: number
+      service_end_year: number | null
+      manual_end_effective_date?: string | null
+      notes: string | null
+    }>>()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return ((data ?? []) as Array<{
+    id: string
+    office_scope_code: string
+    office_code: string
+    office_rank: number | null
+    service_start_year: number
+    service_end_year: number | null
+    notes: string | null
+  }>).some((term) =>
+    isOfficerTermActive({ ...term, office_label: '' }, { useKnightsOfColumbusFraternalYear: true }) &&
+    isAutomaticCouncilAdminTerm({
+      office_scope_code: term.office_scope_code as OfficerScopeCode,
+      office_code: term.office_code,
+    })
+  )
+}
+
+function revalidateCouncilSurfaces() {
+  revalidatePath('/')
+  revalidatePath('/me')
+  revalidatePath('/me/council')
+  revalidatePath('/me/claim-organization')
+  revalidatePath('/members/officers')
+  revalidatePath('/super-admin/organization-claims')
+}
+
+function formatYearRange(startYear: number, endYear: number | null) {
+  if (endYear == null || endYear === startYear) {
+    return `${startYear}`
+  }
+
+  return `${startYear} to ${endYear}`
+}
+
+function rangesOverlap(
+  left: { start: number; end: number | null },
+  right: { start: number; end: number | null }
+) {
+  const leftEnd = left.end ?? Number.POSITIVE_INFINITY
+  const rightEnd = right.end ?? Number.POSITIVE_INFINITY
+
+  return left.start <= rightEnd && right.start <= leftEnd
+}
+
+function revalidateOfficerSurfaces(personId: string | null) {
+  revalidateCouncilSurfaces()
+  revalidatePath('/members')
+
+  if (personId) {
+    revalidatePath(`/members/${personId}`)
+    revalidatePath(`/members/${personId}/edit`)
+    revalidatePath(`/members/${personId}/officers`)
+  }
+}
+
 export async function saveOfficerRoleEmailAction(formData: FormData) {
   const context = await requireOrganizationSettingsAccess()
   const termId = textValue(formData, 'term_id')
@@ -234,44 +319,6 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
 
   revalidateOfficerSurfaces(term.person_id)
   redirectToCouncilPage({ notice: email ? 'Officer email saved.' : 'Officer email cleared.' })
-}
-
-function revalidateCouncilSurfaces() {
-  revalidatePath('/')
-  revalidatePath('/me')
-  revalidatePath('/me/council')
-  revalidatePath('/me/claim-organization')
-  revalidatePath('/members/officers')
-  revalidatePath('/super-admin/organization-claims')
-}
-
-function formatYearRange(startYear: number, endYear: number | null) {
-  if (endYear == null || endYear === startYear) {
-    return `${startYear}`
-  }
-
-  return `${startYear} to ${endYear}`
-}
-
-function rangesOverlap(
-  left: { start: number; end: number | null },
-  right: { start: number; end: number | null }
-) {
-  const leftEnd = left.end ?? Number.POSITIVE_INFINITY
-  const rightEnd = right.end ?? Number.POSITIVE_INFINITY
-
-  return left.start <= rightEnd && right.start <= leftEnd
-}
-
-function revalidateOfficerSurfaces(personId: string | null) {
-  revalidateCouncilSurfaces()
-  revalidatePath('/members')
-
-  if (personId) {
-    revalidatePath(`/members/${personId}`)
-    revalidatePath(`/members/${personId}/edit`)
-    revalidatePath(`/members/${personId}/officers`)
-  }
 }
 
 export async function updateCouncilDetailsAction(formData: FormData) {
@@ -446,9 +493,25 @@ export async function revokeCouncilAdminAction(formData: FormData) {
   const context = await requireOrganizationAdminManager()
   const assignmentId = textValue(formData, 'assignment_id')
   const assignmentTable = textValue(formData, 'assignment_table')
+  const personId = textValue(formData, 'person_id')
 
   if (!assignmentId) {
     redirectToCouncilPage({ error: 'We could not tell which admin assignment to remove.' })
+  }
+
+  let revokeNotice = 'Manual admin access removed.'
+
+  if (personId) {
+    const admin = createAdminClient()
+    const stillAutomatic = await personStillHasAutomaticAdmin({
+      admin,
+      councilId: context.council.id,
+      personId,
+    })
+
+    if (stillAutomatic) {
+      revokeNotice = 'Manual admin access removed. Officer-derived admin access remains active.'
+    }
   }
 
   try {
@@ -468,11 +531,44 @@ export async function revokeCouncilAdminAction(formData: FormData) {
         throw new Error(error.message)
       }
     } else {
-      await deactivateOrganizationAdminAssignment({
-        assignmentId,
-        organizationId: context.permissions.organizationId!,
-        actorUserId: context.permissions.authUser!.id,
-      })
+      const admin = createAdminClient()
+      const nowIso = new Date().toISOString()
+
+      const { data: existingAssignment, error: lookupError } = await admin
+        .from('organization_admin_assignments')
+        .select('id, organization_id')
+        .eq('id', assignmentId)
+        .maybeSingle<{ id: string; organization_id: string }>()
+
+      if (lookupError) {
+        throw new Error(lookupError.message)
+      }
+
+      if (!existingAssignment) {
+        throw new Error('That organization admin assignment could not be found.')
+      }
+
+      const { data: updatedRows, error } = await admin
+        .from('organization_admin_assignments')
+        .update({
+          is_active: false,
+          revoked_at: nowIso,
+          revoked_by_user_id: context.permissions.authUser!.id,
+          revoked_notes: null,
+          updated_by_user_id: context.permissions.authUser!.id,
+          updated_at: nowIso,
+        })
+        .eq('id', assignmentId)
+        .eq('organization_id', existingAssignment.organization_id)
+        .select('id, is_active, revoked_at, updated_at')
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error('No matching organization admin assignment was updated.')
+      }
     }
   } catch (error) {
     if (isRedirectError(error)) {
@@ -483,7 +579,7 @@ export async function revokeCouncilAdminAction(formData: FormData) {
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: 'Manual admin access removed.' })
+  redirectToCouncilPage({ notice: revokeNotice })
 }
 
 export async function addOfficerTermAction(formData: FormData) {
@@ -512,9 +608,24 @@ export async function addOfficerTermAction(formData: FormData) {
   const resolvedOfficeScopeCode = officeScopeCode as OfficerScopeCode
   const resolvedOfficeCode = officeCode as string
   const startYear = Number(startYearValue)
-  const endYear = endYearValue ? Number(endYearValue) : null
+  const endYear =
+    endYearValue && endYearValue.toLowerCase() !== 'current'
+      ? Number(endYearValue)
+      : null
   const rank = rankValue ? Number(rankValue) : null
   const option = getOfficerRoleOption(resolvedOfficeScopeCode, resolvedOfficeCode)
+
+  if (!Number.isFinite(startYear)) {
+    redirectToCouncilPage({ error: 'Enter a valid start year before saving this officer term.' })
+  }
+
+  if (endYearValue && endYearValue.toLowerCase() !== 'current' && !Number.isFinite(endYear as number)) {
+    redirectToCouncilPage({ error: 'Enter a valid end year before saving this officer term.' })
+  }
+
+  if (endYear != null && endYear < startYear) {
+    redirectToCouncilPage({ error: 'End year cannot be earlier than the start year.' })
+  }
 
   const admin = createAdminClient()
 
@@ -527,7 +638,7 @@ export async function addOfficerTermAction(formData: FormData) {
 
   const { data: existingTerms, error: existingTermsError } = await admin
     .from('person_officer_terms')
-    .select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year')
+    .select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date')
     .eq('council_id', context.council.id)
     .eq('person_id', resolvedPersonId)
 
@@ -535,7 +646,57 @@ export async function addOfficerTermAction(formData: FormData) {
     redirectToCouncilPage({ error: existingTermsError.message })
   }
 
+  const sameRoleTermInFraternalYear = (existingTerms ?? []).find((term) =>
+    term.office_scope_code === resolvedOfficeScopeCode &&
+    term.office_code === resolvedOfficeCode &&
+    (term.office_rank ?? null) === (option?.supportsRank ? rank : null) &&
+    isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }) &&
+    term.service_start_year === startYear
+  )
+
+  if (sameRoleTermInFraternalYear) {
+    const duplicateLabel = formatOfficerLabel(sameRoleTermInFraternalYear)
+    redirectToCouncilPage({
+      error:
+        `This member already has ${duplicateLabel} recorded for the ${startYear} fraternal year. Refresh the page before trying again.`,
+    })
+  }
+
+  if (resolvedOfficeScopeCode === 'council' && resolvedOfficeCode === 'trustee') {
+    if (rank == null || !Number.isFinite(rank)) {
+      redirectToCouncilPage({ error: 'Please choose trustee rank 1, 2, or 3 before saving.' })
+    }
+
+    if (![1, 2, 3].includes(rank)) {
+      redirectToCouncilPage({ error: 'Trustee rank must be 1, 2, or 3.' })
+    }
+
+    const { data: conflictingTrusteeTerms, error: conflictingTrusteeTermsError } = await admin
+      .from('person_officer_terms')
+      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date')
+      .eq('council_id', context.council.id)
+      .eq('office_scope_code', 'council')
+      .eq('office_code', 'trustee')
+      .eq('office_rank', rank)
+
+    if (conflictingTrusteeTermsError) {
+      redirectToCouncilPage({ error: conflictingTrusteeTermsError.message })
+    }
+
+    const activeConflictingTrustee = (conflictingTrusteeTerms ?? []).find((term) =>
+      term.person_id !== resolvedPersonId &&
+      isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true })
+    )
+
+    if (activeConflictingTrustee) {
+      redirectToCouncilPage({
+        error: `There is already an active Trustee (${rank === 1 ? '3-Year' : rank === 2 ? '2-Year' : '1-Year'}). End or rotate that trustee before assigning another.`,
+      })
+    }
+  }
+
   const overlappingTerm = (existingTerms ?? []).find((term) =>
+    isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }) &&
     rangesOverlap(
       { start: startYear, end: endYear },
       { start: term.service_start_year, end: term.service_end_year }
@@ -588,7 +749,8 @@ export async function addOfficerTermAction(formData: FormData) {
     if (isRedirectError(emailError)) {
       throw emailError
     }
-    const message = emailError instanceof Error ? emailError.message : 'Officer term saved, but the office email could not be saved.'
+    const message =
+      emailError instanceof Error ? emailError.message : 'Officer term saved, but the office email could not be saved.'
     revalidateCouncilSurfaces()
     redirectToCouncilPage({ error: `Officer term saved. ${message}` })
   }
@@ -630,7 +792,7 @@ export async function removeOfficerTermAction(formData: FormData) {
   const admin = createAdminClient()
   const { data: existingTerm, error: existingTermError } = await admin
     .from('person_officer_terms')
-    .select('id, person_id, service_end_year')
+    .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date')
     .eq('id', termId)
     .eq('council_id', context.council.id)
     .maybeSingle()
@@ -643,15 +805,33 @@ export async function removeOfficerTermAction(formData: FormData) {
     redirectToCouncilPage({ error: 'That officer term could not be found.' })
   }
 
-  if (existingTerm.service_end_year != null) {
+  if (!isOfficerTermActive({
+    id: existingTerm.id,
+    person_id: existingTerm.person_id,
+    office_scope_code: existingTerm.office_scope_code as OfficerScopeCode,
+    office_code: existingTerm.office_code,
+    office_label: formatOfficerLabel({
+      scope: existingTerm.office_scope_code as OfficerScopeCode,
+      code: existingTerm.office_code,
+      rank: existingTerm.office_rank ?? null,
+    }),
+    office_rank: existingTerm.office_rank ?? null,
+    service_start_year: existingTerm.service_start_year,
+    service_end_year: existingTerm.service_end_year,
+    manual_end_effective_date: existingTerm.manual_end_effective_date ?? null,
+    notes: null,
+  }, { useKnightsOfColumbusFraternalYear: true })) {
     redirectToCouncilPage({ error: 'That officer term has already ended.' })
   }
 
-  const currentYear = new Date().getFullYear()
+  const todayIso = new Date().toISOString().slice(0, 10)
+
   const { error } = await admin
     .from('person_officer_terms')
     .update({
-      service_end_year: currentYear,
+      manual_end_effective_date: todayIso,
+      ended_by_auth_user_id: context.permissions.authUser!.id,
+      end_reason: 'manual_end_term',
       updated_by_auth_user_id: context.permissions.authUser!.id,
     })
     .eq('id', termId)

@@ -126,7 +126,18 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
       const officerLabels = currentOfficerLabelsById[member.id] ?? []
       const executiveOfficerLabels = executiveOfficerLabelsById[member.id] ?? []
       const isExecutiveOfficer = executiveOfficerLabels.length > 0
-      const searchableValues = [member.email, member.cell_phone, member.home_phone, member.other_phone, formatAddress(member), labelize(member.primary_relationship_code), labelize(member.council_activity_level_code), labelize(member.council_activity_context_code), labelize(member.council_reengagement_status_code), ...officerLabels, ...executiveOfficerLabels].map((value) => normalize(value)).filter(Boolean)
+      const searchableValues = [
+        member.email,
+        member.cell_phone,
+        member.home_phone,
+        member.other_phone,
+        labelize(member.primary_relationship_code),
+        labelize(member.council_activity_level_code),
+        labelize(member.council_activity_context_code),
+        labelize(member.council_reengagement_status_code),
+        ...officerLabels,
+        ...executiveOfficerLabels,
+      ].map((value) => normalize(value)).filter(Boolean)
       const matchesSearch = query === '' || firstName.includes(query) || lastName.includes(query) || preferredName.includes(query) || legalName.includes(query) || shownName.includes(query) || reverseName.includes(query) || searchableValues.some((value) => value.includes(query))
       const matchesRelationshipFilter = relationshipFilter === 'all' || member.primary_relationship_code === relationshipFilter
       const matchesQuickFilter = quickFilter === 'all' || (quickFilter === 'with_email' && Boolean(member.email)) || (quickFilter === 'missing_email' && !member.email) || (quickFilter === 'executive_officers' && isExecutiveOfficer)

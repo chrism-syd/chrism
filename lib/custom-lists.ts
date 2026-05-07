@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CurrentUserPermissions } from '@/lib/auth/permissions'
-import { findLocalUnitByLegacyCouncilId, hasAreaAccess } from '@/lib/auth/area-access'
+import { hasAreaAccess, listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import { hasResourceAccess, listAccessibleCustomListIdsForUser } from '@/lib/auth/resource-access'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 
@@ -224,44 +224,16 @@ export async function listManageableLocalUnitIdsForCustomLists(args: {
   const authUserId = args.permissions.authUser?.id
   if (!authUserId) return [] as string[]
 
-  const { data: relationshipRows, error: relationshipError } = await args.admin
-    .from('user_unit_relationships')
-    .select('local_unit_id, member_record_id')
-    .eq('user_id', authUserId)
-    .eq('status', 'active')
-
-  if (relationshipError) {
-    throw new Error(`Could not load custom list relationships: ${relationshipError.message}`)
-  }
-
-  const relationshipData =
-    ((relationshipRows as Array<{ local_unit_id: string; member_record_id: string | null }> | null) ?? []).filter(
-      (row) => Boolean(row.member_record_id),
-    )
-
-  const memberRecordIds = relationshipData
-    .map((row) => row.member_record_id)
-    .filter((value): value is string => Boolean(value))
-
-  if (memberRecordIds.length === 0) {
-    return [] as string[]
-  }
-
-  const { data: grantRows, error: grantError } = await args.admin
-    .from('area_access_grants')
-    .select('local_unit_id')
-    .eq('area_code', 'custom_lists')
-    .eq('access_level', 'manage')
-    .is('revoked_at', null)
-    .in('member_record_id', memberRecordIds)
-
-  if (grantError) {
-    throw new Error(`Could not load custom list management grants: ${grantError.message}`)
-  }
+  const rows = await listAccessibleLocalUnitsForArea({
+    admin: args.admin as ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>,
+    userId: authUserId,
+    areaCode: 'custom_lists',
+    minimumAccessLevel: 'manage',
+  })
 
   return [
     ...new Set(
-      ((grantRows as Array<{ local_unit_id: string }> | null) ?? [])
+      rows
         .map((row) => row.local_unit_id)
         .filter(Boolean),
     ),
@@ -299,22 +271,9 @@ async function listLinkedMemberRecordIds(args: {
 
 export async function resolveCustomListLocalUnitId(args: {
   admin: SupabaseClient
-  list: Pick<CustomListRow, 'local_unit_id' | 'council_id'>
+  list: Pick<CustomListRow, 'local_unit_id'>
 }) {
-  if (args.list.local_unit_id) {
-    return args.list.local_unit_id
-  }
-
-  if (!args.list.council_id) {
-    return null
-  }
-
-  const localUnit = await findLocalUnitByLegacyCouncilId({
-    admin: args.admin,
-    councilId: args.list.council_id,
-  })
-
-  return localUnit?.id ?? null
+  return args.list.local_unit_id ?? null
 }
 
 export async function resolveLegacyCouncilIdForLocalUnit(args: {
@@ -450,17 +409,24 @@ export async function listValidDirectoryPeopleForLocalUnit(args: {
     throw new Error(`Could not load preferred display names for this local unit. ${memberRecordError.message}`)
   }
 
+  const activeLocalRosterPersonIds = new Set<string>()
   const preferredDisplayNameByPersonId = new Map<string, string | null>()
   for (const row of ((memberRecordRows as Array<{ legacy_people_id: string | null; preferred_display_name: string | null }> | null) ?? [])) {
-    if (row.legacy_people_id && !preferredDisplayNameByPersonId.has(row.legacy_people_id)) {
+    if (!row.legacy_people_id) continue
+
+    activeLocalRosterPersonIds.add(row.legacy_people_id)
+
+    if (!preferredDisplayNameByPersonId.has(row.legacy_people_id)) {
       preferredDisplayNameByPersonId.set(row.legacy_people_id, row.preferred_display_name ?? null)
     }
   }
 
-  return decryptPeopleRecords((peopleRows as Array<Omit<CustomListPersonSummaryRow, 'preferred_display_name'>> | null) ?? []).map((person) => ({
-    ...person,
-    preferred_display_name: preferredDisplayNameByPersonId.get(person.id) ?? null,
-  }))
+  return decryptPeopleRecords((peopleRows as Array<Omit<CustomListPersonSummaryRow, 'preferred_display_name'>> | null) ?? [])
+    .filter((person) => activeLocalRosterPersonIds.has(person.id))
+    .map((person) => ({
+      ...person,
+      preferred_display_name: preferredDisplayNameByPersonId.get(person.id) ?? null,
+    }))
 }
 
 export async function listValidMemberPersonIdsForLocalUnit(args: {
@@ -509,7 +475,7 @@ export async function listActiveCustomListShares(args: {
 
 function isPreviewManagingCurrentCustomList(args: {
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>
+  list: Pick<CustomListRow, 'local_unit_id'>
 }) {
   const { permissions, list } = args
 
@@ -517,21 +483,17 @@ function isPreviewManagingCurrentCustomList(args: {
     return false
   }
 
-  if (permissions.activeLocalUnitId && list.local_unit_id && permissions.activeLocalUnitId === list.local_unit_id) {
-    return true
-  }
-
-  if (permissions.councilId && list.council_id && permissions.councilId === list.council_id) {
-    return true
-  }
-
-  return false
+  return Boolean(
+    permissions.activeLocalUnitId &&
+      list.local_unit_id &&
+      permissions.activeLocalUnitId === list.local_unit_id
+  )
 }
 
 export async function hasStrictCustomListLifecycleAccess(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'id' | 'local_unit_id' | 'council_id'>
+  list: Pick<CustomListRow, 'id' | 'local_unit_id'>
 }) {
   if (isPreviewManagingCurrentCustomList({ permissions: args.permissions, list: args.list })) {
     return true
@@ -660,7 +622,7 @@ export async function hasExplicitlySharedCustomListsForUser(args: {
 
 export async function canManageCustomList(
   permissions: CurrentUserPermissions,
-  list: Pick<CustomListRow, 'council_id' | 'local_unit_id'>,
+  list: Pick<CustomListRow, 'local_unit_id'>,
   admin: SupabaseClient,
 ) {
   if (isPreviewManagingCurrentCustomList({ permissions, list })) {
@@ -693,7 +655,7 @@ export async function canManageCustomList(
 export async function canViewCustomList(args: {
   admin: SupabaseClient
   permissions: CurrentUserPermissions
-  list: Pick<CustomListRow, 'id' | 'council_id' | 'local_unit_id'>
+  list: Pick<CustomListRow, 'id' | 'local_unit_id'>
 }) {
   if (isPreviewManagingCurrentCustomList({ permissions: args.permissions, list: args.list })) {
     return true

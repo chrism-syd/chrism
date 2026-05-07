@@ -40,7 +40,7 @@ function normalizeAccessLevel(value: string | null): ManagedAreaAccessLevel | nu
 
 function normalizeNextPath(value: string | null) {
   const trimmed = value?.trim() ?? ''
-  if (!trimmed.startsWith('/')) return '/me'
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return '/me'
   return trimmed
 }
 

@@ -71,37 +71,32 @@ export default async function MembersPage() {
     } | null;
   } | null;
 
-  const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin';
-  const filteredPersonIdSet = new Set<string>(
-    isPreviewAdminMode && permissions.personId ? [permissions.personId] : []
-  );
-
-  const allPeople = directoryData.allPeople.filter((person) => !filteredPersonIdSet.has(person.id));
-  const members = directoryData.members.filter((person) => !filteredPersonIdSet.has(person.id));
-  const prospects = directoryData.prospects.filter((person) => !filteredPersonIdSet.has(person.id));
-  const volunteers = directoryData.volunteers.filter((person) => !filteredPersonIdSet.has(person.id));
-  const currentOfficerLabelsById = Object.fromEntries(
-    Object.entries(directoryData.currentOfficerLabelsById).filter(([personId]) => !filteredPersonIdSet.has(personId))
-  );
-  const executiveOfficerLabelsById = Object.fromEntries(
-    Object.entries(directoryData.executiveOfficerLabelsById).filter(([personId]) => !filteredPersonIdSet.has(personId))
-  );
+  const allPeople = directoryData.allPeople;
+  const members = directoryData.members;
+  const prospects = directoryData.prospects;
+  const volunteers = directoryData.volunteers;
+  const currentOfficerLabelsById = directoryData.currentOfficerLabelsById;
+  const executiveOfficerLabelsById = directoryData.executiveOfficerLabelsById;
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization';
   const effectiveBranding = getEffectiveOrganizationBranding(organization);
   const currentCouncilLabel = `${council.name ?? organizationName}${council.council_number ? ` (${council.council_number})` : ''}`;
 
   const switchableLocalUnits = permissions.authUser
-    ? (
-        await listAccessibleLocalUnitsForArea({
-          admin: supabase,
-          userId: permissions.authUser.id,
-          areaCode: 'members',
-          minimumAccessLevel: 'edit_manage',
-        })
-      )
-        .filter((unit) => unit.local_unit_id !== localUnitId)
-        .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
+    ? [
+        ...new Map(
+          (
+            await listAccessibleLocalUnitsForArea({
+              admin: supabase,
+              userId: permissions.authUser.id,
+              areaCode: 'members',
+              minimumAccessLevel: 'edit_manage',
+            })
+          )
+            .filter((unit) => unit.local_unit_id !== localUnitId)
+            .map((unit) => [unit.local_unit_id, unit] as const)
+        ).values(),
+      ].sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
     : [];
 
   return (

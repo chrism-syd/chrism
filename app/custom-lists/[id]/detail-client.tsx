@@ -329,7 +329,7 @@ function ReviewMemberRow({
             )
           ) : null}
 
-          {currentPersonId && !isClaimedBySomeoneElse ? (
+          {currentPersonId ? (
             showContactForm ? (
               <form action={logCustomListContactAction} className="qv-inline-date-form">
                 <input type="hidden" name="custom_list_id" value={listId} />

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { createAdminClient } from '@/lib/supabase/admin';
 import { listValidDirectoryPersonIdsForLocalUnit, resolveLegacyCouncilIdForLocalUnit } from '@/lib/custom-lists';
 import { isValidEmailAddress } from '@/lib/security/contact-validation';
 import { protectPeoplePayload } from '@/lib/security/pii';
@@ -129,7 +130,7 @@ async function getCurrentMemberAdminContext() {
 }
 
 async function ensureActiveLocalUnitPerson(args: {
-  supabase: ReturnType<typeof getCurrentActingCouncilContext> extends Promise<infer _T> ? any : never
+  supabase: ReturnType<typeof createAdminClient>
   localUnitId: string | null
   personId: string
 }) {
