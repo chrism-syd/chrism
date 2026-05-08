@@ -1,9 +1,9 @@
 # Supabase Public Schema Reference
 
-Fetched: 2026-05-08T13:45:58.449Z
+Fetched: 2026-05-08T14:09:29.194Z
 Source: Supabase REST OpenAPI
 Schema: standard public schema
-Tables: 122
+Tables: 116
 RPC Functions: 50
 
 This snapshot is generated from the live Supabase REST OpenAPI document.
@@ -1908,64 +1908,6 @@ Operations: delete, get, patch, post
 | updated_at | timestamp with time zone | yes | now() |  |  |
 | is_super_admin | boolean | yes | false |  |  |
 
-## v_auth_effective_admin_package_access
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| user_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| local_unit_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| can_manage_members | boolean | no |  |  |  |
-| can_manage_events | boolean | no |  |  |  |
-| can_manage_custom_lists | boolean | no |  |  |  |
-| can_manage_claims | boolean | no |  |  |  |
-| can_manage_admins | boolean | no |  |  |  |
-| can_manage_local_unit_settings | boolean | no |  |  |  |
-
-## v_auth_effective_area_access
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| area_access_grant_id | uuid | no |  |  |  |
-| local_unit_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| member_record_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| area_code | public.member_area_code | no |  |  |  |
-| access_level | public.area_access_level | no |  |  |  |
-| source_code | public.grant_source_code | no |  |  |  |
-| granted_at | timestamp with time zone | no |  |  |  |
-| expires_at | timestamp with time zone | no |  |  |  |
-| revoked_at | timestamp with time zone | no |  |  |  |
-| is_effective | boolean | no |  |  |  |
-
-## v_auth_effective_resource_access
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| resource_access_grant_id | uuid | no |  | PK |  |
-| local_unit_id | uuid | no |  |  | local_units.id |
-| local_unit_name | text | no |  |  |  |
-| member_record_id | uuid | no |  |  | member_records.id |
-| person_id | uuid | no |  |  | people.id |
-| user_id | uuid | no |  |  |  |
-| resource_type | public.resource_type_code | no |  |  |  |
-| resource_key | text | no |  |  |  |
-| access_level | public.area_access_level | no |  |  |  |
-| source_code | public.grant_source_code | no |  |  |  |
-| granted_at | timestamp with time zone | no |  |  |  |
-| expires_at | timestamp with time zone | no |  |  |  |
-| revoked_at | timestamp with time zone | no |  |  |  |
-| is_effective | boolean | no |  |  |  |
-
 ## v_effective_admin_package_access
 
 Operations: get
@@ -2038,52 +1980,6 @@ Operations: get
 | expires_at | timestamp with time zone | no |  |  |  |
 | revoked_at | timestamp with time zone | no |  |  |  |
 | is_effective | boolean | no |  |  |  |
-
-## v_parallel_admin_package_audit
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| local_unit_id | uuid | no |  | PK |  |
-| local_unit_name | text | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  | people.id |
-| has_members_package | boolean | no |  |  |  |
-| has_events_package | boolean | no |  |  |  |
-| has_custom_lists_package | boolean | no |  |  |  |
-| has_claims_package | boolean | no |  |  |  |
-| has_admins_package | boolean | no |  |  |  |
-| has_local_unit_settings_package | boolean | no |  |  |  |
-
-## v_parallel_custom_list_access_audit
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| custom_list_id | uuid | no |  | PK |  |
-| custom_list_name | text | no |  |  |  |
-| local_unit_id | uuid | no |  |  | local_units.id |
-| local_unit_name | text | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  | people.id |
-| has_parallel_resource_access | boolean | no |  |  |  |
-
-## v_parallel_event_assignment_audit
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| event_id | uuid | no |  | PK |  |
-| title | text | no |  |  |  |
-| local_unit_id | uuid | no |  |  | local_units.id |
-| local_unit_name | text | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  | people.id |
-| role_code | text | no |  |  |  |
-| assignment_scope | public.event_assignment_scope_code | no |  |  |  |
 
 ## volunteer_context_types
 

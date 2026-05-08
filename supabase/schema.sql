@@ -3470,7 +3470,7 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
 ALTER TABLE "public"."events" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."event_council_rsvp_rollups" AS
+CREATE OR REPLACE VIEW "public"."event_council_rsvp_rollups" WITH ("security_invoker"='true') AS
  SELECT "e"."id" AS "event_id",
     "e"."council_id" AS "host_council_id",
     "ic"."id" AS "event_invited_council_id",
@@ -3495,6 +3495,10 @@ CREATE OR REPLACE VIEW "public"."event_council_rsvp_rollups" AS
 ALTER VIEW "public"."event_council_rsvp_rollups" OWNER TO "postgres";
 
 
+COMMENT ON VIEW "public"."event_council_rsvp_rollups" IS 'Server-side council RSVP rollup view. security_invoker enabled; direct browser-role access revoked.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."event_external_invitees" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "event_id" "uuid" NOT NULL,
@@ -3515,7 +3519,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_external_invitees" (
 ALTER TABLE "public"."event_external_invitees" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."event_host_summary" AS
+CREATE OR REPLACE VIEW "public"."event_host_summary" WITH ("security_invoker"='true') AS
  SELECT "event_id",
     "host_council_id",
     ("count"(*))::integer AS "invited_council_count",
@@ -3526,6 +3530,10 @@ CREATE OR REPLACE VIEW "public"."event_host_summary" AS
 
 
 ALTER VIEW "public"."event_host_summary" OWNER TO "postgres";
+
+
+COMMENT ON VIEW "public"."event_host_summary" IS 'Server-side event host summary view. security_invoker enabled; direct browser-role access revoked.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_invited_council_types" (
@@ -3628,7 +3636,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_person_rsvps" (
 ALTER TABLE "public"."event_person_rsvps" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."event_person_rsvp_summary" AS
+CREATE OR REPLACE VIEW "public"."event_person_rsvp_summary" WITH ("security_invoker"='true') AS
  SELECT "e"."id" AS "event_id",
     "e"."council_id" AS "host_council_id",
     ("count"(DISTINCT "pr"."id") FILTER (WHERE ("pr"."status_code" = 'active'::"text")))::integer AS "active_submission_count",
@@ -3641,6 +3649,10 @@ CREATE OR REPLACE VIEW "public"."event_person_rsvp_summary" AS
 
 
 ALTER VIEW "public"."event_person_rsvp_summary" OWNER TO "postgres";
+
+
+COMMENT ON VIEW "public"."event_person_rsvp_summary" IS 'Server-side RSVP summary view. security_invoker enabled; direct browser-role access revoked.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_scope_types" (
@@ -5076,7 +5088,7 @@ COMMENT ON COLUMN "public"."users"."is_super_admin" IS 'Global platform-level ac
 
 
 
-CREATE OR REPLACE VIEW "public"."v_effective_area_access" AS
+CREATE OR REPLACE VIEW "public"."v_effective_area_access" WITH ("security_invoker"='true') AS
  WITH "ranked" AS (
          SELECT "aag"."id" AS "area_access_grant_id",
             "aag"."local_unit_id",
@@ -5154,7 +5166,11 @@ CREATE OR REPLACE VIEW "public"."v_effective_area_access" AS
 ALTER VIEW "public"."v_effective_area_access" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_effective_admin_package_access" AS
+COMMENT ON VIEW "public"."v_effective_area_access" IS 'Server-side effective area access view. security_invoker enabled; direct browser-role access revoked.';
+
+
+
+CREATE OR REPLACE VIEW "public"."v_effective_admin_package_access" WITH ("security_invoker"='true') AS
  SELECT "user_id",
     "person_id",
     "local_unit_id",
@@ -5174,46 +5190,47 @@ CREATE OR REPLACE VIEW "public"."v_effective_admin_package_access" AS
 ALTER VIEW "public"."v_effective_admin_package_access" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_auth_effective_admin_package_access" AS
- SELECT "user_id",
-    "person_id",
-    "local_unit_id",
-    "local_unit_name",
-    "can_manage_members",
-    "can_manage_events",
-    "can_manage_custom_lists",
-    "can_manage_claims",
-    "can_manage_admins",
-    "can_manage_local_unit_settings"
-   FROM "public"."v_effective_admin_package_access"
-  WHERE ("user_id" = "auth"."uid"());
+COMMENT ON VIEW "public"."v_effective_admin_package_access" IS 'Server-side effective admin package access view. security_invoker enabled; direct browser-role access revoked.';
 
 
-ALTER VIEW "public"."v_auth_effective_admin_package_access" OWNER TO "postgres";
+
+CREATE OR REPLACE VIEW "public"."v_effective_event_management_access" WITH ("security_invoker"='true') AS
+ SELECT DISTINCT "ea"."local_unit_id",
+    "lu"."display_name" AS "local_unit_name",
+    "e"."id" AS "event_id",
+    "ea"."member_record_id",
+    "mr"."legacy_people_id" AS "person_id",
+    "uur"."user_id",
+    COALESCE("ea"."role_code", 'manager'::"text") AS "role_code",
+    true AS "is_effective"
+   FROM (((("public"."event_assignments" "ea"
+     JOIN "public"."local_units" "lu" ON (("lu"."id" = "ea"."local_unit_id")))
+     JOIN "public"."member_records" "mr" ON (("mr"."id" = "ea"."member_record_id")))
+     JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "ea"."member_record_id") AND ("uur"."local_unit_id" = "ea"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
+     JOIN "public"."events" "e" ON ((("e"."local_unit_id" = "ea"."local_unit_id") AND (("ea"."assignment_scope" = 'all_events'::"public"."event_assignment_scope_code") OR (("ea"."assignment_scope" = 'event'::"public"."event_assignment_scope_code") AND ("ea"."event_id" = "e"."id"))))))
+  WHERE (("mr"."lifecycle_state" <> 'archived'::"public"."member_record_lifecycle_state") AND ("uur"."user_id" IS NOT NULL))
+UNION
+ SELECT "v"."local_unit_id",
+    "v"."local_unit_name",
+    "e"."id" AS "event_id",
+    "v"."member_record_id",
+    "v"."person_id",
+    "v"."user_id",
+    'manager'::"text" AS "role_code",
+    true AS "is_effective"
+   FROM ("public"."v_effective_area_access" "v"
+     JOIN "public"."events" "e" ON (("e"."local_unit_id" = "v"."local_unit_id")))
+  WHERE (("v"."area_code" = 'events'::"public"."member_area_code") AND ("v"."access_level" = 'manage'::"public"."area_access_level") AND ("v"."is_effective" = true) AND ("v"."user_id" IS NOT NULL));
 
 
-CREATE OR REPLACE VIEW "public"."v_auth_effective_area_access" AS
- SELECT "area_access_grant_id",
-    "local_unit_id",
-    "local_unit_name",
-    "member_record_id",
-    "person_id",
-    "user_id",
-    "area_code",
-    "access_level",
-    "source_code",
-    "granted_at",
-    "expires_at",
-    "revoked_at",
-    "is_effective"
-   FROM "public"."v_effective_area_access"
-  WHERE ("user_id" = "auth"."uid"());
+ALTER VIEW "public"."v_effective_event_management_access" OWNER TO "postgres";
 
 
-ALTER VIEW "public"."v_auth_effective_area_access" OWNER TO "postgres";
+COMMENT ON VIEW "public"."v_effective_event_management_access" IS 'Server-side effective event management access view. security_invoker enabled; direct browser-role access revoked.';
 
 
-CREATE OR REPLACE VIEW "public"."v_effective_resource_access" AS
+
+CREATE OR REPLACE VIEW "public"."v_effective_resource_access" WITH ("security_invoker"='true') AS
  WITH "ranked" AS (
          SELECT "rag"."id" AS "resource_access_grant_id",
             "rag"."local_unit_id",
@@ -5261,122 +5278,8 @@ CREATE OR REPLACE VIEW "public"."v_effective_resource_access" AS
 ALTER VIEW "public"."v_effective_resource_access" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_auth_effective_resource_access" AS
- SELECT "resource_access_grant_id",
-    "local_unit_id",
-    "local_unit_name",
-    "member_record_id",
-    "person_id",
-    "user_id",
-    "resource_type",
-    "resource_key",
-    "access_level",
-    "source_code",
-    "granted_at",
-    "expires_at",
-    "revoked_at",
-    "is_effective"
-   FROM "public"."v_effective_resource_access"
-  WHERE ("user_id" = "auth"."uid"());
+COMMENT ON VIEW "public"."v_effective_resource_access" IS 'Server-side effective resource access view. security_invoker enabled; direct browser-role access revoked.';
 
-
-ALTER VIEW "public"."v_auth_effective_resource_access" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_effective_event_management_access" AS
- SELECT DISTINCT "ea"."local_unit_id",
-    "lu"."display_name" AS "local_unit_name",
-    "e"."id" AS "event_id",
-    "ea"."member_record_id",
-    "mr"."legacy_people_id" AS "person_id",
-    "uur"."user_id",
-    COALESCE("ea"."role_code", 'manager'::"text") AS "role_code",
-    true AS "is_effective"
-   FROM (((("public"."event_assignments" "ea"
-     JOIN "public"."local_units" "lu" ON (("lu"."id" = "ea"."local_unit_id")))
-     JOIN "public"."member_records" "mr" ON (("mr"."id" = "ea"."member_record_id")))
-     JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "ea"."member_record_id") AND ("uur"."local_unit_id" = "ea"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-     JOIN "public"."events" "e" ON ((("e"."local_unit_id" = "ea"."local_unit_id") AND (("ea"."assignment_scope" = 'all_events'::"public"."event_assignment_scope_code") OR (("ea"."assignment_scope" = 'event'::"public"."event_assignment_scope_code") AND ("ea"."event_id" = "e"."id"))))))
-  WHERE (("mr"."lifecycle_state" <> 'archived'::"public"."member_record_lifecycle_state") AND ("uur"."user_id" IS NOT NULL))
-UNION
- SELECT "v"."local_unit_id",
-    "v"."local_unit_name",
-    "e"."id" AS "event_id",
-    "v"."member_record_id",
-    "v"."person_id",
-    "v"."user_id",
-    'manager'::"text" AS "role_code",
-    true AS "is_effective"
-   FROM ("public"."v_effective_area_access" "v"
-     JOIN "public"."events" "e" ON (("e"."local_unit_id" = "v"."local_unit_id")))
-  WHERE (("v"."area_code" = 'events'::"public"."member_area_code") AND ("v"."access_level" = 'manage'::"public"."area_access_level") AND ("v"."is_effective" = true) AND ("v"."user_id" IS NOT NULL));
-
-
-ALTER VIEW "public"."v_effective_event_management_access" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_admin_package_audit" AS
- SELECT "lu"."id" AS "local_unit_id",
-    "lu"."display_name" AS "local_unit_name",
-    "uur"."user_id",
-    "mr"."legacy_people_id" AS "person_id",
-    ("count"(*) FILTER (WHERE (("aag"."area_code" = 'members'::"public"."member_area_code") AND ("aag"."access_level" = 'edit_manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))) > 0) AS "has_members_package",
-    ("count"(*) FILTER (WHERE (("aag"."area_code" = 'events'::"public"."member_area_code") AND ("aag"."access_level" = 'manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))) > 0) AS "has_events_package",
-    ("count"(*) FILTER (WHERE (("aag"."area_code" = 'custom_lists'::"public"."member_area_code") AND ("aag"."access_level" = 'manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))) > 0) AS "has_custom_lists_package",
-    ("count"(*) FILTER (WHERE (("aag"."area_code" = 'claims'::"public"."member_area_code") AND ("aag"."access_level" = 'manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))) > 0) AS "has_claims_package",
-    ("count"(*) FILTER (WHERE (("aag"."area_code" = 'admins'::"public"."member_area_code") AND ("aag"."access_level" = 'manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))) > 0) AS "has_admins_package",
-    ("count"(*) FILTER (WHERE (("aag"."area_code" = 'local_unit_settings'::"public"."member_area_code") AND ("aag"."access_level" = 'manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))) > 0) AS "has_local_unit_settings_package"
-   FROM ((("public"."user_unit_relationships" "uur"
-     JOIN "public"."member_records" "mr" ON (("mr"."id" = "uur"."member_record_id")))
-     JOIN "public"."local_units" "lu" ON (("lu"."id" = "uur"."local_unit_id")))
-     LEFT JOIN "public"."area_access_grants" "aag" ON ((("aag"."local_unit_id" = "uur"."local_unit_id") AND ("aag"."member_record_id" = "uur"."member_record_id") AND ("aag"."revoked_at" IS NULL))))
-  WHERE ("uur"."status" = 'active'::"public"."relationship_status")
-  GROUP BY "lu"."id", "lu"."display_name", "uur"."user_id", "mr"."legacy_people_id";
-
-
-ALTER VIEW "public"."v_parallel_admin_package_audit" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_custom_list_access_audit" AS
- SELECT "cl"."id" AS "custom_list_id",
-    "cl"."name" AS "custom_list_name",
-    "cl"."local_unit_id",
-    "lu"."display_name" AS "local_unit_name",
-    "uur"."user_id",
-    "mr"."legacy_people_id" AS "person_id",
-    ("max"(
-        CASE
-            WHEN ("rag"."id" IS NOT NULL) THEN 1
-            ELSE 0
-        END) > 0) AS "has_parallel_resource_access"
-   FROM (((("public"."custom_lists" "cl"
-     JOIN "public"."local_units" "lu" ON (("lu"."id" = "cl"."local_unit_id")))
-     LEFT JOIN "public"."resource_access_grants" "rag" ON ((("rag"."resource_type" = 'custom_list'::"public"."resource_type_code") AND ("rag"."resource_key" = ("cl"."id")::"text") AND ("rag"."local_unit_id" = "cl"."local_unit_id") AND ("rag"."revoked_at" IS NULL))))
-     LEFT JOIN "public"."member_records" "mr" ON (("mr"."id" = "rag"."member_record_id")))
-     LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "mr"."id") AND ("uur"."local_unit_id" = "cl"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-  GROUP BY "cl"."id", "cl"."name", "cl"."local_unit_id", "lu"."display_name", "uur"."user_id", "mr"."legacy_people_id";
-
-
-ALTER VIEW "public"."v_parallel_custom_list_access_audit" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_event_assignment_audit" AS
- SELECT "e"."id" AS "event_id",
-    "e"."title",
-    "e"."local_unit_id",
-    "lu"."display_name" AS "local_unit_name",
-    "uur"."user_id",
-    "mr"."legacy_people_id" AS "person_id",
-    COALESCE("ea"."role_code", 'manager'::"text") AS "role_code",
-    "ea"."assignment_scope"
-   FROM (((("public"."events" "e"
-     JOIN "public"."local_units" "lu" ON (("lu"."id" = "e"."local_unit_id")))
-     LEFT JOIN "public"."event_assignments" "ea" ON ((("ea"."local_unit_id" = "e"."local_unit_id") AND (("ea"."assignment_scope" = 'all_events'::"public"."event_assignment_scope_code") OR (("ea"."assignment_scope" = 'event'::"public"."event_assignment_scope_code") AND ("ea"."event_id" = "e"."id"))))))
-     LEFT JOIN "public"."member_records" "mr" ON (("mr"."id" = "ea"."member_record_id")))
-     LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "mr"."id") AND ("uur"."local_unit_id" = "e"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))));
-
-
-ALTER VIEW "public"."v_parallel_event_assignment_audit" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."volunteer_context_types" (
@@ -9748,8 +9651,6 @@ GRANT ALL ON TABLE "public"."events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."event_council_rsvp_rollups" TO "anon";
-GRANT ALL ON TABLE "public"."event_council_rsvp_rollups" TO "authenticated";
 GRANT ALL ON TABLE "public"."event_council_rsvp_rollups" TO "service_role";
 
 
@@ -9760,8 +9661,6 @@ GRANT ALL ON TABLE "public"."event_external_invitees" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."event_host_summary" TO "anon";
-GRANT ALL ON TABLE "public"."event_host_summary" TO "authenticated";
 GRANT ALL ON TABLE "public"."event_host_summary" TO "service_role";
 
 
@@ -9802,8 +9701,6 @@ GRANT ALL ON TABLE "public"."event_person_rsvps" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."event_person_rsvp_summary" TO "anon";
-GRANT ALL ON TABLE "public"."event_person_rsvp_summary" TO "authenticated";
 GRANT ALL ON TABLE "public"."event_person_rsvp_summary" TO "service_role";
 
 
@@ -10244,63 +10141,19 @@ GRANT ALL ON TABLE "public"."users" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_effective_area_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_effective_area_access" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_effective_area_access" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_effective_admin_package_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_effective_admin_package_access" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_effective_admin_package_access" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_auth_effective_admin_package_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_auth_effective_admin_package_access" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_auth_effective_admin_package_access" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_auth_effective_area_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_auth_effective_area_access" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_auth_effective_area_access" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_effective_resource_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_effective_resource_access" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_effective_resource_access" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_auth_effective_resource_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_auth_effective_resource_access" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_auth_effective_resource_access" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_effective_event_management_access" TO "anon";
-GRANT ALL ON TABLE "public"."v_effective_event_management_access" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_effective_event_management_access" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_parallel_admin_package_audit" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_admin_package_audit" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_admin_package_audit" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_custom_list_access_audit" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_custom_list_access_audit" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_custom_list_access_audit" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_event_assignment_audit" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_event_assignment_audit" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_event_assignment_audit" TO "service_role";
+GRANT ALL ON TABLE "public"."v_effective_resource_access" TO "service_role";
 
 
 

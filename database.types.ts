@@ -249,13 +249,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "area_access_grants_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
             foreignKeyName: "area_access_grants_member_record_id_fkey"
             columns: ["member_record_id"]
             isOneToOne: false
@@ -647,13 +640,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "custom_list_access_custom_list_id_fkey"
-            columns: ["custom_list_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_custom_list_access_audit"
-            referencedColumns: ["custom_list_id"]
-          },
-          {
             foreignKeyName: "custom_list_access_granted_by_auth_user_id_fkey"
             columns: ["granted_by_auth_user_id"]
             isOneToOne: false
@@ -730,13 +716,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "custom_lists"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custom_list_members_custom_list_id_fkey"
-            columns: ["custom_list_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_custom_list_access_audit"
-            referencedColumns: ["custom_list_id"]
           },
           {
             foreignKeyName: "custom_list_members_last_contact_by_person_id_fkey"
@@ -822,13 +801,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custom_lists_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
           {
             foreignKeyName: "custom_lists_updated_by_auth_user_id_fkey"
@@ -1030,13 +1002,6 @@ export type Database = {
             referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "event_archives_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
         ]
       }
       event_assignment_roles: {
@@ -1130,25 +1095,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "event_assignments_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
-          },
-          {
             foreignKeyName: "event_assignments_local_unit_id_fkey"
             columns: ["local_unit_id"]
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_assignments_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
           {
             foreignKeyName: "event_assignments_member_record_id_fkey"
@@ -1240,13 +1191,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_council_rsvps_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_council_rsvps_event_invited_council_id_fkey"
@@ -1342,13 +1286,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_external_invitees_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_external_invitees_updated_by_user_id_fkey"
@@ -1451,13 +1388,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_invited_councils_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_invited_councils_invited_council_id_fkey"
@@ -1574,13 +1504,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_message_jobs_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "event_message_jobs_event_invited_council_id_fkey"
@@ -1797,13 +1720,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "event_person_rsvps_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
-          },
-          {
             foreignKeyName: "event_person_rsvps_matched_person_id_fkey"
             columns: ["matched_person_id"]
             isOneToOne: false
@@ -1891,13 +1807,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_rsvp_volunteers_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_event_assignment_audit"
-            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -2037,13 +1946,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
           {
             foreignKeyName: "events_scope_code_fkey"
@@ -2246,13 +2148,6 @@ export type Database = {
             referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "intake_items_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
         ]
       }
       intake_types: {
@@ -2299,13 +2194,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intake_types_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
         ]
       }
@@ -2393,13 +2281,6 @@ export type Database = {
             referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "local_role_definitions_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
         ]
       }
       local_unit_custom_fields: {
@@ -2447,13 +2328,6 @@ export type Database = {
             referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "local_unit_custom_fields_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
         ]
       }
       local_unit_parish_affiliations: {
@@ -2487,25 +2361,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "local_unit_parish_affiliations_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
             foreignKeyName: "local_unit_parish_affiliations_parish_local_unit_id_fkey"
             columns: ["parish_local_unit_id"]
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "local_unit_parish_affiliations_parish_local_unit_id_fkey"
-            columns: ["parish_local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
         ]
       }
@@ -2556,13 +2416,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "local_unit_people_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
           {
             foreignKeyName: "local_unit_people_person_id_fkey"
@@ -2759,13 +2612,6 @@ export type Database = {
             referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "member_records_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
         ]
       }
       membership_claim_requests: {
@@ -2821,13 +2667,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "membership_claim_requests_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
         ]
       }
@@ -4912,13 +4751,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
             foreignKeyName: "resource_access_grants_member_record_id_fkey"
             columns: ["member_record_id"]
             isOneToOne: false
@@ -5393,13 +5225,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "spiritual_content_scopes_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
           },
           {
             foreignKeyName: "spiritual_content_scopes_organization_family_id_fkey"
@@ -5926,13 +5751,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_unit_relationships_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
             foreignKeyName: "user_unit_relationships_member_record_id_fkey"
             columns: ["member_record_id"]
             isOneToOne: false
@@ -6086,89 +5904,6 @@ export type Database = {
           },
         ]
       }
-      v_auth_effective_admin_package_access: {
-        Row: {
-          can_manage_admins: boolean | null
-          can_manage_claims: boolean | null
-          can_manage_custom_lists: boolean | null
-          can_manage_events: boolean | null
-          can_manage_local_unit_settings: boolean | null
-          can_manage_members: boolean | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          person_id: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      v_auth_effective_area_access: {
-        Row: {
-          access_level: Database["public"]["Enums"]["area_access_level"] | null
-          area_access_grant_id: string | null
-          area_code: Database["public"]["Enums"]["member_area_code"] | null
-          expires_at: string | null
-          granted_at: string | null
-          is_effective: boolean | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          member_record_id: string | null
-          person_id: string | null
-          revoked_at: string | null
-          source_code: Database["public"]["Enums"]["grant_source_code"] | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      v_auth_effective_resource_access: {
-        Row: {
-          access_level: Database["public"]["Enums"]["area_access_level"] | null
-          expires_at: string | null
-          granted_at: string | null
-          is_effective: boolean | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          member_record_id: string | null
-          person_id: string | null
-          resource_access_grant_id: string | null
-          resource_key: string | null
-          resource_type:
-            | Database["public"]["Enums"]["resource_type_code"]
-            | null
-          revoked_at: string | null
-          source_code: Database["public"]["Enums"]["grant_source_code"] | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "member_records_legacy_people_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "local_units"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
-            foreignKeyName: "resource_access_grants_member_record_id_fkey"
-            columns: ["member_record_id"]
-            isOneToOne: false
-            referencedRelation: "member_records"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       v_effective_admin_package_access: {
         Row: {
           can_manage_admins: boolean | null
@@ -6250,111 +5985,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "resource_access_grants_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
             foreignKeyName: "resource_access_grants_member_record_id_fkey"
             columns: ["member_record_id"]
             isOneToOne: false
             referencedRelation: "member_records"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_parallel_admin_package_audit: {
-        Row: {
-          has_admins_package: boolean | null
-          has_claims_package: boolean | null
-          has_custom_lists_package: boolean | null
-          has_events_package: boolean | null
-          has_local_unit_settings_package: boolean | null
-          has_members_package: boolean | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          person_id: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "member_records_legacy_people_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_parallel_custom_list_access_audit: {
-        Row: {
-          custom_list_id: string | null
-          custom_list_name: string | null
-          has_parallel_resource_access: boolean | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          person_id: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "custom_lists_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "local_units"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custom_lists_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
-            foreignKeyName: "member_records_legacy_people_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_parallel_event_assignment_audit: {
-        Row: {
-          assignment_scope:
-            | Database["public"]["Enums"]["event_assignment_scope_code"]
-            | null
-          event_id: string | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          person_id: string | null
-          role_code: string | null
-          title: string | null
-          user_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "events_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "local_units"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "v_parallel_admin_package_audit"
-            referencedColumns: ["local_unit_id"]
-          },
-          {
-            foreignKeyName: "member_records_legacy_people_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]

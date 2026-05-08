@@ -3147,6 +3147,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side effective area access view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "v_effective_area_access"
         ]
@@ -7110,80 +7111,6 @@
         ]
       }
     },
-    "/v_auth_effective_admin_package_access": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.can_manage_members"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.can_manage_events"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.can_manage_custom_lists"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.can_manage_claims"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.can_manage_admins"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_admin_package_access.can_manage_local_unit_settings"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_auth_effective_admin_package_access"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_auth_effective_admin_package_access"
-        ]
-      }
-    },
     "/brand_profiles": {
       "get": {
         "parameters": [
@@ -8147,71 +8074,6 @@
         "summary": "Includes legacy linked-member relationships. Active links to archived member_records should be treated as stale residue and cleaned up for org-admin-only subjects.",
         "tags": [
           "user_unit_relationships"
-        ]
-      }
-    },
-    "/v_parallel_custom_list_access_audit": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.custom_list_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.custom_list_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_custom_list_access_audit.has_parallel_resource_access"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_custom_list_access_audit"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_custom_list_access_audit"
         ]
       }
     },
@@ -10203,6 +10065,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side effective event management access view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "v_effective_event_management_access"
         ]
@@ -11954,6 +11817,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side effective resource access view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "v_effective_resource_access"
         ]
@@ -12845,6 +12709,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side council RSVP rollup view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "event_council_rsvp_rollups"
         ]
@@ -15209,80 +15074,6 @@
         ]
       }
     },
-    "/v_parallel_admin_package_audit": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.has_members_package"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.has_events_package"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.has_custom_lists_package"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.has_claims_package"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.has_admins_package"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_admin_package_audit.has_local_unit_settings_package"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_admin_package_audit"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_admin_package_audit"
-        ]
-      }
-    },
     "/organizations": {
       "get": {
         "parameters": [
@@ -16050,89 +15841,6 @@
         },
         "tags": [
           "prospect_status_types"
-        ]
-      }
-    },
-    "/v_auth_effective_area_access": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.area_access_grant_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.member_record_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.area_code"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.access_level"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.source_code"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.granted_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.expires_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.revoked_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_area_access.is_effective"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_auth_effective_area_access"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_auth_effective_area_access"
         ]
       }
     },
@@ -17650,6 +17358,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side effective admin package access view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "v_effective_admin_package_access"
         ]
@@ -18679,74 +18388,6 @@
         ]
       }
     },
-    "/v_parallel_event_assignment_audit": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.event_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.title"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.role_code"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_audit.assignment_scope"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_event_assignment_audit"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_event_assignment_audit"
-        ]
-      }
-    },
     "/access_scope_source_types": {
       "get": {
         "parameters": [
@@ -19146,92 +18787,6 @@
         },
         "tags": [
           "event_assignment_roles"
-        ]
-      }
-    },
-    "/v_auth_effective_resource_access": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.resource_access_grant_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.member_record_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.resource_type"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.resource_key"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.access_level"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.source_code"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.granted_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.expires_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.revoked_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_auth_effective_resource_access.is_effective"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_auth_effective_resource_access"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_auth_effective_resource_access"
         ]
       }
     },
@@ -19854,6 +19409,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side event host summary view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "event_host_summary"
         ]
@@ -20047,6 +19603,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Server-side RSVP summary view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "event_person_rsvp_summary"
         ]
@@ -25589,6 +25146,7 @@
       "type": "object"
     },
     "v_effective_area_access": {
+      "description": "Server-side effective area access view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "area_access_grant_id": {
           "format": "uuid",
@@ -26939,51 +26497,6 @@
       },
       "type": "object"
     },
-    "v_auth_effective_admin_package_access": {
-      "properties": {
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "can_manage_members": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "can_manage_events": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "can_manage_custom_lists": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "can_manage_claims": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "can_manage_admins": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "can_manage_local_unit_settings": {
-          "format": "boolean",
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
     "brand_profiles": {
       "required": [
         "id",
@@ -27292,42 +26805,6 @@
         "updated_by_auth_user_id": {
           "format": "uuid",
           "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "v_parallel_custom_list_access_audit": {
-      "properties": {
-        "custom_list_id": {
-          "description": "Note:\nThis is a Primary Key.<pk/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "custom_list_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "local_unit_id": {
-          "description": "Note:\nThis is a Foreign Key to `local_units.id`.<fk table='local_units' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "description": "Note:\nThis is a Foreign Key to `people.id`.<fk table='people' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "has_parallel_resource_access": {
-          "format": "boolean",
-          "type": "boolean"
         }
       },
       "type": "object"
@@ -27979,6 +27456,7 @@
       "type": "object"
     },
     "v_effective_event_management_access": {
+      "description": "Server-side effective event management access view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "local_unit_id": {
           "format": "uuid",
@@ -28583,6 +28061,7 @@
       "type": "object"
     },
     "v_effective_resource_access": {
+      "description": "Server-side effective resource access view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "resource_access_grant_id": {
           "description": "Note:\nThis is a Primary Key.<pk/>",
@@ -28906,6 +28385,7 @@
       "type": "object"
     },
     "event_council_rsvp_rollups": {
+      "description": "Server-side council RSVP rollup view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "event_id": {
           "description": "Note:\nThis is a Primary Key.<pk/>",
@@ -29721,53 +29201,6 @@
       },
       "type": "object"
     },
-    "v_parallel_admin_package_audit": {
-      "properties": {
-        "local_unit_id": {
-          "description": "Note:\nThis is a Primary Key.<pk/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "description": "Note:\nThis is a Foreign Key to `people.id`.<fk table='people' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "has_members_package": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "has_events_package": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "has_custom_lists_package": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "has_claims_package": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "has_admins_package": {
-          "format": "boolean",
-          "type": "boolean"
-        },
-        "has_local_unit_settings_package": {
-          "format": "boolean",
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
     "organizations": {
       "required": [
         "id",
@@ -30009,84 +29442,6 @@
         },
         "is_active": {
           "default": true,
-          "format": "boolean",
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
-    "v_auth_effective_area_access": {
-      "properties": {
-        "area_access_grant_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "member_record_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "area_code": {
-          "enum": [
-            "members",
-            "events",
-            "custom_lists",
-            "claims",
-            "admins",
-            "local_unit_settings"
-          ],
-          "format": "public.member_area_code",
-          "type": "string"
-        },
-        "access_level": {
-          "enum": [
-            "read_only",
-            "edit_manage",
-            "manage",
-            "interact"
-          ],
-          "format": "public.area_access_level",
-          "type": "string"
-        },
-        "source_code": {
-          "enum": [
-            "manual",
-            "title_default",
-            "invite_package",
-            "legacy_backfill",
-            "system"
-          ],
-          "format": "public.grant_source_code",
-          "type": "string"
-        },
-        "granted_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "expires_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "revoked_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "is_effective": {
           "format": "boolean",
           "type": "boolean"
         }
@@ -30549,6 +29904,7 @@
       "type": "object"
     },
     "v_effective_admin_package_access": {
+      "description": "Server-side effective admin package access view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "user_id": {
           "format": "uuid",
@@ -30916,51 +30272,6 @@
       },
       "type": "object"
     },
-    "v_parallel_event_assignment_audit": {
-      "properties": {
-        "event_id": {
-          "description": "Note:\nThis is a Primary Key.<pk/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "title": {
-          "format": "text",
-          "type": "string"
-        },
-        "local_unit_id": {
-          "description": "Note:\nThis is a Foreign Key to `local_units.id`.<fk table='local_units' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "description": "Note:\nThis is a Foreign Key to `people.id`.<fk table='people' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "role_code": {
-          "format": "text",
-          "type": "string"
-        },
-        "assignment_scope": {
-          "enum": [
-            "all_events",
-            "event",
-            "event_kind"
-          ],
-          "format": "public.event_assignment_scope_code",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
     "access_scope_source_types": {
       "required": [
         "code",
@@ -31055,90 +30366,6 @@
           "default": 100,
           "format": "integer",
           "type": "integer"
-        }
-      },
-      "type": "object"
-    },
-    "v_auth_effective_resource_access": {
-      "properties": {
-        "resource_access_grant_id": {
-          "description": "Note:\nThis is a Primary Key.<pk/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_id": {
-          "description": "Note:\nThis is a Foreign Key to `local_units.id`.<fk table='local_units' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "member_record_id": {
-          "description": "Note:\nThis is a Foreign Key to `member_records.id`.<fk table='member_records' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "description": "Note:\nThis is a Foreign Key to `people.id`.<fk table='people' column='id'/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "resource_type": {
-          "enum": [
-            "custom_list",
-            "event",
-            "event_type",
-            "all_events"
-          ],
-          "format": "public.resource_type_code",
-          "type": "string"
-        },
-        "resource_key": {
-          "format": "text",
-          "type": "string"
-        },
-        "access_level": {
-          "enum": [
-            "read_only",
-            "edit_manage",
-            "manage",
-            "interact"
-          ],
-          "format": "public.area_access_level",
-          "type": "string"
-        },
-        "source_code": {
-          "enum": [
-            "manual",
-            "title_default",
-            "invite_package",
-            "legacy_backfill",
-            "system"
-          ],
-          "format": "public.grant_source_code",
-          "type": "string"
-        },
-        "granted_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "expires_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "revoked_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "is_effective": {
-          "format": "boolean",
-          "type": "boolean"
         }
       },
       "type": "object"
@@ -31341,6 +30568,7 @@
       "type": "object"
     },
     "event_host_summary": {
+      "description": "Server-side event host summary view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "event_id": {
           "description": "Note:\nThis is a Primary Key.<pk/>",
@@ -31398,6 +30626,7 @@
       "type": "object"
     },
     "event_person_rsvp_summary": {
+      "description": "Server-side RSVP summary view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "event_id": {
           "description": "Note:\nThis is a Primary Key.<pk/>",
@@ -34708,75 +33937,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_auth_effective_admin_package_access": {
-      "name": "v_auth_effective_admin_package_access",
-      "description": "v_auth_effective_admin_package_access",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_auth_effective_admin_package_access"
-      }
-    },
-    "rowFilter.v_auth_effective_admin_package_access.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.can_manage_members": {
-      "name": "can_manage_members",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.can_manage_events": {
-      "name": "can_manage_events",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.can_manage_custom_lists": {
-      "name": "can_manage_custom_lists",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.can_manage_claims": {
-      "name": "can_manage_claims",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.can_manage_admins": {
-      "name": "can_manage_admins",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_admin_package_access.can_manage_local_unit_settings": {
-      "name": "can_manage_local_unit_settings",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.brand_profiles": {
       "name": "brand_profiles",
       "description": "brand_profiles",
@@ -35130,57 +34290,6 @@
     },
     "rowFilter.user_unit_relationships.updated_by_auth_user_id": {
       "name": "updated_by_auth_user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_parallel_custom_list_access_audit": {
-      "name": "v_parallel_custom_list_access_audit",
-      "description": "v_parallel_custom_list_access_audit",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_custom_list_access_audit"
-      }
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.custom_list_id": {
-      "name": "custom_list_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.custom_list_name": {
-      "name": "custom_list_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_custom_list_access_audit.has_parallel_resource_access": {
-      "name": "has_parallel_resource_access",
       "required": false,
       "in": "query",
       "type": "string"
@@ -37912,75 +37021,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_parallel_admin_package_audit": {
-      "name": "v_parallel_admin_package_audit",
-      "description": "v_parallel_admin_package_audit",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_admin_package_audit"
-      }
-    },
-    "rowFilter.v_parallel_admin_package_audit.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.has_members_package": {
-      "name": "has_members_package",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.has_events_package": {
-      "name": "has_events_package",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.has_custom_lists_package": {
-      "name": "has_custom_lists_package",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.has_claims_package": {
-      "name": "has_claims_package",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.has_admins_package": {
-      "name": "has_admins_package",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_admin_package_audit.has_local_unit_settings_package": {
-      "name": "has_local_unit_settings_package",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.organizations": {
       "name": "organizations",
       "description": "organizations",
@@ -38267,93 +37307,6 @@
     },
     "rowFilter.prospect_status_types.is_active": {
       "name": "is_active",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_auth_effective_area_access": {
-      "name": "v_auth_effective_area_access",
-      "description": "v_auth_effective_area_access",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_auth_effective_area_access"
-      }
-    },
-    "rowFilter.v_auth_effective_area_access.area_access_grant_id": {
-      "name": "area_access_grant_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.member_record_id": {
-      "name": "member_record_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.area_code": {
-      "name": "area_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.access_level": {
-      "name": "access_level",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.source_code": {
-      "name": "source_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.granted_at": {
-      "name": "granted_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.expires_at": {
-      "name": "expires_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.revoked_at": {
-      "name": "revoked_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_area_access.is_effective": {
-      "name": "is_effective",
       "required": false,
       "in": "query",
       "type": "string"
@@ -39280,63 +38233,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_parallel_event_assignment_audit": {
-      "name": "v_parallel_event_assignment_audit",
-      "description": "v_parallel_event_assignment_audit",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_event_assignment_audit"
-      }
-    },
-    "rowFilter.v_parallel_event_assignment_audit.event_id": {
-      "name": "event_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.title": {
-      "name": "title",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.role_code": {
-      "name": "role_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_audit.assignment_scope": {
-      "name": "assignment_scope",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.access_scope_source_types": {
       "name": "access_scope_source_types",
       "description": "access_scope_source_types",
@@ -39432,99 +38328,6 @@
     },
     "rowFilter.event_assignment_roles.precedence": {
       "name": "precedence",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_auth_effective_resource_access": {
-      "name": "v_auth_effective_resource_access",
-      "description": "v_auth_effective_resource_access",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_auth_effective_resource_access"
-      }
-    },
-    "rowFilter.v_auth_effective_resource_access.resource_access_grant_id": {
-      "name": "resource_access_grant_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.member_record_id": {
-      "name": "member_record_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.resource_type": {
-      "name": "resource_type",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.resource_key": {
-      "name": "resource_key",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.access_level": {
-      "name": "access_level",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.source_code": {
-      "name": "source_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.granted_at": {
-      "name": "granted_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.expires_at": {
-      "name": "expires_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.revoked_at": {
-      "name": "revoked_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_auth_effective_resource_access.is_effective": {
-      "name": "is_effective",
       "required": false,
       "in": "query",
       "type": "string"
