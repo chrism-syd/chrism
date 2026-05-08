@@ -6265,17 +6265,6 @@ export type Database = {
           },
         ]
       }
-      v_legacy_retirement_status: {
-        Row: {
-          checked_at: string | null
-          council_admin_rows: number | null
-          custom_list_access_rows: number | null
-          gap_free: boolean | null
-          organization_admin_rows: number | null
-          unresolved_legacy_write_count: number | null
-        }
-        Relationships: []
-      }
       v_parallel_admin_package_audit: {
         Row: {
           has_admins_package: boolean | null
@@ -6369,117 +6358,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      v_parallel_event_assignment_redundancy: {
-        Row: {
-          covered_by_assignment_id: string | null
-          covered_by_scope:
-            | Database["public"]["Enums"]["event_assignment_scope_code"]
-            | null
-          event_id: string | null
-          event_title: string | null
-          local_unit_id: string | null
-          local_unit_name: string | null
-          member_record_id: string | null
-          redundancy_reason: string | null
-          redundant_assignment_id: string | null
-          redundant_assignment_scope:
-            | Database["public"]["Enums"]["event_assignment_scope_code"]
-            | null
-          role_code: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      v_parallel_legacy_gap_report: {
-        Row: {
-          custom_list_id: string | null
-          event_id: string | null
-          gap_type: string | null
-          legacy_owner_id: string | null
-          local_unit_name: string | null
-          person_id: string | null
-          source_row_id: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      v_parallel_legacy_gap_report_live: {
-        Row: {
-          custom_list_id: string | null
-          event_id: string | null
-          gap_type: string | null
-          legacy_owner_id: string | null
-          local_unit_name: string | null
-          person_id: string | null
-          source_row_id: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      v_parallel_null_user_fossils: {
-        Row: {
-          created_at: string | null
-          grantee_email: string | null
-          legacy_owner_id: string | null
-          local_unit_name: string | null
-          notes: string | null
-          person_id: string | null
-          source_row_id: string | null
-          source_table: string | null
-        }
-        Relationships: []
-      }
-      v_parallel_null_user_fossils_all: {
-        Row: {
-          created_at: string | null
-          grantee_email: string | null
-          legacy_owner_id: string | null
-          local_unit_name: string | null
-          notes: string | null
-          person_id: string | null
-          source_row_id: string | null
-          source_table: string | null
-        }
-        Relationships: []
-      }
-      v_parallel_resolved_null_user_fossils: {
-        Row: {
-          created_at: string | null
-          fossil_resolved_at: string | null
-          grantee_email: string | null
-          legacy_owner_id: string | null
-          local_unit_name: string | null
-          notes: string | null
-          person_id: string | null
-          resolution_code: string | null
-          resolution_notes: string | null
-          resolved_by_auth_user_id: string | null
-          source_row_id: string | null
-          source_table: string | null
-        }
-        Relationships: []
-      }
-      v_parallel_retirement_readiness: {
-        Row: {
-          council_admin_legacy_write_count: number | null
-          custom_list_access_legacy_write_count: number | null
-          custom_list_gap_count: number | null
-          event_gap_count: number | null
-          gap_free: boolean | null
-          org_admin_gap_count: number | null
-          organization_admin_legacy_write_count: number | null
-        }
-        Relationships: []
-      }
-      v_parallel_retirement_readiness_live: {
-        Row: {
-          custom_list_gap_count: number | null
-          event_gap_count: number | null
-          gap_free: boolean | null
-          org_admin_gap_count: number | null
-        }
-        Relationships: []
       }
     }
     Functions: {
@@ -6633,10 +6511,6 @@ export type Database = {
         Args: { p_local_unit_id: string; p_target_user_id: string }
         Returns: undefined
       }
-      cleanup_redundant_event_assignments: {
-        Args: { p_actor_user_id?: string }
-        Returns: number
-      }
       current_user_council_id: { Args: never; Returns: string }
       ensure_member_record_for_person_local_unit: {
         Args: { p_local_unit_id: string; p_person_id: string }
@@ -6774,15 +6648,6 @@ export type Database = {
           p_note?: string
         }
         Returns: string
-      }
-      resolve_null_user_fossils: {
-        Args: {
-          p_actor_user_id?: string
-          p_notes?: string
-          p_source_row_ids?: string[]
-          p_source_table?: string
-        }
-        Returns: number
       }
       restore_local_unit_member_record:
         | {

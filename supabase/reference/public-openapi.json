@@ -174,87 +174,6 @@
         ]
       }
     },
-    "/v_parallel_resolved_null_user_fossils": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.source_table"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.source_row_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.grantee_email"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.legacy_owner_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.notes"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.created_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.resolution_code"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.resolution_notes"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.fossil_resolved_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_resolved_null_user_fossils.resolved_by_auth_user_id"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_resolved_null_user_fossils"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "summary": "Batch 6 hygiene view. Audit trail for null-user fossils that were intentionally resolved out of the active hygiene queue.",
-        "tags": [
-          "v_parallel_resolved_null_user_fossils"
-        ]
-      }
-    },
     "/user_access_scopes": {
       "get": {
         "parameters": [
@@ -1550,71 +1469,6 @@
         },
         "tags": [
           "council_reengagement_status_types"
-        ]
-      }
-    },
-    "/v_parallel_retirement_readiness": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.org_admin_gap_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.custom_list_gap_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.event_gap_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.council_admin_legacy_write_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.organization_admin_legacy_write_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.custom_list_access_legacy_write_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness.gap_free"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_retirement_readiness"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_retirement_readiness"
         ]
       }
     },
@@ -6477,62 +6331,6 @@
         ]
       }
     },
-    "/v_parallel_retirement_readiness_live": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness_live.org_admin_gap_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness_live.custom_list_gap_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness_live.event_gap_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_retirement_readiness_live.gap_free"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_retirement_readiness_live"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_retirement_readiness_live"
-        ]
-      }
-    },
     "/event_assignments": {
       "get": {
         "parameters": [
@@ -6736,68 +6534,6 @@
         },
         "tags": [
           "event_assignments"
-        ]
-      }
-    },
-    "/v_legacy_retirement_status": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_legacy_retirement_status.checked_at"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_legacy_retirement_status.council_admin_rows"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_legacy_retirement_status.organization_admin_rows"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_legacy_retirement_status.custom_list_access_rows"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_legacy_retirement_status.unresolved_legacy_write_count"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_legacy_retirement_status.gap_free"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_legacy_retirement_status"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_legacy_retirement_status"
         ]
       }
     },
@@ -7371,74 +7107,6 @@
         },
         "tags": [
           "person_kofc_profiles"
-        ]
-      }
-    },
-    "/v_parallel_legacy_gap_report_live": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.gap_type"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.source_row_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.legacy_owner_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.event_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report_live.custom_list_id"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_legacy_gap_report_live"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_legacy_gap_report_live"
         ]
       }
     },
@@ -10922,75 +10590,6 @@
         },
         "tags": [
           "user_saved_spiritual_items"
-        ]
-      }
-    },
-    "/v_parallel_null_user_fossils": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.source_table"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.source_row_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.grantee_email"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.legacy_owner_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.notes"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils.created_at"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_null_user_fossils"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "summary": "Batch 6 hygiene view. Shows unresolved legacy compatibility rows with no linked user_id so they remain reviewable without being mistaken for current authority.",
-        "tags": [
-          "v_parallel_null_user_fossils"
         ]
       }
     },
@@ -16320,74 +15919,6 @@
         ]
       }
     },
-    "/v_parallel_null_user_fossils_all": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.source_table"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.source_row_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.grantee_email"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.legacy_owner_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.notes"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_null_user_fossils_all.created_at"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_null_user_fossils_all"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_null_user_fossils_all"
-        ]
-      }
-    },
     "/prospect_status_types": {
       "get": {
         "parameters": [
@@ -19350,74 +18881,6 @@
         ]
       }
     },
-    "/v_parallel_legacy_gap_report": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.gap_type"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.source_row_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.person_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.legacy_owner_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.event_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_legacy_gap_report.custom_list_id"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_legacy_gap_report"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "tags": [
-          "v_parallel_legacy_gap_report"
-        ]
-      }
-    },
     "/spiritual_content_relationships": {
       "get": {
         "parameters": [
@@ -20065,87 +19528,6 @@
         },
         "tags": [
           "import_st_patricks_7689_members"
-        ]
-      }
-    },
-    "/v_parallel_event_assignment_redundancy": {
-      "get": {
-        "parameters": [
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.redundant_assignment_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.redundant_assignment_scope"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.redundancy_reason"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.local_unit_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.local_unit_name"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.event_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.event_title"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.member_record_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.user_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.role_code"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.covered_by_assignment_id"
-          },
-          {
-            "$ref": "#/parameters/rowFilter.v_parallel_event_assignment_redundancy.covered_by_scope"
-          },
-          {
-            "$ref": "#/parameters/select"
-          },
-          {
-            "$ref": "#/parameters/order"
-          },
-          {
-            "$ref": "#/parameters/range"
-          },
-          {
-            "$ref": "#/parameters/rangeUnit"
-          },
-          {
-            "$ref": "#/parameters/offset"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/preferCount"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v_parallel_event_assignment_redundancy"
-              },
-              "type": "array"
-            }
-          },
-          "206": {
-            "description": "Partial Content"
-          }
-        },
-        "summary": "Batch 6 hygiene view. Shows event assignments that are already covered by broader grants and can be safely removed.",
-        "tags": [
-          "v_parallel_event_assignment_redundancy"
         ]
       }
     },
@@ -21160,6 +20542,7 @@
             "description": "Partial Content"
           }
         },
+        "summary": "Retained audit table for resolved legacy fossil decisions. The super-admin data hygiene dashboard and diagnostic views were retired after MVP stabilization.",
         "tags": [
           "legacy_fossil_resolutions"
         ]
@@ -21181,6 +20564,7 @@
             "description": "Created"
           }
         },
+        "summary": "Retained audit table for resolved legacy fossil decisions. The super-admin data hygiene dashboard and diagnostic views were retired after MVP stabilization.",
         "tags": [
           "legacy_fossil_resolutions"
         ]
@@ -21217,6 +20601,7 @@
             "description": "No Content"
           }
         },
+        "summary": "Retained audit table for resolved legacy fossil decisions. The super-admin data hygiene dashboard and diagnostic views were retired after MVP stabilization.",
         "tags": [
           "legacy_fossil_resolutions"
         ]
@@ -21256,6 +20641,7 @@
             "description": "No Content"
           }
         },
+        "summary": "Retained audit table for resolved legacy fossil decisions. The super-admin data hygiene dashboard and diagnostic views were retired after MVP stabilization.",
         "tags": [
           "legacy_fossil_resolutions"
         ]
@@ -22379,42 +21765,6 @@
         ]
       }
     },
-    "/rpc/cleanup_redundant_event_assignments": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "p_actor_user_id": {
-                  "format": "uuid",
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) cleanup_redundant_event_assignments"
-        ]
-      }
-    },
     "/rpc/ensure_member_record_for_person_local_unit": {
       "post": {
         "parameters": [
@@ -23331,59 +22681,6 @@
         },
         "tags": [
           "(rpc) grant_parallel_admin_package_to_user"
-        ]
-      }
-    },
-    "/rpc/resolve_null_user_fossils": {
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "description": "Records an intentional-resolution decision for null-user fossils so they stop cluttering the active hygiene queue without dropping legacy tables.",
-              "properties": {
-                "p_actor_user_id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "p_notes": {
-                  "format": "text",
-                  "type": "string"
-                },
-                "p_source_row_ids": {
-                  "format": "uuid[]",
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "p_source_table": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "summary": "Records an intentional-resolution decision for null-user fossils so they stop cluttering the active hygiene queue without dropping legacy tables.",
-        "tags": [
-          "(rpc) resolve_null_user_fossils"
         ]
       }
     },
@@ -25404,60 +24701,6 @@
       },
       "type": "object"
     },
-    "v_parallel_resolved_null_user_fossils": {
-      "description": "Batch 6 hygiene view. Audit trail for null-user fossils that were intentionally resolved out of the active hygiene queue.",
-      "properties": {
-        "source_table": {
-          "format": "text",
-          "type": "string"
-        },
-        "source_row_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "grantee_email": {
-          "format": "text",
-          "type": "string"
-        },
-        "legacy_owner_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "notes": {
-          "format": "text",
-          "type": "string"
-        },
-        "created_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "resolution_code": {
-          "format": "text",
-          "type": "string"
-        },
-        "resolution_notes": {
-          "format": "text",
-          "type": "string"
-        },
-        "fossil_resolved_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "resolved_by_auth_user_id": {
-          "format": "uuid",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
     "user_access_scopes": {
       "required": [
         "id",
@@ -25843,39 +25086,6 @@
         },
         "is_active": {
           "default": true,
-          "format": "boolean",
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
-    "v_parallel_retirement_readiness": {
-      "properties": {
-        "org_admin_gap_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "custom_list_gap_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "event_gap_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "council_admin_legacy_write_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "organization_admin_legacy_write_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "custom_list_access_legacy_write_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "gap_free": {
           "format": "boolean",
           "type": "boolean"
         }
@@ -27478,27 +26688,6 @@
       },
       "type": "object"
     },
-    "v_parallel_retirement_readiness_live": {
-      "properties": {
-        "org_admin_gap_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "custom_list_gap_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "event_gap_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "gap_free": {
-          "format": "boolean",
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
     "event_assignments": {
       "required": [
         "id",
@@ -27569,35 +26758,6 @@
           "description": "Note:\nThis is a Foreign Key to `event_assignment_roles.code`.<fk table='event_assignment_roles' column='code'/>",
           "format": "text",
           "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "v_legacy_retirement_status": {
-      "properties": {
-        "checked_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        },
-        "council_admin_rows": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "organization_admin_rows": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "custom_list_access_rows": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "unresolved_legacy_write_count": {
-          "format": "bigint",
-          "type": "integer"
-        },
-        "gap_free": {
-          "format": "boolean",
-          "type": "boolean"
         }
       },
       "type": "object"
@@ -27774,43 +26934,6 @@
         "assembly_number": {
           "description": "Knights of Columbus assembly number for members who belong to a 4th degree assembly.",
           "format": "text",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "v_parallel_legacy_gap_report_live": {
-      "properties": {
-        "gap_type": {
-          "format": "text",
-          "type": "string"
-        },
-        "source_row_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "legacy_owner_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "event_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "custom_list_id": {
-          "format": "uuid",
           "type": "string"
         }
       },
@@ -29010,44 +28133,6 @@
         },
         "saved_at": {
           "default": "timezone('utc'::text, now())",
-          "format": "timestamp with time zone",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "v_parallel_null_user_fossils": {
-      "description": "Batch 6 hygiene view. Shows unresolved legacy compatibility rows with no linked user_id so they remain reviewable without being mistaken for current authority.",
-      "properties": {
-        "source_table": {
-          "format": "text",
-          "type": "string"
-        },
-        "source_row_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "grantee_email": {
-          "format": "text",
-          "type": "string"
-        },
-        "legacy_owner_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "notes": {
-          "format": "text",
-          "type": "string"
-        },
-        "created_at": {
           "format": "timestamp with time zone",
           "type": "string"
         }
@@ -30900,43 +29985,6 @@
       },
       "type": "object"
     },
-    "v_parallel_null_user_fossils_all": {
-      "properties": {
-        "source_table": {
-          "format": "text",
-          "type": "string"
-        },
-        "source_row_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "grantee_email": {
-          "format": "text",
-          "type": "string"
-        },
-        "legacy_owner_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "notes": {
-          "format": "text",
-          "type": "string"
-        },
-        "created_at": {
-          "format": "timestamp with time zone",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
     "prospect_status_types": {
       "required": [
         "code",
@@ -31943,43 +30991,6 @@
       },
       "type": "object"
     },
-    "v_parallel_legacy_gap_report": {
-      "properties": {
-        "gap_type": {
-          "format": "text",
-          "type": "string"
-        },
-        "source_row_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "person_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "legacy_owner_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "event_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "custom_list_id": {
-          "format": "uuid",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
     "spiritual_content_relationships": {
       "required": [
         "id",
@@ -32220,70 +31231,6 @@
         },
         "exempt": {
           "format": "text",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "v_parallel_event_assignment_redundancy": {
-      "description": "Batch 6 hygiene view. Shows event assignments that are already covered by broader grants and can be safely removed.",
-      "properties": {
-        "redundant_assignment_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "redundant_assignment_scope": {
-          "enum": [
-            "all_events",
-            "event",
-            "event_kind"
-          ],
-          "format": "public.event_assignment_scope_code",
-          "type": "string"
-        },
-        "redundancy_reason": {
-          "format": "text",
-          "type": "string"
-        },
-        "local_unit_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "local_unit_name": {
-          "format": "text",
-          "type": "string"
-        },
-        "event_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "event_title": {
-          "format": "text",
-          "type": "string"
-        },
-        "member_record_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "user_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "role_code": {
-          "format": "text",
-          "type": "string"
-        },
-        "covered_by_assignment_id": {
-          "format": "uuid",
-          "type": "string"
-        },
-        "covered_by_scope": {
-          "enum": [
-            "all_events",
-            "event",
-            "event_kind"
-          ],
-          "format": "public.event_assignment_scope_code",
           "type": "string"
         }
       },
@@ -32620,6 +31567,7 @@
       "type": "object"
     },
     "legacy_fossil_resolutions": {
+      "description": "Retained audit table for resolved legacy fossil decisions. The super-admin data hygiene dashboard and diagnostic views were retired after MVP stabilization.",
       "required": [
         "id",
         "source_table",
@@ -33128,87 +32076,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_parallel_resolved_null_user_fossils": {
-      "name": "v_parallel_resolved_null_user_fossils",
-      "description": "v_parallel_resolved_null_user_fossils",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_resolved_null_user_fossils"
-      }
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.source_table": {
-      "name": "source_table",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.source_row_id": {
-      "name": "source_row_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.grantee_email": {
-      "name": "grantee_email",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.legacy_owner_id": {
-      "name": "legacy_owner_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.notes": {
-      "name": "notes",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.created_at": {
-      "name": "created_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.resolution_code": {
-      "name": "resolution_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.resolution_notes": {
-      "name": "resolution_notes",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.fossil_resolved_at": {
-      "name": "fossil_resolved_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_resolved_null_user_fossils.resolved_by_auth_user_id": {
-      "name": "resolved_by_auth_user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.user_access_scopes": {
       "name": "user_access_scopes",
       "description": "user_access_scopes",
@@ -33676,57 +32543,6 @@
     },
     "rowFilter.council_reengagement_status_types.is_active": {
       "name": "is_active",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_parallel_retirement_readiness": {
-      "name": "v_parallel_retirement_readiness",
-      "description": "v_parallel_retirement_readiness",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_retirement_readiness"
-      }
-    },
-    "rowFilter.v_parallel_retirement_readiness.org_admin_gap_count": {
-      "name": "org_admin_gap_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness.custom_list_gap_count": {
-      "name": "custom_list_gap_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness.event_gap_count": {
-      "name": "event_gap_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness.council_admin_legacy_write_count": {
-      "name": "council_admin_legacy_write_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness.organization_admin_legacy_write_count": {
-      "name": "organization_admin_legacy_write_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness.custom_list_access_legacy_write_count": {
-      "name": "custom_list_access_legacy_write_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness.gap_free": {
-      "name": "gap_free",
       "required": false,
       "in": "query",
       "type": "string"
@@ -35597,39 +34413,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_parallel_retirement_readiness_live": {
-      "name": "v_parallel_retirement_readiness_live",
-      "description": "v_parallel_retirement_readiness_live",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_retirement_readiness_live"
-      }
-    },
-    "rowFilter.v_parallel_retirement_readiness_live.org_admin_gap_count": {
-      "name": "org_admin_gap_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness_live.custom_list_gap_count": {
-      "name": "custom_list_gap_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness_live.event_gap_count": {
-      "name": "event_gap_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_retirement_readiness_live.gap_free": {
-      "name": "gap_free",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.event_assignments": {
       "name": "event_assignments",
       "description": "event_assignments",
@@ -35707,51 +34490,6 @@
     },
     "rowFilter.event_assignments.role_code": {
       "name": "role_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_legacy_retirement_status": {
-      "name": "v_legacy_retirement_status",
-      "description": "v_legacy_retirement_status",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_legacy_retirement_status"
-      }
-    },
-    "rowFilter.v_legacy_retirement_status.checked_at": {
-      "name": "checked_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_legacy_retirement_status.council_admin_rows": {
-      "name": "council_admin_rows",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_legacy_retirement_status.organization_admin_rows": {
-      "name": "organization_admin_rows",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_legacy_retirement_status.custom_list_access_rows": {
-      "name": "custom_list_access_rows",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_legacy_retirement_status.unresolved_legacy_write_count": {
-      "name": "unresolved_legacy_write_count",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_legacy_retirement_status.gap_free": {
-      "name": "gap_free",
       "required": false,
       "in": "query",
       "type": "string"
@@ -35966,63 +34704,6 @@
     "rowFilter.person_kofc_profiles.assembly_number": {
       "name": "assembly_number",
       "description": "Knights of Columbus assembly number for members who belong to a 4th degree assembly.",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_parallel_legacy_gap_report_live": {
-      "name": "v_parallel_legacy_gap_report_live",
-      "description": "v_parallel_legacy_gap_report_live",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_legacy_gap_report_live"
-      }
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.gap_type": {
-      "name": "gap_type",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.source_row_id": {
-      "name": "source_row_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.legacy_owner_id": {
-      "name": "legacy_owner_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.event_id": {
-      "name": "event_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report_live.custom_list_id": {
-      "name": "custom_list_id",
       "required": false,
       "in": "query",
       "type": "string"
@@ -37421,63 +36102,6 @@
     },
     "rowFilter.user_saved_spiritual_items.saved_at": {
       "name": "saved_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_parallel_null_user_fossils": {
-      "name": "v_parallel_null_user_fossils",
-      "description": "v_parallel_null_user_fossils",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_null_user_fossils"
-      }
-    },
-    "rowFilter.v_parallel_null_user_fossils.source_table": {
-      "name": "source_table",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.source_row_id": {
-      "name": "source_row_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.grantee_email": {
-      "name": "grantee_email",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.legacy_owner_id": {
-      "name": "legacy_owner_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.notes": {
-      "name": "notes",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils.created_at": {
-      "name": "created_at",
       "required": false,
       "in": "query",
       "type": "string"
@@ -39614,63 +38238,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_parallel_null_user_fossils_all": {
-      "name": "v_parallel_null_user_fossils_all",
-      "description": "v_parallel_null_user_fossils_all",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_null_user_fossils_all"
-      }
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.source_table": {
-      "name": "source_table",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.source_row_id": {
-      "name": "source_row_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.grantee_email": {
-      "name": "grantee_email",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.legacy_owner_id": {
-      "name": "legacy_owner_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.notes": {
-      "name": "notes",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_null_user_fossils_all.created_at": {
-      "name": "created_at",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.prospect_status_types": {
       "name": "prospect_status_types",
       "description": "prospect_status_types",
@@ -40803,63 +39370,6 @@
       "in": "query",
       "type": "string"
     },
-    "body.v_parallel_legacy_gap_report": {
-      "name": "v_parallel_legacy_gap_report",
-      "description": "v_parallel_legacy_gap_report",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_legacy_gap_report"
-      }
-    },
-    "rowFilter.v_parallel_legacy_gap_report.gap_type": {
-      "name": "gap_type",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.source_row_id": {
-      "name": "source_row_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.person_id": {
-      "name": "person_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.legacy_owner_id": {
-      "name": "legacy_owner_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.event_id": {
-      "name": "event_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_legacy_gap_report.custom_list_id": {
-      "name": "custom_list_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
     "body.spiritual_content_relationships": {
       "name": "spiritual_content_relationships",
       "description": "spiritual_content_relationships",
@@ -41156,87 +39666,6 @@
     },
     "rowFilter.import_st_patricks_7689_members.exempt": {
       "name": "exempt",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "body.v_parallel_event_assignment_redundancy": {
-      "name": "v_parallel_event_assignment_redundancy",
-      "description": "v_parallel_event_assignment_redundancy",
-      "required": false,
-      "in": "body",
-      "schema": {
-        "$ref": "#/definitions/v_parallel_event_assignment_redundancy"
-      }
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.redundant_assignment_id": {
-      "name": "redundant_assignment_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.redundant_assignment_scope": {
-      "name": "redundant_assignment_scope",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.redundancy_reason": {
-      "name": "redundancy_reason",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.local_unit_id": {
-      "name": "local_unit_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.local_unit_name": {
-      "name": "local_unit_name",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.event_id": {
-      "name": "event_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.event_title": {
-      "name": "event_title",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.member_record_id": {
-      "name": "member_record_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.user_id": {
-      "name": "user_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.role_code": {
-      "name": "role_code",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.covered_by_assignment_id": {
-      "name": "covered_by_assignment_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.v_parallel_event_assignment_redundancy.covered_by_scope": {
-      "name": "covered_by_scope",
       "required": false,
       "in": "query",
       "type": "string"

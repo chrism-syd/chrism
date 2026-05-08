@@ -1072,53 +1072,6 @@ $$;
 ALTER FUNCTION "public"."cleanup_parallel_invite_package_subject"("p_target_user_id" "uuid", "p_local_unit_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."cleanup_redundant_event_assignments"("p_actor_user_id" "uuid" DEFAULT NULL::"uuid") RETURNS integer
-    LANGUAGE "plpgsql"
-    AS $$
-declare
-  v_count integer := 0;
-begin
-  insert into public.migration_review_queue (
-    source_table,
-    source_row_id,
-    review_type,
-    notes,
-    payload
-  )
-  select distinct on (redundancy.redundant_assignment_id)
-    'public.event_assignments',
-    redundancy.redundant_assignment_id,
-    'event_assignment_cleanup',
-    'Removed redundant event assignment during Batch 6 hygiene cleanup.',
-    jsonb_build_object(
-      'actor_user_id', p_actor_user_id,
-      'redundancy_reason', redundancy.redundancy_reason,
-      'covered_by_assignment_id', redundancy.covered_by_assignment_id,
-      'covered_by_scope', redundancy.covered_by_scope,
-      'role_code', redundancy.role_code,
-      'event_id', redundancy.event_id,
-      'member_record_id', redundancy.member_record_id,
-      'local_unit_id', redundancy.local_unit_id
-    )
-  from public.v_parallel_event_assignment_redundancy redundancy
-  order by redundancy.redundant_assignment_id, redundancy.covered_by_assignment_id;
-
-  delete from public.event_assignments ea
-  using (
-    select distinct redundant_assignment_id
-    from public.v_parallel_event_assignment_redundancy
-  ) redundancy
-  where ea.id = redundancy.redundant_assignment_id;
-
-  get diagnostics v_count = row_count;
-  return v_count;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."cleanup_redundant_event_assignments"("p_actor_user_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."current_user_council_id"() RETURNS "uuid"
     LANGUAGE "sql" STABLE
     AS $$
@@ -1944,41 +1897,6 @@ $$;
 ALTER FUNCTION "public"."list_super_admin_preview_local_units"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."log_parallel_legacy_write"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-begin
-  insert into public.migration_review_queue (
-    source_table,
-    source_row_id,
-    review_type,
-    notes,
-    payload
-  )
-  values (
-    tg_table_schema || '.' || tg_table_name,
-    coalesce(new.id, old.id, gen_random_uuid()),
-    'legacy_write_observed',
-    format('Observed %s on legacy compatibility table %s.%s', tg_op, tg_table_schema, tg_table_name),
-    jsonb_build_object(
-      'operation', tg_op,
-      'table', tg_table_schema || '.' || tg_table_name,
-      'new_id', case when tg_op in ('INSERT','UPDATE') then new.id else null end,
-      'old_id', case when tg_op in ('UPDATE','DELETE') then old.id else null end
-    )
-  );
-
-  if tg_op = 'DELETE' then
-    return old;
-  end if;
-  return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."log_parallel_legacy_write"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."log_person_contact_change"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -2234,59 +2152,6 @@ $$;
 
 
 ALTER FUNCTION "public"."reject_membership_claim_request_in_parallel"("p_actor_user_id" "uuid", "p_claim_request_id" "uuid", "p_note" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."resolve_null_user_fossils"("p_actor_user_id" "uuid" DEFAULT NULL::"uuid", "p_source_table" "text" DEFAULT NULL::"text", "p_source_row_ids" "uuid"[] DEFAULT NULL::"uuid"[], "p_notes" "text" DEFAULT NULL::"text") RETURNS integer
-    LANGUAGE "plpgsql"
-    AS $$
-declare
-  v_count integer := 0;
-  v_notes text := coalesce(nullif(btrim(p_notes), ''), 'Resolved as intentional migration residue from the data hygiene page.');
-begin
-  insert into public.legacy_fossil_resolutions (
-    source_table,
-    source_row_id,
-    resolution_code,
-    notes,
-    resolved_by_auth_user_id
-  )
-  select
-    fossil.source_table,
-    fossil.source_row_id,
-    'ignored_residue',
-    v_notes,
-    p_actor_user_id
-  from public.v_parallel_null_user_fossils fossil
-  where (p_source_table is null or fossil.source_table = p_source_table)
-    and (p_source_row_ids is null or fossil.source_row_id = any(p_source_row_ids))
-  on conflict (source_table, source_row_id) do nothing;
-
-  get diagnostics v_count = row_count;
-
-  update public.migration_review_queue q
-     set resolved_at = coalesce(q.resolved_at, now()),
-         resolved_by_auth_user_id = coalesce(q.resolved_by_auth_user_id, p_actor_user_id),
-         notes = trim(both from concat_ws(' ', q.notes, '[Resolved from data hygiene as intentional fossil residue]'))
-   where q.resolved_at is null
-     and exists (
-       select 1
-       from public.legacy_fossil_resolutions resolution
-       where resolution.source_table = q.source_table
-         and resolution.source_row_id = q.source_row_id
-         and (p_source_table is null or resolution.source_table = p_source_table)
-         and (p_source_row_ids is null or resolution.source_row_id = any(p_source_row_ids))
-     );
-
-  return v_count;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."resolve_null_user_fossils"("p_actor_user_id" "uuid", "p_source_table" "text", "p_source_row_ids" "uuid"[], "p_notes" "text") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."resolve_null_user_fossils"("p_actor_user_id" "uuid", "p_source_table" "text", "p_source_row_ids" "uuid"[], "p_notes" "text") IS 'Records an intentional-resolution decision for null-user fossils so they stop cluttering the active hygiene queue without dropping legacy tables.';
-
 
 
 CREATE OR REPLACE FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") RETURNS "uuid"
@@ -3897,6 +3762,10 @@ CREATE TABLE IF NOT EXISTS "public"."legacy_fossil_resolutions" (
 ALTER TABLE "public"."legacy_fossil_resolutions" OWNER TO "postgres";
 
 
+COMMENT ON TABLE "public"."legacy_fossil_resolutions" IS 'Retained audit table for resolved legacy fossil decisions. The super-admin data hygiene dashboard and diagnostic views were retired after MVP stabilization.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."local_role_definitions" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "local_unit_id" "uuid" NOT NULL,
@@ -5446,116 +5315,6 @@ UNION
 ALTER VIEW "public"."v_effective_event_management_access" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_parallel_legacy_gap_report" AS
- SELECT 'org_admin_without_parallel_package'::"text" AS "gap_type",
-    "oaa"."id" AS "source_row_id",
-    "lu"."display_name" AS "local_unit_name",
-    "oaa"."user_id",
-    "oaa"."person_id",
-    "oaa"."organization_id" AS "legacy_owner_id",
-    NULL::"uuid" AS "event_id",
-    NULL::"uuid" AS "custom_list_id"
-   FROM ((("public"."organization_admin_assignments" "oaa"
-     JOIN "public"."local_units" "lu" ON (("lu"."legacy_organization_id" = "oaa"."organization_id")))
-     LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."user_id" = "oaa"."user_id") AND ("uur"."local_unit_id" = "lu"."id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-     LEFT JOIN "public"."area_access_grants" "aag" ON ((("aag"."local_unit_id" = "lu"."id") AND ("aag"."member_record_id" = "uur"."member_record_id") AND ("aag"."area_code" = 'admins'::"public"."member_area_code") AND ("aag"."access_level" = 'manage'::"public"."area_access_level") AND ("aag"."revoked_at" IS NULL))))
-  WHERE ("aag"."id" IS NULL)
-UNION ALL
- SELECT 'custom_list_access_without_parallel_grant'::"text" AS "gap_type",
-    "cla"."id" AS "source_row_id",
-    "lu"."display_name" AS "local_unit_name",
-    "u"."id" AS "user_id",
-    "cla"."person_id",
-    "cl"."council_id" AS "legacy_owner_id",
-    NULL::"uuid" AS "event_id",
-    "cl"."id" AS "custom_list_id"
-   FROM ((((("public"."custom_list_access" "cla"
-     JOIN "public"."custom_lists" "cl" ON (("cl"."id" = "cla"."custom_list_id")))
-     JOIN "public"."local_units" "lu" ON (("lu"."id" = "cl"."local_unit_id")))
-     LEFT JOIN "public"."users" "u" ON (("u"."person_id" = "cla"."person_id")))
-     LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."user_id" = "u"."id") AND ("uur"."local_unit_id" = "cl"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-     LEFT JOIN "public"."resource_access_grants" "rag" ON ((("rag"."local_unit_id" = "cl"."local_unit_id") AND ("rag"."member_record_id" = "uur"."member_record_id") AND ("rag"."resource_type" = 'custom_list'::"public"."resource_type_code") AND ("rag"."resource_key" = ("cl"."id")::"text") AND ("rag"."revoked_at" IS NULL))))
-  WHERE ("rag"."id" IS NULL)
-UNION ALL
- SELECT 'event_without_parallel_manager'::"text" AS "gap_type",
-    "e"."id" AS "source_row_id",
-    "lu"."display_name" AS "local_unit_name",
-    NULL::"uuid" AS "user_id",
-    NULL::"uuid" AS "person_id",
-    "e"."council_id" AS "legacy_owner_id",
-    "e"."id" AS "event_id",
-    NULL::"uuid" AS "custom_list_id"
-   FROM (("public"."events" "e"
-     JOIN "public"."local_units" "lu" ON (("lu"."id" = "e"."local_unit_id")))
-     LEFT JOIN "public"."v_effective_event_management_access" "v" ON (("v"."event_id" = "e"."id")))
-  WHERE ("v"."event_id" IS NULL);
-
-
-ALTER VIEW "public"."v_parallel_legacy_gap_report" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_legacy_gap_report_live" AS
- SELECT "gap_type",
-    "source_row_id",
-    "local_unit_name",
-    "user_id",
-    "person_id",
-    "legacy_owner_id",
-    "event_id",
-    "custom_list_id"
-   FROM "public"."v_parallel_legacy_gap_report"
-  WHERE ("user_id" IS NOT NULL);
-
-
-ALTER VIEW "public"."v_parallel_legacy_gap_report_live" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_retirement_readiness_live" AS
- WITH "gap_counts" AS (
-         SELECT "v_parallel_legacy_gap_report_live"."gap_type",
-            "count"(*) AS "gap_count"
-           FROM "public"."v_parallel_legacy_gap_report_live"
-          GROUP BY "v_parallel_legacy_gap_report_live"."gap_type"
-        )
- SELECT COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'org_admin_without_parallel_package'::"text")), (0)::bigint) AS "org_admin_gap_count",
-    COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'custom_list_access_without_parallel_grant'::"text")), (0)::bigint) AS "custom_list_gap_count",
-    COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'event_without_parallel_manager'::"text")), (0)::bigint) AS "event_gap_count",
-    ((COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'org_admin_without_parallel_package'::"text")), (0)::bigint) = 0) AND (COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'custom_list_access_without_parallel_grant'::"text")), (0)::bigint) = 0) AND (COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'event_without_parallel_manager'::"text")), (0)::bigint) = 0)) AS "gap_free";
-
-
-ALTER VIEW "public"."v_parallel_retirement_readiness_live" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_legacy_retirement_status" AS
- SELECT CURRENT_TIMESTAMP AS "checked_at",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."council_admin_assignments") AS "council_admin_rows",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."organization_admin_assignments") AS "organization_admin_rows",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."custom_list_access") AS "custom_list_access_rows",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."migration_review_queue"
-          WHERE (("migration_review_queue"."review_type" = 'legacy_write_observed'::"text") AND ("migration_review_queue"."resolved_at" IS NULL))) AS "unresolved_legacy_write_count",
-    ( SELECT "v_parallel_retirement_readiness_live"."gap_free"
-           FROM "public"."v_parallel_retirement_readiness_live") AS "gap_free";
-
-
-ALTER VIEW "public"."v_legacy_retirement_status" OWNER TO "postgres";
-
-
 CREATE OR REPLACE VIEW "public"."v_parallel_admin_package_audit" AS
  SELECT "lu"."id" AS "local_unit_id",
     "lu"."display_name" AS "local_unit_name",
@@ -5618,220 +5377,6 @@ CREATE OR REPLACE VIEW "public"."v_parallel_event_assignment_audit" AS
 
 
 ALTER VIEW "public"."v_parallel_event_assignment_audit" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_event_assignment_redundancy" AS
- WITH "raw_redundancy" AS (
-         SELECT "ea"."id" AS "redundant_assignment_id",
-            "ea"."assignment_scope" AS "redundant_assignment_scope",
-            'event_assignment_covered_by_all_events'::"text" AS "redundancy_reason",
-            10 AS "reason_rank",
-            "ea"."local_unit_id",
-            "lu"."display_name" AS "local_unit_name",
-            "ea"."event_id",
-            "e"."title" AS "event_title",
-            "ea"."member_record_id",
-            "uur"."user_id",
-            COALESCE("ea"."role_code", 'manager'::"text") AS "role_code",
-            "cover"."id" AS "covered_by_assignment_id",
-            "cover"."assignment_scope" AS "covered_by_scope"
-           FROM (((("public"."event_assignments" "ea"
-             JOIN "public"."event_assignments" "cover" ON ((("cover"."local_unit_id" = "ea"."local_unit_id") AND ("cover"."member_record_id" = "ea"."member_record_id") AND (COALESCE("cover"."role_code", 'manager'::"text") = COALESCE("ea"."role_code", 'manager'::"text")) AND ("cover"."assignment_scope" = 'all_events'::"public"."event_assignment_scope_code") AND ("cover"."id" <> "ea"."id"))))
-             JOIN "public"."local_units" "lu" ON (("lu"."id" = "ea"."local_unit_id")))
-             LEFT JOIN "public"."events" "e" ON (("e"."id" = "ea"."event_id")))
-             LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "ea"."member_record_id") AND ("uur"."local_unit_id" = "ea"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-          WHERE ("ea"."assignment_scope" = 'event'::"public"."event_assignment_scope_code")
-        UNION ALL
-         SELECT "ea"."id" AS "redundant_assignment_id",
-            "ea"."assignment_scope" AS "redundant_assignment_scope",
-            'event_assignment_covered_by_event_kind'::"text" AS "redundancy_reason",
-            20 AS "reason_rank",
-            "ea"."local_unit_id",
-            "lu"."display_name" AS "local_unit_name",
-            "ea"."event_id",
-            "e"."title" AS "event_title",
-            "ea"."member_record_id",
-            "uur"."user_id",
-            COALESCE("ea"."role_code", 'manager'::"text") AS "role_code",
-            "cover"."id" AS "covered_by_assignment_id",
-            "cover"."assignment_scope" AS "covered_by_scope"
-           FROM (((("public"."event_assignments" "ea"
-             JOIN "public"."events" "e" ON (("e"."id" = "ea"."event_id")))
-             JOIN "public"."event_assignments" "cover" ON ((("cover"."local_unit_id" = "ea"."local_unit_id") AND ("cover"."member_record_id" = "ea"."member_record_id") AND (COALESCE("cover"."role_code", 'manager'::"text") = COALESCE("ea"."role_code", 'manager'::"text")) AND ("cover"."assignment_scope" = 'event_kind'::"public"."event_assignment_scope_code") AND ("cover"."legacy_event_kind_code" = "e"."event_kind_code") AND ("cover"."id" <> "ea"."id"))))
-             JOIN "public"."local_units" "lu" ON (("lu"."id" = "ea"."local_unit_id")))
-             LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "ea"."member_record_id") AND ("uur"."local_unit_id" = "ea"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-          WHERE (("ea"."assignment_scope" = 'event'::"public"."event_assignment_scope_code") AND (NULLIF("btrim"(COALESCE("e"."event_kind_code", ''::"text")), ''::"text") IS NOT NULL))
-        UNION ALL
-         SELECT "ea"."id" AS "redundant_assignment_id",
-            "ea"."assignment_scope" AS "redundant_assignment_scope",
-            'event_kind_assignment_covered_by_all_events'::"text" AS "redundancy_reason",
-            30 AS "reason_rank",
-            "ea"."local_unit_id",
-            "lu"."display_name" AS "local_unit_name",
-            NULL::"uuid" AS "event_id",
-            NULL::"text" AS "event_title",
-            "ea"."member_record_id",
-            "uur"."user_id",
-            COALESCE("ea"."role_code", 'manager'::"text") AS "role_code",
-            "cover"."id" AS "covered_by_assignment_id",
-            "cover"."assignment_scope" AS "covered_by_scope"
-           FROM ((("public"."event_assignments" "ea"
-             JOIN "public"."event_assignments" "cover" ON ((("cover"."local_unit_id" = "ea"."local_unit_id") AND ("cover"."member_record_id" = "ea"."member_record_id") AND (COALESCE("cover"."role_code", 'manager'::"text") = COALESCE("ea"."role_code", 'manager'::"text")) AND ("cover"."assignment_scope" = 'all_events'::"public"."event_assignment_scope_code") AND ("cover"."id" <> "ea"."id"))))
-             JOIN "public"."local_units" "lu" ON (("lu"."id" = "ea"."local_unit_id")))
-             LEFT JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "ea"."member_record_id") AND ("uur"."local_unit_id" = "ea"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
-          WHERE ("ea"."assignment_scope" = 'event_kind'::"public"."event_assignment_scope_code")
-        )
- SELECT DISTINCT ON ("redundant_assignment_id") "redundant_assignment_id",
-    "redundant_assignment_scope",
-    "redundancy_reason",
-    "local_unit_id",
-    "local_unit_name",
-    "event_id",
-    "event_title",
-    "member_record_id",
-    "user_id",
-    "role_code",
-    "covered_by_assignment_id",
-    "covered_by_scope"
-   FROM "raw_redundancy"
-  ORDER BY "redundant_assignment_id", "reason_rank", "covered_by_assignment_id";
-
-
-ALTER VIEW "public"."v_parallel_event_assignment_redundancy" OWNER TO "postgres";
-
-
-COMMENT ON VIEW "public"."v_parallel_event_assignment_redundancy" IS 'Batch 6 hygiene view. Shows event assignments that are already covered by broader grants and can be safely removed.';
-
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_null_user_fossils_all" AS
- SELECT 'public.council_admin_assignments'::"text" AS "source_table",
-    "ca"."id" AS "source_row_id",
-    "lu"."display_name" AS "local_unit_name",
-    "ca"."person_id",
-    "ca"."grantee_email",
-    "ca"."council_id" AS "legacy_owner_id",
-    "ca"."notes",
-    "ca"."created_at"
-   FROM ("public"."council_admin_assignments" "ca"
-     LEFT JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "ca"."council_id")))
-  WHERE (("ca"."user_id" IS NULL) AND ("ca"."is_active" = true))
-UNION ALL
- SELECT 'public.organization_admin_assignments'::"text" AS "source_table",
-    "oa"."id" AS "source_row_id",
-    "lu"."display_name" AS "local_unit_name",
-    "oa"."person_id",
-    "oa"."grantee_email",
-    "oa"."organization_id" AS "legacy_owner_id",
-    NULL::"text" AS "notes",
-    "oa"."created_at"
-   FROM ("public"."organization_admin_assignments" "oa"
-     LEFT JOIN "public"."local_units" "lu" ON (("lu"."legacy_organization_id" = "oa"."organization_id")))
-  WHERE (("oa"."user_id" IS NULL) AND ("oa"."is_active" = true))
-UNION ALL
- SELECT 'public.custom_list_access'::"text" AS "source_table",
-    "cla"."id" AS "source_row_id",
-    "lu"."display_name" AS "local_unit_name",
-    "cla"."person_id",
-    "cla"."grantee_email",
-    "cl"."council_id" AS "legacy_owner_id",
-    NULL::"text" AS "notes",
-    "cla"."created_at"
-   FROM (("public"."custom_list_access" "cla"
-     JOIN "public"."custom_lists" "cl" ON (("cl"."id" = "cla"."custom_list_id")))
-     LEFT JOIN "public"."local_units" "lu" ON (("lu"."id" = "cl"."local_unit_id")))
-  WHERE ("cla"."user_id" IS NULL);
-
-
-ALTER VIEW "public"."v_parallel_null_user_fossils_all" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_null_user_fossils" AS
- SELECT "fossil"."source_table",
-    "fossil"."source_row_id",
-    "fossil"."local_unit_name",
-    "fossil"."person_id",
-    "fossil"."grantee_email",
-    "fossil"."legacy_owner_id",
-    "fossil"."notes",
-    "fossil"."created_at"
-   FROM ("public"."v_parallel_null_user_fossils_all" "fossil"
-     LEFT JOIN "public"."legacy_fossil_resolutions" "resolution" ON ((("resolution"."source_table" = "fossil"."source_table") AND ("resolution"."source_row_id" = "fossil"."source_row_id"))))
-  WHERE ("resolution"."id" IS NULL);
-
-
-ALTER VIEW "public"."v_parallel_null_user_fossils" OWNER TO "postgres";
-
-
-COMMENT ON VIEW "public"."v_parallel_null_user_fossils" IS 'Batch 6 hygiene view. Shows unresolved legacy compatibility rows with no linked user_id so they remain reviewable without being mistaken for current authority.';
-
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_resolved_null_user_fossils" AS
- SELECT "fossil"."source_table",
-    "fossil"."source_row_id",
-    "fossil"."local_unit_name",
-    "fossil"."person_id",
-    "fossil"."grantee_email",
-    "fossil"."legacy_owner_id",
-    "fossil"."notes",
-    "fossil"."created_at",
-    "resolution"."resolution_code",
-    "resolution"."notes" AS "resolution_notes",
-    "resolution"."resolved_at" AS "fossil_resolved_at",
-    "resolution"."resolved_by_auth_user_id"
-   FROM ("public"."v_parallel_null_user_fossils_all" "fossil"
-     JOIN "public"."legacy_fossil_resolutions" "resolution" ON ((("resolution"."source_table" = "fossil"."source_table") AND ("resolution"."source_row_id" = "fossil"."source_row_id"))));
-
-
-ALTER VIEW "public"."v_parallel_resolved_null_user_fossils" OWNER TO "postgres";
-
-
-COMMENT ON VIEW "public"."v_parallel_resolved_null_user_fossils" IS 'Batch 6 hygiene view. Audit trail for null-user fossils that were intentionally resolved out of the active hygiene queue.';
-
-
-
-CREATE OR REPLACE VIEW "public"."v_parallel_retirement_readiness" AS
- WITH "gap_counts" AS (
-         SELECT "v_parallel_legacy_gap_report"."gap_type",
-            "count"(*) AS "gap_count"
-           FROM "public"."v_parallel_legacy_gap_report"
-          GROUP BY "v_parallel_legacy_gap_report"."gap_type"
-        ), "legacy_write_counts" AS (
-         SELECT "migration_review_queue"."source_table",
-            "count"(*) FILTER (WHERE ("migration_review_queue"."resolved_at" IS NULL)) AS "unresolved_legacy_writes"
-           FROM "public"."migration_review_queue"
-          WHERE ("migration_review_queue"."review_type" = 'legacy_write_observed'::"text")
-          GROUP BY "migration_review_queue"."source_table"
-        )
- SELECT COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'org_admin_without_parallel_package'::"text")), (0)::bigint) AS "org_admin_gap_count",
-    COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'custom_list_access_without_parallel_grant'::"text")), (0)::bigint) AS "custom_list_gap_count",
-    COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'event_without_parallel_manager'::"text")), (0)::bigint) AS "event_gap_count",
-    COALESCE(( SELECT "legacy_write_counts"."unresolved_legacy_writes"
-           FROM "legacy_write_counts"
-          WHERE ("legacy_write_counts"."source_table" = 'public.council_admin_assignments'::"text")), (0)::bigint) AS "council_admin_legacy_write_count",
-    COALESCE(( SELECT "legacy_write_counts"."unresolved_legacy_writes"
-           FROM "legacy_write_counts"
-          WHERE ("legacy_write_counts"."source_table" = 'public.organization_admin_assignments'::"text")), (0)::bigint) AS "organization_admin_legacy_write_count",
-    COALESCE(( SELECT "legacy_write_counts"."unresolved_legacy_writes"
-           FROM "legacy_write_counts"
-          WHERE ("legacy_write_counts"."source_table" = 'public.custom_list_access'::"text")), (0)::bigint) AS "custom_list_access_legacy_write_count",
-    ((COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'org_admin_without_parallel_package'::"text")), (0)::bigint) = 0) AND (COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'custom_list_access_without_parallel_grant'::"text")), (0)::bigint) = 0) AND (COALESCE(( SELECT "gap_counts"."gap_count"
-           FROM "gap_counts"
-          WHERE ("gap_counts"."gap_type" = 'event_without_parallel_manager'::"text")), (0)::bigint) = 0)) AS "gap_free";
-
-
-ALTER VIEW "public"."v_parallel_retirement_readiness" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."volunteer_context_types" (
@@ -7344,18 +6889,6 @@ CREATE OR REPLACE TRIGGER "member_records_sync_user_relationship_status" AFTER U
 
 
 CREATE OR REPLACE TRIGGER "membership_claim_requests_set_updated_at" BEFORE UPDATE ON "public"."membership_claim_requests" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
-
-
-
-CREATE OR REPLACE TRIGGER "observe_legacy_write_council_admin_assignments" AFTER INSERT OR DELETE OR UPDATE ON "public"."council_admin_assignments" FOR EACH ROW EXECUTE FUNCTION "public"."log_parallel_legacy_write"();
-
-
-
-CREATE OR REPLACE TRIGGER "observe_legacy_write_custom_list_access" AFTER INSERT OR DELETE OR UPDATE ON "public"."custom_list_access" FOR EACH ROW EXECUTE FUNCTION "public"."log_parallel_legacy_write"();
-
-
-
-CREATE OR REPLACE TRIGGER "observe_legacy_write_organization_admin_assignments" AFTER INSERT OR DELETE OR UPDATE ON "public"."organization_admin_assignments" FOR EACH ROW EXECUTE FUNCTION "public"."log_parallel_legacy_write"();
 
 
 
@@ -9771,12 +9304,6 @@ GRANT ALL ON FUNCTION "public"."cleanup_parallel_invite_package_subject"("p_targ
 
 
 
-GRANT ALL ON FUNCTION "public"."cleanup_redundant_event_assignments"("p_actor_user_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."cleanup_redundant_event_assignments"("p_actor_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."cleanup_redundant_event_assignments"("p_actor_user_id" "uuid") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."current_user_council_id"() TO "anon";
 GRANT ALL ON FUNCTION "public"."current_user_council_id"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."current_user_council_id"() TO "service_role";
@@ -9879,12 +9406,6 @@ GRANT ALL ON FUNCTION "public"."list_super_admin_preview_local_units"() TO "serv
 
 
 
-GRANT ALL ON FUNCTION "public"."log_parallel_legacy_write"() TO "anon";
-GRANT ALL ON FUNCTION "public"."log_parallel_legacy_write"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."log_parallel_legacy_write"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."log_person_contact_change"() TO "anon";
 GRANT ALL ON FUNCTION "public"."log_person_contact_change"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."log_person_contact_change"() TO "service_role";
@@ -9906,12 +9427,6 @@ GRANT ALL ON FUNCTION "public"."queue_supreme_update_reminder"() TO "service_rol
 GRANT ALL ON FUNCTION "public"."reject_membership_claim_request_in_parallel"("p_actor_user_id" "uuid", "p_claim_request_id" "uuid", "p_note" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."reject_membership_claim_request_in_parallel"("p_actor_user_id" "uuid", "p_claim_request_id" "uuid", "p_note" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."reject_membership_claim_request_in_parallel"("p_actor_user_id" "uuid", "p_claim_request_id" "uuid", "p_note" "text") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."resolve_null_user_fossils"("p_actor_user_id" "uuid", "p_source_table" "text", "p_source_row_ids" "uuid"[], "p_notes" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."resolve_null_user_fossils"("p_actor_user_id" "uuid", "p_source_table" "text", "p_source_row_ids" "uuid"[], "p_notes" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."resolve_null_user_fossils"("p_actor_user_id" "uuid", "p_source_table" "text", "p_source_row_ids" "uuid"[], "p_notes" "text") TO "service_role";
 
 
 
@@ -10329,8 +9844,6 @@ GRANT ALL ON TABLE "public"."intake_types" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."legacy_fossil_resolutions" TO "anon";
-GRANT ALL ON TABLE "public"."legacy_fossil_resolutions" TO "authenticated";
 GRANT ALL ON TABLE "public"."legacy_fossil_resolutions" TO "service_role";
 
 
@@ -10773,30 +10286,6 @@ GRANT ALL ON TABLE "public"."v_effective_event_management_access" TO "service_ro
 
 
 
-GRANT ALL ON TABLE "public"."v_parallel_legacy_gap_report" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_legacy_gap_report" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_legacy_gap_report" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_legacy_gap_report_live" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_legacy_gap_report_live" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_legacy_gap_report_live" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_retirement_readiness_live" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_retirement_readiness_live" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_retirement_readiness_live" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_legacy_retirement_status" TO "anon";
-GRANT ALL ON TABLE "public"."v_legacy_retirement_status" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_legacy_retirement_status" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."v_parallel_admin_package_audit" TO "anon";
 GRANT ALL ON TABLE "public"."v_parallel_admin_package_audit" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_parallel_admin_package_audit" TO "service_role";
@@ -10812,36 +10301,6 @@ GRANT ALL ON TABLE "public"."v_parallel_custom_list_access_audit" TO "service_ro
 GRANT ALL ON TABLE "public"."v_parallel_event_assignment_audit" TO "anon";
 GRANT ALL ON TABLE "public"."v_parallel_event_assignment_audit" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_parallel_event_assignment_audit" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_event_assignment_redundancy" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_event_assignment_redundancy" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_event_assignment_redundancy" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_null_user_fossils_all" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_null_user_fossils_all" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_null_user_fossils_all" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_null_user_fossils" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_null_user_fossils" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_null_user_fossils" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_resolved_null_user_fossils" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_resolved_null_user_fossils" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_resolved_null_user_fossils" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_parallel_retirement_readiness" TO "anon";
-GRANT ALL ON TABLE "public"."v_parallel_retirement_readiness" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_parallel_retirement_readiness" TO "service_role";
 
 
 

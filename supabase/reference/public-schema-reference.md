@@ -1,10 +1,10 @@
 # Supabase Public Schema Reference
 
-Fetched: 2026-05-07T14:06:29.017Z
+Fetched: 2026-05-08T13:45:58.449Z
 Source: Supabase REST OpenAPI
 Schema: standard public schema
-Tables: 131
-RPC Functions: 52
+Tables: 122
+RPC Functions: 50
 
 This snapshot is generated from the live Supabase REST OpenAPI document.
 It reflects the API-visible `public` schema, including columns, types, defaults, primary keys, and foreign-key annotations when exposed.
@@ -2039,19 +2039,6 @@ Operations: get
 | revoked_at | timestamp with time zone | no |  |  |  |
 | is_effective | boolean | no |  |  |  |
 
-## v_legacy_retirement_status
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| checked_at | timestamp with time zone | no |  |  |  |
-| council_admin_rows | bigint | no |  |  |  |
-| organization_admin_rows | bigint | no |  |  |  |
-| custom_list_access_rows | bigint | no |  |  |  |
-| unresolved_legacy_write_count | bigint | no |  |  |  |
-| gap_free | boolean | no |  |  |  |
-
 ## v_parallel_admin_package_audit
 
 Operations: get
@@ -2098,129 +2085,6 @@ Operations: get
 | role_code | text | no |  |  |  |
 | assignment_scope | public.event_assignment_scope_code | no |  |  |  |
 
-## v_parallel_event_assignment_redundancy
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| redundant_assignment_id | uuid | no |  |  |  |
-| redundant_assignment_scope | public.event_assignment_scope_code | no |  |  |  |
-| redundancy_reason | text | no |  |  |  |
-| local_unit_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| event_id | uuid | no |  |  |  |
-| event_title | text | no |  |  |  |
-| member_record_id | uuid | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| role_code | text | no |  |  |  |
-| covered_by_assignment_id | uuid | no |  |  |  |
-| covered_by_scope | public.event_assignment_scope_code | no |  |  |  |
-
-## v_parallel_legacy_gap_report
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| gap_type | text | no |  |  |  |
-| source_row_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| legacy_owner_id | uuid | no |  |  |  |
-| event_id | uuid | no |  |  |  |
-| custom_list_id | uuid | no |  |  |  |
-
-## v_parallel_legacy_gap_report_live
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| gap_type | text | no |  |  |  |
-| source_row_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| user_id | uuid | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| legacy_owner_id | uuid | no |  |  |  |
-| event_id | uuid | no |  |  |  |
-| custom_list_id | uuid | no |  |  |  |
-
-## v_parallel_null_user_fossils
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| source_table | text | no |  |  |  |
-| source_row_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| grantee_email | text | no |  |  |  |
-| legacy_owner_id | uuid | no |  |  |  |
-| notes | text | no |  |  |  |
-| created_at | timestamp with time zone | no |  |  |  |
-
-## v_parallel_null_user_fossils_all
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| source_table | text | no |  |  |  |
-| source_row_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| grantee_email | text | no |  |  |  |
-| legacy_owner_id | uuid | no |  |  |  |
-| notes | text | no |  |  |  |
-| created_at | timestamp with time zone | no |  |  |  |
-
-## v_parallel_resolved_null_user_fossils
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| source_table | text | no |  |  |  |
-| source_row_id | uuid | no |  |  |  |
-| local_unit_name | text | no |  |  |  |
-| person_id | uuid | no |  |  |  |
-| grantee_email | text | no |  |  |  |
-| legacy_owner_id | uuid | no |  |  |  |
-| notes | text | no |  |  |  |
-| created_at | timestamp with time zone | no |  |  |  |
-| resolution_code | text | no |  |  |  |
-| resolution_notes | text | no |  |  |  |
-| fossil_resolved_at | timestamp with time zone | no |  |  |  |
-| resolved_by_auth_user_id | uuid | no |  |  |  |
-
-## v_parallel_retirement_readiness
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| org_admin_gap_count | bigint | no |  |  |  |
-| custom_list_gap_count | bigint | no |  |  |  |
-| event_gap_count | bigint | no |  |  |  |
-| council_admin_legacy_write_count | bigint | no |  |  |  |
-| organization_admin_legacy_write_count | bigint | no |  |  |  |
-| custom_list_access_legacy_write_count | bigint | no |  |  |  |
-| gap_free | boolean | no |  |  |  |
-
-## v_parallel_retirement_readiness_live
-
-Operations: get
-
-| Column | Type | Required | Default | Key | References |
-| --- | --- | --- | --- | --- | --- |
-| org_admin_gap_count | bigint | no |  |  |  |
-| custom_list_gap_count | bigint | no |  |  |  |
-| event_gap_count | bigint | no |  |  |  |
-| gap_free | boolean | no |  |  |  |
-
 ## volunteer_context_types
 
 Operations: delete, get, patch, post
@@ -2252,7 +2116,6 @@ Operations: delete, get, patch, post
 | backfill_missing_parallel_custom_list_grants | post |
 | backfill_missing_parallel_event_managers | post |
 | cleanup_parallel_invite_package_subject | post |
-| cleanup_redundant_event_assignments | post |
 | current_user_council_id | get, post |
 | ensure_member_record_for_person_local_unit | post |
 | ensure_parallel_member_for_user_and_local_unit | post |
@@ -2270,7 +2133,6 @@ Operations: delete, get, patch, post
 | list_super_admin_preview_local_units | get, post |
 | parallel_grant_source_rank | get, post |
 | reject_membership_claim_request_in_parallel | post |
-| resolve_null_user_fossils | post |
 | restore_local_unit_member_record | post |
 | revoke_parallel_admin_package_from_user | post |
 | revoke_parallel_custom_list_access_from_user | post |
