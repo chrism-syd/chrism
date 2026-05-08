@@ -640,6 +640,10 @@ $$;
 ALTER FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") OWNER TO "postgres";
 
 
+COMMENT ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") IS 'Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO 'public', 'app'
@@ -654,6 +658,10 @@ $$;
 
 
 ALTER FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") IS 'Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."auth_accessible_custom_lists"() RETURNS TABLE("custom_list_id" "uuid", "local_unit_id" "uuid")
@@ -1897,6 +1905,10 @@ $$;
 ALTER FUNCTION "public"."list_super_admin_preview_local_units"() OWNER TO "postgres";
 
 
+COMMENT ON FUNCTION "public"."list_super_admin_preview_local_units"() IS 'Server-side super-admin helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."log_person_contact_change"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -2169,6 +2181,10 @@ $$;
 ALTER FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") OWNER TO "postgres";
 
 
+COMMENT ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") IS 'Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") RETURNS "uuid"
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO 'public', 'app'
@@ -2182,6 +2198,10 @@ $$;
 
 
 ALTER FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") IS 'Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."revoke_parallel_admin_package_from_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code", "p_note" "text" DEFAULT NULL::"text") RETURNS integer
@@ -2322,6 +2342,10 @@ $$;
 
 
 ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."rls_auto_enable"() IS 'Internal RLS/bootstrap helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."set_person_profile_change_requests_updated_at"() RETURNS "trigger"
@@ -2472,7 +2496,7 @@ $$;
 ALTER FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") IS 'Mirrors one active legacy council_admin_assignments row into organization_admin_assignments so organization-scoped admin access remains canonical.';
+COMMENT ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") IS 'Internal legacy organization-admin sync helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
 
 
 
@@ -2739,6 +2763,10 @@ $$;
 ALTER FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() OWNER TO "postgres";
 
 
+COMMENT ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() IS 'Internal member relationship sync trigger/helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -2751,6 +2779,10 @@ $$;
 
 
 ALTER FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() IS 'Internal trigger helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() RETURNS "trigger"
@@ -9111,14 +9143,12 @@ GRANT ALL ON FUNCTION "public"."approve_membership_claim_request_to_admin_packag
 
 
 
-GRANT ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") TO "service_role";
 
 
@@ -9303,8 +9333,7 @@ GRANT ALL ON FUNCTION "public"."list_manageable_event_ids_for_user"("p_user_id" 
 
 
 
-GRANT ALL ON FUNCTION "public"."list_super_admin_preview_local_units"() TO "anon";
-GRANT ALL ON FUNCTION "public"."list_super_admin_preview_local_units"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."list_super_admin_preview_local_units"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."list_super_admin_preview_local_units"() TO "service_role";
 
 
@@ -9333,14 +9362,12 @@ GRANT ALL ON FUNCTION "public"."reject_membership_claim_request_in_parallel"("p_
 
 
 
-GRANT ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") TO "service_role";
 
 
@@ -9363,8 +9390,7 @@ GRANT ALL ON FUNCTION "public"."revoke_parallel_event_assignment_from_user"("p_a
 
 
 
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "anon";
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."rls_auto_enable"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 
 
@@ -9387,8 +9413,7 @@ GRANT ALL ON FUNCTION "public"."sync_local_unit_id_from_legacy_council"() TO "se
 
 
 
-GRANT ALL ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") TO "service_role";
 
 
@@ -9411,14 +9436,12 @@ GRANT ALL ON FUNCTION "public"."sync_parallel_area_grants_from_org_admin_assignm
 
 
 
-GRANT ALL ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() TO "anon";
-GRANT ALL ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() TO "anon";
-GRANT ALL ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() TO "service_role";
 
 
