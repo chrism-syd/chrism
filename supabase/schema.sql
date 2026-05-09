@@ -8961,19 +8961,39 @@ CREATE POLICY "person_notes_update_creator_or_admin" ON "public"."person_notes" 
 ALTER TABLE "public"."person_officer_terms" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "person_officer_terms_delete_admin_only" ON "public"."person_officer_terms" FOR DELETE USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_officer_terms_delete_manageable_local_unit" ON "public"."person_officer_terms" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
-CREATE POLICY "person_officer_terms_insert_admin_only" ON "public"."person_officer_terms" FOR INSERT WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_officer_terms_insert_manageable_local_unit" ON "public"."person_officer_terms" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
-CREATE POLICY "person_officer_terms_select_same_council" ON "public"."person_officer_terms" FOR SELECT USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_can_access_person"("person_id")));
+CREATE POLICY "person_officer_terms_select_accessible_local_unit" ON "public"."person_officer_terms" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("app"."user_can_access_person"("person_officer_terms"."person_id") OR (("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))))));
 
 
 
-CREATE POLICY "person_officer_terms_update_admin_only" ON "public"."person_officer_terms" FOR UPDATE USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_officer_terms_update_manageable_local_unit" ON "public"."person_officer_terms" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
