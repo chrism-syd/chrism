@@ -1,9 +1,9 @@
 {
-  "fetchedAt": "2026-05-09T15:46:48.514Z",
+  "fetchedAt": "2026-05-09T16:02:13.189Z",
   "source": "Supabase REST OpenAPI",
   "schema": "standard public schema",
   "tableCount": 116,
-  "rpcCount": 50,
+  "rpcCount": 48,
   "tables": [
     {
       "name": "_archive_council_admin_assignments",
@@ -12611,20 +12611,6 @@
     {
       "name": "rls_auto_enable",
       "operations": [
-        "post"
-      ]
-    },
-    {
-      "name": "show_limit",
-      "operations": [
-        "get",
-        "post"
-      ]
-    },
-    {
-      "name": "show_trgm",
-      "operations": [
-        "get",
         "post"
       ]
     },

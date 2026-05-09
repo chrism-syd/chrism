@@ -1,10 +1,10 @@
 # Supabase Public Schema Reference
 
-Fetched: 2026-05-09T15:46:48.514Z
+Fetched: 2026-05-09T16:02:13.189Z
 Source: Supabase REST OpenAPI
 Schema: standard public schema
 Tables: 116
-RPC Functions: 50
+RPC Functions: 48
 
 This snapshot is generated from the live Supabase REST OpenAPI document.
 It reflects the API-visible `public` schema, including columns, types, defaults, primary keys, and foreign-key annotations when exposed.
@@ -2034,8 +2034,6 @@ Operations: delete, get, patch, post
 | revoke_parallel_custom_list_access_from_user | post |
 | revoke_parallel_event_assignment_from_user | post |
 | rls_auto_enable | post |
-| show_limit | get, post |
-| show_trgm | get, post |
 | sync_organization_admin_assignment_from_council_admin_assignmen | post |
 | sync_parallel_admin_package_from_council_admin_assignment | post |
 | sync_parallel_admin_package_from_org_admin_assignment | post |

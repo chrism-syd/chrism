@@ -22589,69 +22589,6 @@
         ]
       }
     },
-    "/rpc/show_trgm": {
-      "get": {
-        "parameters": [
-          {
-            "format": "text",
-            "in": "query",
-            "name": "",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) show_trgm"
-        ]
-      },
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "properties": {
-                "": {
-                  "format": "text",
-                  "type": "string"
-                }
-              },
-              "required": [
-                ""
-              ],
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) show_trgm"
-        ]
-      }
-    },
     "/rpc/has_event_management_access": {
       "get": {
         "parameters": [
@@ -23769,51 +23706,6 @@
         },
         "tags": [
           "(rpc) approve_membership_claim_request_to_admin_package"
-        ]
-      }
-    },
-    "/rpc/show_limit": {
-      "get": {
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) show_limit"
-        ]
-      },
-      "post": {
-        "parameters": [
-          {
-            "in": "body",
-            "name": "args",
-            "required": true,
-            "schema": {
-              "type": "object"
-            }
-          },
-          {
-            "$ref": "#/parameters/preferParams"
-          }
-        ],
-        "produces": [
-          "application/json",
-          "application/vnd.pgrst.object+json;nulls=stripped",
-          "application/vnd.pgrst.object+json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "tags": [
-          "(rpc) show_limit"
         ]
       }
     },

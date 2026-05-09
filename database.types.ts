@@ -6324,8 +6324,6 @@ export type Database = {
         }
         Returns: number
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       sync_organization_admin_assignment_from_council_admin_assignmen: {
         Args: { p_council_assignment_id: string }
         Returns: undefined
