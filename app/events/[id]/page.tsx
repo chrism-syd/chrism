@@ -14,6 +14,7 @@ import HostManualVolunteerForm from '../host-manual-volunteer-form';
 import RemoveVolunteerButton from '../remove-volunteer-button';
 import { decryptPeopleRecords } from '@/lib/security/pii';
 import { formatEventDateTimeRange } from '@/lib/events/display'
+import { DEFAULT_EVENT_TIME_ZONE } from '@/lib/events/time-zone'
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -178,6 +179,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return '—';
 
   return new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
     weekday: 'short',
     month: 'short',
     day: 'numeric',

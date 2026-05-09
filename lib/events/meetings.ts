@@ -1,3 +1,5 @@
+import { DEFAULT_EVENT_TIME_ZONE } from './time-zone'
+
 export type MeetingKindCode = 'general_meeting' | 'executive_meeting';
 
 export function isMeetingKind(value: string | null | undefined): value is MeetingKindCode {
@@ -16,31 +18,37 @@ export function getEventKindAudienceLabel(kind: string | null | undefined) {
   return 'Standard audience';
 }
 
+const MEETING_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DEFAULT_EVENT_TIME_ZONE,
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+const MEETING_TIME_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DEFAULT_EVENT_TIME_ZONE,
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
+const MEETING_CALENDAR_DAY_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DEFAULT_EVENT_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
 export function formatMeetingDateTimeRange(startsAt: string, endsAt: string) {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
-
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const sameDay = MEETING_CALENDAR_DAY_FORMATTER.format(start) === MEETING_CALENDAR_DAY_FORMATTER.format(end);
 
   if (sameDay) {
-    return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} to ${timeFormatter.format(end)}`;
+    return `${MEETING_DATE_FORMATTER.format(start)} • ${MEETING_TIME_FORMATTER.format(start)} to ${MEETING_TIME_FORMATTER.format(end)}`;
   }
 
-  return `${dateFormatter.format(start)} ${timeFormatter.format(start)} to ${dateFormatter.format(end)} ${timeFormatter.format(end)}`;
+  return `${MEETING_DATE_FORMATTER.format(start)} ${MEETING_TIME_FORMATTER.format(start)} to ${MEETING_DATE_FORMATTER.format(end)} ${MEETING_TIME_FORMATTER.format(end)}`;
 }
 
 export function escapeIcsText(value: string | null | undefined) {

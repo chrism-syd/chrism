@@ -7,8 +7,9 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentActingCouncilContext, getCurrentActingCouncilContextForEvent } from '@/lib/auth/acting-context';
 import { savePersonRsvpSubmission } from '@/lib/rsvp/person-rsvp';
 import { decryptPeopleRecord, protectPeoplePayload } from '@/lib/security/pii';
+import { DEFAULT_EVENT_TIME_ZONE } from '@/lib/events/time-zone';
 
-const DEFAULT_TIME_ZONE = 'America/Toronto';
+const DEFAULT_TIME_ZONE = DEFAULT_EVENT_TIME_ZONE;
 
 type CouncilRow = {
   id: string;

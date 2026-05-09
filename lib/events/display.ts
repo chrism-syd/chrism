@@ -1,4 +1,7 @@
+import { DEFAULT_EVENT_TIME_ZONE } from './time-zone'
+
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DEFAULT_EVENT_TIME_ZONE,
   weekday: 'short',
   month: 'short',
   day: 'numeric',
@@ -6,8 +9,16 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
 })
 
 const TIME_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DEFAULT_EVENT_TIME_ZONE,
   hour: 'numeric',
   minute: '2-digit',
+})
+
+const CALENDAR_DAY_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DEFAULT_EVENT_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
 })
 
 function parseDate(value?: string | null) {
@@ -16,12 +27,12 @@ function parseDate(value?: string | null) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+function getCalendarDayKey(date: Date) {
+  return CALENDAR_DAY_FORMATTER.format(date)
+}
+
 function isSameCalendarDay(left: Date, right: Date) {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  )
+  return getCalendarDayKey(left) === getCalendarDayKey(right)
 }
 
 export function formatEventDateRange(startsAt?: string | null) {

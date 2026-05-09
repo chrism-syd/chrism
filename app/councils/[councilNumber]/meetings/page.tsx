@@ -7,6 +7,7 @@ import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import aboutStyles from '@/app/about/about.module.css'
+import { DEFAULT_EVENT_TIME_ZONE } from '@/lib/events/time-zone'
 
 type MeetingsPageProps = {
   params: Promise<{ councilNumber: string }>
@@ -51,16 +52,26 @@ function normalizeKindFilter(value: string | string[] | undefined): PublicMeetin
 }
 
 function formatShortDay(isoString: string) {
-  return new Intl.DateTimeFormat('en-CA', { weekday: 'short' }).format(new Date(isoString)).toUpperCase()
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
+    weekday: 'short',
+  }).format(new Date(isoString)).toUpperCase()
 }
 
 function formatDayNumber(isoString: string) {
-  return new Intl.DateTimeFormat('en-CA', { day: 'numeric' }).format(new Date(isoString))
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
+    day: 'numeric',
+  }).format(new Date(isoString))
 }
 
 function formatDeadlineDate(isoString: string | null | undefined) {
   if (!isoString) return null
-  return new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric' }).format(new Date(isoString))
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(isoString))
 }
 
 function formatTimeOnlyRange(startsAt: string, endsAt: string | null) {
@@ -68,6 +79,7 @@ function formatTimeOnlyRange(startsAt: string, endsAt: string | null) {
   const end = endsAt ? new Date(endsAt) : null
 
   const timeFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
     hour: 'numeric',
     minute: '2-digit',
   })
@@ -83,9 +95,19 @@ function groupByMonth(events: MeetingRow[]): MonthGroup[] {
   const groups: MonthGroup[] = []
   const byMonth = new Map<string, MeetingRow[]>()
 
+  const monthKeyFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+  })
+  const monthLabelFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
+    month: 'short',
+  })
+
   for (const event of events) {
     const eventDate = new Date(event.starts_at)
-    const key = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(eventDate)
+    const key = monthKeyFormatter.format(eventDate)
     const existing = byMonth.get(key) ?? []
     existing.push(event)
     byMonth.set(key, existing)
@@ -93,9 +115,7 @@ function groupByMonth(events: MeetingRow[]): MonthGroup[] {
 
   for (const [key, monthEvents] of byMonth.entries()) {
     const firstEvent = monthEvents[0]
-    const monthLabel = firstEvent
-      ? new Intl.DateTimeFormat('en-CA', { month: 'short' }).format(new Date(firstEvent.starts_at))
-      : key
+    const monthLabel = firstEvent ? monthLabelFormatter.format(new Date(firstEvent.starts_at)) : key
 
     groups.push({
       key,

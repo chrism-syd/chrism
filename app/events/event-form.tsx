@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { DEFAULT_EVENT_TIME_ZONE } from '@/lib/events/time-zone'
 
 type InvitedCouncilDraft = {
   invited_council_name: string
@@ -95,38 +96,45 @@ function getEventTypeLabels(orgTypeCode: string | null | undefined) {
   }
 }
 
-function toDateTimeLocalValue(value?: string | null) {
-  if (!value) return ''
+function getZonedDateTimeParts(value?: string | null) {
+  if (!value) return null
+
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  const hours = `${date.getHours()}`.padStart(2, '0')
-  const minutes = `${date.getMinutes()}`.padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}`
+  if (Number.isNaN(date.getTime())) return null
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  })
+
+  const parts = formatter.formatToParts(date)
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? ''
+
+  const year = getPart('year')
+  const month = getPart('month')
+  const day = getPart('day')
+  const hour = getPart('hour')
+  const minute = getPart('minute')
+
+  return year && month && day && hour && minute ? { year, month, day, hour, minute } : null
+}
+
+function toDateTimeLocalValue(value?: string | null) {
+  const parts = getZonedDateTimeParts(value)
+  return parts ? `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}` : ''
 }
 
 function toDateOnlyValue(value?: string | null) {
   if (!value) return ''
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
 
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Toronto',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-
-  const parts = formatter.formatToParts(date)
-  const year = parts.find((part) => part.type === 'year')?.value ?? ''
-  const month = parts.find((part) => part.type === 'month')?.value ?? ''
-  const day = parts.find((part) => part.type === 'day')?.value ?? ''
-
-  return year && month && day ? `${year}-${month}-${day}` : ''
+  const parts = getZonedDateTimeParts(value)
+  return parts ? `${parts.year}-${parts.month}-${parts.day}` : ''
 }
 
 function fieldNoteStyle(): CSSProperties {

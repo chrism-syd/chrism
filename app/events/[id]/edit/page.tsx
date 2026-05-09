@@ -7,6 +7,7 @@ import EventForm from '../../event-form'
 import DeleteEventButton from '../../delete-event-button'
 import { deleteEvent, updateEvent } from '../../actions'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { DEFAULT_EVENT_TIME_ZONE } from '@/lib/events/time-zone'
 
 type EditEventPageProps = {
   params: Promise<{ id: string }>
@@ -77,7 +78,7 @@ function toDateOnlyValue(value?: string | null) {
   if (Number.isNaN(date.getTime())) return ''
 
   const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Toronto',
+    timeZone: DEFAULT_EVENT_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
