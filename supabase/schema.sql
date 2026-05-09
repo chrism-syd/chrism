@@ -8481,29 +8481,29 @@ ALTER TABLE "public"."event_council_rsvps" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."event_external_invitees" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "event_external_invitees_delete_same_council" ON "public"."event_external_invitees" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_external_invitees_delete_manageable_event" ON "public"."event_external_invitees" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_external_invitees"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_external_invitees"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_external_invitees_insert_same_council" ON "public"."event_external_invitees" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+CREATE POLICY "event_external_invitees_insert_manageable_event" ON "public"."event_external_invitees" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_external_invitees"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_external_invitees"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_external_invitees_select_same_council" ON "public"."event_external_invitees" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_external_invitees_select_manageable_event" ON "public"."event_external_invitees" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_external_invitees"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_external_invitees"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_external_invitees_update_same_council" ON "public"."event_external_invitees" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_external_invitees_update_manageable_event" ON "public"."event_external_invitees" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_external_invitees"."event_id") AND ("e"."council_id" = "app"."current_council_id"()))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (("e"."id" = "event_external_invitees"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_external_invitees"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_external_invitees"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
@@ -8513,58 +8513,58 @@ ALTER TABLE "public"."event_invited_council_types" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."event_invited_councils" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "event_invited_councils_delete_same_council" ON "public"."event_invited_councils" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_invited_councils_delete_manageable_event" ON "public"."event_invited_councils" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_invited_councils"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_invited_councils"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_invited_councils_insert_same_council" ON "public"."event_invited_councils" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+CREATE POLICY "event_invited_councils_insert_manageable_event" ON "public"."event_invited_councils" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_invited_councils"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_invited_councils"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_invited_councils_select_same_council" ON "public"."event_invited_councils" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_invited_councils_select_manageable_event" ON "public"."event_invited_councils" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_invited_councils"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_invited_councils"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_invited_councils_update_same_council" ON "public"."event_invited_councils" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_invited_councils_update_manageable_event" ON "public"."event_invited_councils" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_invited_councils"."event_id") AND ("e"."council_id" = "app"."current_council_id"()))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (("e"."id" = "event_invited_councils"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_invited_councils"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_invited_councils"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
 ALTER TABLE "public"."event_message_jobs" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "event_message_jobs_delete_same_council" ON "public"."event_message_jobs" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_message_jobs_delete_manageable_event" ON "public"."event_message_jobs" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_message_jobs"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_message_jobs"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_message_jobs_insert_same_council" ON "public"."event_message_jobs" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+CREATE POLICY "event_message_jobs_insert_manageable_event" ON "public"."event_message_jobs" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_message_jobs"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_message_jobs"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_message_jobs_select_same_council" ON "public"."event_message_jobs" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_message_jobs_select_manageable_event" ON "public"."event_message_jobs" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_message_jobs"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_message_jobs"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_message_jobs_update_same_council" ON "public"."event_message_jobs" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_message_jobs_update_manageable_event" ON "public"."event_message_jobs" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_message_jobs"."event_id") AND ("e"."council_id" = "app"."current_council_id"()))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (("e"."id" = "event_message_jobs"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_message_jobs"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_message_jobs"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
@@ -8577,63 +8577,63 @@ ALTER TABLE "public"."event_message_types" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."event_person_rsvp_attendees" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "event_person_rsvp_attendees_delete_same_council" ON "public"."event_person_rsvp_attendees" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvp_attendees_delete_manageable_event" ON "public"."event_person_rsvp_attendees" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM ("public"."event_person_rsvps" "pr"
      JOIN "public"."events" "e" ON (("e"."id" = "pr"."event_id")))
-  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_person_rsvp_attendees_insert_same_council" ON "public"."event_person_rsvp_attendees" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvp_attendees_insert_manageable_event" ON "public"."event_person_rsvp_attendees" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM ("public"."event_person_rsvps" "pr"
      JOIN "public"."events" "e" ON (("e"."id" = "pr"."event_id")))
-  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_person_rsvp_attendees_select_same_council" ON "public"."event_person_rsvp_attendees" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvp_attendees_select_manageable_event" ON "public"."event_person_rsvp_attendees" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM ("public"."event_person_rsvps" "pr"
      JOIN "public"."events" "e" ON (("e"."id" = "pr"."event_id")))
-  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_person_rsvp_attendees_update_same_council" ON "public"."event_person_rsvp_attendees" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvp_attendees_update_manageable_event" ON "public"."event_person_rsvp_attendees" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM ("public"."event_person_rsvps" "pr"
      JOIN "public"."events" "e" ON (("e"."id" = "pr"."event_id")))
-  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND ("e"."council_id" = "app"."current_council_id"()))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM ("public"."event_person_rsvps" "pr"
      JOIN "public"."events" "e" ON (("e"."id" = "pr"."event_id")))
-  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("pr"."id" = "event_person_rsvp_attendees"."event_person_rsvp_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
 ALTER TABLE "public"."event_person_rsvps" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "event_person_rsvps_delete_same_council" ON "public"."event_person_rsvps" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvps_delete_manageable_event" ON "public"."event_person_rsvps" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_person_rsvps_insert_same_council" ON "public"."event_person_rsvps" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvps_insert_manageable_event" ON "public"."event_person_rsvps" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_person_rsvps_select_same_council" ON "public"."event_person_rsvps" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvps_select_manageable_event" ON "public"."event_person_rsvps" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
-CREATE POLICY "event_person_rsvps_update_same_council" ON "public"."event_person_rsvps" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+CREATE POLICY "event_person_rsvps_update_manageable_event" ON "public"."event_person_rsvps" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND ("e"."council_id" = "app"."current_council_id"()))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."events" "e"
-  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND ("e"."council_id" = "app"."current_council_id"())))));
+  WHERE (("e"."id" = "event_person_rsvps"."event_id") AND "public"."has_event_management_access"("auth"."uid"(), "e"."id")))));
 
 
 
@@ -8649,11 +8649,13 @@ ALTER TABLE "public"."event_status_types" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."events" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "events_delete_same_council" ON "public"."events" FOR DELETE TO "authenticated" USING (("council_id" = "app"."current_council_id"()));
+CREATE POLICY "events_delete_manageable" ON "public"."events" FOR DELETE TO "authenticated" USING ("public"."has_event_management_access"("auth"."uid"(), "id"));
 
 
 
-CREATE POLICY "events_insert_same_council" ON "public"."events" FOR INSERT TO "authenticated" WITH CHECK (("council_id" = "app"."current_council_id"()));
+CREATE POLICY "events_insert_manageable_local_unit" ON "public"."events" FOR INSERT TO "authenticated" WITH CHECK ((("local_unit_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."user_id" = "auth"."uid"()) AND ("access"."local_unit_id" = "events"."local_unit_id") AND ("access"."area_code" = 'events'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level") AND ("access"."is_effective" = true))))));
 
 
 
@@ -8669,11 +8671,13 @@ CREATE POLICY "events_parallel_update" ON "public"."events" FOR UPDATE TO "authe
 
 
 
-CREATE POLICY "events_select_same_council" ON "public"."events" FOR SELECT TO "authenticated" USING (("council_id" = "app"."current_council_id"()));
+CREATE POLICY "events_select_manageable" ON "public"."events" FOR SELECT TO "authenticated" USING ("public"."has_event_management_access"("auth"."uid"(), "id"));
 
 
 
-CREATE POLICY "events_update_same_council" ON "public"."events" FOR UPDATE TO "authenticated" USING (("council_id" = "app"."current_council_id"())) WITH CHECK (("council_id" = "app"."current_council_id"()));
+CREATE POLICY "events_update_manageable" ON "public"."events" FOR UPDATE TO "authenticated" USING ("public"."has_event_management_access"("auth"."uid"(), "id")) WITH CHECK ((("local_unit_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."user_id" = "auth"."uid"()) AND ("access"."local_unit_id" = "events"."local_unit_id") AND ("access"."area_code" = 'events'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level") AND ("access"."is_effective" = true))))));
 
 
 
