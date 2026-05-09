@@ -8318,10 +8318,11 @@ CREATE POLICY "audit_log_admin_only" ON "public"."audit_log" FOR SELECT USING ((
 ALTER TABLE "public"."brand_profiles" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "brand_profiles_select_linked_to_own_council" ON "public"."brand_profiles" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM ("public"."organizations" "o"
-     JOIN "public"."councils" "c" ON (("c"."organization_id" = "o"."id")))
-  WHERE (("o"."brand_profile_id" = "brand_profiles"."id") AND ("c"."id" = "app"."current_council_id"())))));
+CREATE POLICY "brand_profiles_select_accessible_local_unit" ON "public"."brand_profiles" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."organizations" "o"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_organization_id" = "o"."id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("o"."brand_profile_id" = "brand_profiles"."id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true)))));
 
 
 
@@ -8388,7 +8389,10 @@ ALTER TABLE "public"."council_reengagement_status_types" ENABLE ROW LEVEL SECURI
 ALTER TABLE "public"."councils" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "councils_select_own" ON "public"."councils" FOR SELECT USING (("id" = "app"."current_council_id"()));
+CREATE POLICY "councils_select_accessible_local_unit" ON "public"."councils" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "councils"."id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true)))));
 
 
 
@@ -8840,9 +8844,10 @@ ALTER TABLE "public"."organization_type_types" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."organizations" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "organizations_select_own_council" ON "public"."organizations" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."councils" "c"
-  WHERE (("c"."organization_id" = "organizations"."id") AND ("c"."id" = "app"."current_council_id"())))));
+CREATE POLICY "organizations_select_accessible_local_unit" ON "public"."organizations" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_organization_id" = "organizations"."id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true)))));
 
 
 
