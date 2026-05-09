@@ -578,6 +578,7 @@ COMMENT ON FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "
 
 CREATE OR REPLACE FUNCTION "public"."approve_membership_claim_request_to_admin_package"("p_actor_user_id" "uuid", "p_claim_request_id" "uuid", "p_target_user_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code") RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_claim public.membership_claim_requests%rowtype;
@@ -666,6 +667,7 @@ COMMENT ON FUNCTION "public"."archive_local_unit_member_record"("p_local_unit_id
 
 CREATE OR REPLACE FUNCTION "public"."auth_accessible_custom_lists"() RETURNS TABLE("custom_list_id" "uuid", "local_unit_id" "uuid")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select *
   from public.list_accessible_custom_lists_for_user(auth.uid())
@@ -682,6 +684,7 @@ COMMENT ON FUNCTION "public"."auth_accessible_custom_lists"() IS 'Auth-aware wra
 
 CREATE OR REPLACE FUNCTION "public"."auth_accessible_local_units_for_area"("p_area_code" "public"."member_area_code", "p_min_access_level" "public"."area_access_level") RETURNS TABLE("local_unit_id" "uuid", "local_unit_name" "text", "area_code" "public"."member_area_code", "access_level" "public"."area_access_level")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select *
   from public.list_accessible_local_units_for_area(
@@ -702,6 +705,7 @@ COMMENT ON FUNCTION "public"."auth_accessible_local_units_for_area"("p_area_code
 
 CREATE OR REPLACE FUNCTION "public"."auth_can_manage_person"("p_person_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select coalesce(auth.uid() is not null, false)
     and exists (
@@ -724,6 +728,7 @@ ALTER FUNCTION "public"."auth_can_manage_person"("p_person_id" "uuid") OWNER TO 
 
 CREATE OR REPLACE FUNCTION "public"."auth_can_manage_person_assignments"("p_person_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select public.auth_can_manage_person(p_person_id);
 $$;
@@ -734,6 +739,7 @@ ALTER FUNCTION "public"."auth_can_manage_person_assignments"("p_person_id" "uuid
 
 CREATE OR REPLACE FUNCTION "public"."auth_can_manage_person_notes"("p_person_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select public.auth_can_manage_person(p_person_id);
 $$;
@@ -744,6 +750,7 @@ ALTER FUNCTION "public"."auth_can_manage_person_notes"("p_person_id" "uuid") OWN
 
 CREATE OR REPLACE FUNCTION "public"."auth_has_area_access"("p_local_unit_id" "uuid", "p_area_code" "public"."member_area_code", "p_min_access_level" "public"."area_access_level") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select coalesce(auth.uid() is not null, false)
     and public.has_area_access(
@@ -764,6 +771,7 @@ COMMENT ON FUNCTION "public"."auth_has_area_access"("p_local_unit_id" "uuid", "p
 
 CREATE OR REPLACE FUNCTION "public"."auth_has_event_management_access"("p_event_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select public.has_event_management_access(auth.uid(), p_event_id);
 $$;
@@ -774,6 +782,7 @@ ALTER FUNCTION "public"."auth_has_event_management_access"("p_event_id" "uuid") 
 
 CREATE OR REPLACE FUNCTION "public"."auth_has_event_management_access"("p_local_unit_id" "uuid", "p_event_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select coalesce(auth.uid() is not null, false)
     and public.has_event_management_access(
@@ -793,6 +802,7 @@ COMMENT ON FUNCTION "public"."auth_has_event_management_access"("p_local_unit_id
 
 CREATE OR REPLACE FUNCTION "public"."auth_has_resource_access"("p_local_unit_id" "uuid", "p_resource_type" "public"."resource_type_code", "p_resource_key" "text", "p_min_access_level" "public"."area_access_level") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select coalesce(auth.uid() is not null, false)
     and public.has_resource_access(
@@ -814,6 +824,7 @@ COMMENT ON FUNCTION "public"."auth_has_resource_access"("p_local_unit_id" "uuid"
 
 CREATE OR REPLACE FUNCTION "public"."auth_manageable_event_ids"("p_local_unit_id" "uuid" DEFAULT NULL::"uuid") RETURNS TABLE("event_id" "uuid", "local_unit_id" "uuid")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select *
   from public.list_manageable_event_ids_for_user(auth.uid(), p_local_unit_id)
@@ -830,6 +841,7 @@ COMMENT ON FUNCTION "public"."auth_manageable_event_ids"("p_local_unit_id" "uuid
 
 CREATE OR REPLACE FUNCTION "public"."backfill_missing_parallel_admin_packages"("p_actor_user_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'legacy_backfill'::"public"."grant_source_code") RETURNS integer
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_count integer := 0;
@@ -876,6 +888,7 @@ ALTER FUNCTION "public"."backfill_missing_parallel_admin_packages"("p_actor_user
 
 CREATE OR REPLACE FUNCTION "public"."backfill_missing_parallel_custom_list_grants"("p_actor_user_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'legacy_backfill'::"public"."grant_source_code") RETURNS integer
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_count integer := 0;
@@ -922,6 +935,7 @@ ALTER FUNCTION "public"."backfill_missing_parallel_custom_list_grants"("p_actor_
 
 CREATE OR REPLACE FUNCTION "public"."backfill_missing_parallel_event_managers"("p_actor_user_id" "uuid") RETURNS integer
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_count integer := 0;
@@ -955,6 +969,7 @@ ALTER FUNCTION "public"."backfill_missing_parallel_event_managers"("p_actor_user
 
 CREATE OR REPLACE FUNCTION "public"."cleanup_parallel_invite_package_subject"("p_target_user_id" "uuid", "p_local_unit_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_local_unit public.local_units%rowtype;
@@ -1082,6 +1097,7 @@ ALTER FUNCTION "public"."cleanup_parallel_invite_package_subject"("p_target_user
 
 CREATE OR REPLACE FUNCTION "public"."current_user_council_id"() RETURNS "uuid"
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select u.council_id
   from users u
@@ -1095,6 +1111,7 @@ ALTER FUNCTION "public"."current_user_council_id"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_unit_id" "uuid", "p_person_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_member_record_id uuid;
@@ -1207,6 +1224,7 @@ ALTER FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_un
 
 CREATE OR REPLACE FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_fallback_email" "text" DEFAULT NULL::"text", "p_fallback_invitee_name" "text" DEFAULT NULL::"text") RETURNS TABLE("member_record_id" "uuid", "user_unit_relationship_id" "uuid")
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_user public.users%rowtype;
@@ -1422,6 +1440,7 @@ ALTER FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user
 
 CREATE OR REPLACE FUNCTION "public"."ensure_parallel_membership_for_org_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   -- Intentionally no-op.
@@ -1445,6 +1464,7 @@ COMMENT ON FUNCTION "public"."ensure_parallel_membership_for_org_admin_assignmen
 
 CREATE OR REPLACE FUNCTION "public"."ensure_user_unit_relationship_for_user_member"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_member_record_id" "uuid", "p_is_active" boolean DEFAULT true) RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_relationship_id uuid;
@@ -1509,6 +1529,7 @@ ALTER FUNCTION "public"."ensure_user_unit_relationship_for_user_member"("p_user_
 
 CREATE OR REPLACE FUNCTION "public"."generate_rsvp_token"() RETURNS "text"
     LANGUAGE "sql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select encode(gen_random_bytes(24), 'hex');
 $$;
@@ -1519,6 +1540,7 @@ ALTER FUNCTION "public"."generate_rsvp_token"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code", "p_note" "text" DEFAULT NULL::"text", "p_fallback_email" "text" DEFAULT NULL::"text", "p_fallback_invitee_name" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_member_record_id uuid;
@@ -1572,6 +1594,7 @@ ALTER FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id"
 
 CREATE OR REPLACE FUNCTION "public"."grant_parallel_custom_list_access_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_custom_list_id" "uuid", "p_access_level" "public"."area_access_level" DEFAULT 'interact'::"public"."area_access_level", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code") RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_local_unit_id uuid;
@@ -1635,6 +1658,7 @@ ALTER FUNCTION "public"."grant_parallel_custom_list_access_to_user"("p_actor_use
 
 CREATE OR REPLACE FUNCTION "public"."has_area_access"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_area_code" "public"."member_area_code", "p_min_access_level" "public"."area_access_level") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select exists (
     select 1
@@ -1670,6 +1694,7 @@ ALTER FUNCTION "public"."has_area_access"("p_user_id" "uuid", "p_local_unit_id" 
 
 CREATE OR REPLACE FUNCTION "public"."has_event_management_access"("p_user_id" "uuid", "p_event_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select exists (
     select 1
@@ -1686,6 +1711,7 @@ ALTER FUNCTION "public"."has_event_management_access"("p_user_id" "uuid", "p_eve
 
 CREATE OR REPLACE FUNCTION "public"."has_event_management_access"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_event_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   with target_event as (
     select e.id, e.local_unit_id, e.event_kind_code
@@ -1723,6 +1749,7 @@ ALTER FUNCTION "public"."has_event_management_access"("p_user_id" "uuid", "p_loc
 
 CREATE OR REPLACE FUNCTION "public"."has_resource_access"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_resource_type" "public"."resource_type_code", "p_resource_key" "text", "p_min_access_level" "public"."area_access_level") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select exists (
     select 1
@@ -1748,6 +1775,7 @@ ALTER FUNCTION "public"."has_resource_access"("p_user_id" "uuid", "p_local_unit_
 
 CREATE OR REPLACE FUNCTION "public"."list_accessible_custom_lists_for_user"("p_user_id" "uuid") RETURNS TABLE("custom_list_id" "uuid", "local_unit_id" "uuid")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $_$
   with area_scoped_lists as (
     select
@@ -1789,6 +1817,7 @@ ALTER FUNCTION "public"."list_accessible_custom_lists_for_user"("p_user_id" "uui
 
 CREATE OR REPLACE FUNCTION "public"."list_accessible_local_units_for_area"("p_user_id" "uuid", "p_area_code" "public"."member_area_code", "p_min_access_level" "public"."area_access_level") RETURNS TABLE("local_unit_id" "uuid", "local_unit_name" "text", "area_code" "public"."member_area_code", "access_level" "public"."area_access_level")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select distinct
     v.local_unit_id,
@@ -1826,6 +1855,7 @@ ALTER FUNCTION "public"."list_accessible_local_units_for_area"("p_user_id" "uuid
 
 CREATE OR REPLACE FUNCTION "public"."list_manageable_event_ids_for_user"("p_user_id" "uuid") RETURNS TABLE("event_id" "uuid")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select distinct v.event_id
   from public.v_effective_event_management_access v
@@ -1840,6 +1870,7 @@ ALTER FUNCTION "public"."list_manageable_event_ids_for_user"("p_user_id" "uuid")
 
 CREATE OR REPLACE FUNCTION "public"."list_manageable_event_ids_for_user"("p_user_id" "uuid", "p_local_unit_id" "uuid" DEFAULT NULL::"uuid") RETURNS TABLE("event_id" "uuid", "local_unit_id" "uuid")
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   with area_scoped_events as (
     select
@@ -1911,6 +1942,7 @@ COMMENT ON FUNCTION "public"."list_super_admin_preview_local_units"() IS 'Server
 
 CREATE OR REPLACE FUNCTION "public"."log_person_contact_change"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   changed jsonb := '{}'::jsonb;
@@ -2000,6 +2032,7 @@ ALTER FUNCTION "public"."log_person_contact_change"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."parallel_grant_source_rank"("p_source" "public"."grant_source_code") RETURNS integer
     LANGUAGE "sql" IMMUTABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select case p_source
     when 'manual' then 10
@@ -2017,6 +2050,7 @@ ALTER FUNCTION "public"."parallel_grant_source_rank"("p_source" "public"."grant_
 
 CREATE OR REPLACE FUNCTION "public"."queue_supreme_update_reminder"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   changed_fields text[] := array[]::text[];
@@ -2138,6 +2172,7 @@ ALTER FUNCTION "public"."queue_supreme_update_reminder"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."reject_membership_claim_request_in_parallel"("p_actor_user_id" "uuid", "p_claim_request_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_claim public.membership_claim_requests%rowtype;
@@ -2206,6 +2241,7 @@ COMMENT ON FUNCTION "public"."restore_local_unit_member_record"("p_local_unit_id
 
 CREATE OR REPLACE FUNCTION "public"."revoke_parallel_admin_package_from_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code", "p_note" "text" DEFAULT NULL::"text") RETURNS integer
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_count integer;
@@ -2257,6 +2293,7 @@ ALTER FUNCTION "public"."revoke_parallel_admin_package_from_user"("p_actor_user_
 
 CREATE OR REPLACE FUNCTION "public"."revoke_parallel_custom_list_access_from_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_custom_list_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code") RETURNS integer
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_count integer;
@@ -2288,6 +2325,7 @@ ALTER FUNCTION "public"."revoke_parallel_custom_list_access_from_user"("p_actor_
 
 CREATE OR REPLACE FUNCTION "public"."revoke_parallel_event_assignment_from_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_event_id" "uuid", "p_role_code" "text" DEFAULT 'manager'::"text") RETURNS integer
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_count integer;
@@ -2350,6 +2388,7 @@ COMMENT ON FUNCTION "public"."rls_auto_enable"() IS 'Internal RLS/bootstrap help
 
 CREATE OR REPLACE FUNCTION "public"."set_person_profile_change_requests_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   new.updated_at = now();
@@ -2363,6 +2402,7 @@ ALTER FUNCTION "public"."set_person_profile_change_requests_updated_at"() OWNER 
 
 CREATE OR REPLACE FUNCTION "public"."set_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   new.updated_at = now();
@@ -2376,6 +2416,7 @@ ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."sync_local_unit_id_from_legacy_council"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   if new.local_unit_id is null and new.council_id is not null then
@@ -2502,6 +2543,7 @@ COMMENT ON FUNCTION "public"."sync_organization_admin_assignment_from_council_ad
 
 CREATE OR REPLACE FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_row public.council_admin_assignments%rowtype;
@@ -2556,6 +2598,7 @@ ALTER FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignme
 
 CREATE OR REPLACE FUNCTION "public"."sync_parallel_admin_package_from_org_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_row public.organization_admin_assignments%rowtype;
@@ -2605,6 +2648,7 @@ ALTER FUNCTION "public"."sync_parallel_admin_package_from_org_admin_assignment"(
 
 CREATE OR REPLACE FUNCTION "public"."sync_parallel_area_grants_from_org_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_assignment public.organization_admin_assignments%rowtype;
@@ -2787,6 +2831,7 @@ COMMENT ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"(
 
 CREATE OR REPLACE FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   perform public.sync_parallel_admin_package_from_council_admin_assignment(new.id);
@@ -2800,6 +2845,7 @@ ALTER FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assi
 
 CREATE OR REPLACE FUNCTION "public"."trg_sync_parallel_admin_package_from_org_admin_assignment"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   perform public.sync_parallel_admin_package_from_org_admin_assignment(new.id);
@@ -2813,6 +2859,7 @@ ALTER FUNCTION "public"."trg_sync_parallel_admin_package_from_org_admin_assignme
 
 CREATE OR REPLACE FUNCTION "public"."trg_sync_parallel_area_grants_from_org_admin_assignment"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 begin
   perform public.sync_parallel_area_grants_from_org_admin_assignment(new.id);
@@ -2826,6 +2873,7 @@ ALTER FUNCTION "public"."trg_sync_parallel_area_grants_from_org_admin_assignment
 
 CREATE OR REPLACE FUNCTION "public"."upsert_parallel_admin_package_for_member"("p_local_unit_id" "uuid", "p_member_record_id" "uuid", "p_source_code" "public"."grant_source_code", "p_is_active" boolean, "p_created_at" timestamp with time zone DEFAULT "now"(), "p_updated_at" timestamp with time zone DEFAULT "now"()) RETURNS "void"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_revoked_at timestamptz;
@@ -2882,6 +2930,7 @@ ALTER FUNCTION "public"."upsert_parallel_admin_package_for_member"("p_local_unit
 
 CREATE OR REPLACE FUNCTION "public"."upsert_parallel_event_assignment_for_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_event_id" "uuid", "p_role_code" "text" DEFAULT 'manager'::"text", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
 declare
   v_event public.events%rowtype;
@@ -2942,6 +2991,7 @@ ALTER FUNCTION "public"."upsert_parallel_event_assignment_for_user"("p_actor_use
 
 CREATE OR REPLACE FUNCTION "public"."user_belongs_to_council"("target_council_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select exists (
     select 1
@@ -2957,6 +3007,7 @@ ALTER FUNCTION "public"."user_belongs_to_council"("target_council_id" "uuid") OW
 
 CREATE OR REPLACE FUNCTION "public"."user_can_access_event"("event_uuid" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select exists (
     select 1
@@ -2973,6 +3024,7 @@ ALTER FUNCTION "public"."user_can_access_event"("event_uuid" "uuid") OWNER TO "p
 
 CREATE OR REPLACE FUNCTION "public"."user_can_manage_event"("event_uuid" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select exists (
     select 1
@@ -2988,6 +3040,7 @@ ALTER FUNCTION "public"."user_can_manage_event"("event_uuid" "uuid") OWNER TO "p
 
 CREATE OR REPLACE FUNCTION "public"."user_is_council_admin"("target_council_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
   select app.user_is_council_admin(target_council_id);
 $$;

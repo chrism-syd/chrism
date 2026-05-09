@@ -1,6 +1,6 @@
 # Supabase Public Schema Reference
 
-Fetched: 2026-05-08T14:14:29.595Z
+Fetched: 2026-05-09T15:46:48.514Z
 Source: Supabase REST OpenAPI
 Schema: standard public schema
 Tables: 116

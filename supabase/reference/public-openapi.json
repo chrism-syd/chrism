@@ -21189,6 +21189,7 @@
             "name": "args",
             "required": true,
             "schema": {
+              "description": "Internal RLS/bootstrap helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
               "type": "object"
             }
           },
@@ -21206,6 +21207,7 @@
             "description": "OK"
           }
         },
+        "summary": "Internal RLS/bootstrap helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
         "tags": [
           "(rpc) rls_auto_enable"
         ]
@@ -22034,6 +22036,7 @@
             "description": "OK"
           }
         },
+        "summary": "Server-side super-admin helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
         "tags": [
           "(rpc) list_super_admin_preview_local_units"
         ]
@@ -22045,6 +22048,7 @@
             "name": "args",
             "required": true,
             "schema": {
+              "description": "Server-side super-admin helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
               "type": "object"
             }
           },
@@ -22062,6 +22066,7 @@
             "description": "OK"
           }
         },
+        "summary": "Server-side super-admin helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
         "tags": [
           "(rpc) list_super_admin_preview_local_units"
         ]
@@ -23009,6 +23014,7 @@
             "name": "args",
             "required": true,
             "schema": {
+              "description": "Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
               "properties": {
                 "p_actor_user_id": {
                   "format": "uuid",
@@ -23045,6 +23051,7 @@
             "description": "OK"
           }
         },
+        "summary": "Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
         "tags": [
           "(rpc) restore_local_unit_member_record"
         ]
@@ -23444,7 +23451,7 @@
             "name": "args",
             "required": true,
             "schema": {
-              "description": "Mirrors one active legacy council_admin_assignments row into organization_admin_assignments so organization-scoped admin access remains canonical.",
+              "description": "Internal legacy organization-admin sync helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
               "properties": {
                 "p_council_assignment_id": {
                   "format": "uuid",
@@ -23471,7 +23478,7 @@
             "description": "OK"
           }
         },
-        "summary": "Mirrors one active legacy council_admin_assignments row into organization_admin_assignments so organization-scoped admin access remains canonical.",
+        "summary": "Internal legacy organization-admin sync helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
         "tags": [
           "(rpc) sync_organization_admin_assignment_from_council_admin_assignmen"
         ]
@@ -23485,6 +23492,7 @@
             "name": "args",
             "required": true,
             "schema": {
+              "description": "Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
               "properties": {
                 "p_actor_user_id": {
                   "format": "uuid",
@@ -23525,6 +23533,7 @@
             "description": "OK"
           }
         },
+        "summary": "Server-side member lifecycle helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.",
         "tags": [
           "(rpc) archive_local_unit_member_record"
         ]
