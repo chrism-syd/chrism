@@ -5,12 +5,14 @@ import { useState } from 'react';
 type RemoveVolunteerButtonProps = {
   action: (formData: FormData) => void | Promise<void>;
   warningText?: string;
+  buttonLabel?: string;
   confirmLabel?: string;
 };
 
 export default function RemoveVolunteerButton({
   action,
   warningText = 'This will remove this volunteer from the event roster.',
+  buttonLabel = 'Remove volunteer',
   confirmLabel = 'Confirm remove',
 }: RemoveVolunteerButtonProps) {
   const [open, setOpen] = useState(false);
@@ -18,7 +20,7 @@ export default function RemoveVolunteerButton({
   return (
     <>
       <button type="button" className="qv-button-danger" onClick={() => setOpen(true)}>
-        Remove volunteer
+        {buttonLabel}
       </button>
 
       {open ? (
