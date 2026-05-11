@@ -2204,3 +2204,35 @@ export async function removeEventExternalInvitee(eventId: string, formData: Form
   revalidatePath(`/events/${event.id}/edit`);
   redirect(`/events/${event.id}#external-invitees`);
 }
+
+
+export async function removePersonRsvpSubmission(eventId: string, submissionId: string) {
+  const { supabase } = await getCurrentAppContext({
+    eventId,
+    redirectTo: `/events/${eventId}`,
+  });
+
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('event_person_rsvps')
+    .update({
+      status_code: 'cancelled',
+      cancelled_at: now,
+      last_responded_at: now,
+    })
+    .eq('id', submissionId)
+    .eq('event_id', eventId)
+    .eq('status_code', 'active')
+    .select('id')
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(`Could not remove RSVP: ${error?.message ?? 'RSVP not found'}`);
+  }
+
+  revalidatePath('/events');
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/events/${eventId}/volunteers`);
+  redirect(`/events/${eventId}`);
+}

@@ -8,6 +8,7 @@ import {
   addHostManualVolunteer,
   duplicateEventAsDraft,
   removeEventExternalInvitee,
+  removePersonRsvpSubmission,
   removeVolunteerSubmission,
 } from '../actions';
 import HostManualVolunteerForm from '../host-manual-volunteer-form';
@@ -915,6 +916,9 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                           attendeesForSubmission.find((attendee) => attendee.is_primary) ?? null;
                         const additionalAttendees = attendeesForSubmission.filter((attendee) => !attendee.is_primary);
                         const volunteerCount = attendeesForSubmission.filter((attendee) => attendee.is_volunteer).length;
+                        const removeRsvpAction = removePersonRsvpSubmission.bind(null, event.id, submission.id);
+                        const removeRsvpWarning =
+                          'This will remove this RSVP response from the event. The person can submit again from the public RSVP link if needed.';
 
                         return (
                           <article key={submission.id} className="qv-member-row">
@@ -954,6 +958,14 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
                                 <div className="qv-member-meta">
                                   Updated {formatDateTime(submission.last_responded_at)}
+                                </div>
+
+                                <div className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 12 }}>
+                                  <RemoveVolunteerButton
+                                    action={removeRsvpAction}
+                                    warningText={removeRsvpWarning}
+                                    buttonLabel="Remove this RSVP"
+                                  />
                                 </div>
                               </div>
                             </div>
