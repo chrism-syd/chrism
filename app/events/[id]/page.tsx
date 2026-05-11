@@ -622,6 +622,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     total_volunteer_count: personAttendees.filter((attendee) => attendee.is_volunteer).length,
     last_responded_at: personRsvps[0]?.last_responded_at ?? null,
   };
+  const singleAttendeeCount = personAttendees.length;
 
   const rsvpByInviteId = new Map(rsvps.map((row) => [row.event_invited_council_id, row]));
   const volunteersByRsvpId = new Map<string, VolunteerRow[]>();
@@ -733,18 +734,13 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             isSingleCouncil ? (
               <div className="qv-stats">
                 <div className="qv-stat-card">
+                  <div className="qv-stat-number">{singleAttendeeCount}</div>
+                  <div className="qv-stat-label">Attending</div>
+                </div>
+
+                <div className="qv-stat-card">
                   <div className="qv-stat-number">{singleSummary.total_volunteer_count}</div>
-                  <div className="qv-stat-label">Total volunteers</div>
-                </div>
-
-                <div className="qv-stat-card">
-                  <div className="qv-stat-number">{singleSummary.active_submission_count}</div>
-                  <div className="qv-stat-label">Responses</div>
-                </div>
-
-                <div className="qv-stat-card">
-                  <div className="qv-stat-number">{event.reminder_enabled ? 'On' : 'Off'}</div>
-                  <div className="qv-stat-label">Reminder</div>
+                  <div className="qv-stat-label">Volunteers</div>
                 </div>
               </div>
             ) : (
