@@ -7,6 +7,7 @@ export type PersonAttendeeInput = {
   attendee_email: string | null;
   attendee_phone: string | null;
   uses_primary_contact: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -179,6 +180,7 @@ export async function savePersonRsvpSubmission(args: {
   primaryEmail: string | null;
   primaryPhone: string | null;
   responseNotes: string | null;
+  primaryIsVolunteer?: boolean;
   attendees: PersonAttendeeInput[];
   sourceCode: 'host_manual' | 'email_link' | 'public_link';
   existingSubmissionId?: string | null;
@@ -194,6 +196,7 @@ export async function savePersonRsvpSubmission(args: {
     primaryEmail,
     primaryPhone,
     responseNotes,
+    primaryIsVolunteer = false,
     attendees,
     sourceCode,
     existingSubmissionId,
@@ -329,6 +332,7 @@ export async function savePersonRsvpSubmission(args: {
         attendee_email: attendeeEmail,
         attendee_phone: attendeePhone,
         uses_primary_contact: attendee.uses_primary_contact,
+        is_volunteer: attendee.is_volunteer,
         sort_order: attendee.sort_order,
       };
     })
@@ -343,6 +347,7 @@ export async function savePersonRsvpSubmission(args: {
       attendee_phone: primaryPhone,
       uses_primary_contact: true,
       is_primary: true,
+      is_volunteer: sourceCode === 'host_manual' || primaryIsVolunteer,
       sort_order: 0,
     },
     ...resolvedAttendees.map((attendee) => ({
@@ -353,6 +358,7 @@ export async function savePersonRsvpSubmission(args: {
       attendee_phone: attendee.attendee_phone,
       uses_primary_contact: attendee.uses_primary_contact,
       is_primary: false,
+      is_volunteer: attendee.is_volunteer,
       sort_order: attendee.sort_order,
     })),
   ];

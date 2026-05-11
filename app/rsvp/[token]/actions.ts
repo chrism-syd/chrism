@@ -43,6 +43,7 @@ function parsePersonAttendeeRows(formData: FormData) {
     const attendeeEmail = emails[index] ?? null;
     const attendeePhone = phones[index] ?? null;
     const usesPrimaryContact = parseBoolean(formData.get(`attendee_use_primary_contact_${index}`));
+    const isVolunteer = parseBoolean(formData.get(`attendee_is_volunteer_${index}`));
     const removeRow = parseBoolean(formData.get(`attendee_remove_${index}`));
 
     if (removeRow) {
@@ -64,6 +65,7 @@ function parsePersonAttendeeRows(formData: FormData) {
       attendee_email: attendeeEmail,
       attendee_phone: attendeePhone,
       uses_primary_contact: usesPrimaryContact,
+      is_volunteer: isVolunteer,
       sort_order: rows.length + 1,
     });
   }
@@ -197,6 +199,7 @@ export async function saveClaimedPersonRsvpAction(token: string, submissionId: s
     primaryEmail,
     primaryPhone,
     responseNotes,
+    primaryIsVolunteer: parseBoolean(formData.get('primary_is_volunteer')),
     attendees,
     sourceCode: candidate.source_code,
     existingSubmissionId: candidate.id,

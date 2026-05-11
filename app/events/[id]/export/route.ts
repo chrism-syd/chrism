@@ -72,6 +72,7 @@ type EventPersonRsvpAttendeeRow = {
   attendee_phone: string | null;
   uses_primary_contact: boolean;
   is_primary: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -342,7 +343,7 @@ export async function GET(_request: Request, context: RouteContext) {
       const { data: attendeeData, error: attendeesError } = await admin
         .from('event_person_rsvp_attendees')
         .select(
-          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, sort_order'
+          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, is_volunteer, sort_order'
         )
         .in('event_person_rsvp_id', personRsvpIds)
         .order('sort_order', { ascending: true })
@@ -364,27 +365,9 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     for (const submission of personRsvps) {
-      const attendeeRows = attendeesByRsvpId.get(submission.id) ?? [];
+      const attendeeRows = (attendeesByRsvpId.get(submission.id) ?? []).filter((attendee) => attendee.is_volunteer);
 
       if (attendeeRows.length === 0) {
-        rows.push({
-          ...baseRow,
-          group_name: hostInvite?.invited_council_name ?? '',
-          group_number: hostInvite?.invited_council_number ?? '',
-          is_host_group: 'true',
-          submission_type: submission.source_code,
-          primary_contact_name: submission.primary_name ?? '',
-          primary_contact_email: submission.primary_email ?? '',
-          primary_contact_phone: submission.primary_phone ?? '',
-          submission_notes: submission.response_notes ?? '',
-          volunteer_name: submission.primary_name ?? '',
-          volunteer_email: submission.primary_email ?? '',
-          volunteer_phone: submission.primary_phone ?? '',
-          uses_primary_contact: 'true',
-          is_primary: 'true',
-          claimed_profile: submission.claimed_at ? 'true' : 'false',
-          last_responded_at: submission.last_responded_at ?? '',
-        });
         continue;
       }
 

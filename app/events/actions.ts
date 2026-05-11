@@ -62,6 +62,7 @@ type PersonAttendeeInput = {
   attendee_email: string | null;
   attendee_phone: string | null;
   uses_primary_contact: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -377,6 +378,7 @@ function parsePersonAttendeeRows(formData: FormData) {
     const attendeeEmail = normalizeEmail(emails[index] ?? '');
     const attendeePhone = nullableString(phones[index] ?? '');
     const usesPrimaryContact = parseBoolean(formData.get(`attendee_use_primary_contact_${index}`));
+    const isVolunteer = parseBoolean(formData.get(`attendee_is_volunteer_${index}`));
 
     const hasAnyValue = attendeeName.length > 0 || !!attendeeEmail || !!attendeePhone;
     if (!hasAnyValue) continue;
@@ -387,6 +389,7 @@ function parsePersonAttendeeRows(formData: FormData) {
       attendee_email: attendeeEmail,
       attendee_phone: attendeePhone,
       uses_primary_contact: usesPrimaryContact,
+      is_volunteer: isVolunteer,
       sort_order: rows.length + 1,
     });
   }
@@ -1233,6 +1236,7 @@ async function submitPersonRsvpByToken(args: {
     primaryEmail,
     primaryPhone,
     responseNotes,
+    primaryIsVolunteer: parseBoolean(formData.get('primary_is_volunteer')),
     attendees: additionalAttendees,
     sourceCode,
   });
@@ -1698,6 +1702,7 @@ export async function addHostManualVolunteer(
     primaryEmail,
     primaryPhone,
     responseNotes,
+    primaryIsVolunteer: true,
     attendees: [],
     sourceCode: 'host_manual',
     explicitMatchedPersonId: matchedPersonId,
@@ -1829,6 +1834,7 @@ export async function updateHostManualVolunteer(
     primaryEmail,
     primaryPhone,
     responseNotes,
+    primaryIsVolunteer: parseBoolean(formData.get('primary_is_volunteer')),
     attendees: [],
     sourceCode: submission.source_code,
     existingSubmissionId: submission.id,

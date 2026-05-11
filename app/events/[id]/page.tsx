@@ -133,6 +133,7 @@ type EventPersonRsvpAttendeeRow = {
   attendee_phone: string | null;
   uses_primary_contact: boolean;
   is_primary: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -495,7 +496,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
       const { data: personAttendeeData, error: personAttendeeError } = await supabase
         .from('event_person_rsvp_attendees')
         .select(
-          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, sort_order'
+          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, is_volunteer, sort_order'
         )
         .in('event_person_rsvp_id', personRsvpIds)
         .order('sort_order', { ascending: true })
@@ -618,7 +619,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const singleSummary = personSummaryRows[0] ?? {
     event_id: event.id,
     active_submission_count: personRsvps.length,
-    total_volunteer_count: personAttendees.length,
+    total_volunteer_count: personAttendees.filter((attendee) => attendee.is_volunteer).length,
     last_responded_at: personRsvps[0]?.last_responded_at ?? null,
   };
 
@@ -639,6 +640,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     existing.push(attendee);
     personAttendeesByRsvpId.set(attendee.event_person_rsvp_id, existing);
   }
+
+
+  const volunteerPersonRsvps = personRsvps.filter((submission) =>
+    (personAttendeesByRsvpId.get(submission.id) ?? []).some((attendee) => attendee.is_volunteer)
+  );
 
   return (
     <main className="qv-page">
@@ -887,7 +893,83 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                   </p>
                 </div>
               </section>
-            ) : null}
+            ) : null}              {isSingleCouncil && !isDraft && event.requires_rsvp ? (
+                <section className="qv-card">
+                  <div className="qv-directory-section-head">
+                    <div>
+                      <h2 className="qv-section-title">RSVP responses</h2>
+                      <p className="qv-section-subtitle">
+                        Everyone who has responded for this event. Volunteers are marked separately.
+                      </p>
+                    </div>
+                  </div>
+
+                  {personRsvps.length === 0 ? (
+                    <div className="qv-empty">
+                      <h3 className="qv-empty-title">No RSVP responses yet</h3>
+                      <p className="qv-empty-text">
+                        RSVP responses will appear here once people submit the form.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="qv-member-list">
+                      {personRsvps.map((submission) => {
+                        const attendeesForSubmission = personAttendeesByRsvpId.get(submission.id) ?? [];
+                        const primaryAttendee =
+                          attendeesForSubmission.find((attendee) => attendee.is_primary) ?? null;
+                        const additionalAttendees = attendeesForSubmission.filter((attendee) => !attendee.is_primary);
+                        const volunteerCount = attendeesForSubmission.filter((attendee) => attendee.is_volunteer).length;
+
+                        return (
+                          <article key={submission.id} className="qv-member-row">
+                            <div className="qv-member-main">
+                              <div className="qv-member-text">
+                                <div className="qv-member-name">
+                                  {primaryAttendee?.attendee_name ?? submission.primary_name}
+                                </div>
+
+                                <div className="qv-member-meta">
+                                  {submission.primary_email || 'No Email'}
+                                  {' • '}
+                                  {submission.primary_phone || 'No phone #'}
+                                </div>
+
+                                <div style={inlineMetaRowStyle()}>
+                                  <span className="qv-badge">
+                                    {submission.source_code === 'host_manual'
+                                      ? 'Host added'
+                                      : submission.source_code === 'email_link'
+                                        ? 'Email link'
+                                        : 'Public link'}
+                                  </span>
+                                  <span className="qv-badge">Volunteers: {volunteerCount}</span>
+                                  {submission.claimed_at ? <span className="qv-badge">Claimed</span> : null}
+                                </div>
+
+                                {additionalAttendees.length > 0 ? (
+                                  <div style={mutedTextStyle()}>
+                                    Additional people: {additionalAttendees.map((attendee) => attendee.attendee_name).join(', ')}
+                                  </div>
+                                ) : null}
+
+                                {submission.response_notes ? (
+                                  <div style={mutedTextStyle()}>Notes: {submission.response_notes}</div>
+                                ) : null}
+
+                                <div className="qv-member-meta">
+                                  Updated {formatDateTime(submission.last_responded_at)}
+                                </div>
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              ) : null}
+
+
 
             {shouldShowExternalInviteesPanel ? (
               <section id="external-invitees" className="qv-card">
@@ -1025,7 +1107,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </div>
 
                 {!isDraft && isSingleCouncil ? (
-                  personRsvps.length === 0 ? (
+                  volunteerPersonRsvps.length === 0 ? (
                     <div className="qv-empty">
                       <h3 className="qv-empty-title">No volunteers submitted yet</h3>
                       <p className="qv-empty-text">
@@ -1040,7 +1122,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                         </div>
                       ) : null}
 
-                      {personRsvps.map((submission) => {
+                      {volunteerPersonRsvps.map((submission) => {
                         const attendees = personAttendeesByRsvpId.get(submission.id) ?? [];
                         const additionalAttendees = attendees.filter((attendee) => !attendee.is_primary);
                         const removeAction = removeVolunteerSubmission.bind(null, event.id, submission.id, 'detail');

@@ -41,6 +41,7 @@ export type ClaimCandidate = {
     attendee_phone: string | null;
     uses_primary_contact: boolean;
     is_primary: boolean;
+    is_volunteer: boolean;
     sort_order: number;
   }>;
 };
@@ -70,7 +71,7 @@ async function loadCandidatesByIds(args: {
   const { data: attendeesData, error: attendeesError } = await supabase
     .from('event_person_rsvp_attendees')
     .select(
-      'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, sort_order'
+      'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, is_volunteer, sort_order'
     )
     .in('event_person_rsvp_id', ids)
     .order('sort_order', { ascending: true });

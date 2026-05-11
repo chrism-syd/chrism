@@ -96,6 +96,7 @@ type EventPersonRsvpAttendeeRow = {
   attendee_phone: string | null;
   uses_primary_contact: boolean;
   is_primary: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -150,6 +151,7 @@ function buildAdditionalAttendeeSlots(existing: EventPersonRsvpAttendeeRow[]) {
       attendee_phone: '',
       uses_primary_contact: true,
       is_primary: false,
+      is_volunteer: false,
       sort_order: slots.length + 1,
     });
   }
@@ -263,7 +265,7 @@ export default async function PublicRsvpPage({
       const { data: attendeeRows } = await supabase
         .from('event_person_rsvp_attendees')
         .select(
-          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, sort_order'
+          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, is_volunteer, sort_order'
         )
         .eq('event_person_rsvp_id', personRsvp.id)
         .order('sort_order', { ascending: true })
@@ -525,6 +527,26 @@ export default async function PublicRsvpPage({
                   </label>
                 </div>
 
+                {event.needs_volunteers ? (
+                  <div className="qv-form-row">
+                    <label
+                      className="qv-control"
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="primary_is_volunteer"
+                        value="true"
+                        defaultChecked={primaryAttendee?.is_volunteer ?? !event.requires_rsvp}
+                        style={{ width: 'auto' }}
+                      />
+                      <span className="qv-label" style={{ margin: 0 }}>
+                        I can volunteer for this event
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+
                 <div className="qv-form-row">
                   <label className="qv-control">
                     <span className="qv-label">Notes</span>
@@ -543,7 +565,7 @@ export default async function PublicRsvpPage({
                 <div>
                   <h2 className="qv-section-title">Additional people coming with you</h2>
                   <p className="qv-section-subtitle">
-                    Add anyone else you are bringing. Each person added counts as one volunteer.
+                    Add anyone else you are bringing. Mark each person who can volunteer.
                   </p>
                 </div>
               </div>
@@ -607,6 +629,26 @@ export default async function PublicRsvpPage({
                           </span>
                         </label>
                       </div>
+
+                      {event.needs_volunteers ? (
+                        <div className="qv-form-row">
+                          <label
+                            className="qv-control"
+                            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                          >
+                            <input
+                              type="checkbox"
+                              name={`attendee_is_volunteer_${index}`}
+                              value="true"
+                              defaultChecked={attendee.is_volunteer}
+                              style={{ width: 'auto' }}
+                            />
+                            <span className="qv-label" style={{ margin: 0 }}>
+                              This person can volunteer
+                            </span>
+                          </label>
+                        </div>
+                      ) : null}
 
                       <div className="qv-form-row">
                         <label

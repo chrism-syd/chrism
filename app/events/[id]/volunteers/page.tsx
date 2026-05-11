@@ -68,6 +68,7 @@ type EventPersonRsvpAttendeeRow = {
   attendee_phone: string | null;
   uses_primary_contact: boolean;
   is_primary: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -254,7 +255,7 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
       const { data: attendeeData, error: attendeeError } = await supabase
         .from('event_person_rsvp_attendees')
         .select(
-          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, sort_order'
+          'id, event_person_rsvp_id, matched_person_id, attendee_name, attendee_email, attendee_phone, uses_primary_contact, is_primary, is_volunteer, sort_order'
         )
         .in(
           'event_person_rsvp_id',
@@ -284,6 +285,10 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
       existing.push(attendee);
       attendeesBySubmissionId.set(attendee.event_person_rsvp_id, existing);
     }
+
+    const volunteerSubmissions = submissions.filter((submission) =>
+      (attendeesBySubmissionId.get(submission.id) ?? []).some((attendee) => attendee.is_volunteer)
+    );
 
     return (
       <main className="qv-page">
@@ -349,7 +354,7 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
               </div>
             </div>
 
-            {submissions.length === 0 ? (
+            {volunteerSubmissions.length === 0 ? (
               <div className="qv-empty">
                 <h3 className="qv-empty-title">No volunteers yet</h3>
                 <p className="qv-empty-text">
@@ -358,8 +363,8 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
               </div>
             ) : (
               <div className="qv-detail-stack">
-                {submissions.map((submission) => {
-                  const submissionAttendees = (attendeesBySubmissionId.get(submission.id) ?? []).filter((attendee) => !attendee.is_primary);
+                {volunteerSubmissions.map((submission) => {
+                  const submissionAttendees = (attendeesBySubmissionId.get(submission.id) ?? []).filter((attendee) => attendee.is_volunteer);
                   const updateAction = updateHostManualVolunteer.bind(null, event.id, submission.id);
                   const removeAction = removeVolunteerSubmission.bind(null, event.id, submission.id, 'volunteers');
                   const removalWarning =

@@ -26,6 +26,7 @@ type AttendeeRow = {
   attendee_phone: string | null;
   uses_primary_contact: boolean;
   is_primary: boolean;
+  is_volunteer: boolean;
   sort_order: number;
 };
 
@@ -53,6 +54,7 @@ function buildAdditionalAttendeeSlots(existing: AttendeeRow[]) {
       attendee_phone: '',
       uses_primary_contact: true,
       is_primary: false,
+      is_volunteer: false,
       sort_order: slots.length + 1,
     });
   }
@@ -175,6 +177,8 @@ export default async function ManagePage({ params, searchParams }: ManagePagePro
     candidates.find((candidate) => candidate.id === requestedSubmissionId) ??
     candidates[0];
 
+  const selectedPrimaryAttendee =
+    selectedCandidate.attendees.find((attendee) => attendee.is_primary) ?? null;
   const additionalAttendeeSlots = buildAdditionalAttendeeSlots(
     selectedCandidate.attendees.filter((attendee) => !attendee.is_primary)
   );
@@ -323,6 +327,23 @@ export default async function ManagePage({ params, searchParams }: ManagePagePro
                   </label>
                 </div>
 
+                {context.event.needs_volunteers ? (
+                  <div className="qv-form-row">
+                    <label className="qv-control" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        name="primary_is_volunteer"
+                        value="true"
+                        defaultChecked={selectedPrimaryAttendee?.is_volunteer ?? !context.event.requires_rsvp}
+                        style={{ width: 'auto' }}
+                      />
+                      <span className="qv-label" style={{ margin: 0 }}>
+                        I can volunteer for this event
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+
                 <div className="qv-form-row">
                   <label className="qv-control">
                     <span className="qv-label">Notes</span>
@@ -337,7 +358,7 @@ export default async function ManagePage({ params, searchParams }: ManagePagePro
                 <div>
                   <h2 className="qv-section-title">Additional people on your RSVP</h2>
                   <p className="qv-section-subtitle">
-                    Each additional person counts as one volunteer for this event.
+                    Mark each additional person who can volunteer for this event.
                   </p>
                 </div>
               </div>
@@ -386,6 +407,23 @@ export default async function ManagePage({ params, searchParams }: ManagePagePro
                           </span>
                         </label>
                       </div>
+
+                      {context.event.needs_volunteers ? (
+                        <div className="qv-form-row">
+                          <label className="qv-control" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                              type="checkbox"
+                              name={`attendee_is_volunteer_${index}`}
+                              value="true"
+                              defaultChecked={attendee.is_volunteer}
+                              style={{ width: 'auto' }}
+                            />
+                            <span className="qv-label" style={{ margin: 0 }}>
+                              This person can volunteer
+                            </span>
+                          </label>
+                        </div>
+                      ) : null}
 
                       <div className="qv-form-row">
                         <label className="qv-control" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
