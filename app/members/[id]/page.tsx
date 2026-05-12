@@ -5,7 +5,7 @@ import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { formatDate, listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
-import { getKnightsOfColumbusFraternalYearForDate, isOfficerTermActive, summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, type OfficerTermRow } from '@/lib/members/officer-roles'
+import { getKnightsOfColumbusFraternalYearForDate, isOfficerTermActive, summarizeCurrentOfficerLabels, summarizeExecutiveOfficerLabels, summarizeLastingHonorifics, type OfficerTermRow } from '@/lib/members/officer-roles'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 
@@ -100,6 +100,9 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const activeOfficerTerms = (officerTerms ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
   const currentOfficerLabels = summarizeCurrentOfficerLabels(activeOfficerTerms, currentFraternalYear)
   const executiveOfficerLabels = summarizeExecutiveOfficerLabels(activeOfficerTerms, currentFraternalYear)
+  const lastingHonorificLabels = summarizeLastingHonorifics(officerTerms ?? [], {
+    useKnightsOfColumbusFraternalYear: true,
+  })
   const officerSummary = executiveOfficerLabels.length > 0 ? executiveOfficerLabels.join(', ') : currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : null
   const relationshipLabel = person.primary_relationship_code === 'volunteer_only' ? 'Volunteer' : startCase(person.primary_relationship_code) ?? 'Person'
   const activityLevelLabel = startCase(person.council_activity_level_code)
@@ -142,6 +145,11 @@ export default async function MemberDetailPage({ params }: PageProps) {
                   <span className="qv-badge">{relationshipLabel}</span>
                   {activityLevelLabel ? <span className="qv-badge qv-badge-soft">{activityLevelLabel}</span> : null}
                   {officerSummary ? <span className="qv-badge qv-badge-soft">{officerSummary}</span> : null}
+                  {lastingHonorificLabels.map((label) => (
+                    <span key={label} className="qv-badge qv-badge-soft">
+                      {label}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
