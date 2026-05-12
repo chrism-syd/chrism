@@ -30,6 +30,7 @@ type Props = {
   members: Member[]
   currentOfficerLabelsById?: Record<string, string[]>
   executiveOfficerLabelsById?: Record<string, string[]>
+  honorificLabelsById?: Record<string, string[]>
   sectionTitle?: string
   sectionSubtitle?: string
   currentViewControlMode?: CurrentViewControlMode
@@ -98,7 +99,7 @@ function ActionMenu({ label, menuRef, onCreateList, onExport, onCopyEmails }: Ac
   return <details className="qv-view-menu" ref={menuRef}><summary><span>{label}</span><span aria-hidden="true" className="qv-view-menu-chevron">▾</span></summary><div className="qv-view-menu-panel"><button type="button" className="qv-view-menu-item" onClick={onCreateList}>Create Custom List</button><button type="button" className="qv-view-menu-item" onClick={onExport}>Export as Excel</button><button type="button" className="qv-view-menu-item" onClick={onCopyEmails}>Copy Email addresses</button></div></details>
 }
 
-export default function MembersList({ members, currentOfficerLabelsById = {}, executiveOfficerLabelsById = {}, sectionTitle = 'People listing', sectionSubtitle = 'Search, sort, and manage people records.', currentViewControlMode = 'menu' }: Props) {
+export default function MembersList({ members, currentOfficerLabelsById = {}, executiveOfficerLabelsById = {}, honorificLabelsById = {}, sectionTitle = 'People listing', sectionSubtitle = 'Search, sort, and manage people records.', currentViewControlMode = 'menu' }: Props) {
   const [search, setSearch] = useState('')
   const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilter>('all')
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
@@ -125,6 +126,7 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
       const reverseName = `${lastName}, ${firstName}`.trim()
       const officerLabels = currentOfficerLabelsById[member.id] ?? []
       const executiveOfficerLabels = executiveOfficerLabelsById[member.id] ?? []
+      const honorificLabels = honorificLabelsById[member.id] ?? []
       const isExecutiveOfficer = executiveOfficerLabels.length > 0
       const searchableValues = [
         member.email,
@@ -137,6 +139,7 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
         labelize(member.council_reengagement_status_code),
         ...officerLabels,
         ...executiveOfficerLabels,
+        ...honorificLabels,
       ].map((value) => normalize(value)).filter(Boolean)
       const matchesSearch = query === '' || firstName.includes(query) || lastName.includes(query) || preferredName.includes(query) || legalName.includes(query) || shownName.includes(query) || reverseName.includes(query) || searchableValues.some((value) => value.includes(query))
       const matchesRelationshipFilter = relationshipFilter === 'all' || member.primary_relationship_code === relationshipFilter
@@ -155,7 +158,7 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
         default: { const byLast = leftLast.localeCompare(rightLast); return byLast !== 0 ? byLast : leftFirst.localeCompare(rightFirst) }
       }
     })
-  }, [currentOfficerLabelsById, executiveOfficerLabelsById, quickFilter, members, relationshipFilter, search, sortBy])
+  }, [currentOfficerLabelsById, executiveOfficerLabelsById, honorificLabelsById, quickFilter, members, relationshipFilter, search, sortBy])
 
   const totalPages = useMemo(() => rowsPerPage === 'all' ? 1 : Math.max(1, Math.ceil(filteredAndSortedMembers.length / rowsPerPage)), [filteredAndSortedMembers.length, rowsPerPage])
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -268,6 +271,7 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
       {paginatedMembers.length === 0 ? <div className="qv-empty"><p className="qv-empty-title">No people match your search.</p><p className="qv-empty-text">Try a different search, filter, or reset the controls.</p></div> : <div className="qv-member-table-scroll" style={{ overflowY: 'visible', paddingTop: 6, paddingBottom: 6 }}><div className="qv-member-list" style={{ gap: 10, paddingTop: 2 }}>{paginatedMembers.map((person) => {
         const currentOfficerLabels = currentOfficerLabelsById[person.id] ?? []
         const executiveOfficerLabels = executiveOfficerLabelsById[person.id] ?? []
+        const honorificLabels = honorificLabelsById[person.id] ?? []
         const primaryExecutiveLabel = executiveOfficerLabels[0] ?? null
         const fallbackRoleLabel = labelize(person.primary_relationship_code)
         const columnCount = Math.max(visibleColumns.length, 1)
@@ -277,7 +281,13 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
         const displayName = displayFullName(person)
         const legalName = legalFullName(person)
         const showLegalName = normalize(displayName) !== normalize(legalName)
-        const roleText = primaryExecutiveLabel ? primaryExecutiveLabel : currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : fallbackRoleLabel
+        const roleText = primaryExecutiveLabel
+          ? primaryExecutiveLabel
+          : currentOfficerLabels.length > 0
+            ? currentOfficerLabels.join(', ')
+            : honorificLabels.length > 0
+              ? honorificLabels.join(', ')
+              : fallbackRoleLabel
         const rowStyle = { ['--qv-member-row-template' as const]: gridTemplateColumns, ['--qv-member-row-min-width' as const]: `${rowMinWidth}px` } as CSSProperties
         return <div key={person.id} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: 12, alignItems: 'center' }}>
           <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 }} aria-label={`Select ${displayName}`}><input type="checkbox" checked={isSelected} onChange={() => toggleMemberSelection(person.id)} style={{ width: 16, height: 16 }} /></label>

@@ -77,6 +77,7 @@ export default async function MembersPage() {
   const volunteers = directoryData.volunteers;
   const currentOfficerLabelsById = directoryData.currentOfficerLabelsById;
   const executiveOfficerLabelsById = directoryData.executiveOfficerLabelsById;
+  const honorificLabelsById = directoryData.honorificLabelsById;
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization';
   const effectiveBranding = getEffectiveOrganizationBranding(organization);
@@ -226,6 +227,7 @@ export default async function MembersPage() {
           members={allPeople}
           currentOfficerLabelsById={currentOfficerLabelsById}
           executiveOfficerLabelsById={executiveOfficerLabelsById}
+          honorificLabelsById={honorificLabelsById}
           sectionTitle="People listing"
           sectionSubtitle="Search, sort, and manage people records."
         />

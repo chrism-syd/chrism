@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   summarizeCurrentOfficerLabels,
   summarizeExecutiveOfficerLabels,
+  summarizeLastingHonorifics,
   getKnightsOfColumbusFraternalYearForDate,
   isOfficerTermActive,
   type OfficerTermRow,
@@ -42,6 +43,7 @@ type DirectoryData = {
   volunteers: DirectoryPerson[]
   currentOfficerLabelsById: Record<string, string[]>
   executiveOfficerLabelsById: Record<string, string[]>
+  honorificLabelsById: Record<string, string[]>
   officerCount: number
 }
 
@@ -86,6 +88,16 @@ function buildDirectoryData(args: {
     ] as const)
   )
 
+  const honorificLabelsById: Record<string, string[]> = Object.fromEntries(
+    uniquePersonIds.map((personId) => [
+      personId,
+      summarizeLastingHonorifics(
+        officerTerms.filter((term) => term.person_id === personId),
+        { useKnightsOfColumbusFraternalYear: true }
+      ),
+    ] as const)
+  )
+
   const officerCount = Object.values(currentOfficerLabelsById).filter((labels) => labels.length > 0).length
 
   return {
@@ -95,6 +107,7 @@ function buildDirectoryData(args: {
     volunteers,
     currentOfficerLabelsById,
     executiveOfficerLabelsById,
+    honorificLabelsById,
     officerCount,
   }
 }
