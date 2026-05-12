@@ -262,7 +262,10 @@ export function isCurrentOfficerTerm(
   term: OfficerTermRow,
   referenceYear = getCurrentYear()
 ) {
-  return term.service_start_year <= referenceYear && (term.service_end_year == null || term.service_end_year >= referenceYear)
+  // service_end_year is the ending year of the fraternal year label.
+  // Example: 2024-2025 is active during fraternal start year 2024,
+  // and is past once the 2025-2026 fraternal year begins.
+  return term.service_start_year <= referenceYear && (term.service_end_year == null || term.service_end_year > referenceYear)
 }
 
 export function isOfficerTermCurrent(
@@ -374,11 +377,17 @@ export function summarizeExecutiveOfficerLabels(
   )]
 }
 
-export function summarizeLastingHonorifics(terms: OfficerTermRow[]) {
+export function summarizeLastingHonorifics(
+  terms: OfficerTermRow[],
+  options?: {
+    referenceDate?: Date
+    useKnightsOfColumbusFraternalYear?: boolean
+  }
+) {
   const honorifics = new Set<string>()
 
   for (const term of terms) {
-    if (term.service_end_year == null) {
+    if (term.service_end_year == null || isOfficerTermActive(term, options ?? { useKnightsOfColumbusFraternalYear: true })) {
       continue
     }
 
@@ -391,11 +400,17 @@ export function summarizeLastingHonorifics(terms: OfficerTermRow[]) {
   return [...honorifics].sort((a, b) => a.localeCompare(b))
 }
 
-export function summarizeHonorificSuffixes(terms: OfficerTermRow[]) {
+export function summarizeHonorificSuffixes(
+  terms: OfficerTermRow[],
+  options?: {
+    referenceDate?: Date
+    useKnightsOfColumbusFraternalYear?: boolean
+  }
+) {
   const suffixes = new Set<string>()
 
   for (const term of terms) {
-    if (term.service_end_year == null) {
+    if (term.service_end_year == null || isOfficerTermActive(term, options ?? { useKnightsOfColumbusFraternalYear: true })) {
       continue
     }
 
@@ -423,7 +438,7 @@ export function isOfficerTermActiveAtDate(
 
   const inNaturalWindow =
     term.service_start_year <= referenceYear &&
-    (term.service_end_year == null || term.service_end_year >= referenceYear)
+    (term.service_end_year == null || term.service_end_year > referenceYear)
 
   if (!inNaturalWindow) {
     return false

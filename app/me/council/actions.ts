@@ -730,6 +730,22 @@ export async function addOfficerTermAction(formData: FormData) {
     updated_by_auth_user_id: context.permissions.authUser!.id,
   }
 
+  const savedTermIsActive = isOfficerTermActive(
+    {
+      id: '',
+      person_id: resolvedPersonId,
+      office_scope_code: resolvedOfficeScopeCode,
+      office_code: resolvedOfficeCode,
+      office_label: payload.office_label,
+      office_rank: payload.office_rank,
+      service_start_year: startYear,
+      service_end_year: endYear,
+      manual_end_effective_date: null,
+      notes: payload.notes,
+    },
+    { useKnightsOfColumbusFraternalYear: true }
+  )
+
   const { error } = await admin.from('person_officer_terms').insert(payload)
 
   if (error) {
@@ -755,7 +771,7 @@ export async function addOfficerTermAction(formData: FormData) {
     redirectToCouncilPage({ error: `Officer term saved. ${message}` })
   }
 
-  if (grantAdmin) {
+  if (grantAdmin && savedTermIsActive) {
     try {
       await saveOrganizationAdminAssignment({
         personId: resolvedPersonId,
