@@ -306,6 +306,10 @@ export async function savePersonRsvpSubmission(args: {
     submissionId = data.id;
   }
 
+  if (!submissionId) {
+    throw new Error('Could not resolve RSVP submission id after save.');
+  }
+
   const { error: deleteAttendeesError } = await supabase
     .from('event_person_rsvp_attendees')
     .delete()
