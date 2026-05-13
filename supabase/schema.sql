@@ -3689,6 +3689,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_person_rsvp_attendees" (
     "sort_order" integer DEFAULT 0 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "is_volunteer" boolean DEFAULT false NOT NULL,
     CONSTRAINT "event_person_rsvp_attendees_sort_order_check" CHECK (("sort_order" >= 0))
 );
 
@@ -3722,22 +3723,17 @@ ALTER TABLE "public"."event_person_rsvps" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."event_person_rsvp_summary" WITH ("security_invoker"='true') AS
- SELECT "e"."id" AS "event_id",
-    "e"."council_id" AS "host_council_id",
-    ("count"(DISTINCT "pr"."id") FILTER (WHERE ("pr"."status_code" = 'active'::"text")))::integer AS "active_submission_count",
-    (COALESCE("count"("a"."id") FILTER (WHERE ("pr"."status_code" = 'active'::"text")), (0)::bigint))::integer AS "total_volunteer_count",
-    "max"("pr"."last_responded_at") FILTER (WHERE ("pr"."status_code" = 'active'::"text")) AS "last_responded_at"
-   FROM (("public"."events" "e"
-     LEFT JOIN "public"."event_person_rsvps" "pr" ON (("pr"."event_id" = "e"."id")))
-     LEFT JOIN "public"."event_person_rsvp_attendees" "a" ON (("a"."event_person_rsvp_id" = "pr"."id")))
-  GROUP BY "e"."id", "e"."council_id";
+ SELECT "rsvp"."event_id",
+    "count"(DISTINCT "rsvp"."id") AS "active_submission_count",
+    "count"("attendee"."id") FILTER (WHERE ("attendee"."is_volunteer" = true)) AS "total_volunteer_count",
+    "max"("rsvp"."last_responded_at") AS "last_responded_at"
+   FROM ("public"."event_person_rsvps" "rsvp"
+     LEFT JOIN "public"."event_person_rsvp_attendees" "attendee" ON (("attendee"."event_person_rsvp_id" = "rsvp"."id")))
+  WHERE ("rsvp"."status_code" = 'active'::"text")
+  GROUP BY "rsvp"."event_id";
 
 
 ALTER VIEW "public"."event_person_rsvp_summary" OWNER TO "postgres";
-
-
-COMMENT ON VIEW "public"."event_person_rsvp_summary" IS 'Server-side RSVP summary view. security_invoker enabled; direct browser-role access revoked.';
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_scope_types" (
@@ -8888,35 +8884,65 @@ CREATE POLICY "person_assignments_write_admin_only" ON "public"."person_assignme
 ALTER TABLE "public"."person_contact_change_log" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "person_contact_change_log_admin_only" ON "public"."person_contact_change_log" FOR SELECT USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_contact_change_log_insert_accessible_local_unit" ON "public"."person_contact_change_log" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_contact_change_log"."person_id") AND ("p"."council_id" = "person_contact_change_log"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("app"."user_can_access_person"("person_contact_change_log"."person_id") OR (("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = ANY (ARRAY['edit_manage'::"public"."area_access_level", 'manage'::"public"."area_access_level"]))))))));
 
 
 
-CREATE POLICY "person_contact_change_log_insert_same_council" ON "public"."person_contact_change_log" FOR INSERT TO "authenticated" WITH CHECK ((("council_id" = "app"."current_council_id"()) AND (EXISTS ( SELECT 1
-   FROM "public"."people" "p"
-  WHERE (("p"."id" = "person_contact_change_log"."person_id") AND ("p"."council_id" = "app"."current_council_id"()))))));
+CREATE POLICY "person_contact_change_log_select_manageable_local_unit" ON "public"."person_contact_change_log" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_contact_change_log"."person_id") AND ("p"."council_id" = "person_contact_change_log"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
 ALTER TABLE "public"."person_designations" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "person_designations_select_accessible" ON "public"."person_designations" FOR SELECT USING ((("council_id" = "app"."current_council_id"()) AND ("app"."user_is_council_admin"("council_id") OR "app"."user_can_access_person"("person_id"))));
+CREATE POLICY "person_designations_select_accessible_local_unit" ON "public"."person_designations" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_designations"."person_id") AND ("p"."council_id" = "person_designations"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("app"."user_can_access_person"("person_designations"."person_id") OR (("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = ANY (ARRAY['read_only'::"public"."area_access_level", 'edit_manage'::"public"."area_access_level", 'manage'::"public"."area_access_level"]))))))));
 
 
 
-CREATE POLICY "person_designations_write_admin_only" ON "public"."person_designations" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_designations_write_manageable_local_unit" ON "public"."person_designations" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_designations"."person_id") AND ("p"."council_id" = "person_designations"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_designations"."person_id") AND ("p"."council_id" = "person_designations"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
 ALTER TABLE "public"."person_distinctions" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "person_distinctions_select_accessible" ON "public"."person_distinctions" FOR SELECT USING ((("council_id" = "app"."current_council_id"()) AND ("app"."user_is_council_admin"("council_id") OR "app"."user_can_access_person"("person_id"))));
+CREATE POLICY "person_distinctions_select_accessible_local_unit" ON "public"."person_distinctions" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_distinctions"."person_id") AND ("p"."council_id" = "person_distinctions"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("app"."user_can_access_person"("person_distinctions"."person_id") OR (("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = ANY (ARRAY['read_only'::"public"."area_access_level", 'edit_manage'::"public"."area_access_level", 'manage'::"public"."area_access_level"]))))))));
 
 
 
-CREATE POLICY "person_distinctions_write_admin_only" ON "public"."person_distinctions" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_distinctions_write_manageable_local_unit" ON "public"."person_distinctions" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_distinctions"."person_id") AND ("p"."council_id" = "person_distinctions"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "person_distinctions"."person_id") AND ("p"."council_id" = "person_distinctions"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -9806,6 +9832,8 @@ GRANT ALL ON TABLE "public"."event_person_rsvps" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."event_person_rsvp_summary" TO "anon";
+GRANT ALL ON TABLE "public"."event_person_rsvp_summary" TO "authenticated";
 GRANT ALL ON TABLE "public"."event_person_rsvp_summary" TO "service_role";
 
 

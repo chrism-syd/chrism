@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-05-09T20:47:01.837Z",
+  "fetchedAt": "2026-05-13T00:00:43.228Z",
   "source": "Supabase REST OpenAPI",
   "schema": "standard public schema",
   "tableCount": 116,
@@ -3262,6 +3262,15 @@
           "primaryKey": false,
           "foreignKey": null,
           "description": null
+        },
+        {
+          "name": "is_volunteer",
+          "type": "boolean",
+          "required": true,
+          "default": false,
+          "primaryKey": false,
+          "foreignKey": null,
+          "description": null
         }
       ]
     },
@@ -3276,25 +3285,16 @@
           "type": "uuid",
           "required": false,
           "default": null,
-          "primaryKey": true,
-          "foreignKey": null,
-          "description": "Note:\nThis is a Primary Key.<pk/>"
-        },
-        {
-          "name": "host_council_id",
-          "type": "uuid",
-          "required": false,
-          "default": null,
           "primaryKey": false,
           "foreignKey": {
-            "table": "councils",
+            "table": "events",
             "column": "id"
           },
-          "description": "Note:\nThis is a Foreign Key to `councils.id`.<fk table='councils' column='id'/>"
+          "description": "Note:\nThis is a Foreign Key to `events.id`.<fk table='events' column='id'/>"
         },
         {
           "name": "active_submission_count",
-          "type": "integer",
+          "type": "bigint",
           "required": false,
           "default": null,
           "primaryKey": false,
@@ -3303,7 +3303,7 @@
         },
         {
           "name": "total_volunteer_count",
-          "type": "integer",
+          "type": "bigint",
           "required": false,
           "default": null,
           "primaryKey": false,

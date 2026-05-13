@@ -1084,13 +1084,6 @@ export type Database = {
             foreignKeyName: "event_assignments_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_assignments_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -1182,13 +1175,6 @@ export type Database = {
             foreignKeyName: "event_council_rsvps_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_council_rsvps_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -1271,13 +1257,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event_host_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_external_invitees_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
             referencedColumns: ["event_id"]
           },
           {
@@ -1373,13 +1352,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event_host_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_invited_councils_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
             referencedColumns: ["event_id"]
           },
           {
@@ -1495,13 +1467,6 @@ export type Database = {
             foreignKeyName: "event_message_jobs_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_message_jobs_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -1580,6 +1545,7 @@ export type Database = {
           event_person_rsvp_id: string
           id: string
           is_primary: boolean
+          is_volunteer: boolean
           matched_person_id: string | null
           sort_order: number
           updated_at: string
@@ -1593,6 +1559,7 @@ export type Database = {
           event_person_rsvp_id: string
           id?: string
           is_primary?: boolean
+          is_volunteer?: boolean
           matched_person_id?: string | null
           sort_order?: number
           updated_at?: string
@@ -1606,6 +1573,7 @@ export type Database = {
           event_person_rsvp_id?: string
           id?: string
           is_primary?: boolean
+          is_volunteer?: boolean
           matched_person_id?: string | null
           sort_order?: number
           updated_at?: string
@@ -1709,13 +1677,6 @@ export type Database = {
             foreignKeyName: "event_person_rsvps_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_person_rsvps_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
@@ -1792,13 +1753,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "event_host_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_rsvp_volunteers_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_person_rsvp_summary"
             referencedColumns: ["event_id"]
           },
           {
@@ -5890,16 +5844,29 @@ export type Database = {
         Row: {
           active_submission_count: number | null
           event_id: string | null
-          host_council_id: string | null
           last_responded_at: string | null
           total_volunteer_count: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "events_council_id_fkey"
-            columns: ["host_council_id"]
+            foreignKeyName: "event_person_rsvps_event_id_fkey"
+            columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "councils"
+            referencedRelation: "event_council_rsvp_rollups"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_person_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_host_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_person_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]

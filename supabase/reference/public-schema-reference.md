@@ -1,6 +1,6 @@
 # Supabase Public Schema Reference
 
-Fetched: 2026-05-09T20:47:01.837Z
+Fetched: 2026-05-13T00:00:43.228Z
 Source: Supabase REST OpenAPI
 Schema: standard public schema
 Tables: 116
@@ -551,6 +551,7 @@ Operations: delete, get, patch, post
 | sort_order | integer | yes | 0 |  |  |
 | created_at | timestamp with time zone | yes | now() |  |  |
 | updated_at | timestamp with time zone | yes | now() |  |  |
+| is_volunteer | boolean | yes | false |  |  |
 
 ## event_person_rsvp_summary
 
@@ -558,10 +559,9 @@ Operations: get
 
 | Column | Type | Required | Default | Key | References |
 | --- | --- | --- | --- | --- | --- |
-| event_id | uuid | no |  | PK |  |
-| host_council_id | uuid | no |  |  | councils.id |
-| active_submission_count | integer | no |  |  |  |
-| total_volunteer_count | integer | no |  |  |  |
+| event_id | uuid | no |  |  | events.id |
+| active_submission_count | bigint | no |  |  |  |
+| total_volunteer_count | bigint | no |  |  |  |
 | last_responded_at | timestamp with time zone | no |  |  |  |
 
 ## event_person_rsvps
