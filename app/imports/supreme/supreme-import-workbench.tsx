@@ -27,10 +27,12 @@ import {
   type SpreadsheetFieldKey,
   type SupremeImportRow,
 } from '@/lib/imports/supreme';
+import { formatLocalUnitMismatchMessage } from '@/lib/local-units/terminology';
 
 type SupremeImportWorkbenchProps = {
   existingPeople: ExistingSupremeComparablePerson[];
   expectedCouncilNumber: string | null;
+  localUnitKind?: string | null;
 };
 
 type FieldChoice = 'current' | 'import' | 'custom';
@@ -211,6 +213,7 @@ function getVisibleFieldsForRow(reviewRow: ReviewRow, sectionKey: ImportFieldSec
 export default function SupremeImportWorkbench({
   existingPeople,
   expectedCouncilNumber,
+  localUnitKind = 'council',
 }: SupremeImportWorkbenchProps) {
   const [fileName, setFileName] = useState('');
   const [rawRows, setRawRows] = useState<unknown[][]>([]);
@@ -721,7 +724,10 @@ export default function SupremeImportWorkbench({
 
                       {!reviewRow.councilMatches ? (
                         <div className="qv-form-alert" style={{ marginTop: 12 }}>
-                          This row belongs to council {reviewRow.row.councilNumber ?? '—'} and will stay skipped for this council import.
+                          {formatLocalUnitMismatchMessage({
+                            kind: localUnitKind,
+                            actualIdentifier: reviewRow.row.councilNumber,
+                          })}
                         </div>
                       ) : null}
 
