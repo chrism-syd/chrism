@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { buildHashForField } from '@/lib/security/pii';
+import { buildPersonRsvpAttendeeRows } from '@/lib/rsvp/person-rsvp-attendees';
 
 export type PersonAttendeeInput = {
   attendee_name: string;
@@ -338,30 +339,16 @@ export async function savePersonRsvpSubmission(args: {
     })
   );
 
-  const attendeeRows = [
-    {
-      event_person_rsvp_id: submissionId,
-      matched_person_id: matchedPrimaryPersonId,
-      attendee_name: primaryName,
-      attendee_email: normalizedPrimaryEmail,
-      attendee_phone: primaryPhone,
-      uses_primary_contact: true,
-      is_primary: true,
-      is_volunteer: sourceCode === 'host_manual' || primaryIsVolunteer,
-      sort_order: 0,
-    },
-    ...resolvedAttendees.map((attendee) => ({
-      event_person_rsvp_id: submissionId,
-      matched_person_id: attendee.matched_person_id,
-      attendee_name: attendee.attendee_name,
-      attendee_email: attendee.attendee_email,
-      attendee_phone: attendee.attendee_phone,
-      uses_primary_contact: attendee.uses_primary_contact,
-      is_primary: false,
-      is_volunteer: attendee.is_volunteer,
-      sort_order: attendee.sort_order,
-    })),
-  ];
+  const attendeeRows = buildPersonRsvpAttendeeRows({
+    submissionId,
+    matchedPrimaryPersonId,
+    primaryName,
+    normalizedPrimaryEmail,
+    primaryPhone,
+    primaryIsVolunteer,
+    sourceCode,
+    attendees: resolvedAttendees,
+  });
 
   const { error: insertAttendeesError } = await supabase
     .from('event_person_rsvp_attendees')
