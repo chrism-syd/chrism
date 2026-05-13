@@ -8307,7 +8307,10 @@ CREATE POLICY "area_access_grants_select_admin_or_self" ON "public"."area_access
 ALTER TABLE "public"."audit_log" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "audit_log_admin_only" ON "public"."audit_log" FOR SELECT USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "audit_log_select_manageable_local_unit" ON "public"."audit_log" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "audit_log"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -8958,7 +8961,15 @@ ALTER TABLE "public"."person_kofc_profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."person_merges" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "person_merges_admin_only" ON "public"."person_merges" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "person_merges_manageable_local_unit" ON "public"."person_merges" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "person_merges"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM ((("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+     JOIN "public"."people" "source_person" ON (("source_person"."id" = "person_merges"."source_person_id")))
+     JOIN "public"."people" "target_person" ON (("target_person"."id" = "person_merges"."target_person_id")))
+  WHERE (("lu"."legacy_council_id" = "person_merges"."council_id") AND ("source_person"."council_id" = "person_merges"."council_id") AND ("target_person"."council_id" = "person_merges"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 

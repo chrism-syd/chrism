@@ -596,6 +596,9 @@
             "$ref": "#/parameters/rowFilter.event_person_rsvp_attendees.updated_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.event_person_rsvp_attendees.is_volunteer"
+          },
+          {
             "$ref": "#/parameters/select"
           },
           {
@@ -692,6 +695,9 @@
             "$ref": "#/parameters/rowFilter.event_person_rsvp_attendees.updated_at"
           },
           {
+            "$ref": "#/parameters/rowFilter.event_person_rsvp_attendees.is_volunteer"
+          },
+          {
             "$ref": "#/parameters/preferReturn"
           }
         ],
@@ -738,6 +744,9 @@
           },
           {
             "$ref": "#/parameters/rowFilter.event_person_rsvp_attendees.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.event_person_rsvp_attendees.is_volunteer"
           },
           {
             "$ref": "#/parameters/body.event_person_rsvp_attendees"
@@ -19556,9 +19565,6 @@
             "$ref": "#/parameters/rowFilter.event_person_rsvp_summary.event_id"
           },
           {
-            "$ref": "#/parameters/rowFilter.event_person_rsvp_summary.host_council_id"
-          },
-          {
             "$ref": "#/parameters/rowFilter.event_person_rsvp_summary.active_submission_count"
           },
           {
@@ -19603,7 +19609,6 @@
             "description": "Partial Content"
           }
         },
-        "summary": "Server-side RSVP summary view. security_invoker enabled; direct browser-role access revoked.",
         "tags": [
           "event_person_rsvp_summary"
         ]
@@ -24292,7 +24297,8 @@
         "is_primary",
         "sort_order",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "is_volunteer"
       ],
       "properties": {
         "id": {
@@ -24347,6 +24353,11 @@
           "default": "now()",
           "format": "timestamp with time zone",
           "type": "string"
+        },
+        "is_volunteer": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -30527,24 +30538,18 @@
       "type": "object"
     },
     "event_person_rsvp_summary": {
-      "description": "Server-side RSVP summary view. security_invoker enabled; direct browser-role access revoked.",
       "properties": {
         "event_id": {
-          "description": "Note:\nThis is a Primary Key.<pk/>",
-          "format": "uuid",
-          "type": "string"
-        },
-        "host_council_id": {
-          "description": "Note:\nThis is a Foreign Key to `councils.id`.<fk table='councils' column='id'/>",
+          "description": "Note:\nThis is a Foreign Key to `events.id`.<fk table='events' column='id'/>",
           "format": "uuid",
           "type": "string"
         },
         "active_submission_count": {
-          "format": "integer",
+          "format": "bigint",
           "type": "integer"
         },
         "total_volunteer_count": {
-          "format": "integer",
+          "format": "bigint",
           "type": "integer"
         },
         "last_responded_at": {
@@ -31421,6 +31426,12 @@
     },
     "rowFilter.event_person_rsvp_attendees.updated_at": {
       "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.event_person_rsvp_attendees.is_volunteer": {
+      "name": "is_volunteer",
       "required": false,
       "in": "query",
       "type": "string"
@@ -38580,12 +38591,6 @@
     },
     "rowFilter.event_person_rsvp_summary.event_id": {
       "name": "event_id",
-      "required": false,
-      "in": "query",
-      "type": "string"
-    },
-    "rowFilter.event_person_rsvp_summary.host_council_id": {
-      "name": "host_council_id",
       "required": false,
       "in": "query",
       "type": "string"
