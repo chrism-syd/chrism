@@ -1,4 +1,4 @@
-# Schema Diagram - May 9 MVP Live + Security Hardened
+# Schema Diagram - May 13 Council RLS Sweep Complete
 
 ## Legend
 
@@ -10,6 +10,7 @@
 [CANONICAL ACCESS VIEW] = view/function layer pages should prefer for effective access
 [HARDENED] = security_invoker / grants tightened / public execution reduced
 [RETIRED] = removed after serving transitional purpose
+[IMPORTANT MAY 13 UPDATE] = changed materially during the council RLS sweep
 ```
 
 ## Core people and local-unit model
@@ -53,7 +54,7 @@
                            |      people      |  [FUTURE product noun,
                            |------------------|   org-private physical row]
                            | id               |
-                           | council_id       |  [LEGACY residue]
+                           | council_id       |  [LEGACY compatibility]
                            | archived_at      |
                            | merged_into...   |
                            +--------+---------+
@@ -101,6 +102,14 @@
                                          +-------------------------------+
 ```
 
+Important May 13 update:
+
+```text
+people.council_id and users.council_id still exist.
+They are compatibility/legacy/public-routing columns, not operational authority.
+No RLS policy now uses app.current_council_id().
+```
+
 ## Admin / officer access layer overlay
 
 ```text
@@ -137,7 +146,7 @@
 +----------------------------------+
 | person_officer_terms             |  [CURRENT OFFICER / AUTO-ADMIN]
 |----------------------------------|
-| council_id                       |
+| council_id                       |  [LEGACY bridge]
 | person_id                        |
 | office_scope_code                |
 | office_code                      |
@@ -146,6 +155,21 @@
 | service_end_year                 |
 | manual_end_effective_date        |
 +----------------------------------+
+```
+
+Officer currentness rule fixed in this phase:
+
+```text
+service_end_year is exclusive against the current KofC fraternal start year.
+A 2024-2025 term is past once the 2025-2026 fraternal year begins.
+```
+
+Grand Knight lasting honorific behavior:
+
+```text
+Historical Grand Knight -> Past Grand Knight
+Displays on /members, /members/[id], and /members/[id]/officers
+Does not grant officer-derived admin when historical
 ```
 
 ## Effective area access
@@ -178,20 +202,64 @@ local_unit_settings
 
 `claims` is not included in the current org-admin branch unless future policy changes.
 
-May update:
+Operational views remain hardened:
 
 ```text
-v_effective_area_access is hardened with security_invoker=true.
-Direct browser-role access was revoked where appropriate.
-Zero-capability contexts are filtered so revoked access does not appear in /me.
+v_effective_area_access                  [HARDENED security_invoker=true]
+v_effective_resource_access              [HARDENED security_invoker=true]
+v_effective_admin_package_access         [HARDENED security_invoker=true]
+v_effective_event_management_access      [HARDENED security_invoker=true]
 ```
 
-Related migrations:
+## May 13 RLS policy bridge pattern
+
+The council-id RLS sweep cut all policies away from `app.current_council_id()`.
+
+Legacy council-scoped table pattern:
 
 ```text
-20260427223000_include_org_admins_in_effective_area_access.sql
-20260507143000_filter_empty_admin_package_access.sql
-20260507233000_secure_public_views.sql
+some_table.council_id
+  -> local_units.legacy_council_id
+  -> v_effective_area_access.local_unit_id
+  -> access.user_id = auth.uid()
+  -> access.is_effective = true
+  -> area/access-level check
+```
+
+Person-adjacent table pattern:
+
+```text
+some_table.person_id
+  -> people.id
+  -> people.council_id
+  -> local_units.legacy_council_id
+  -> v_effective_area_access
+```
+
+This bridge applies to the RLS policy layer for:
+
+```text
+events
+organizations / councils / brand_profiles
+person_officer_terms
+person_designations
+person_distinctions
+person_contact_change_log
+audit_log
+person_merges
+users
+user_access_scopes
+user_admin_grants
+official_import_batches
+official_import_rows
+official_member_records
+supreme_update_queue
+```
+
+Final check:
+
+```text
+remaining_current_council_policy_count = 0
 ```
 
 ## Resource access and custom lists
@@ -230,12 +298,11 @@ Related migrations:
 +--------------------------+
 ```
 
-May update:
+Current state:
 
 - `custom_lists.council_id` is no longer operational scope truth.
 - Custom-list ownership is local-unit-only.
 - Local-unit moat migration enforces/guards this.
-- `v_effective_resource_access` is hardened with `security_invoker=true`.
 - Legacy/direct custom-list access may still exist as compatibility residue.
 
 Key migration:
@@ -244,15 +311,7 @@ Key migration:
 20260505234500_custom_lists_local_unit_moat.sql
 ```
 
-Important behavior:
-
-```text
-Contact logging does not affect claims.
-Sharing must be scoped to the selected local unit.
-Route links from shared access rows must use route-safe profileHref.
-```
-
-## Events
+## Events and RSVP/volunteer model
 
 ```text
 +------------------+
@@ -275,7 +334,38 @@ create/update/delete/duplicate write or check local_unit_id
 token/public RSVP remains event-id scoped
 ```
 
-Event summary/rollup views remain active and are hardened:
+RSVP/volunteer correction:
+
+```text
++-----------------------------+
+| event_person_rsvps          |
+|-----------------------------|
+| event_id                    |
+| primary_name/email/phone    |
+| source_code                 |
+| status_code                 |
++--------------+--------------+
+               |
+               v
++-----------------------------+
+| event_person_rsvp_attendees |
+|-----------------------------|
+| event_person_rsvp_id        |
+| attendee_name               |
+| is_primary                  |
+| is_volunteer                | [IMPORTANT]
+| sort_order                  |
++-----------------------------+
+```
+
+Rule:
+
+```text
+All volunteers can count toward attendance/RSVPs.
+Not all RSVPs are volunteers.
+```
+
+Current event summary/rollup views remain active and hardened:
 
 ```text
 event_person_rsvp_summary           [HARDENED security_invoker=true]
@@ -283,7 +373,71 @@ event_council_rsvp_rollups          [HARDENED security_invoker=true]
 event_host_summary                  [HARDENED security_invoker=true]
 ```
 
-The RSVP/public overview routes use server-side/admin access for these summaries.
+## Supreme import / official member tables
+
+```text
++--------------------------+
+| official_import_batches  |
+|--------------------------|
+| id                       |
+| council_id               | [LEGACY bridge]
+| uploaded_by_auth_user_id |
+| batch_status_code        |
+| row_count                |
++-------------+------------+
+              |
+              | batch_id
+              v
++--------------------------+
+| official_import_rows     |
+|--------------------------|
+| id                       |
+| batch_id                 |
+| council_id               | [LEGACY bridge]
+| matched_person_id        |
+| proposed_action_code     |
+| review_status_code       |
++--------------------------+
+
++--------------------------+
+| official_member_records  |
+|--------------------------|
+| id                       |
+| council_id               | [LEGACY bridge]
+| person_id                |
+| member_number            |
+| official_status_code     |
+| raw_payload              |
++--------------------------+
+
++--------------------------+
+| supreme_update_queue     |
+|--------------------------|
+| id                       |
+| council_id               | [LEGACY bridge]
+| person_id                |
+| changed_fields           |
+| status_code              |
++--------------------------+
+```
+
+May 13 state:
+
+- RLS no longer uses `app.current_council_id()`.
+- Policies bridge through `local_units.legacy_council_id` and effective members/manage access.
+- `anon` grants were revoked from these tables in the final RLS cut.
+- Broader `/imports/supreme` UX/model cleanup remains open under GitHub issue #6.
+
+Observed row counts before final cut:
+
+```text
+official_import_batches = 0
+official_import_rows = 0
+official_member_records = 0
+supreme_update_queue = 1
+```
+
+The one queue row was kept.
 
 ## External admin contacts
 
@@ -298,7 +452,7 @@ member_records: no
 user_unit_relationships: no
 ```
 
-They should use `/me/council/admins/[id]`, not member surfaces.
+They should use `/me/council/admins/[id]`, not member surfaces, unless they are also real local members.
 
 ## Real local members who are also admins
 
@@ -349,6 +503,8 @@ Migration:
 20260507230000_retire_data_hygiene_scaffolding.sql
 ```
 
+`legacy_fossil_resolutions` remains as a locked internal audit table.
+
 ## Retired auth/audit wrapper views
 
 Retired after confirming no policy/function dependency:
@@ -366,20 +522,6 @@ Migration:
 
 ```text
 20260507233000_secure_public_views.sql
-```
-
-## Hardened operational access views
-
-Remain active with `security_invoker=true`:
-
-```text
-v_effective_area_access
-v_effective_resource_access
-v_effective_admin_package_access
-v_effective_event_management_access
-event_person_rsvp_summary
-event_council_rsvp_rollups
-event_host_summary
 ```
 
 ## SECURITY DEFINER / function hardening
@@ -436,6 +578,23 @@ Expected:
 pg_trgm | extensions
 ```
 
+## Data API grants habit
+
+Future public table migrations must explicitly decide grants.
+
+```text
+Internal/server-only table: no browser grants; document intentional lockout.
+App/client table: explicit authenticated grants plus RLS.
+Public table: anon grants only when intentionally public.
+Service-role Data API use: explicit service_role grants where needed.
+```
+
+GitHub issue:
+
+```text
+#7 Migration habit: make Data API grants explicit for new public tables
+```
+
 ## Current transitional notes
 
 - `people` remains the product/domain concept.
@@ -451,15 +610,17 @@ pg_trgm | extensions
 
 ## Remaining schema/model work
 
-- Rebaseline Supabase migrations.
-- Continue council-era fallback cleanup.
-- Audit/drop:
+- Rotate Supabase DB password because it appeared in terminal/chat output.
+- Audit/drop/restrict compatibility helpers:
   ```text
+  app.current_council_id
   app.create_prospect
   app.create_volunteer_only
-  app.current_council_id
   ```
+- Rebaseline Supabase migrations.
+- Continue council-era fallback cleanup.
 - Reduce `member_record_id` dependency for area/resource grants over time.
 - Continue local-unit people spine adoption.
 - Continue hidden identity spine cleanup.
 - Keep external admin contacts out of member-backed rows unless they are real local members.
+- Continue `/imports/supreme` UX/model cleanup separately from the RLS cut.
