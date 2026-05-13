@@ -8763,7 +8763,13 @@ ALTER TABLE "public"."official_import_batch_status_types" ENABLE ROW LEVEL SECUR
 ALTER TABLE "public"."official_import_batches" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "official_import_batches_admin_only" ON "public"."official_import_batches" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "official_import_batches_manageable_local_unit" ON "public"."official_import_batches" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "official_import_batches"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "official_import_batches"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -8776,18 +8782,36 @@ ALTER TABLE "public"."official_import_row_action_types" ENABLE ROW LEVEL SECURIT
 ALTER TABLE "public"."official_import_rows" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "official_import_rows_admin_only" ON "public"."official_import_rows" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "official_import_rows_manageable_local_unit" ON "public"."official_import_rows" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "official_import_rows"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "official_import_rows"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
 ALTER TABLE "public"."official_member_records" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "official_member_records_select_admin_only" ON "public"."official_member_records" FOR SELECT USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "official_member_records_select_manageable_local_unit" ON "public"."official_member_records" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "official_member_records"."person_id") AND ("p"."council_id" = "official_member_records"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
-CREATE POLICY "official_member_records_write_admin_only" ON "public"."official_member_records" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "official_member_records_write_manageable_local_unit" ON "public"."official_member_records" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "official_member_records"."person_id") AND ("p"."council_id" = "official_member_records"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "official_member_records"."person_id") AND ("p"."council_id" = "official_member_records"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -9172,7 +9196,15 @@ ALTER TABLE "public"."spiritual_topics" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."supreme_update_queue" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "supreme_update_queue_admin_only" ON "public"."supreme_update_queue" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "supreme_update_queue_manageable_local_unit" ON "public"."supreme_update_queue" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "supreme_update_queue"."person_id") AND ("p"."council_id" = "supreme_update_queue"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (("public"."people" "p"
+     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("p"."id" = "supreme_update_queue"."person_id") AND ("p"."council_id" = "supreme_update_queue"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -9979,7 +10011,6 @@ GRANT ALL ON TABLE "public"."official_import_batch_status_types" TO "service_rol
 
 
 
-GRANT ALL ON TABLE "public"."official_import_batches" TO "anon";
 GRANT ALL ON TABLE "public"."official_import_batches" TO "authenticated";
 GRANT ALL ON TABLE "public"."official_import_batches" TO "service_role";
 
@@ -9997,13 +10028,11 @@ GRANT ALL ON TABLE "public"."official_import_row_action_types" TO "service_role"
 
 
 
-GRANT ALL ON TABLE "public"."official_import_rows" TO "anon";
 GRANT ALL ON TABLE "public"."official_import_rows" TO "authenticated";
 GRANT ALL ON TABLE "public"."official_import_rows" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."official_member_records" TO "anon";
 GRANT ALL ON TABLE "public"."official_member_records" TO "authenticated";
 GRANT ALL ON TABLE "public"."official_member_records" TO "service_role";
 
@@ -10255,7 +10284,6 @@ GRANT ALL ON TABLE "public"."spiritual_topics" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."supreme_update_queue" TO "anon";
 GRANT ALL ON TABLE "public"."supreme_update_queue" TO "authenticated";
 GRANT ALL ON TABLE "public"."supreme_update_queue" TO "service_role";
 
