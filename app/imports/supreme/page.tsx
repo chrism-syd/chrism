@@ -9,6 +9,7 @@ type CouncilRow = {
   name: string | null;
   council_number: string | null;
   organization_id: string | null;
+  local_unit_kind?: string | null;
 };
 
 type MembershipRow = {
@@ -171,6 +172,7 @@ export default async function SupremeImportPage() {
         <SupremeImportWorkbench
           existingPeople={people}
           expectedCouncilNumber={(council as CouncilRow)?.council_number ?? null}
+          localUnitKind={typedCouncil.local_unit_kind ?? 'council'}
         />
       </div>
     </main>
