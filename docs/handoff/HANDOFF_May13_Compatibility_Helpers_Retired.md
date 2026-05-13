@@ -33,6 +33,17 @@ acbc57b Wire custom list state checks into verify
 cea1e0e Add DB access matrix SQL verifier
 ```
 
+Terminology/access hardening follow-up commits:
+
+```text
+6c9b2bd Add local unit terminology helper
+4d472f3 Add local unit terminology regression checks
+f63e92d Wire local unit terminology checks into verify
+6f4e567 Use local unit terminology in Supreme import mismatch copy
+f1e85f1 Pass local unit kind to Supreme import workbench
+40fea2c Add Vercel Analytics
+```
+
 ## What changed
 
 The old council-context compatibility helpers were retired:
@@ -120,6 +131,7 @@ officer role regression checks
 RSVP volunteer regression checks
 custom-list member state checks
 org-admin area access checks
+local-unit terminology checks
 ```
 
 Regression scripts added:
@@ -129,6 +141,7 @@ scripts/verify-officer-roles.mjs
 scripts/verify-rsvp-volunteer-semantics.mjs
 scripts/verify-custom-list-member-state.mjs
 scripts/verify-org-admin-area-access.mjs
+scripts/verify-local-unit-terminology.mjs
 ```
 
 Pure helper seams added/extracted:
@@ -137,6 +150,7 @@ Pure helper seams added/extracted:
 lib/rsvp/person-rsvp-attendees.ts
 lib/custom-lists/member-state.ts
 lib/auth/org-admin-area-access.ts
+lib/local-units/terminology.ts
 ```
 
 ### Officer currentness / Past Grand Knight
@@ -203,6 +217,26 @@ All emitted rows preserve local_unit_id/local_unit_name context.
 No unsupported area/access enum values are introduced.
 ```
 
+### Local-unit terminology contract
+
+Covered behavior:
+
+```text
+Council remains valid Knights local-org terminology.
+Conference remains valid SVDP-style local-org terminology.
+Parish, ministry, and generic local organization labels are available.
+Unknown local-unit kinds fall back safely to generic local organization terminology.
+Supreme import council-mismatch copy now uses the terminology seam instead of fully hardcoded council copy.
+```
+
+Important distinction:
+
+```text
+The problem is not visible use of “council” for Knights local orgs.
+The problem is hardcoded Knights/council terminology being used as generic product language.
+Future UI copy should pull local-org nouns from lib/local-units/terminology.ts or a future parent-org terminology source.
+```
+
 ## Live DB access matrix verification
 
 A read-only SQL verifier was added:
@@ -235,6 +269,21 @@ organization_admin_assignments
 -> list_accessible_local_units_for_area(...)
 ```
 
+## Security/ops checkpoint
+
+The Supabase DB password was rotated after it appeared in terminal/chat output during troubleshooting.
+
+Verification after rotation:
+
+```text
+Supabase CLI db dump works with the new SUPABASE_DB_PASSWORD.
+npm run verify passed.
+npm run build passed.
+Production surfaces loaded.
+```
+
+Vercel environment variables were checked and did not contain direct Postgres DB URLs or `SUPABASE_DB_PASSWORD`; no Vercel DB-password update was needed.
+
 ## Model rules reaffirmed
 
 ```text
@@ -261,9 +310,9 @@ unless they are also real local members through a separate member path.
 
 ## Current highest-priority remaining work
 
-1. Rotate the Supabase DB password because it appeared in terminal/chat output during troubleshooting.
-2. Continue `/imports/supreme` UX/model cleanup under issue #6.
-3. Continue Data API grant habit from issue #7.
+1. Continue `/imports/supreme` UX/model cleanup under issue #6.
+2. Continue Data API grant habit from issue #7.
+3. Scan pages/components for hardcoded Knights-specific terminology that should use the local-org terminology seam. This should preserve “council” for Knights local orgs, but remove assumptions that council is the generic product noun.
 4. Rebaseline Supabase migrations when ready so replay/shadow DB stays less brittle.
 5. Continue threading pure helper seams into broad action files where safe, especially custom-list contact/claim/revoke helpers.
 
@@ -291,6 +340,7 @@ Regression checks now cover:
 - RSVP vs volunteer separation
 - custom-list contact / claim / revoke state semantics
 - org-admin area access contract
+- local-unit terminology
 
 Live DB access matrix verifier exists at:
 - scripts/verify-db-access-matrix.sql
@@ -300,6 +350,13 @@ Latest live DB access matrix result:
 - all failure counts = 0
 - detail queries returned no rows
 
-Next recommended engineering task: rotate the Supabase DB password, then continue /imports/supreme UX/model cleanup or Data API grant habit work.
+The Supabase DB password has been rotated and verified. Vercel did not need a DB-password env update.
+
+Local-unit terminology rule:
+- “Council” is valid Knights local-org terminology.
+- “Conference” can be valid SVDP-style local-org terminology.
+- The TODO is to scan hardcoded Knights-specific terminology and move it to the local-org noun seam where it is generic product UI.
+
+Next recommended engineering task: continue /imports/supreme UX/model cleanup or Data API grant habit work.
 Work in owl mode: slow, dependency-aware, audit-first, small patches, verify after each seam.
 ```
