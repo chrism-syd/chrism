@@ -9182,18 +9182,33 @@ ALTER TABLE "public"."supreme_update_status_types" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."user_access_scopes" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "user_access_scopes_select_self_or_admin" ON "public"."user_access_scopes" FOR SELECT USING ((("user_id" = "auth"."uid"()) OR (("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))));
+CREATE POLICY "user_access_scopes_select_self_or_manageable_local_unit" ON "public"."user_access_scopes" FOR SELECT TO "authenticated" USING ((("user_id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "user_access_scopes"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))));
 
 
 
-CREATE POLICY "user_access_scopes_write_admin_only" ON "public"."user_access_scopes" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "user_access_scopes_write_manageable_local_unit" ON "public"."user_access_scopes" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "user_access_scopes"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "user_access_scopes"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
 ALTER TABLE "public"."user_admin_grants" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "user_admin_grants_admin_only" ON "public"."user_admin_grants" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "user_admin_grants_manageable_local_unit" ON "public"."user_admin_grants" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "user_admin_grants"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "user_admin_grants"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -9232,11 +9247,20 @@ CREATE POLICY "users can update own row" ON "public"."users" FOR UPDATE TO "auth
 
 
 
-CREATE POLICY "users_select_self_or_admin" ON "public"."users" FOR SELECT USING ((("id" = "auth"."uid"()) OR (("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))));
+CREATE POLICY "users_select_self_or_manageable_local_unit" ON "public"."users" FOR SELECT TO "authenticated" USING ((("id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "users"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))));
 
 
 
-CREATE POLICY "users_write_admin_only" ON "public"."users" USING ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id"))) WITH CHECK ((("council_id" = "app"."current_council_id"()) AND "app"."user_is_council_admin"("council_id")));
+CREATE POLICY "users_write_manageable_local_unit" ON "public"."users" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "users"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM ("public"."local_units" "lu"
+     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
+  WHERE (("lu"."legacy_council_id" = "users"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
