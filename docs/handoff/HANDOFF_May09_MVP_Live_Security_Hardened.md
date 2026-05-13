@@ -1,74 +1,65 @@
-# HANDOFF / TRANSITION STATE - May 9 MVP Live + Security Hardened
+# HANDOFF / TRANSITION STATE - May 13 Council RLS Sweep Complete
 
 ## Read this first
 
-This handoff supersedes and extends the Apr 27 MVP Stabilization handoff. Do not discard the earlier mental model:
+This document supersedes the May 9 MVP Live + Security Hardened handoff while preserving its mental model and working style.
+
+Core model:
 
 ```text
 local_unit_id = operational ownership / scope truth
-council_id    = legacy/public/routing/compatibility truth
+council_id    = legacy / public / routing / compatibility truth only
 people        = product noun
 members       = one relationship/state inside a local org
 ```
 
-The Apr 27 handoff remains directionally correct, especially the rules around local-unit-first scope, people-first product semantics, hidden identity links, external admin contacts, dirty-data warnings, and not reintroducing `council_id` as operational truth.
+Do not discard the Apr 27 or May 9 mental model. The major May 13 update is that the `app.current_council_id()` RLS policy sweep is complete: no RLS policies now depend on `app.current_council_id()`.
 
-## Current known-good checkpoint
+## Current checkpoint
 
 ```text
-Production URL:
-  https://chrism.app
-
-Production branch:
-  main
-
-Known-good tag:
-  mvp-live-security-hardened
-
-Latest known-good commit:
-  3d86568 Move pg_trgm extension out of public
+Production URL: https://chrism.app
+Production branch: main
+Supabase project ref: wvaaijbvukzyfaglifoc
+Known-good tag still worth preserving: mvp-live-security-hardened
+Latest schema/RLS checkpoint before this doc refresh: aa6f276 Refresh schema after council RLS cuts
 ```
 
-Recent commit stack on `main`:
+Final verification after the council RLS sweep:
 
-```text
-3d86568 Move pg_trgm extension out of public
-19b84f2 Pin database function search paths
-df2c15b Revoke public execution of security definer internals
-dcaa235 Secure public operational views
-2527fc9 Retire data hygiene scaffolding
-a1cc3bd Trigger first Vercel deployment
-5ab7fb4 Merge branch 'audit/post-merge-stabilization'
-f753feb Filter empty effective access contexts
-1bdffa1 Enforce local-unit ownership for custom lists
-b3a2c7d Scope member custom lists by local unit only
+```sql
+select
+  count(*) as remaining_current_council_policy_count
+from pg_policies
+where coalesce(qual, '') ilike '%current_council_id%'
+   or coalesce(with_check, '') ilike '%current_council_id%';
 ```
 
-Git tags:
+Expected/current result:
 
 ```text
-audit-post-merge-stabilized
-mvp-stabilized-main
-mvp-live-security-hardened
+remaining_current_council_policy_count = 0
 ```
 
 ## Syd's working style and helper expectations
+
+Keep this section. It is working well.
 
 Syd prefers direct, honest feedback with pushback. Do not appease. State clearly what is a blocker, what is not, and what is unknown.
 
 The workflow that worked well in this phase:
 
 - Think first, then make small targeted cuts.
-- Use “owl mode” for architecture/security passes: slow, dependency-aware, audit-first, no broad sledgehammer changes.
+- Use "owl mode" for architecture/security passes: slow, dependency-aware, audit-first, no broad sledgehammer changes.
 - Inspect repo/GitHub state directly whenever possible. Do not make Syd act as a file courier.
 - Prefer production-ready changed files, exact patches, or downloadable one-shot scripts over long inline snippets.
 - Prefer changed files only, not full repo bundles, unless explicitly requested.
 - Keep changes surgical and seam-aware.
 - Maintain a running TODO ledger and connect work back to the larger transition.
 - Treat loader + client + action + database bugs as one seam when applicable.
-- Quote shell paths containing `[id]` in zsh.
+- Quote shell paths containing `[id]` or `[token]` in zsh.
 - Be transparent when something is uncertain or not verified.
-- After each DB/app change, use:
+- For DB/app changes, use the full verification loop when the Supabase CLI is healthy:
   ```bash
   cd /Users/syd.fernandez/Chrism
   npx supabase db push --linked
@@ -76,10 +67,12 @@ The workflow that worked well in this phase:
   npx supabase db dump --linked --schema public -f supabase/schema.sql
   npx supabase gen types typescript --project-id wvaaijbvukzyfaglifoc --schema public > database.types.ts
   npm run verify
+  npm run build
   git status --short
   git diff --stat
   ```
-- Commit only after verify + relevant SQL audit + smoke pass.
+- Commit only after verify + build + relevant SQL audit + smoke pass.
+- If Supabase CLI fails with socket/TLS/login-role errors, stop the generated schema pipeline and restore generated files. Manual SQL Editor application is acceptable, but repair migration history afterward.
 
 Do not:
 
@@ -89,6 +82,7 @@ Do not:
 - Add backwards-compatible zombie wrappers when a future-state fix is safe.
 - Keep asking for local diffs when current GitHub/repo state is available.
 - Silence Supabase lint warnings by adding broad policies or grants without proving need.
+- Add browser grants to internal/server-only tables just because the Data API grant audit reports them missing.
 
 ## Big-picture mission
 
@@ -103,7 +97,18 @@ members       = one relationship/state inside a local org
 
 The product manages people, not only members. A person can be a member, prospect, volunteer, external admin contact, officer, shared custom-list participant, or another future local human record type.
 
-## Architecture direction
+Golden rules:
+
+1. Local org experiences must use local-unit-scoped people/access.
+2. Hidden identity can group the same human across orgs, but must not silently swap in another org's row.
+3. Do not dedupe by name alone.
+4. Do not treat `member_records` as conceptual product truth.
+5. Do not provision `member_records` or `user_unit_relationships` for external admin invite acceptance.
+6. A real local member who also has admin access must remain visible in member surfaces.
+7. If a bug spans loader, UI, action, and DB, patch the seam, not only one layer.
+8. Test residue can look exactly like logic failure. Inspect data before assuming code is wrong.
+
+## Current architecture direction
 
 Local org-visible layer:
 
@@ -135,94 +140,15 @@ access-contexts
 operations-scope-selection
 ```
 
-Golden rules:
-
-1. Local org experiences must use local-unit-scoped people/access.
-2. Hidden identity can group the same human across orgs, but must not silently swap in another org's row.
-3. Do not dedupe by name alone.
-4. Do not treat `member_records` as conceptual product truth.
-5. Do not provision `member_records` or `user_unit_relationships` for external admin invite acceptance.
-6. A real local member who also has admin access must remain visible in member surfaces.
-7. If a bug spans loader, UI, action, and DB, patch the seam, not only one layer.
-8. Test residue can look exactly like logic failure. Inspect data before assuming code is wrong.
-
-## Apr 27 baseline carried forward
-
-The Apr 27 docs established the MVP stabilization baseline:
-
-```text
-St. Patrick's baseline clean
-manual admin invite works
-multi-org admin access works
-section-level org switching works
-user-menu org switching works
-/members scoping works
-/custom-lists scoping works
-/me/council scoping works
-/me org logos work
-preferred name works for admin-only profile
-custom-list sharing works
-custom-list contact logging works
-claim behavior preserved
-build passes
-lint had no errors at handoff
-```
-
-St. Patrick's baseline from Apr 27:
-
-```text
-active_member_records        125
-archived_member_records      0
-custom_lists                 1
-events                       8
-active_org_admin_assignments 2
-```
-
-Active org admins:
-
-```text
-Sydney Fernandez
-Nathan Fernandez
-```
-
-Current officer terms at that handoff:
-
-```text
-Kristian Chan     grand_knight          2025-2026
-Sydney Fernandez  deputy_grand_knight   2025-2026
-```
-
-## Work completed after Apr 27
-
-### Supabase migration-history repair and schema refresh
-
-- Linked local repo to Supabase project `wvaaijbvukzyfaglifoc`.
-- Repaired migration history mismatch so local and remote migration lists aligned.
-- Refreshed:
-  ```text
-  database.types.ts
-  supabase/schema.sql
-  supabase/reference/public-openapi.json
-  supabase/reference/public-schema-reference.md
-  supabase/reference/public-schema-summary.json
-  ```
+## Work completed through May 9, preserved
 
 ### Production deployment
 
-- Connected GitHub repo to Vercel.
-- Added Vercel environment variables:
-  ```text
-  BREVO_API_KEY
-  BREVO_SENDER_EMAIL
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  NEXT_PUBLIC_SUPABASE_URL
-  PII_ENCRYPTION_KEY
-  SUPABASE_SECRET_KEY
-  ```
-- Connected `chrism.app` through Cloudflare DNS.
-- Set Supabase Auth Site URL/redirect URLs so magic links point to `https://chrism.app/auth/confirm` instead of localhost.
-- `chrism.app` is live.
-- Vercel production deploys from `main`.
+- GitHub repo is connected to Vercel.
+- Production deploys from `main`.
+- Production URL is `https://chrism.app`.
+- Cloudflare handles DNS.
+- Supabase Auth redirect URLs point magic links to production.
 
 ### Custom-list local-unit moat
 
@@ -242,19 +168,14 @@ supabase/migrations/20260505234500_custom_lists_local_unit_moat.sql
 
 Current behavior:
 
-- `custom_lists.council_id` is forced to null and no longer acts as custom-list scope truth.
+- `custom_lists.council_id` is forced null and no longer acts as custom-list scope truth.
 - Custom-list ownership is local-unit-only.
 - Member detail custom-list reads use `local_unit_id` only.
-- Compatibility bridge removed where safe.
+- Compatibility bridge was removed where safe.
 
 ### Effective access cleanup for revoked admin access
 
-Problem:
-
-- Nathan had revoked St. Martin external admin access.
-- He could not access St. Martin pages, but `/me` still showed St. Martin logo because zero-capability access contexts were still emitted.
-
-Fix:
+Commit:
 
 ```text
 f753feb Filter empty effective access contexts
@@ -268,26 +189,12 @@ supabase/migrations/20260507143000_filter_empty_admin_package_access.sql
 
 Current behavior:
 
-- Effective access contexts suppress zero-capability admin residue.
-- Nathan's `/me` shows only St. Patrick's.
+- Revoked admin assignments do not appear as visible `/me` org cards.
+- Zero-capability contexts are filtered out.
+- Nathan's `/me` shows only St. Patrick's after St. Martin revoke.
 - St. Martin pages remain inaccessible.
 
 ### Data-hygiene dashboard retired
-
-Before retirement, the dashboard had:
-
-```text
-Open null-user fossils: 2
-Unresolved legacy writes: 140
-Legacy gap reports that were no longer authoritative
-```
-
-Actions performed:
-
-- Resolved null-user fossils.
-- Marked historical legacy-write observations resolved.
-- Confirmed the remaining gap reports were obsolete transitional diagnostics, not active authority.
-- Removed `/super-admin/data-hygiene`; it now returns 404.
 
 Commit:
 
@@ -301,216 +208,386 @@ Migration:
 supabase/migrations/20260507230000_retire_data_hygiene_scaffolding.sql
 ```
 
-Removed:
+Current behavior:
 
-```text
-app/super-admin/data-hygiene/actions.ts
-app/super-admin/data-hygiene/page.tsx
-lib/super-admin/data-hygiene.ts
-```
+- `/super-admin/data-hygiene` returns 404.
+- Diagnostic/readiness views and legacy-write observer triggers were removed.
+- `legacy_fossil_resolutions` remains as an internal audit table only.
+- Direct `anon`/`authenticated` access to `legacy_fossil_resolutions` is intentionally revoked.
 
-Dropped obsolete diagnostic/readiness views and old legacy-write observer triggers.
+### Supabase security hardening through May 9
 
-### Supabase security hardening
-
-Security Advisor was reduced from many errors/warnings to only one parked warning.
-
-Completed cuts:
-
-#### 1. Secure public operational views
-
-Commit:
+Completed:
 
 ```text
 dcaa235 Secure public operational views
-```
-
-Migration:
-
-```text
-supabase/migrations/20260507233000_secure_public_views.sql
-```
-
-Retired:
-
-```text
-v_auth_effective_area_access
-v_auth_effective_resource_access
-v_auth_effective_admin_package_access
-v_parallel_admin_package_audit
-v_parallel_event_assignment_audit
-v_parallel_custom_list_access_audit
-```
-
-Hardened with `security_invoker=true`:
-
-```text
-v_effective_area_access
-v_effective_resource_access
-v_effective_admin_package_access
-v_effective_event_management_access
-event_person_rsvp_summary
-event_council_rsvp_rollups
-event_host_summary
-```
-
-Direct `anon`/`authenticated` access to these operational views was revoked where appropriate; server-side/service-role access remains.
-
-#### 2. Revoke public execution of SECURITY DEFINER internals
-
-Commit:
-
-```text
 df2c15b Revoke public execution of security definer internals
-```
-
-Migration:
-
-```text
-supabase/migrations/20260507234500_revoke_public_security_definer_rpc.sql
-```
-
-Revoked direct `anon`/`authenticated` RPC execution for flagged internal functions, including:
-
-```text
-archive_local_unit_member_record(...)
-restore_local_unit_member_record(...)
-list_super_admin_preview_local_units()
-rls_auto_enable()
-sync_organization_admin_assignment_from_council_admin_assignmen(...)
-sync_user_unit_relationship_status_from_member_record()
-trg_sync_org_admin_from_council_admin_assignment()
-```
-
-Smoke after this passed, including prospect creation, archive, and restore.
-
-#### 3. Pin function search paths
-
-Commit:
-
-```text
 19b84f2 Pin database function search paths
-```
-
-Migration:
-
-```text
-supabase/migrations/20260508000000_set_function_search_paths.sql
-```
-
-Set explicit `search_path` for all functions Supabase flagged as mutable-search-path warnings.
-
-#### 4. Move `pg_trgm` out of public
-
-Commit:
-
-```text
 3d86568 Move pg_trgm extension out of public
 ```
 
-Migration:
+Key migrations:
 
 ```text
+supabase/migrations/20260507233000_secure_public_views.sql
+supabase/migrations/20260507234500_revoke_public_security_definer_rpc.sql
+supabase/migrations/20260508000000_set_function_search_paths.sql
 supabase/migrations/20260508001500_move_pg_trgm_extension_schema.sql
 ```
 
-Pre-checks showed:
-
-- `pg_trgm` dependencies were extension-owned objects only.
-- No app trigram indexes were found.
-
-Moved `pg_trgm` from `public` to `extensions`.
-
-### Supabase Security Advisor status
-
-Current expected status:
+Security Advisor expected status remains:
 
 ```text
 ERRORs: 0
-WARNs: 1
-INFOs: RLS enabled/no policy notices remain
+WARNs: 1 parked warning for leaked password protection
+INFOs: RLS enabled/no policy notices remain and are intentionally parked
 ```
 
-Only parked warning:
-
-```text
-Leaked Password Protection Disabled
-```
-
-Reason parked:
+Reason leaked-password warning is parked:
 
 - Supabase says leaked password protection requires a paid/Pro plan.
 - Chrism is magic-link-first.
 - Not a launch blocker on the current Free plan.
 
-INFO notices:
-
-- RLS enabled/no policy for many archive, lookup, internal, and future-feature tables.
-- This is intentionally parked.
-- RLS enabled with no policies means browser roles are locked out by default.
-- Do not add broad policies just to silence INFO notices.
-
-## Production smoke tests passed
-
-After final hardening:
+RLS INFO interpretation:
 
 ```text
-/login
-/me
-/me/council
-/events
-/members
-/custom-lists
-/super-admin/data-hygiene returns 404
-create prospect
-archive dummy/member record
-restore dummy/member record
-Nathan production access check:
-  /me shows only St. Patrick's
-  St. Martin does not appear
-  St. Martin pages are inaccessible
+RLS enabled + no policies = anon/authenticated browser roles are locked out.
+```
+
+Do not add broad policies just to silence INFO notices.
+
+## Work completed after May 9 in this phase
+
+### Event timezone rendering fixed
+
+Commit:
+
+```text
+cd48a4b Fix event timezone rendering
+```
+
+Fixed meeting/event date-time display and edit behavior so general/executive meeting times display consistently on `/events`, `/events/[id]`, and council meeting pages.
+
+### Legacy nonmember RPC browser access revoked
+
+Completed a two-step lock-down of legacy nonmember creation RPC browser access:
+
+```text
+66a7914 Revoke legacy nonmember RPC browser access
+2c17cdc Revoke local-unit nonmember RPC browser access
+```
+
+Result:
+
+- Legacy nonmember/prospect/volunteer RPCs are no longer directly executable by browser roles where they should be server-controlled.
+- `app.current_council_id` remained for compatibility at that moment, but browser-facing reliance was reduced.
+
+### Event/org/officer/person-side RLS cuts
+
+Sequential RLS cuts moved policies off `app.current_council_id()` and onto local-unit/effective-access bridge checks.
+
+Key commits/migrations:
+
+```text
+978da8c Cut event RLS from current council helper
+  supabase/migrations/20260509210000_cut_event_rls_from_current_council.sql
+
+f4df4ce Cut org branding RLS from current council helper
+  supabase/migrations/20260509211500_cut_org_brand_rls_from_current_council.sql
+
+0aead1f [officer terms RLS cut commit in this phase]
+  supabase/migrations/[officer_terms current_council cut]
+
+5499562 Cut person side RLS from current council helper
+  supabase/migrations/20260512193000_cut_person_side_rls_from_current_council.sql
+
+71ac785 Cut audit and merge RLS from current council helper
+  supabase/migrations/20260512200000_cut_audit_merge_rls_from_current_council.sql
+
+1743236 Cut legacy user RLS from current council helper
+  supabase/migrations/20260512201500_cut_legacy_user_rls_from_current_council.sql
+
+451a3f9 Cut Supreme import RLS from current council helper
+  supabase/migrations/20260513203000_cut_supreme_import_rls_from_current_council.sql
+
+aa6f276 Refresh schema after council RLS cuts
+```
+
+Important final result:
+
+```text
+No RLS policies reference app.current_council_id().
+```
+
+Policy bridge pattern now used broadly:
+
+```text
+legacy council_id
+-> local_units.legacy_council_id
+-> v_effective_area_access
+-> auth.uid() + area/access-level checks
+```
+
+For person-adjacent tables, bridge through `people` where needed:
+
+```text
+person_id
+-> people.council_id
+-> local_units.legacy_council_id
+-> v_effective_area_access
+```
+
+For import/official-member tables, this was intentionally a narrow RLS hardening cut only. `/imports/supreme` UX/model cleanup remains a future project.
+
+### RSVP vs volunteer model fixed
+
+Problem found during event smoke testing:
+
+- A normal RSVP was showing as a volunteer.
+- Product rule clarified: all volunteers can count toward RSVPs/attendance, but not all RSVPs are volunteers.
+
+Fix:
+
+```text
+Separate RSVP responses from volunteers
+```
+
+Key migration:
+
+```text
+supabase/migrations/20260511203000_separate_rsvp_attendees_from_volunteers.sql
+```
+
+Current behavior:
+
+- `event_person_rsvp_attendees.is_volunteer` records volunteer intent.
+- RSVP-only submissions count as attending/responses but not volunteers.
+- Volunteer checkbox on public/manage RSVP pages marks volunteer intent.
+- `/events/[id]` shows separate RSVP responses and volunteers.
+- `/events/[id]/volunteers` shows only volunteer-flagged attendees.
+- Event top stats show `Attending` and `Volunteers`; old `Reminder` stat card removed.
+- Admins can remove an RSVP response from `/events/[id]`.
+- Remove buttons support custom labels.
+
+Smoke expectation:
+
+```text
+RSVP-only unchecked -> attending/responses increase, volunteers unchanged
+Volunteer checked -> attending/responses increase, volunteers increase
+Volunteer roster shows only volunteer-flagged rows
+```
+
+### Officer term currentness and lasting honorifics fixed
+
+Problem:
+
+- A `2024-2025 Grand Knight` term was treated as current during the 2025-2026 fraternal year.
+- Historical Grand Knight was displayed as current Grand Knight.
+- Historical Grand Knight could appear officer-admin eligible.
+
+Fix:
+
+```text
+Treat officer end years as exclusive
+```
+
+Current semantics:
+
+```text
+service_end_year = ending year of the fraternal-year label.
+Example: 2024-2025 is active during fraternal start year 2024.
+It is past once the 2025-2026 fraternal year begins.
+```
+
+Current behavior:
+
+- Historical Grand Knight displays as `Past Grand Knight`.
+- Historical Grand Knight does not appear under current officers.
+- Historical Grand Knight does not grant officer-derived admin access.
+- Lasting honorifics now show on:
+  ```text
+  /members
+  /members/[id]
+  /members/[id]/officers
+  ```
+
+Confirmed sample:
+
+```text
+Rand Comishen
+2024-2025 Grand Knight
+currently_officer_admin_eligible = false
+has_active_manual_org_admin_assignment = false
+```
+
+### Admin and officer smoke checks
+
+After the officer/currentness fixes:
+
+- Org/council/branding surfaces smoke-tested well.
+- Officer term surfaces smoke-tested well.
+- `/me/council` no longer shows historical Grand Knight as officer-derived admin.
+- Current active admin audit showed expected manual and officer-derived admins.
+
+### Login stale-tab UX TODO logged
+
+GitHub issue:
+
+```text
+#5 UX polish: soften stale magic-link login tab after email is sent
+```
+
+Idea:
+
+- After a magic link is sent, show a countdown.
+- Try `window.close()` after a delay.
+- If blocked, show “You can safely close this tab.”
+
+Important caveat:
+
+```text
+Browsers usually block window.close() unless the window/tab was opened by script.
+```
+
+### Supreme import / official-member cleanup TODO logged, then RLS cut completed
+
+GitHub issue:
+
+```text
+#6 Rework Supreme import and official-member workflow before final council-id RLS cut
+```
+
+Original intent was to leave this as UX/model cleanup before RLS, but audit showed:
+
+```text
+official_import_batches = 0 rows
+official_import_rows = 0 rows
+official_member_records = 0 rows
+supreme_update_queue = 1 row
+```
+
+The single queue row was real pending residue, so it was kept.
+
+RLS was safely cut as a narrow hardening step:
+
+```text
+supabase/migrations/20260513203000_cut_supreme_import_rls_from_current_council.sql
+```
+
+The broader `/imports/supreme` UX/model cleanup remains open under issue #6.
+
+### Supabase Data API explicit grants TODO logged
+
+GitHub issue:
+
+```text
+#7 Migration habit: make Data API grants explicit for new public tables
+```
+
+Current audit found only `legacy_fossil_resolutions` missing `anon`/`authenticated` grants, which is intentional.
+
+Future migration habit:
+
+- Internal/server-only table: no browser grants; document intentional lockout.
+- App/client table: explicit grants to `authenticated` plus RLS policies.
+- Public table: `anon` grant only if intentionally public.
+- Service-role Data API use: explicit `service_role` grants where needed.
+
+### Supabase CLI/network incident and password note
+
+During final schema refresh, Supabase CLI failed repeatedly with socket/TLS/login-role errors. Root cause appeared to be local network/IPv6/router behavior, not Chrism app code or SQL.
+
+Observed signals:
+
+```text
+A record for db.wvaaijbvukzyfaglifoc.supabase.co returned no IPv4 address.
+AAAA returned IPv6.
+CLI and PostHog requests failed with socket is not connected.
+Router restart restored connection.
+Docker Desktop also needed to be open for schema dump.
+```
+
+A migration was applied manually via SQL Editor, then migration history was repaired with:
+
+```bash
+npx supabase migration repair --linked --status applied 20260513203000
+```
+
+Important security note:
+
+```text
+Rotate the Supabase DB password.
+It appeared in terminal/chat output during troubleshooting.
 ```
 
 ## Current deployment / environment notes
 
 ```text
-Supabase project ref:
-  wvaaijbvukzyfaglifoc
-
-Supabase project name:
-  sydsaddress@gmail.com's Project
-
-Region:
-  Canada (Central)
-
-Production domain:
-  https://chrism.app
-
-DNS:
-  Cloudflare handles DNS.
-
-Vercel:
-  Connected to GitHub repo.
-  Production deploys from main.
+Supabase project ref: wvaaijbvukzyfaglifoc
+Supabase region: Canada (Central)
+Production domain: https://chrism.app
+DNS: Cloudflare
+Vercel: production deploys from main
+Docker Desktop: required locally for Supabase schema dump pipeline
 ```
 
-Old Vercel preview deployments do not need to be preserved manually. GitHub commits/tags are the archive.
+## Current production smoke status
+
+Smoke-tested as passing in this phase:
+
+```text
+/login
+/me
+/me/council
+/members
+/members/[id]
+/members/[id]/edit
+/members/[id]/officers
+/members/officers
+/custom-lists
+/events
+/events/[id]
+/events/[id]/volunteers
+/imports/supreme loads without throwing
+/account context switching via UI flows
+/parallel-area-context switching via UI flows
+/councils/[councilNumber]/meetings
+/councils/[councilNumber]/meetings.ics
+```
+
+Notes:
+
+- `/account/context` and `/account/parallel-area-context` are POST-only route handlers. Direct browser GET returns HTTP 405 and is expected.
+- Smoke testing those routes means using the UI forms/switchers that POST to them.
 
 ## Remaining required work
 
-### High priority after MVP launch
+### Highest priority technical follow-up
 
-- Continue removing legacy `council_id` assumptions where safe.
-- Audit/drop remaining compatibility helpers:
-  ```text
-  app.create_prospect
-  app.create_volunteer_only
-  app.current_council_id
-  ```
-- Rebaseline Supabase migrations so shadow replay/db pull is clean and the migration stack becomes less brittle.
+1. Rotate Supabase DB password because it appeared in troubleshooting output.
+2. Compatibility helper audit:
+   ```text
+   app.current_council_id
+   app.create_prospect
+   app.create_volunteer_only
+   ```
+   Audit usage first. Retire/restrict only if safe. Do not assume these can all be dropped just because RLS policies no longer call `current_council_id()`.
+3. Add/expand tests around the access and model seams touched in this phase:
+   ```text
+   access matrix
+   org-admin assignment -> area access
+   RSVP vs volunteer
+   officer currentness / Past Grand Knight
+   custom-list share/revoke/contact/claim behavior
+   ```
+
+### Still important architecture cleanup
+
+- Rebaseline Supabase migrations so shadow replay/db pull is less brittle.
 - Finish identity-aware custom-list share/revoke behavior.
 - Reduce area/resource grant dependency on `member_record_id`.
-- Continue deeper `lib/auth/permissions.ts` refactor from the earlier local-unit permission audit snapshot.
+- Continue deeper `lib/auth/permissions.ts` refactor.
 - Continue admin/officer access propagation cleanup.
 - Continue import/restore/reactivation edge-case sweep.
 - Final custom-list consistency sweep.
@@ -528,7 +605,7 @@ Do not rush this. The hidden identity spine must not silently swap in another or
 
 ### Product polish / UX
 
-Events TODOs from Apr 27 remain unless already handled:
+Events/UI TODOs:
 
 ```text
 replace browser confirm in edit-event flow with app UI
@@ -540,17 +617,15 @@ clarify historical vs archived labels
 fix event edit header card styling
 external invitee send/share UI missing
 event manager / event admin UI missing
+polish /events/[id] RSVP/volunteer panels
 ```
 
-Nice-to-haves:
+Other polish:
 
 ```text
-automated tests for access matrix
-tests for custom-list share/revoke/contact/claim behavior
-tests for org-admin assignments feeding area access
-better /me org card labels
+Supreme import UX/model cleanup (#6)
+login stale-tab UX polish (#5)
 admin handbook
-roster import UI
 admin history/notes UI
 mobile layout polish
 login/onboarding copy polish
@@ -582,7 +657,8 @@ lib/auth/parallel-access-summary.ts
 app/components/user-menu.tsx
 app/components/access-context-switcher.tsx
 app/components/operations-scope-switcher.tsx
-app/account/parallel-area-context/...
+app/account/context/route.ts
+app/account/parallel-area-context/route.ts
 ```
 
 Members/people/officers:
@@ -613,7 +689,7 @@ lib/organizations/admin-invitations.ts
 lib/organizations/admin-assignments.ts
 ```
 
-Events:
+Events/RSVP:
 
 ```text
 app/events/actions.ts
@@ -621,44 +697,76 @@ app/events/page.tsx
 app/events/[id]/page.tsx
 app/events/[id]/edit/page.tsx
 app/events/[id]/volunteers/page.tsx
+app/events/[id]/export/route.ts
 app/events/archive/page.tsx
 app/events/archive/[id]/page.tsx
 app/events/event-form.tsx
+app/events/remove-volunteer-button.tsx
 app/rsvp/[token]/page.tsx
 app/rsvp/[token]/manage/page.tsx
 app/rsvp/[token]/event/page.tsx
+lib/rsvp/person-rsvp.ts
+lib/rsvp/claim.ts
 ```
 
-Migrations to understand:
+Imports:
 
 ```text
-supabase/migrations/20260427223000_include_org_admins_in_effective_area_access.sql
-supabase/migrations/20260505234500_custom_lists_local_unit_moat.sql
-supabase/migrations/20260507143000_filter_empty_admin_package_access.sql
-supabase/migrations/20260507230000_retire_data_hygiene_scaffolding.sql
-supabase/migrations/20260507233000_secure_public_views.sql
-supabase/migrations/20260507234500_revoke_public_security_definer_rpc.sql
-supabase/migrations/20260508000000_set_function_search_paths.sql
-supabase/migrations/20260508001500_move_pg_trgm_extension_schema.sql
+app/imports/supreme/page.tsx
+app/imports/supreme/actions.ts
+app/imports/supreme/supreme-import-workbench.tsx
+lib/imports/supreme.ts
+```
+
+Key recent migrations:
+
+```text
+supabase/migrations/20260509210000_cut_event_rls_from_current_council.sql
+supabase/migrations/20260509211500_cut_org_brand_rls_from_current_council.sql
+supabase/migrations/20260511203000_separate_rsvp_attendees_from_volunteers.sql
+supabase/migrations/20260512193000_cut_person_side_rls_from_current_council.sql
+supabase/migrations/20260512200000_cut_audit_merge_rls_from_current_council.sql
+supabase/migrations/20260512201500_cut_legacy_user_rls_from_current_council.sql
+supabase/migrations/20260513203000_cut_supreme_import_rls_from_current_council.sql
 ```
 
 ## Docs/source-of-truth status
 
-Generated schema/reference docs were refreshed during the hardening sequence:
+These handoff docs should now be treated as the current source of truth for the next helper:
 
 ```text
-database.types.ts
+docs/handoff/HANDOFF_May09_MVP_Live_Security_Hardened.md
+docs/handoff/PERMISSIONS_AND_ACCESS_May09_UPDATED.md
+docs/handoff/SCHEMA_DIAGRAM_May09_UPDATED.md
+```
+
+Generated schema/reference docs were refreshed after the final RLS cut:
+
+```text
 supabase/schema.sql
-supabase/reference/public-openapi.json
 supabase/reference/public-schema-reference.md
 supabase/reference/public-schema-summary.json
 ```
 
-The main README remains directionally accurate. It still describes the app as moving from legacy council-only assumptions toward a local-unit model, and points future helpers to the core auth/custom-list/event/me areas.
-
-No dedicated committed “permissions doc” or “schema diagram doc” was found in the repo beyond uploaded handoff docs and generated schema references. This handoff should be kept alongside the updated permissions/schema notes if those docs are committed later.
+`database.types.ts` and `supabase/reference/public-openapi.json` did not change in the final schema refresh.
 
 ## SQL/debug snippets worth preserving
+
+### Confirm no RLS policy uses current_council_id
+
+```sql
+select
+  count(*) as remaining_current_council_policy_count
+from pg_policies
+where coalesce(qual, '') ilike '%current_council_id%'
+   or coalesce(with_check, '') ilike '%current_council_id%';
+```
+
+Expected:
+
+```text
+0
+```
 
 ### St. Patrick's baseline counts
 
@@ -708,17 +816,7 @@ where organization_id = '5ef1f6fc-152a-4d04-b837-43a343cc0507'
   and revoked_at is null;
 ```
 
-Expected Apr 27 baseline:
-
-```text
-125
-0
-1
-8
-2
-```
-
-### Active admins
+### Current admin audit
 
 ```sql
 select
@@ -736,69 +834,69 @@ where oaa.organization_id = '5ef1f6fc-152a-4d04-b837-43a343cc0507'
 order by p.last_name, p.first_name;
 ```
 
-Expected Apr 27 baseline:
+### Officer currentness sanity check
 
-```text
-Nathan Fernandez
-Sydney Fernandez
-```
-
-### Security advisor sanity checks
-
-Security-definer view check should be clean except intentional current views with `security_invoker=true`.
+Historical `2024-2025 Grand Knight` should not be current during fraternal year 2025-2026.
 
 ```sql
 select
-  n.nspname as schema_name,
-  c.relname as view_name,
-  c.reloptions
-from pg_class c
-join pg_namespace n on n.oid = c.relnamespace
-where n.nspname = 'public'
-  and c.relkind = 'v'
-order by c.relname;
+  current_date as today,
+  extract(year from current_date)::int as calendar_year,
+  case
+    when extract(month from current_date)::int >= 7
+      then extract(year from current_date)::int
+    else extract(year from current_date)::int - 1
+  end as kofc_fraternal_start_year;
 ```
 
-`pg_trgm` should be in `extensions`:
+### Data API grants habit
+
+For new public tables, explicitly decide grants:
 
 ```sql
-select
-  e.extname,
-  n.nspname as extension_schema
-from pg_extension e
-join pg_namespace n
-  on n.oid = e.extnamespace
-where e.extname = 'pg_trgm';
-```
+-- app/client table example
+grant select, insert, update, delete on public.your_table to authenticated;
+alter table public.your_table enable row level security;
 
-Expected:
-
-```text
-pg_trgm | extensions
+-- internal table example
+revoke all on table public.your_internal_table from anon, authenticated;
 ```
 
 ## Suggested next-helper opening prompt
 
 ```text
 We are on chrism-syd/chrism main.
-Known-good tag is mvp-live-security-hardened.
 Production is live at https://chrism.app.
 Supabase project ref is wvaaijbvukzyfaglifoc.
+Latest schema/RLS checkpoint is aa6f276 Refresh schema after council RLS cuts.
 
-Read the May 9 handoff, permissions note, and schema note first. They extend the Apr 27 MVP stabilization docs.
+Read these docs first:
+- docs/handoff/HANDOFF_May09_MVP_Live_Security_Hardened.md
+- docs/handoff/PERMISSIONS_AND_ACCESS_May09_UPDATED.md
+- docs/handoff/SCHEMA_DIAGRAM_May09_UPDATED.md
 
 Do not reintroduce council_id as operational truth.
-Current remaining direction:
-- continue local-unit-first / people-first cleanup
-- rebaseline Supabase migrations
-- audit app.create_prospect, app.create_volunteer_only, app.current_council_id
-- continue permissions.ts refactor
-- keep external admin contacts out of member_records/user_unit_relationships unless they are real local members
-- keep RLS INFO notices parked unless a table needs direct browser access
-- leaked password protection warning is parked due Supabase Free plan and magic-link-first auth
+No RLS policies currently reference app.current_council_id(); final SQL count is 0.
+
+Current recommended next task:
+Compatibility helper audit:
+- app.current_council_id
+- app.create_prospect
+- app.create_volunteer_only
+
+Goal:
+Audit usage first, then decide whether each helper can be retired, restricted further, or left as a documented compatibility shim. No broad changes without verification.
+
+Important model rules:
+- local_unit_id = operational ownership/scope truth.
+- council_id = legacy/public/routing/compatibility truth only.
+- people is the product noun, not member_records.
+- External admin contacts should have people + organization_admin_assignments, but should not get member_records or user_unit_relationships unless they are also real local members.
+- Do not reintroduce backwards-compatible zombie wrappers when a future-state fix is safe.
+- Use canonical permissions/access helpers. Do not invent page-specific permission oracles unless there is no shared seam.
 
 Please inspect repo state directly before asking me for files.
-Use small audited cuts, verify after each DB/app change, and avoid broad compatibility zombies.
+Work in owl mode: slow, dependency-aware, audit-first, small patches, verify after each seam.
 ```
 
 ## Most likely next bugs to watch for
@@ -807,17 +905,19 @@ Use small audited cuts, verify after each DB/app change, and avoid broad compati
 2. Multi-org users seeing wrong org because a page uses custom logic instead of canonical area access.
 3. Custom-list share/revoke identity edge cases for multi-org users.
 4. External admin contact accidentally getting `member_records`.
-5. Officer currentness mismatch due to term row shape.
-6. Type drift from local copies of shared types.
-7. `catch(() => [])` causing `never[]` TypeScript inference.
-8. zsh globbing paths with `[id]`; quote those paths.
-9. Dirty test data impersonating a live bug.
-10. Migration replay/shadow DB brittleness until rebaseline.
+5. Officer currentness mismatch if future code forgets end-year-exclusive semantics.
+6. RSVP vs volunteer regression if future UI treats attendees as volunteers by default.
+7. Type drift from local copies of shared types.
+8. `catch(() => [])` causing `never[]` TypeScript inference.
+9. zsh globbing paths with `[id]` or `[token]`; quote those paths.
+10. Dirty test data impersonating a live bug.
+11. Migration replay/shadow DB brittleness until rebaseline.
+12. Supabase CLI network/Docker assumptions during schema refresh.
 
 ## Final honest status
 
-Chrism is live at `chrism.app`, smoke-tested, tagged, and materially hardened.
+Chrism is live at `chrism.app`, smoke-tested, and materially hardened.
 
-Core access, onboarding, custom-list, member, event, archive/restore, and production login flows are in good MVP shape. Supabase Security Advisor is effectively clean except for leaked password protection, which is parked due Free plan and magic-link-first auth. Remaining INFO notices are locked-table notices and should not be “fixed” with careless broad policies.
+The `current_council_id()` RLS sweep is complete. No RLS policies depend on it. Core access, onboarding, custom-list, member, officer, event, RSVP/volunteer, archive/restore, context-switching, and production login flows are in good MVP shape based on smoke tests.
 
-Next phase should be controlled MVP use, rebaseline, tests, and deeper cleanup of the remaining council-era compatibility seams.
+Remaining work is now less about urgent RLS hardening and more about compatibility helper retirement, migration rebaseline, tests, permission refactor, identity-spine cleanup, and product/UX polish.
