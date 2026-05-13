@@ -12,7 +12,8 @@
     "verify:rsvp-volunteers": "node scripts/verify-rsvp-volunteer-semantics.mjs",
     "verify:custom-list-member-state": "node scripts/verify-custom-list-member-state.mjs",
     "verify:org-admin-area-access": "node scripts/verify-org-admin-area-access.mjs",
-    "verify": "npm run lint -- --max-warnings=0 && npm run typecheck && npm run verify:officer-roles && npm run verify:rsvp-volunteers && npm run verify:custom-list-member-state && npm run verify:org-admin-area-access",
+    "verify:local-unit-terminology": "node scripts/verify-local-unit-terminology.mjs",
+    "verify": "npm run lint -- --max-warnings=0 && npm run typecheck && npm run verify:officer-roles && npm run verify:rsvp-volunteers && npm run verify:custom-list-member-state && npm run verify:org-admin-area-access && npm run verify:local-unit-terminology",
     "schema:pull": "node scripts/pull-supabase-schema.mjs",
     "pii:backfill": "node --env-file=.env.local scripts/backfill-encrypted-pii.mjs",
     "supreme:text-case-backfill": "node --env-file=.env.local scripts/backfill-supreme-import-text-case.mjs"
