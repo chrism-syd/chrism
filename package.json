@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "verify:officer-roles": "node scripts/verify-officer-roles.mjs",
-    "verify": "npm run lint -- --max-warnings=0 && npm run typecheck && npm run verify:officer-roles",
+    "verify:rsvp-volunteers": "node scripts/verify-rsvp-volunteer-semantics.mjs",
+    "verify": "npm run lint -- --max-warnings=0 && npm run typecheck && npm run verify:officer-roles && npm run verify:rsvp-volunteers",
     "schema:pull": "node scripts/pull-supabase-schema.mjs",
     "pii:backfill": "node --env-file=.env.local scripts/backfill-encrypted-pii.mjs",
     "supreme:text-case-backfill": "node --env-file=.env.local scripts/backfill-supreme-import-text-case.mjs"
