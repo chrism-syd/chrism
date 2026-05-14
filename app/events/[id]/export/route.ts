@@ -168,37 +168,24 @@ function exportHeader(): Array<keyof ExportRow> {
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const { admin, council, localUnitId } = await getCurrentActingCouncilContextForEvent({
+  const { admin, localUnitId } = await getCurrentActingCouncilContextForEvent({
     eventId: id,
     redirectTo: '/me',
   });
 
+  if (!localUnitId) {
+    return new NextResponse('Event not found.', { status: 404 });
+  }
+
   const eventSelect =
     'id, local_unit_id, council_id, title, starts_at, ends_at, location_name, location_address, scope_code';
 
-  let eventQuery = admin
+  const { data: eventData, error: eventError } = await admin
     .from('events')
     .select(eventSelect)
-    .eq('id', id);
-
-  eventQuery = localUnitId
-    ? eventQuery.eq('local_unit_id', localUnitId)
-    : eventQuery.eq('council_id', council.id);
-
-  let { data: eventData, error: eventError } = await eventQuery.single();
-
-  if ((eventError || !eventData) && localUnitId) {
-    const fallback = await admin
-      .from('events')
-      .select(eventSelect)
-      .eq('id', id)
-      .eq('council_id', council.id)
-      .is('local_unit_id', null)
-      .single();
-
-    eventData = fallback.data;
-    eventError = fallback.error;
-  }
+    .eq('id', id)
+    .eq('local_unit_id', localUnitId)
+    .single();
 
   const event = eventData as EventRow | null;
 
