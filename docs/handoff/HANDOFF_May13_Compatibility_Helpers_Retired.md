@@ -55,6 +55,7 @@ de44c68 Fix Supreme import page readiness verifier CTE scope
 c90cb8a Backfill local unit people from council people
 a057c30 Avoid duplicate active local unit people on backfill
 ecc281d Repair remaining local unit people backfill gap
+d4ba5d4 Log remaining Supreme import local unit backfill gap
 ```
 
 ## What changed
@@ -285,10 +286,38 @@ The two local_unit_people backfill migrations were applied:
 - 20260514001500_repair_remaining_local_unit_people_link.sql
 
 The stubborn person still qualifies through people.council_id -> local_units.legacy_council_id, but no row currently appears in local_unit_people for that exact local_unit_id/person_id pair.
-Before moving /imports/supreme/page.tsx from people.council_id to local_unit_people, inspect local_unit_people constraints/indexes for conflicts and identify whether this person is a real member record, a duplicate/merge residue, or a user/admin identity row.
+Further investigation showed this is not a simple missing-link issue. The Sydney Fernandez records are cross-wired across local org surfaces and should be treated as a targeted identity/data-boundary cleanup, not an automatic merge/backfill.
 ```
 
 `missing_from_member_records` still returns rows, including member and volunteer_only records. That is not itself a blocker for the Supreme import page-query cut because the import flow must continue to see nonmember conversion candidates. Do not move the page query to member_records-only.
+
+### Cross-local member privacy boundary
+
+Product truth:
+
+```text
+A human can be a member of more than one local org.
+Their local-org member records should not be automatically merged just because name/email/person-like identity matches.
+One local org's data for a member must not bleed into another local org's record.
+Contact/profile details may intentionally differ by local org because the member may have shared different information with each org.
+```
+
+Implication:
+
+```text
+Do not automatically merge people/member records across local units as a cleanup shortcut.
+Before merging or archiving duplicate-looking people rows, verify local_unit_id, member_records, organization_memberships, organization_admin_assignments, and any org-specific profile fields.
+Prefer targeted repairs that preserve the privacy wall between local org records.
+```
+
+Current Sydney data observation:
+
+```text
+6616ec81-6f3a-400b-af3b-b88b734f1bd2 and 7171d2f6-8067-40bf-9d09-987d3b80fced are both Sydney Fernandez rows, but they carry different local-org/admin/member artifacts.
+7171d2f6-8067-40bf-9d09-987d3b80fced is not simply a St. Mary's member missing local_unit_people; it has St. Patrick's member/local-unit artifacts while its people.council_id points at St. Mary's.
+6616ec81-6f3a-400b-af3b-b88b734f1bd2 carries active admin assignments for St. Mary's and St. Martin de Porres and a St. Patrick's organization_membership.
+Do not repair this by blindly adding St. Mary's local_unit_people or by blindly merging the two Sydney people rows.
+```
 
 ## Live DB access matrix verification
 
@@ -364,7 +393,7 @@ unless they are also real local members through a separate member path.
 ## Current highest-priority remaining work
 
 1. Continue `/imports/supreme` UX/model cleanup under issue #6.
-2. Resolve the remaining Supreme import page-query blocker: one active St. Mary's Council `people.council_id` member lacks a `local_unit_people` link after the broad backfills.
+2. Resolve the remaining Supreme import page-query blocker as a targeted identity/data-boundary cleanup, not an automatic cross-local merge.
 3. Continue Data API grant habit from issue #7.
 4. Scan pages/components for hardcoded Knights-specific terminology that should use the local-org terminology seam. This should preserve “council” for Knights local orgs, but remove assumptions that council is the generic product noun.
 5. Rebaseline Supabase migrations when ready so replay/shadow DB stays less brittle.
@@ -406,8 +435,16 @@ Current Supreme import page-query blocker:
 - local_unit_id = 4a59e6d2-8376-4c64-b278-b2fa42ea96db
 - person_id = 7171d2f6-8067-40bf-9d09-987d3b80fced
 - Both 20260514000000 and 20260514001500 backfills were applied.
-- Do not move /imports/supreme/page.tsx from people.council_id to local_unit_people until this is explained or repaired.
+- Further investigation showed this is a cross-wired Sydney Fernandez identity/data-boundary issue, not a simple missing-link issue.
+- Do not repair by blindly adding St. Mary's local_unit_people.
+- Do not repair by blindly merging Sydney rows across local units.
 - missing_from_member_records rows are not by themselves a blocker because the importer must continue seeing nonmember conversion candidates.
+
+Product privacy rule:
+- A human can be a member of more than one local org.
+- Contact/profile details may intentionally differ by local org.
+- Do not automatically merge people/member records across local units just because they look like the same human.
+- Preserve the privacy wall between local org records.
 
 Live DB access matrix verifier exists at:
 - scripts/verify-db-access-matrix.sql
@@ -424,6 +461,6 @@ Local-unit terminology rule:
 - “Conference” can be valid SVDP-style local-org terminology.
 - The TODO is to scan hardcoded Knights-specific terminology and move it to the local-org noun seam where it is generic product UI.
 
-Next recommended engineering task: inspect the remaining Supreme import local_unit_people gap, then continue /imports/supreme page-query cleanup.
+Next recommended engineering task: inspect and design a targeted cleanup for the Sydney cross-wired local-org records, then continue /imports/supreme page-query cleanup.
 Work in owl mode: slow, dependency-aware, audit-first, small patches, verify after each seam.
 ```
