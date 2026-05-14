@@ -32,6 +32,10 @@ where lu.local_unit_kind = 'council'::public.local_unit_kind
   and p.merged_into_person_id is null
 on conflict do nothing;
 
+-- Reopen ended links only when no active row already exists for the same
+-- local_unit_id/person_id pair. Some historical rows can coexist with an
+-- already-active replacement row, and blindly reopening them violates the
+-- partial active uniqueness index.
 update public.local_unit_people lup
    set ended_at = null,
        updated_at = now()
@@ -44,6 +48,13 @@ where lup.local_unit_id = lu.id
   and lu.legacy_council_id is not null
   and p.archived_at is null
   and p.merged_into_person_id is null
-  and lup.ended_at is not null;
+  and lup.ended_at is not null
+  and not exists (
+    select 1
+    from public.local_unit_people active_lup
+    where active_lup.local_unit_id = lup.local_unit_id
+      and active_lup.person_id = lup.person_id
+      and active_lup.ended_at is null
+  );
 
 commit;
