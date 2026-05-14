@@ -1,0 +1,226 @@
+#!/usr/bin/env node
+
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import path from 'node:path'
+
+const repoRoot = process.cwd()
+
+const ignoredDirectories = new Set([
+  '.git',
+  '.next',
+  'node_modules',
+  '.vercel',
+  'dist',
+  'coverage',
+])
+
+const ignoredExtensions = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.ico',
+  '.pdf',
+  '.zip',
+  '.gz',
+  '.tgz',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.eot',
+  '.mp4',
+  '.mov',
+  '.xls',
+  '.xlsx',
+])
+
+const pathInfoOnlyPrefixes = [
+  'docs/',
+  'supabase/migrations/',
+  'supabase/migrations_legacy/',
+  'supabase/reference/',
+  'supabase/schema.sql',
+  'database.types.ts',
+]
+
+const patterns = [
+  {
+    id: 'current-council-helper',
+    severity: 'BLOCKER',
+    regex: /\bcurrent_council_id\b|app\.current_council_id\b/g,
+    note: 'Old session-derived council helper should not be referenced by live app/RLS code.',
+  },
+  {
+    id: 'legacy-nonmember-wrapper-create-prospect',
+    severity: 'BLOCKER',
+    regex: /\bcreate_prospect\s*\(/g,
+    ignoreLine: (line) => /create_prospect_for_local_unit/.test(line),
+    note: 'Legacy council-scoped create_prospect wrapper should not be called or recreated.',
+  },
+  {
+    id: 'legacy-nonmember-wrapper-create-volunteer',
+    severity: 'BLOCKER',
+    regex: /\bcreate_volunteer_only\s*\(/g,
+    ignoreLine: (line) => /create_volunteer_only_for_local_unit/.test(line),
+    note: 'Legacy council-scoped create_volunteer_only wrapper should not be called or recreated.',
+  },
+  {
+    id: 'supreme-import-p-council-id',
+    severity: 'BLOCKER',
+    regex: /\bp_council_id\b/g,
+    note: 'Supreme import RPC/apply path should use p_local_unit_id, not p_council_id.',
+  },
+  {
+    id: 'direct-council-id-filter',
+    severity: 'WARN',
+    regex: /\.(eq|neq|in|not)\(\s*['"]council_id['"]/g,
+    note: 'Direct council_id filters need review: allowed only for legacy bridge/routing, not operational scope.',
+  },
+  {
+    id: 'people-council-id-reference',
+    severity: 'WARN',
+    regex: /\bpeople\.council_id\b/g,
+    note: 'people.council_id is legacy compatibility only; review for operational dependency.',
+  },
+  {
+    id: 'council-id-token',
+    severity: 'INFO',
+    regex: /\bcouncil_id\b/g,
+    note: 'council_id token remains expected in schema, legacy bridge, docs, and historical migrations.',
+  },
+  {
+    id: 'council-id-camel-token',
+    severity: 'INFO',
+    regex: /\bcouncilId\b/g,
+    note: 'councilId remains expected in compatibility context objects and bridge helpers.',
+  },
+]
+
+function normalizeRelativePath(filePath) {
+  return path.relative(repoRoot, filePath).split(path.sep).join('/')
+}
+
+function shouldTreatAsInfoOnly(relativePath) {
+  return pathInfoOnlyPrefixes.some((prefix) => relativePath === prefix || relativePath.startsWith(prefix))
+}
+
+function isBinaryish(filePath) {
+  const ext = path.extname(filePath).toLowerCase()
+  return ignoredExtensions.has(ext)
+}
+
+function walk(directory) {
+  const entries = readdirSync(directory)
+  const files = []
+
+  for (const entry of entries) {
+    const absolutePath = path.join(directory, entry)
+    const stats = statSync(absolutePath)
+
+    if (stats.isDirectory()) {
+      if (!ignoredDirectories.has(entry)) {
+        files.push(...walk(absolutePath))
+      }
+      continue
+    }
+
+    if (stats.isFile() && !isBinaryish(absolutePath)) {
+      files.push(absolutePath)
+    }
+  }
+
+  return files
+}
+
+function readTextFile(filePath) {
+  const buffer = readFileSync(filePath)
+
+  if (buffer.includes(0)) {
+    return null
+  }
+
+  return buffer.toString('utf8')
+}
+
+function auditFile(filePath) {
+  const relativePath = normalizeRelativePath(filePath)
+  const text = readTextFile(filePath)
+
+  if (text === null) return []
+
+  const lines = text.split(/\r?\n/)
+  const pathIsInfoOnly = shouldTreatAsInfoOnly(relativePath)
+  const findings = []
+
+  lines.forEach((line, index) => {
+    for (const pattern of patterns) {
+      pattern.regex.lastIndex = 0
+      if (!pattern.regex.test(line)) continue
+      if (pattern.ignoreLine?.(line)) continue
+
+      const severity = pathIsInfoOnly && pattern.severity !== 'BLOCKER'
+        ? 'INFO'
+        : pathIsInfoOnly && pattern.severity === 'BLOCKER'
+          ? 'WARN'
+          : pattern.severity
+
+      findings.push({
+        severity,
+        patternId: pattern.id,
+        path: relativePath,
+        lineNumber: index + 1,
+        line: line.trim(),
+        note: pattern.note,
+      })
+    }
+  })
+
+  return findings
+}
+
+if (!existsSync(path.join(repoRoot, 'package.json'))) {
+  console.error('Run this script from the repository root.')
+  process.exit(2)
+}
+
+const files = walk(repoRoot)
+const findings = files.flatMap(auditFile)
+
+const severityOrder = new Map([
+  ['BLOCKER', 0],
+  ['WARN', 1],
+  ['INFO', 2],
+])
+
+findings.sort((left, right) => {
+  const severityDelta = severityOrder.get(left.severity) - severityOrder.get(right.severity)
+  if (severityDelta !== 0) return severityDelta
+  const pathDelta = left.path.localeCompare(right.path)
+  if (pathDelta !== 0) return pathDelta
+  return left.lineNumber - right.lineNumber
+})
+
+const summary = findings.reduce((accumulator, finding) => {
+  accumulator[finding.severity] = (accumulator[finding.severity] ?? 0) + 1
+  return accumulator
+}, {})
+
+console.log('Council dependency audit summary')
+console.log('================================')
+console.log(`Files scanned: ${files.length}`)
+console.log(`BLOCKER: ${summary.BLOCKER ?? 0}`)
+console.log(`WARN:    ${summary.WARN ?? 0}`)
+console.log(`INFO:    ${summary.INFO ?? 0}`)
+console.log('')
+
+for (const finding of findings) {
+  console.log(`[${finding.severity}] ${finding.path}:${finding.lineNumber} ${finding.patternId}`)
+  console.log(`  ${finding.line}`)
+  console.log(`  ${finding.note}`)
+}
+
+if ((summary.BLOCKER ?? 0) > 0) {
+  console.error('\nCouncil dependency audit found BLOCKER findings.')
+  process.exit(1)
+}
