@@ -5975,7 +5975,6 @@ export type Database = {
           p_city?: string
           p_city_hash?: string
           p_council_activity_level_code?: string
-          p_council_id: string
           p_council_number?: string
           p_email?: string
           p_email_hash?: string
@@ -5984,6 +5983,7 @@ export type Database = {
           p_first_name?: string
           p_import_mode: string
           p_last_name?: string
+          p_local_unit_id: string
           p_member_class?: string
           p_member_number?: string
           p_member_type?: string

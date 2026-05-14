@@ -260,7 +260,7 @@ CREATE TYPE "public"."spiritual_text_status_code" AS ENUM (
 ALTER TYPE "public"."spiritual_text_status_code" OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid" DEFAULT NULL::"uuid", "p_council_number" "text" DEFAULT NULL::"text", "p_title" "text" DEFAULT NULL::"text", "p_first_name" "text" DEFAULT NULL::"text", "p_middle_name" "text" DEFAULT NULL::"text", "p_last_name" "text" DEFAULT NULL::"text", "p_suffix" "text" DEFAULT NULL::"text", "p_email" "text" DEFAULT NULL::"text", "p_email_hash" "text" DEFAULT NULL::"text", "p_cell_phone" "text" DEFAULT NULL::"text", "p_cell_phone_hash" "text" DEFAULT NULL::"text", "p_address_line_1" "text" DEFAULT NULL::"text", "p_address_line_1_hash" "text" DEFAULT NULL::"text", "p_city" "text" DEFAULT NULL::"text", "p_city_hash" "text" DEFAULT NULL::"text", "p_state_province" "text" DEFAULT NULL::"text", "p_state_province_hash" "text" DEFAULT NULL::"text", "p_postal_code" "text" DEFAULT NULL::"text", "p_postal_code_hash" "text" DEFAULT NULL::"text", "p_birth_date" "date" DEFAULT NULL::"date", "p_birth_date_hash" "text" DEFAULT NULL::"text", "p_pii_key_version" "text" DEFAULT NULL::"text", "p_council_activity_level_code" "text" DEFAULT NULL::"text", "p_member_number" "text" DEFAULT NULL::"text", "p_first_degree_date" "date" DEFAULT NULL::"date", "p_second_degree_date" "date" DEFAULT NULL::"date", "p_third_degree_date" "date" DEFAULT NULL::"date", "p_years_in_service" integer DEFAULT NULL::integer, "p_member_type" "text" DEFAULT NULL::"text", "p_member_class" "text" DEFAULT NULL::"text", "p_assembly_number" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid" DEFAULT NULL::"uuid", "p_council_number" "text" DEFAULT NULL::"text", "p_title" "text" DEFAULT NULL::"text", "p_first_name" "text" DEFAULT NULL::"text", "p_middle_name" "text" DEFAULT NULL::"text", "p_last_name" "text" DEFAULT NULL::"text", "p_suffix" "text" DEFAULT NULL::"text", "p_email" "text" DEFAULT NULL::"text", "p_email_hash" "text" DEFAULT NULL::"text", "p_cell_phone" "text" DEFAULT NULL::"text", "p_cell_phone_hash" "text" DEFAULT NULL::"text", "p_address_line_1" "text" DEFAULT NULL::"text", "p_address_line_1_hash" "text" DEFAULT NULL::"text", "p_city" "text" DEFAULT NULL::"text", "p_city_hash" "text" DEFAULT NULL::"text", "p_state_province" "text" DEFAULT NULL::"text", "p_state_province_hash" "text" DEFAULT NULL::"text", "p_postal_code" "text" DEFAULT NULL::"text", "p_postal_code_hash" "text" DEFAULT NULL::"text", "p_birth_date" "date" DEFAULT NULL::"date", "p_birth_date_hash" "text" DEFAULT NULL::"text", "p_pii_key_version" "text" DEFAULT NULL::"text", "p_council_activity_level_code" "text" DEFAULT NULL::"text", "p_member_number" "text" DEFAULT NULL::"text", "p_first_degree_date" "date" DEFAULT NULL::"date", "p_second_degree_date" "date" DEFAULT NULL::"date", "p_third_degree_date" "date" DEFAULT NULL::"date", "p_years_in_service" integer DEFAULT NULL::integer, "p_member_type" "text" DEFAULT NULL::"text", "p_member_class" "text" DEFAULT NULL::"text", "p_assembly_number" "text" DEFAULT NULL::"text") RETURNS "jsonb"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
     AS $$
@@ -271,11 +271,29 @@ declare
   v_member_number_match_count integer := 0;
   v_has_kofc_payload boolean;
   v_action text;
-  v_local_unit_id uuid;
   v_member_record_id uuid;
+  v_legacy_council_id uuid;
+  v_resolved_organization_id uuid;
 begin
   if coalesce(trim(p_first_name), '') = '' or coalesce(trim(p_last_name), '') = '' then
     raise exception 'First name and last name are required.';
+  end if;
+
+  select
+    lu.legacy_council_id,
+    coalesce(p_organization_id, lu.legacy_organization_id, c.organization_id)
+    into v_legacy_council_id, v_resolved_organization_id
+  from public.local_units lu
+  left join public.councils c on c.id = lu.legacy_council_id
+  where lu.id = p_local_unit_id
+    and lu.local_unit_kind = 'council'::public.local_unit_kind;
+
+  if v_legacy_council_id is null then
+    raise exception 'Supreme import requires a Knights council local unit with a legacy council bridge.';
+  end if;
+
+  if v_resolved_organization_id is null then
+    raise exception 'Supreme import requires an organization scope.';
   end if;
 
   if p_council_number is not null then
@@ -284,7 +302,7 @@ begin
       council_number
     )
     values (
-      p_organization_id,
+      v_resolved_organization_id,
       p_council_number
     )
     on conflict (organization_id) do update
@@ -295,7 +313,7 @@ begin
     with membership_matches as (
       select distinct person_id
       from public.organization_memberships
-      where organization_id = p_organization_id
+      where organization_id = v_resolved_organization_id
         and membership_number = p_member_number
     )
     select
@@ -316,7 +334,7 @@ begin
 
   if v_member_number_person_id is not null then
     if p_existing_person_id is not null and p_existing_person_id <> v_member_number_person_id then
-      raise exception 'Member number % already belongs to another member record in this council.', p_member_number;
+      raise exception 'Member number % already belongs to another member record in this local unit.', p_member_number;
     end if;
 
     update public.people
@@ -346,11 +364,11 @@ begin
       primary_relationship_code = 'member',
       updated_by_auth_user_id = p_auth_user_id
     where id = v_member_number_person_id
-      and council_id = p_council_id
+      and council_id = v_legacy_council_id
     returning id into v_person_id;
 
     if v_person_id is null then
-      raise exception 'Member number % belongs to a person outside this council.', p_member_number;
+      raise exception 'Member number % belongs to a person outside this local unit legacy council bridge.', p_member_number;
     end if;
 
     v_action := 'updated';
@@ -382,7 +400,7 @@ begin
       primary_relationship_code = 'member',
       updated_by_auth_user_id = p_auth_user_id
     where id = p_existing_person_id
-      and council_id = p_council_id
+      and council_id = v_legacy_council_id
     returning id into v_person_id;
 
     if v_person_id is null then
@@ -423,7 +441,7 @@ begin
       primary_relationship_code
     )
     values (
-      p_council_id,
+      v_legacy_council_id,
       p_title,
       p_first_name,
       p_middle_name,
@@ -461,7 +479,7 @@ begin
   select id
     into v_membership_id
   from public.organization_memberships
-  where organization_id = p_organization_id
+  where organization_id = v_resolved_organization_id
     and person_id = v_person_id
   limit 1;
 
@@ -486,7 +504,7 @@ begin
       updated_by_auth_user_id
     )
     values (
-      p_organization_id,
+      v_resolved_organization_id,
       v_person_id,
       coalesce(p_council_activity_level_code, 'active'),
       p_member_number,
@@ -497,26 +515,16 @@ begin
     );
   end if;
 
-  select lu.id
-    into v_local_unit_id
-  from public.local_units lu
-  where lu.legacy_council_id = p_council_id
-  order by case when lu.local_unit_kind = 'council'::public.local_unit_kind then 1 else 2 end,
-           lu.created_at
-  limit 1;
+  v_member_record_id := public.ensure_member_record_for_person_local_unit(p_local_unit_id, v_person_id);
 
-  if v_local_unit_id is not null then
-    v_member_record_id := public.ensure_member_record_for_person_local_unit(v_local_unit_id, v_person_id);
-
-    if v_member_record_id is not null then
-      update public.member_records
-         set member_number = coalesce(p_member_number, member_number),
-             lifecycle_state = 'active'::public.member_record_lifecycle_state,
-             archived_at = null,
-             updated_at = now(),
-             updated_by_auth_user_id = p_auth_user_id
-       where id = v_member_record_id;
-    end if;
+  if v_member_record_id is not null then
+    update public.member_records
+       set member_number = coalesce(p_member_number, member_number),
+           lifecycle_state = 'active'::public.member_record_lifecycle_state,
+           archived_at = null,
+           updated_at = now(),
+           updated_by_auth_user_id = p_auth_user_id
+     where id = v_member_record_id;
   end if;
 
   v_has_kofc_payload :=
@@ -569,10 +577,10 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") IS 'Applies one Supreme import row atomically, preferring the existing membership number match inside the current organization, reactivating the resolved person for the active local-unit surface when needed, and ensuring the resolved person is linked into the current local-unit member_records surface.';
+COMMENT ON FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") IS 'Applies one Supreme import row atomically using explicit local_unit_id as operational scope, while preserving people.council_id as the Knights legacy compatibility bridge.';
 
 
 
@@ -9306,9 +9314,8 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."apply_supreme_import_row"("p_council_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") TO "service_role";
+REVOKE ALL ON FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") TO "service_role";
 
 
 
