@@ -44,6 +44,19 @@ f1e85f1 Pass local unit kind to Supreme import workbench
 40fea2c Add Vercel Analytics
 ```
 
+Supreme import local-unit cutover follow-up commits:
+
+```text
+bc26f4c Cut Supreme import RPC to local unit scope
+3347f3a Pass local unit scope to Supreme import RPC
+63b1ccc Refresh schema after Supreme import local unit cutover
+e1d6ac2 Add Supreme import page local unit readiness verifier
+de44c68 Fix Supreme import page readiness verifier CTE scope
+c90cb8a Backfill local unit people from council people
+a057c30 Avoid duplicate active local unit people on backfill
+ecc281d Repair remaining local unit people backfill gap
+```
+
 ## What changed
 
 The old council-context compatibility helpers were retired:
@@ -237,6 +250,46 @@ The problem is hardcoded Knights/council terminology being used as generic produ
 Future UI copy should pull local-org nouns from lib/local-units/terminology.ts or a future parent-org terminology source.
 ```
 
+## Supreme import local-unit checkpoint
+
+The Supreme import apply RPC was cut from council-shaped operational scope to explicit `local_unit_id` scope.
+
+Current RPC signature begins with:
+
+```text
+p_local_unit_id uuid, p_organization_id uuid, p_auth_user_id uuid
+```
+
+The old `p_council_id` RPC signature is gone. The RPC still writes `people.council_id` from the local unit's legacy council bridge for Knights compatibility/routing only.
+
+Readiness verifiers:
+
+```text
+scripts/verify-supreme-import-local-unit-cutover-readiness.sql
+scripts/verify-supreme-import-page-local-unit-readiness.sql
+```
+
+Current unresolved page-query blocker:
+
+```text
+One active/unmerged St. Mary's Council member remains in people.council_id but has no active local_unit_people link:
+local_unit_id = 4a59e6d2-8376-4c64-b278-b2fa42ea96db
+person_id     = 7171d2f6-8067-40bf-9d09-987d3b80fced
+```
+
+Notes:
+
+```text
+The two local_unit_people backfill migrations were applied:
+- 20260514000000_backfill_local_unit_people_from_council_people.sql
+- 20260514001500_repair_remaining_local_unit_people_link.sql
+
+The stubborn person still qualifies through people.council_id -> local_units.legacy_council_id, but no row currently appears in local_unit_people for that exact local_unit_id/person_id pair.
+Before moving /imports/supreme/page.tsx from people.council_id to local_unit_people, inspect local_unit_people constraints/indexes for conflicts and identify whether this person is a real member record, a duplicate/merge residue, or a user/admin identity row.
+```
+
+`missing_from_member_records` still returns rows, including member and volunteer_only records. That is not itself a blocker for the Supreme import page-query cut because the import flow must continue to see nonmember conversion candidates. Do not move the page query to member_records-only.
+
 ## Live DB access matrix verification
 
 A read-only SQL verifier was added:
@@ -311,10 +364,11 @@ unless they are also real local members through a separate member path.
 ## Current highest-priority remaining work
 
 1. Continue `/imports/supreme` UX/model cleanup under issue #6.
-2. Continue Data API grant habit from issue #7.
-3. Scan pages/components for hardcoded Knights-specific terminology that should use the local-org terminology seam. This should preserve “council” for Knights local orgs, but remove assumptions that council is the generic product noun.
-4. Rebaseline Supabase migrations when ready so replay/shadow DB stays less brittle.
-5. Continue threading pure helper seams into broad action files where safe, especially custom-list contact/claim/revoke helpers.
+2. Resolve the remaining Supreme import page-query blocker: one active St. Mary's Council `people.council_id` member lacks a `local_unit_people` link after the broad backfills.
+3. Continue Data API grant habit from issue #7.
+4. Scan pages/components for hardcoded Knights-specific terminology that should use the local-org terminology seam. This should preserve “council” for Knights local orgs, but remove assumptions that council is the generic product noun.
+5. Rebaseline Supabase migrations when ready so replay/shadow DB stays less brittle.
+6. Continue threading pure helper seams into broad action files where safe, especially custom-list contact/claim/revoke helpers.
 
 ## Suggested next helper opening prompt
 
@@ -342,6 +396,19 @@ Regression checks now cover:
 - org-admin area access contract
 - local-unit terminology
 
+Supreme import RPC cutover is complete:
+- apply_supreme_import_row now starts with p_local_unit_id uuid.
+- The old p_council_id RPC signature is gone.
+- people.council_id remains only as Knights legacy compatibility/routing.
+
+Current Supreme import page-query blocker:
+- One active/unmerged St. Mary's Council member remains in people.council_id but has no active local_unit_people link.
+- local_unit_id = 4a59e6d2-8376-4c64-b278-b2fa42ea96db
+- person_id = 7171d2f6-8067-40bf-9d09-987d3b80fced
+- Both 20260514000000 and 20260514001500 backfills were applied.
+- Do not move /imports/supreme/page.tsx from people.council_id to local_unit_people until this is explained or repaired.
+- missing_from_member_records rows are not by themselves a blocker because the importer must continue seeing nonmember conversion candidates.
+
 Live DB access matrix verifier exists at:
 - scripts/verify-db-access-matrix.sql
 
@@ -357,6 +424,6 @@ Local-unit terminology rule:
 - “Conference” can be valid SVDP-style local-org terminology.
 - The TODO is to scan hardcoded Knights-specific terminology and move it to the local-org noun seam where it is generic product UI.
 
-Next recommended engineering task: continue /imports/supreme UX/model cleanup or Data API grant habit work.
+Next recommended engineering task: inspect the remaining Supreme import local_unit_people gap, then continue /imports/supreme page-query cleanup.
 Work in owl mode: slow, dependency-aware, audit-first, small patches, verify after each seam.
 ```
