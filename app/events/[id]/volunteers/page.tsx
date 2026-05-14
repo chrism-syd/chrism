@@ -158,6 +158,10 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
     redirectTo: '/events',
   });
 
+  if (!localUnitId) {
+    notFound();
+  }
+
   let organization: OrganizationRow | null = null;
 
   if (council.organization_id) {
@@ -173,29 +177,12 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
   const eventSelect =
     'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at';
 
-  let eventQuery = supabase
+  const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(eventSelect)
-    .eq('id', id);
-
-  eventQuery = localUnitId
-    ? eventQuery.eq('local_unit_id', localUnitId)
-    : eventQuery.eq('council_id', council.id);
-
-  let { data: eventData, error: eventError } = await eventQuery.single();
-
-  if ((eventError || !eventData) && localUnitId) {
-    const fallback = await supabase
-      .from('events')
-      .select(eventSelect)
-      .eq('id', id)
-      .eq('council_id', council.id)
-      .is('local_unit_id', null)
-      .single();
-
-    eventData = fallback.data;
-    eventError = fallback.error;
-  }
+    .eq('id', id)
+    .eq('local_unit_id', localUnitId)
+    .single();
 
   const event = eventData as EventRow | null;
 
