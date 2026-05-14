@@ -97,6 +97,10 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   const { id } = await params
   const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContextForEvent({ eventId: id, redirectTo: '/events' })
 
+  if (!localUnitId) {
+    notFound()
+  }
+
   let organization: OrganizationRow | null = null
   if (council.organization_id) {
     const { data } = await supabase
@@ -107,33 +111,14 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     organization = (data as OrganizationRow | null) ?? null
   }
 
-  let eventQuery = supabase
+  const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
       'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
-
-  eventQuery = localUnitId
-    ? eventQuery.eq('local_unit_id', localUnitId)
-    : eventQuery.eq('council_id', council.id)
-
-  let { data: eventData, error: eventError } = await eventQuery.single()
-
-  if ((eventError || !eventData) && localUnitId) {
-    const fallback = await supabase
-      .from('events')
-      .select(
-        'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
-      )
-      .eq('id', id)
-      .eq('council_id', council.id)
-      .is('local_unit_id', null)
-      .single()
-
-    eventData = fallback.data
-    eventError = fallback.error
-  }
+    .eq('local_unit_id', localUnitId)
+    .single()
 
   const event = eventData as EventRow | null
 
