@@ -301,33 +301,18 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     organization = (data as OrganizationRow | null) ?? null;
   }
 
-  let eventQuery = supabase
+  if (!localUnitId) {
+    notFound();
+  }
+
+  const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
       'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
-    .eq('id', id);
-
-  eventQuery = localUnitId
-    ? eventQuery.eq('local_unit_id', localUnitId)
-    : eventQuery.eq('council_id', council.id);
-
-  let { data: eventData, error: eventError } = await eventQuery.single();
-
-  if ((eventError || !eventData) && localUnitId) {
-    const fallback = await supabase
-      .from('events')
-      .select(
-        'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
-      )
-      .eq('id', id)
-      .eq('council_id', council.id)
-      .is('local_unit_id', null)
-      .single();
-
-    eventData = fallback.data;
-    eventError = fallback.error;
-  }
+    .eq('id', id)
+    .eq('local_unit_id', localUnitId)
+    .single();
 
   const event = eventData as EventRow | null;
 
@@ -414,28 +399,16 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             .eq('local_unit_id', localUnitId)
             .is('ended_at', null)
         : Promise.resolve({ data: [] as Array<{ person_id: string | null }>, error: null }),
-      localUnitId
-        ? supabase
-            .from('people')
-            .select(
-              'id, first_name, last_name, directory_display_name_override, email, cell_phone'
-            )
-            .is('archived_at', null)
-            .is('merged_into_person_id', null)
-            .order('last_name', { ascending: true })
-            .order('first_name', { ascending: true })
-            .returns<PersonRow[]>()
-        : supabase
-            .from('people')
-            .select(
-              'id, first_name, last_name, directory_display_name_override, email, cell_phone'
-            )
-            .eq('council_id', council.id)
-            .is('archived_at', null)
-            .is('merged_into_person_id', null)
-            .order('last_name', { ascending: true })
-            .order('first_name', { ascending: true })
-            .returns<PersonRow[]>(),
+      supabase
+        .from('people')
+        .select(
+          'id, first_name, last_name, directory_display_name_override, email, cell_phone'
+        )
+        .is('archived_at', null)
+        .is('merged_into_person_id', null)
+        .order('last_name', { ascending: true })
+        .order('first_name', { ascending: true })
+        .returns<PersonRow[]>(),
       supabase
         .from('event_external_invitees')
         .select(
@@ -480,9 +453,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     )
 
     const decryptedPeople = decryptPeopleRecords(peopleData ?? [])
-    const scopedPeople = localUnitId
-      ? decryptedPeople.filter((person) => scopedPersonIds.has(person.id))
-      : decryptedPeople
+    const scopedPeople = decryptedPeople.filter((person) => scopedPersonIds.has(person.id))
 
     hostVolunteerMembers = scopedPeople.map((person) => ({
       id: person.id,
