@@ -56,6 +56,9 @@ c90cb8a Backfill local unit people from council people
 a057c30 Avoid duplicate active local unit people on backfill
 ecc281d Repair remaining local unit people backfill gap
 d4ba5d4 Log remaining Supreme import local unit backfill gap
+36e165a Document cross-local member privacy boundary
+5327dea Add local unit legacy council alignment verifier
+61f9bea Add guarded Sydney legacy council repair script
 ```
 
 ## What changed
@@ -268,25 +271,35 @@ Readiness verifiers:
 ```text
 scripts/verify-supreme-import-local-unit-cutover-readiness.sql
 scripts/verify-supreme-import-page-local-unit-readiness.sql
+scripts/verify-local-unit-legacy-council-alignment.sql
 ```
 
-Current unresolved page-query blocker:
+Sydney guarded repair script:
 
 ```text
-One active/unmerged St. Mary's Council member remains in people.council_id but has no active local_unit_people link:
-local_unit_id = 4a59e6d2-8376-4c64-b278-b2fa42ea96db
-person_id     = 7171d2f6-8067-40bf-9d09-987d3b80fced
+scripts/repair-sydney-supreme-import-legacy-council.sql
 ```
 
-Notes:
+Sydney repair outcome:
 
 ```text
-The two local_unit_people backfill migrations were applied:
-- 20260514000000_backfill_local_unit_people_from_council_people.sql
-- 20260514001500_repair_remaining_local_unit_people_link.sql
+The guarded repair was run successfully.
+Person 7171d2f6-8067-40bf-9d09-987d3b80fced now has people.council_id = 0c85b312-0bc2-4557-9b9f-61e6826de45b.
+That resolves the stale St. Mary's legacy pointer for the Supreme-import Sydney row and aligns it with its active St. Patrick's local_unit_people/member_records surfaces.
+No local_unit_people rows were added.
+No member_records were moved.
+No organization_admin_assignments were changed.
+No KofC profile or organization_membership rows were changed.
+```
 
-The stubborn person still qualifies through people.council_id -> local_units.legacy_council_id, but no row currently appears in local_unit_people for that exact local_unit_id/person_id pair.
-Further investigation showed this is not a simple missing-link issue. The Sydney Fernandez records are cross-wired across local org surfaces and should be treated as a targeted identity/data-boundary cleanup, not an automatic merge/backfill.
+Remaining alignment output after Sydney repair:
+
+```text
+The 7171d2f6-8067-40bf-9d09-987d3b80fced mismatch rows disappeared.
+Remaining legacy-council alignment rows are St. Martin de Porres related:
+- 24197e1b-375d-406e-9c2d-c5d8d2b2b6ff has people.council_id = null but active St. Martin de Porres local_unit_people/member_record.
+- 6616ec81-6f3a-400b-af3b-b88b734f1bd2 has people.council_id = St. Patrick's but an active St. Martin de Porres member_record.
+Treat those as separate targeted cleanup, not part of the Supreme import St. Mary's blocker.
 ```
 
 `missing_from_member_records` still returns rows, including member and volunteer_only records. That is not itself a blocker for the Supreme import page-query cut because the import flow must continue to see nonmember conversion candidates. Do not move the page query to member_records-only.
@@ -314,8 +327,8 @@ Current Sydney data observation:
 
 ```text
 6616ec81-6f3a-400b-af3b-b88b734f1bd2 and 7171d2f6-8067-40bf-9d09-987d3b80fced are both Sydney Fernandez rows, but they carry different local-org/admin/member artifacts.
-7171d2f6-8067-40bf-9d09-987d3b80fced is not simply a St. Mary's member missing local_unit_people; it has St. Patrick's member/local-unit artifacts while its people.council_id points at St. Mary's.
-6616ec81-6f3a-400b-af3b-b88b734f1bd2 carries active admin assignments for St. Mary's and St. Martin de Porres and a St. Patrick's organization_membership.
+7171d2f6-8067-40bf-9d09-987d3b80fced is now aligned to St. Patrick's at people.council_id after the guarded repair.
+6616ec81-6f3a-400b-af3b-b88b734f1bd2 carries active admin assignments for St. Mary's and St. Martin de Porres, a St. Patrick's organization_membership, and a separate active St. Martin de Porres member_record that should be investigated separately.
 Do not repair this by blindly adding St. Mary's local_unit_people or by blindly merging the two Sydney people rows.
 ```
 
@@ -393,11 +406,12 @@ unless they are also real local members through a separate member path.
 ## Current highest-priority remaining work
 
 1. Continue `/imports/supreme` UX/model cleanup under issue #6.
-2. Resolve the remaining Supreme import page-query blocker as a targeted identity/data-boundary cleanup, not an automatic cross-local merge.
-3. Continue Data API grant habit from issue #7.
-4. Scan pages/components for hardcoded Knights-specific terminology that should use the local-org terminology seam. This should preserve “council” for Knights local orgs, but remove assumptions that council is the generic product noun.
-5. Rebaseline Supabase migrations when ready so replay/shadow DB stays less brittle.
-6. Continue threading pure helper seams into broad action files where safe, especially custom-list contact/claim/revoke helpers.
+2. Re-run `scripts/verify-supreme-import-page-local-unit-readiness.sql`; if `missing_from_local_unit_people_count = 0`, move `/imports/supreme/page.tsx` candidate loading from `people.council_id` to `local_unit_people`.
+3. Investigate remaining St. Martin de Porres legacy-council alignment rows separately.
+4. Continue Data API grant habit from issue #7.
+5. Scan pages/components for hardcoded Knights-specific terminology that should use the local-org terminology seam. This should preserve “council” for Knights local orgs, but remove assumptions that council is the generic product noun.
+6. Rebaseline Supabase migrations when ready so replay/shadow DB stays less brittle.
+7. Continue threading pure helper seams into broad action files where safe, especially custom-list contact/claim/revoke helpers.
 
 ## Suggested next helper opening prompt
 
@@ -430,21 +444,25 @@ Supreme import RPC cutover is complete:
 - The old p_council_id RPC signature is gone.
 - people.council_id remains only as Knights legacy compatibility/routing.
 
-Current Supreme import page-query blocker:
-- One active/unmerged St. Mary's Council member remains in people.council_id but has no active local_unit_people link.
-- local_unit_id = 4a59e6d2-8376-4c64-b278-b2fa42ea96db
-- person_id = 7171d2f6-8067-40bf-9d09-987d3b80fced
-- Both 20260514000000 and 20260514001500 backfills were applied.
-- Further investigation showed this is a cross-wired Sydney Fernandez identity/data-boundary issue, not a simple missing-link issue.
-- Do not repair by blindly adding St. Mary's local_unit_people.
-- Do not repair by blindly merging Sydney rows across local units.
-- missing_from_member_records rows are not by themselves a blocker because the importer must continue seeing nonmember conversion candidates.
+Sydney Supreme-import legacy council repair is complete:
+- scripts/repair-sydney-supreme-import-legacy-council.sql was run.
+- 7171d2f6-8067-40bf-9d09-987d3b80fced now points to St. Patrick's Council at people.council_id.
+- No local_unit_people rows were added.
+- No member_records were moved.
+- No organization_admin_assignments were changed.
+- No cross-local merge was performed.
+
+Remaining legacy-council alignment rows are St. Martin de Porres related and should be investigated separately.
 
 Product privacy rule:
 - A human can be a member of more than one local org.
 - Contact/profile details may intentionally differ by local org.
 - Do not automatically merge people/member records across local units just because they look like the same human.
 - Preserve the privacy wall between local org records.
+
+Next step for Supreme import page-query cleanup:
+- Re-run scripts/verify-supreme-import-page-local-unit-readiness.sql.
+- If missing_from_local_unit_people_count = 0, move /imports/supreme/page.tsx candidate loading from people.council_id to local_unit_people.
 
 Live DB access matrix verifier exists at:
 - scripts/verify-db-access-matrix.sql
@@ -461,6 +479,5 @@ Local-unit terminology rule:
 - “Conference” can be valid SVDP-style local-org terminology.
 - The TODO is to scan hardcoded Knights-specific terminology and move it to the local-org noun seam where it is generic product UI.
 
-Next recommended engineering task: inspect and design a targeted cleanup for the Sydney cross-wired local-org records, then continue /imports/supreme page-query cleanup.
 Work in owl mode: slow, dependency-aware, audit-first, small patches, verify after each seam.
 ```
