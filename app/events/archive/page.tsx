@@ -96,6 +96,17 @@ export default async function EventArchivePage() {
   })
   const nowIso = new Date().toISOString()
 
+  if (!localUnitId) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader />
+          <section className="qv-card qv-error">Could not load the event archive. Missing local organization context.</section>
+        </div>
+      </main>
+    )
+  }
+
   const historicalEventSelect = 'id, title, starts_at, ends_at, status_code, location_name, event_kind_code'
   const historicalEventFilterGroups = [
     ['status_code.in.(completed,cancelled)'],
@@ -103,34 +114,19 @@ export default async function EventArchivePage() {
     ['event_kind_code.eq.standard', `ends_at.lt.${nowIso}`, 'status_code.not.in.(draft,completed,cancelled)'],
     ['event_kind_code.eq.standard', `starts_at.lt.${nowIso}`, 'ends_at.is.null', 'status_code.not.in.(draft,completed,cancelled)'],
   ]
-  const historicalEventScopeFilters = localUnitId
-    ? [
-        ...historicalEventFilterGroups.map((filters) =>
-          andFilter([`local_unit_id.eq.${localUnitId}`, ...filters])
-        ),
-        ...historicalEventFilterGroups.map((filters) =>
-          andFilter(['local_unit_id.is.null', `council_id.eq.${council.id}`, ...filters])
-        ),
-      ].join(',')
-    : historicalEventFilterGroups.map(andFilter).join(',')
+  const historicalEventScopeFilters = historicalEventFilterGroups
+    .map((filters) => andFilter([`local_unit_id.eq.${localUnitId}`, ...filters]))
+    .join(',')
 
-  let historicalEventsQuery = supabase
+  const historicalEventsQuery = supabase
     .from('events')
     .select(historicalEventSelect)
+    .or(historicalEventScopeFilters)
 
-  historicalEventsQuery = localUnitId
-    ? historicalEventsQuery.or(historicalEventScopeFilters)
-    : historicalEventsQuery.eq('council_id', council.id).or(historicalEventScopeFilters)
-
-  let deletedEventsQuery = supabase
+  const deletedEventsQuery = supabase
     .from('event_archives')
     .select('id, original_event_id, title, starts_at, ends_at, status_code, location_name, deleted_at')
-
-  deletedEventsQuery = localUnitId
-    ? deletedEventsQuery.or(
-        `local_unit_id.eq.${localUnitId},and(local_unit_id.is.null,council_id.eq.${council.id})`
-      )
-    : deletedEventsQuery.eq('council_id', council.id)
+    .eq('local_unit_id', localUnitId)
 
   const [{ data: historicalRows, error: historicalError }, { data: deletedEvents, error: deletedError }] = await Promise.all([
     historicalEventsQuery
