@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 const repoRoot = process.cwd()
+const outputPath = path.join(os.homedir(), 'Downloads', 'chrism-council-id-audit-report.txt')
 
 const ignoredDirectories = new Set([
   '.git',
@@ -179,6 +181,36 @@ function auditFile(filePath) {
   return findings
 }
 
+function buildReport(args) {
+  const { files, findings, summary } = args
+  const lines = []
+
+  lines.push('Council dependency audit summary')
+  lines.push('================================')
+  lines.push(`Generated at: ${new Date().toISOString()}`)
+  lines.push(`Repo root: ${repoRoot}`)
+  lines.push(`Files scanned: ${files.length}`)
+  lines.push(`BLOCKER: ${summary.BLOCKER ?? 0}`)
+  lines.push(`WARN:    ${summary.WARN ?? 0}`)
+  lines.push(`INFO:    ${summary.INFO ?? 0}`)
+  lines.push('')
+
+  if (findings.length === 0) {
+    lines.push('No council-id dependency findings.')
+    lines.push('')
+    return lines.join('\n')
+  }
+
+  for (const finding of findings) {
+    lines.push(`[${finding.severity}] ${finding.path}:${finding.lineNumber} ${finding.patternId}`)
+    lines.push(`  ${finding.line}`)
+    lines.push(`  ${finding.note}`)
+  }
+
+  lines.push('')
+  return lines.join('\n')
+}
+
 if (!existsSync(path.join(repoRoot, 'package.json'))) {
   console.error('Run this script from the repository root.')
   process.exit(2)
@@ -206,19 +238,18 @@ const summary = findings.reduce((accumulator, finding) => {
   return accumulator
 }, {})
 
+const report = buildReport({ files, findings, summary })
+
+mkdirSync(path.dirname(outputPath), { recursive: true })
+writeFileSync(outputPath, report, 'utf8')
+
 console.log('Council dependency audit summary')
 console.log('================================')
 console.log(`Files scanned: ${files.length}`)
 console.log(`BLOCKER: ${summary.BLOCKER ?? 0}`)
 console.log(`WARN:    ${summary.WARN ?? 0}`)
 console.log(`INFO:    ${summary.INFO ?? 0}`)
-console.log('')
-
-for (const finding of findings) {
-  console.log(`[${finding.severity}] ${finding.path}:${finding.lineNumber} ${finding.patternId}`)
-  console.log(`  ${finding.line}`)
-  console.log(`  ${finding.note}`)
-}
+console.log(`Report written to: ${outputPath}`)
 
 if ((summary.BLOCKER ?? 0) > 0) {
   console.error('\nCouncil dependency audit found BLOCKER findings.')
