@@ -49,6 +49,8 @@ const pathInfoOnlyPrefixes = [
 const intentionalGuardrailFiles = new Set([
   'scripts/audit-council-id-dependencies.mjs',
   'scripts/verify-supreme-import-local-unit-cutover-readiness.sql',
+  'scripts/patch-event-detail-local-unit-scope.mjs',
+  'scripts/patch-event-actions-local-unit-scope.mjs',
 ])
 
 const intentionalPublicRouteFiles = new Set([
