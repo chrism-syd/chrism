@@ -117,18 +117,18 @@ function getNullableNumberValue(payload: Record<string, unknown>, key: string) {
 
 function buildRpcArguments(args: {
   row: ApplyImportRowPayload;
-  councilId: string;
+  localUnitId: string;
   organizationId: string;
   authUserId: string;
 }) {
-  const { row, councilId, organizationId, authUserId } = args;
+  const { row, localUnitId, organizationId, authUserId } = args;
   const personPayload = buildProtectedPersonPayload(row) as ProtectedPersonPayload &
     Record<string, unknown>;
   const kofcProfilePayload = buildKofcProfilePayload(row) as KofcProfilePayload &
     Record<string, unknown>;
 
   return {
-    p_council_id: councilId,
+    p_local_unit_id: localUnitId,
     p_organization_id: organizationId,
     p_auth_user_id: authUserId,
     p_import_mode: row.importMode,
@@ -167,7 +167,7 @@ function buildRpcArguments(args: {
 }
 
 export async function applySupremeImportAction(payload: ApplyImportPayload) {
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/imports/supreme',
     areaCode: 'members',
@@ -180,6 +180,10 @@ export async function applySupremeImportAction(payload: ApplyImportPayload) {
 
   if (!Array.isArray(payload.rows) || payload.rows.length === 0) {
     throw new Error('No import rows were provided.');
+  }
+
+  if (!localUnitId) {
+    throw new Error('This import requires an active local unit scope.');
   }
 
   if (!council.organization_id) {
@@ -199,7 +203,7 @@ export async function applySupremeImportAction(payload: ApplyImportPayload) {
 
     const rpcArgs = buildRpcArguments({
       row,
-      councilId: council.id,
+      localUnitId,
       organizationId: council.organization_id,
       authUserId: permissions.authUser.id,
     });
