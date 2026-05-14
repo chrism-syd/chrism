@@ -51,6 +51,11 @@ const intentionalGuardrailFiles = new Set([
   'scripts/verify-supreme-import-local-unit-cutover-readiness.sql',
 ])
 
+const intentionalPublicRouteFiles = new Set([
+  'app/councils/[councilNumber]/meetings/page.tsx',
+  'app/councils/[councilNumber]/meetings.ics/route.ts',
+])
+
 const patterns = [
   {
     id: 'current-council-helper',
@@ -116,6 +121,10 @@ function isIntentionalGuardrailFile(relativePath) {
   return intentionalGuardrailFiles.has(relativePath)
 }
 
+function isIntentionalPublicRouteFile(relativePath) {
+  return intentionalPublicRouteFiles.has(relativePath)
+}
+
 function isBinaryish(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   return ignoredExtensions.has(ext)
@@ -163,6 +172,7 @@ function auditFile(filePath) {
   const lines = text.split(/\r?\n/)
   const pathIsInfoOnly = shouldTreatAsInfoOnly(relativePath)
   const pathIsGuardrail = isIntentionalGuardrailFile(relativePath)
+  const pathIsPublicRoute = isIntentionalPublicRouteFile(relativePath)
   const findings = []
 
   lines.forEach((line, index) => {
@@ -171,7 +181,7 @@ function auditFile(filePath) {
       if (!pattern.regex.test(line)) continue
       if (pattern.ignoreLine?.(line)) continue
 
-      const severity = pathIsGuardrail
+      const severity = pathIsGuardrail || pathIsPublicRoute
         ? 'INFO'
         : pathIsInfoOnly && pattern.severity !== 'BLOCKER'
           ? 'INFO'
@@ -179,13 +189,19 @@ function auditFile(filePath) {
             ? 'WARN'
             : pattern.severity
 
+      const intentionalPrefix = pathIsGuardrail
+        ? 'Intentional audit/verifier guardrail. '
+        : pathIsPublicRoute
+          ? 'Intentional local-org-specific public route. '
+          : ''
+
       findings.push({
         severity,
         patternId: pattern.id,
         path: relativePath,
         lineNumber: index + 1,
         line: line.trim(),
-        note: pathIsGuardrail ? `Intentional audit/verifier guardrail. ${pattern.note}` : pattern.note,
+        note: `${intentionalPrefix}${pattern.note}`,
       })
     }
   })
