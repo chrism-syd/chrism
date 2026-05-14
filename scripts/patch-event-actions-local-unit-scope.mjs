@@ -261,7 +261,7 @@ const replacements = [
       .is('ended_at', null)
       .maybeSingle();
 
-    if (localUnitPersonError) throw new Error(`Could not verify member local organization: ${localUnitPersonError.message}`);
+    if (localUnitPersonError) throw new Error('Could not verify member local organization: ' + localUnitPersonError.message);
 
     const { data: personData, error: personError } = localUnitPersonData?.person_id
       ? await supabase
