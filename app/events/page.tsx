@@ -384,17 +384,21 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
         .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
     : []
 
-  let eventsQuery = supabase
+  if (!localUnitId) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader permissions={permissions} />
+          <section className="qv-card qv-error">Could not load events. Missing local organization context.</section>
+        </div>
+      </main>
+    )
+  }
+
+  const { data: eventsData, error: eventsError } = await supabase
     .from('events')
     .select('id, title, location_name, starts_at, ends_at, status_code, scope_code, requires_rsvp, needs_volunteers, event_kind_code')
-
-  eventsQuery = localUnitId
-    ? eventsQuery.or(
-        `local_unit_id.eq.${localUnitId},and(local_unit_id.is.null,council_id.eq.${council.id})`
-      )
-    : eventsQuery.eq('council_id', council.id)
-
-  const { data: eventsData, error: eventsError } = await eventsQuery
+    .eq('local_unit_id', localUnitId)
     .order('starts_at', { ascending: true })
     .returns<EventRow[]>()
 
