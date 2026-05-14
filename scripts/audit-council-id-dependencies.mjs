@@ -46,6 +46,11 @@ const pathInfoOnlyPrefixes = [
   'database.types.ts',
 ]
 
+const intentionalGuardrailFiles = new Set([
+  'scripts/audit-council-id-dependencies.mjs',
+  'scripts/verify-supreme-import-local-unit-cutover-readiness.sql',
+])
+
 const patterns = [
   {
     id: 'current-council-helper',
@@ -107,6 +112,10 @@ function shouldTreatAsInfoOnly(relativePath) {
   return pathInfoOnlyPrefixes.some((prefix) => relativePath === prefix || relativePath.startsWith(prefix))
 }
 
+function isIntentionalGuardrailFile(relativePath) {
+  return intentionalGuardrailFiles.has(relativePath)
+}
+
 function isBinaryish(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   return ignoredExtensions.has(ext)
@@ -153,6 +162,7 @@ function auditFile(filePath) {
 
   const lines = text.split(/\r?\n/)
   const pathIsInfoOnly = shouldTreatAsInfoOnly(relativePath)
+  const pathIsGuardrail = isIntentionalGuardrailFile(relativePath)
   const findings = []
 
   lines.forEach((line, index) => {
@@ -161,11 +171,13 @@ function auditFile(filePath) {
       if (!pattern.regex.test(line)) continue
       if (pattern.ignoreLine?.(line)) continue
 
-      const severity = pathIsInfoOnly && pattern.severity !== 'BLOCKER'
+      const severity = pathIsGuardrail
         ? 'INFO'
-        : pathIsInfoOnly && pattern.severity === 'BLOCKER'
-          ? 'WARN'
-          : pattern.severity
+        : pathIsInfoOnly && pattern.severity !== 'BLOCKER'
+          ? 'INFO'
+          : pathIsInfoOnly && pattern.severity === 'BLOCKER'
+            ? 'WARN'
+            : pattern.severity
 
       findings.push({
         severity,
@@ -173,7 +185,7 @@ function auditFile(filePath) {
         path: relativePath,
         lineNumber: index + 1,
         line: line.trim(),
-        note: pattern.note,
+        note: pathIsGuardrail ? `Intentional audit/verifier guardrail. ${pattern.note}` : pattern.note,
       })
     }
   })
