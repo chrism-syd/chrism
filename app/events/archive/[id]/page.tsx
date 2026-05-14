@@ -55,32 +55,19 @@ export default async function ArchivedEventDetailPage({ params }: { params: Prom
     minimumAccessLevel: 'manage',
   })
 
+  if (!localUnitId) {
+    notFound()
+  }
+
   const archiveSelect =
     'id, original_event_id, council_id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before, deleted_at'
 
-  let archiveQuery = supabase
+  const { data, error } = await supabase
     .from('event_archives')
     .select(archiveSelect)
     .eq('id', id)
-
-  archiveQuery = localUnitId
-    ? archiveQuery.eq('local_unit_id', localUnitId)
-    : archiveQuery.eq('council_id', council.id)
-
-  let { data, error } = await archiveQuery.single()
-
-  if ((error || !data) && localUnitId) {
-    const fallback = await supabase
-      .from('event_archives')
-      .select(archiveSelect)
-      .eq('id', id)
-      .eq('council_id', council.id)
-      .is('local_unit_id', null)
-      .single()
-
-    data = fallback.data
-    error = fallback.error
-  }
+    .eq('local_unit_id', localUnitId)
+    .single()
 
   const event = data as ArchivedEventRow | null
 
