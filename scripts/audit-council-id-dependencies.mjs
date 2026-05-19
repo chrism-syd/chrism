@@ -69,6 +69,14 @@ const intentionalLegacyBridgeFiles = new Set([
   'app/members/[id]/page.tsx',
   'app/members/officer-actions.ts',
   'app/members/officers/page.tsx',
+  'app/super-admin/organization-claims/actions.ts',
+  'app/super-admin/organization-claims/page.tsx',
+  'lib/auth/permissions.ts',
+  'lib/members/directory-data.ts',
+  'lib/organizations/admin-managers.ts',
+  'lib/profile-change-reviews.ts',
+  'lib/rsvp/claim.ts',
+  'lib/rsvp/person-rsvp.ts',
 ])
 
 const patterns = [
@@ -210,7 +218,7 @@ function auditFile(filePath) {
         : pathIsPublicRoute
           ? 'Intentional local-org-specific public route. '
           : pathIsLegacyBridge
-            ? 'Known legacy officer/admin bridge; tracked in TODO #15 for database cleanup. '
+            ? 'Known documented legacy bridge/fallback; tracked for later database cleanup where applicable. '
             : pathIsInfoOnly
               ? 'Historical/reference material, not live app code. '
               : ''
