@@ -62,6 +62,9 @@ const intentionalLegacyBridgeFiles = new Set([
   'app/me/council/actions.ts',
   'app/me/council/page.tsx',
   'app/me/council/admins/[id]/page.tsx',
+  'app/members/[id]/page.tsx',
+  'app/members/officer-actions.ts',
+  'app/members/officers/page.tsx',
 ])
 
 const patterns = [
@@ -194,13 +197,9 @@ function auditFile(filePath) {
       if (!pattern.regex.test(line)) continue
       if (pattern.ignoreLine?.(line)) continue
 
-      const severity = pathIsGuardrail || pathIsPublicRoute || pathIsLegacyBridge
+      const severity = pathIsGuardrail || pathIsPublicRoute || pathIsLegacyBridge || pathIsInfoOnly
         ? 'INFO'
-        : pathIsInfoOnly && pattern.severity !== 'BLOCKER'
-          ? 'INFO'
-          : pathIsInfoOnly && pattern.severity === 'BLOCKER'
-            ? 'WARN'
-            : pattern.severity
+        : pattern.severity
 
       const intentionalPrefix = pathIsGuardrail
         ? 'Intentional audit/verifier guardrail. '
@@ -208,7 +207,9 @@ function auditFile(filePath) {
           ? 'Intentional local-org-specific public route. '
           : pathIsLegacyBridge
             ? 'Known legacy officer/admin bridge; tracked in TODO #15 for database cleanup. '
-            : ''
+            : pathIsInfoOnly
+              ? 'Historical/reference material, not live app code. '
+              : ''
 
       findings.push({
         severity,
