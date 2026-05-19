@@ -112,43 +112,6 @@ function buildDirectoryData(args: {
   }
 }
 
-export async function loadCouncilMemberDirectoryData(args: {
-  admin: ReturnType<typeof createAdminClient>
-  councilId: string
-}): Promise<DirectoryData> {
-  const { admin, councilId } = args
-
-  const [{ data: peopleData, error: peopleError }, { data: officerTermsData, error: officerTermsError }] = await Promise.all([
-    admin
-      .from('people')
-      .select(
-        'id, first_name, last_name, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_activity_level_code, council_activity_context_code, council_reengagement_status_code'
-      )
-      .eq('council_id', councilId)
-      .is('archived_at', null)
-      .is('merged_into_person_id', null)
-      .order('last_name', { ascending: true })
-      .order('first_name', { ascending: true })
-      .returns<Array<Omit<DirectoryPerson, 'preferred_display_name'>>>(),
-    admin
-      .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
-      .eq('council_id', councilId)
-      .returns<OfficerTermWithPerson[]>(),
-  ])
-
-  if (peopleError) throw new Error(`Could not load members. ${peopleError.message}`)
-  if (officerTermsError) throw new Error(`Could not load officer terms. ${officerTermsError.message}`)
-
-  return buildDirectoryData({
-    people: decryptPeopleRecords<Omit<DirectoryPerson, 'preferred_display_name'>>(peopleData ?? []).map((person) => ({
-      ...person,
-      preferred_display_name: null,
-    })),
-    officerTerms: officerTermsData ?? [],
-  })
-}
-
 export async function loadLocalUnitMemberDirectoryData(args: {
   admin: ReturnType<typeof createAdminClient>
   localUnitId: string
