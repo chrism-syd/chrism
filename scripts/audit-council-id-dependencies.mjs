@@ -51,6 +51,10 @@ const intentionalGuardrailFiles = new Set([
   'scripts/verify-supreme-import-local-unit-cutover-readiness.sql',
   'scripts/patch-event-detail-local-unit-scope.mjs',
   'scripts/patch-event-actions-local-unit-scope.mjs',
+  'scripts/backfill-supreme-import-text-case.mjs',
+  'scripts/repair-sydney-supreme-import-legacy-council.sql',
+  'scripts/verify-local-unit-legacy-council-alignment.sql',
+  'scripts/verify-supreme-import-page-local-unit-readiness.sql',
 ])
 
 const intentionalPublicRouteFiles = new Set([
