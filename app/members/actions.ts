@@ -233,7 +233,6 @@ export async function createMemberAction(
       .from('people')
       .delete()
       .eq('id', insertedPerson.id)
-      .eq('council_id', linkedCouncilId)
       .eq('primary_relationship_code', relationshipCode);
 
     return memberFormErrorState(
