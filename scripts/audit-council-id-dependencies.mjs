@@ -58,6 +58,12 @@ const intentionalPublicRouteFiles = new Set([
   'app/councils/[councilNumber]/meetings.ics/route.ts',
 ])
 
+const intentionalLegacyBridgeFiles = new Set([
+  'app/me/council/actions.ts',
+  'app/me/council/page.tsx',
+  'app/me/council/admins/[id]/page.tsx',
+])
+
 const patterns = [
   {
     id: 'current-council-helper',
@@ -127,6 +133,10 @@ function isIntentionalPublicRouteFile(relativePath) {
   return intentionalPublicRouteFiles.has(relativePath)
 }
 
+function isIntentionalLegacyBridgeFile(relativePath) {
+  return intentionalLegacyBridgeFiles.has(relativePath)
+}
+
 function isBinaryish(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   return ignoredExtensions.has(ext)
@@ -175,6 +185,7 @@ function auditFile(filePath) {
   const pathIsInfoOnly = shouldTreatAsInfoOnly(relativePath)
   const pathIsGuardrail = isIntentionalGuardrailFile(relativePath)
   const pathIsPublicRoute = isIntentionalPublicRouteFile(relativePath)
+  const pathIsLegacyBridge = isIntentionalLegacyBridgeFile(relativePath)
   const findings = []
 
   lines.forEach((line, index) => {
@@ -183,7 +194,7 @@ function auditFile(filePath) {
       if (!pattern.regex.test(line)) continue
       if (pattern.ignoreLine?.(line)) continue
 
-      const severity = pathIsGuardrail || pathIsPublicRoute
+      const severity = pathIsGuardrail || pathIsPublicRoute || pathIsLegacyBridge
         ? 'INFO'
         : pathIsInfoOnly && pattern.severity !== 'BLOCKER'
           ? 'INFO'
@@ -195,7 +206,9 @@ function auditFile(filePath) {
         ? 'Intentional audit/verifier guardrail. '
         : pathIsPublicRoute
           ? 'Intentional local-org-specific public route. '
-          : ''
+          : pathIsLegacyBridge
+            ? 'Known legacy officer/admin bridge; tracked in TODO #15 for database cleanup. '
+            : ''
 
       findings.push({
         severity,
