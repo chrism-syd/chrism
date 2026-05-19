@@ -81,6 +81,11 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
     ...(permissions.canImportMembers ? [{ label: 'Imports', href: '/imports/supreme' }] : []),
   ]
 
+  const eventNavChildren = [
+    ...(permissions.canManageEvents ? [{ label: 'Events', href: '/events' }] : []),
+    ...(permissions.canManageEvents ? [{ label: 'Volunteer hours', href: '/events/volunteer-hours' }] : []),
+  ]
+
   const navItems = permissions.hasStaffAccess
     ? [
         ...(memberNavChildren.length > 0
@@ -93,7 +98,13 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
         ...(!permissions.canAccessMemberData && permissions.canManageCustomLists
           ? [{ label: 'Custom lists', href: '/custom-lists' }]
           : []),
-        ...(permissions.canManageEvents ? [{ label: 'Events', href: '/events' }] : []),
+        ...(eventNavChildren.length > 0
+          ? [{
+              label: 'Events',
+              href: eventNavChildren[0]?.href ?? '/events',
+              items: eventNavChildren.length > 1 ? eventNavChildren : undefined,
+            }]
+          : []),
       ]
     : [
         { label: 'Home', href: '/spiritual' },
