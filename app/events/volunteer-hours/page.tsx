@@ -1,0 +1,478 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import AppHeader from '@/app/app-header'
+import SectionMenuBar from '@/app/components/section-menu-bar'
+import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { decryptPeopleRecords } from '@/lib/security/pii'
+import { addVolunteerHourAdjustment, voidVolunteerHourAdjustment } from './actions'
+
+type PersonRow = {
+  id: string
+  first_name: string
+  last_name: string
+  directory_display_name_override: string | null
+  email: string | null
+}
+
+type LocalUnitPersonRow = {
+  person_id: string | null
+}
+
+type MemberRecordRow = {
+  legacy_people_id: string | null
+  preferred_display_name: string | null
+}
+
+type OrganizationRow = {
+  org_type_code: string | null
+}
+
+type ReportingYearSettingsRow = {
+  year_label: string
+  year_start_month: number
+  year_start_day: number
+}
+
+type ContributionEntryRow = {
+  source_type: 'event' | 'manual_adjustment'
+  source_id: string
+  local_unit_id: string
+  person_id: string
+  event_id: string | null
+  event_title: string | null
+  credited_on: string
+  hours: number | string
+  note: string | null
+  sort_at: string
+  adjustment_id: string | null
+}
+
+type EventOptionRow = {
+  id: string
+  title: string
+  starts_at: string
+}
+
+type AdjustmentRow = {
+  id: string
+  person_id: string
+  event_id: string | null
+  hours_delta: number | string
+  credited_on: string
+  note: string | null
+  created_at: string
+}
+
+type PersonSummary = {
+  personId: string
+  displayName: string
+  email: string | null
+  currentEventCount: number
+  currentEventHours: number
+  currentManualHours: number
+  currentTotalHours: number
+  allTimeEventCount: number
+  allTimeTotalHours: number
+  lastVolunteeredOn: string | null
+  recentEntries: ContributionEntryRow[]
+  activeAdjustments: AdjustmentRow[]
+}
+
+function toNumber(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function formatHours(value: number) {
+  const rounded = Math.round(value * 100) / 100
+  return rounded.toLocaleString('en-CA', {
+    minimumFractionDigits: rounded % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat('en-CA', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${value}T12:00:00`))
+}
+
+function getDefaultReportingYearSettings(orgTypeCode?: string | null): ReportingYearSettingsRow {
+  if (orgTypeCode === 'knights_of_columbus') {
+    return {
+      year_label: 'Fraternal year',
+      year_start_month: 7,
+      year_start_day: 1,
+    }
+  }
+
+  return {
+    year_label: 'Calendar year',
+    year_start_month: 1,
+    year_start_day: 1,
+  }
+}
+
+function buildReportingYearRange(settings: ReportingYearSettingsRow, today = new Date()) {
+  const currentYear = today.getFullYear()
+  const startThisYear = new Date(Date.UTC(currentYear, settings.year_start_month - 1, settings.year_start_day, 12, 0, 0))
+  const startYear = today.getTime() >= startThisYear.getTime() ? currentYear : currentYear - 1
+  const start = new Date(Date.UTC(startYear, settings.year_start_month - 1, settings.year_start_day, 12, 0, 0))
+  const end = new Date(Date.UTC(startYear + 1, settings.year_start_month - 1, settings.year_start_day, 12, 0, 0))
+  const startDate = start.toISOString().slice(0, 10)
+  const endDate = end.toISOString().slice(0, 10)
+
+  return {
+    startDate,
+    endDate,
+    label: `${settings.year_label} ${startYear}-${String(startYear + 1).slice(-2)}`,
+  }
+}
+
+function personDisplayName(args: {
+  firstName: string
+  lastName: string
+  directoryDisplayNameOverride?: string | null
+  preferredDisplayName?: string | null
+}) {
+  const preferred = args.preferredDisplayName?.trim() || args.directoryDisplayNameOverride?.trim()
+  if (preferred) return preferred
+  return `${args.firstName} ${args.lastName}`.trim()
+}
+
+function isWithinRange(date: string, startDate: string, endDate: string) {
+  return date >= startDate && date < endDate
+}
+
+export default async function VolunteerHoursPage() {
+  const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({
+    redirectTo: '/events/volunteer-hours',
+    areaCode: 'events',
+    minimumAccessLevel: 'manage',
+  })
+
+  if (!localUnitId) notFound()
+
+  const [organizationResult, settingsResult, localUnitPeopleResult, memberRecordsResult, entriesResult, eventsResult, adjustmentsResult] = await Promise.all([
+    council.organization_id
+      ? supabase
+          .from('organizations')
+          .select('org_type_code')
+          .eq('id', council.organization_id)
+          .maybeSingle<OrganizationRow>()
+      : Promise.resolve({ data: null, error: null }),
+    supabase
+      .from('local_unit_reporting_year_settings')
+      .select('year_label, year_start_month, year_start_day')
+      .eq('local_unit_id', localUnitId)
+      .maybeSingle<ReportingYearSettingsRow>(),
+    supabase
+      .from('local_unit_people')
+      .select('person_id')
+      .eq('local_unit_id', localUnitId)
+      .returns<LocalUnitPersonRow[]>(),
+    supabase
+      .from('member_records')
+      .select('legacy_people_id, preferred_display_name')
+      .eq('local_unit_id', localUnitId)
+      .is('archived_at', null)
+      .returns<MemberRecordRow[]>(),
+    supabase
+      .from('local_unit_volunteer_contribution_entries')
+      .select('source_type, source_id, local_unit_id, person_id, event_id, event_title, credited_on, hours, note, sort_at, adjustment_id')
+      .eq('local_unit_id', localUnitId)
+      .order('credited_on', { ascending: false })
+      .returns<ContributionEntryRow[]>(),
+    supabase
+      .from('events')
+      .select('id, title, starts_at')
+      .eq('local_unit_id', localUnitId)
+      .eq('status_code', 'completed')
+      .eq('event_kind_code', 'standard')
+      .order('starts_at', { ascending: false })
+      .limit(100)
+      .returns<EventOptionRow[]>(),
+    supabase
+      .from('local_unit_volunteer_hour_adjustments')
+      .select('id, person_id, event_id, hours_delta, credited_on, note, created_at')
+      .eq('local_unit_id', localUnitId)
+      .is('voided_at', null)
+      .order('created_at', { ascending: false })
+      .returns<AdjustmentRow[]>(),
+  ])
+
+  if (
+    organizationResult.error ||
+    settingsResult.error ||
+    localUnitPeopleResult.error ||
+    memberRecordsResult.error ||
+    entriesResult.error ||
+    eventsResult.error ||
+    adjustmentsResult.error
+  ) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader permissions={permissions} />
+          <section className="qv-card qv-error">Could not load volunteer hour data.</section>
+        </div>
+      </main>
+    )
+  }
+
+  const scopedPersonIds = [...new Set((localUnitPeopleResult.data ?? []).map((row) => row.person_id).filter((value): value is string => Boolean(value)))]
+
+  const peopleResult = scopedPersonIds.length
+    ? await supabase
+        .from('people')
+        .select('id, first_name, last_name, directory_display_name_override, email')
+        .in('id', scopedPersonIds)
+        .is('archived_at', null)
+        .is('merged_into_person_id', null)
+        .returns<PersonRow[]>()
+    : { data: [] as PersonRow[], error: null }
+
+  if (peopleResult.error) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader permissions={permissions} />
+          <section className="qv-card qv-error">Could not load people for volunteer hour data.</section>
+        </div>
+      </main>
+    )
+  }
+
+  const organization = organizationResult.data ?? null
+  const defaultSettings = getDefaultReportingYearSettings(organization?.org_type_code)
+  const reportingYearSettings = settingsResult.data ?? defaultSettings
+  const reportingYear = buildReportingYearRange(reportingYearSettings)
+  const memberRecordByPersonId = new Map(
+    (memberRecordsResult.data ?? [])
+      .filter((row) => row.legacy_people_id)
+      .map((row) => [row.legacy_people_id as string, row])
+  )
+  const entries = entriesResult.data ?? []
+  const activeAdjustments = adjustmentsResult.data ?? []
+  const entriesByPersonId = new Map<string, ContributionEntryRow[]>()
+  const adjustmentsByPersonId = new Map<string, AdjustmentRow[]>()
+
+  for (const entry of entries) {
+    entriesByPersonId.set(entry.person_id, [...(entriesByPersonId.get(entry.person_id) ?? []), entry])
+  }
+
+  for (const adjustment of activeAdjustments) {
+    adjustmentsByPersonId.set(adjustment.person_id, [...(adjustmentsByPersonId.get(adjustment.person_id) ?? []), adjustment])
+  }
+
+  const people = decryptPeopleRecords(peopleResult.data ?? [])
+  const summaries: PersonSummary[] = people.map((person) => {
+    const preferredDisplayName = memberRecordByPersonId.get(person.id)?.preferred_display_name ?? null
+    const personEntries = entriesByPersonId.get(person.id) ?? []
+    const currentEntries = personEntries.filter((entry) => isWithinRange(entry.credited_on, reportingYear.startDate, reportingYear.endDate))
+    const eventEntries = currentEntries.filter((entry) => entry.source_type === 'event')
+    const manualEntries = currentEntries.filter((entry) => entry.source_type === 'manual_adjustment')
+    const allEventEntries = personEntries.filter((entry) => entry.source_type === 'event')
+
+    return {
+      personId: person.id,
+      displayName: personDisplayName({
+        firstName: person.first_name,
+        lastName: person.last_name,
+        directoryDisplayNameOverride: person.directory_display_name_override,
+        preferredDisplayName,
+      }),
+      email: person.email?.trim() ?? null,
+      currentEventCount: new Set(eventEntries.map((entry) => entry.event_id).filter(Boolean)).size,
+      currentEventHours: eventEntries.reduce((total, entry) => total + toNumber(entry.hours), 0),
+      currentManualHours: manualEntries.reduce((total, entry) => total + toNumber(entry.hours), 0),
+      currentTotalHours: currentEntries.reduce((total, entry) => total + toNumber(entry.hours), 0),
+      allTimeEventCount: new Set(allEventEntries.map((entry) => entry.event_id).filter(Boolean)).size,
+      allTimeTotalHours: personEntries.reduce((total, entry) => total + toNumber(entry.hours), 0),
+      lastVolunteeredOn: eventEntries[0]?.credited_on ?? allEventEntries[0]?.credited_on ?? null,
+      recentEntries: personEntries.slice(0, 5),
+      activeAdjustments: adjustmentsByPersonId.get(person.id) ?? [],
+    }
+  }).sort((left, right) => {
+    const totalDiff = right.currentTotalHours - left.currentTotalHours
+    if (totalDiff !== 0) return totalDiff
+    return left.displayName.localeCompare(right.displayName)
+  })
+
+  const totalPeople = summaries.length
+  const peopleWithHours = summaries.filter((summary) => summary.currentTotalHours !== 0).length
+  const totalCurrentHours = summaries.reduce((total, summary) => total + summary.currentTotalHours, 0)
+  const totalCurrentEvents = summaries.reduce((total, summary) => total + summary.currentEventCount, 0)
+  const completedEvents = eventsResult.data ?? []
+
+  return (
+    <main className="qv-page">
+      <div className="qv-shell">
+        <AppHeader permissions={permissions} />
+
+        <section style={{ display: 'grid', gap: 14, paddingTop: 28, marginBottom: 18 }}>
+          <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em' }}>
+            Volunteer hours
+          </h1>
+          <p style={{ margin: 0, maxWidth: '46ch', fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
+            Audit completed-event volunteer hours and manual adjustments for people in this local organization.
+          </p>
+        </section>
+
+        <SectionMenuBar items={[{ label: 'Events', href: '/events' }, { label: 'Add event', href: '/events/new' }, { label: 'Archived events', href: '/events/archive' }]} />
+
+        <section className="qv-hero-card">
+          <div className="qv-hero-top">
+            <div>
+              <p className="qv-eyebrow">{council.name ?? 'Local organization'}{council.council_number ? ` (${council.council_number})` : ''}</p>
+              <h2 className="qv-section-title" style={{ margin: 0 }}>{reportingYear.label}</h2>
+              <p className="qv-section-subtitle" style={{ marginTop: 8 }}>
+                {formatDate(reportingYear.startDate)} through {formatDate(reportingYear.endDate)}. Completed events only.
+              </p>
+            </div>
+          </div>
+
+          <div className="qv-stats">
+            <div className="qv-stat-card"><div className="qv-stat-number">{formatHours(totalCurrentHours)}</div><div className="qv-stat-label">Total hours</div></div>
+            <div className="qv-stat-card"><div className="qv-stat-number">{totalCurrentEvents}</div><div className="qv-stat-label">Volunteer event credits</div></div>
+            <div className="qv-stat-card"><div className="qv-stat-number">{peopleWithHours}</div><div className="qv-stat-label">People with hours</div></div>
+            <div className="qv-stat-card"><div className="qv-stat-number">{totalPeople}</div><div className="qv-stat-label">People audited</div></div>
+          </div>
+        </section>
+
+        <div className="qv-detail-grid">
+          <section className="qv-card">
+            <div className="qv-directory-section-head">
+              <div>
+                <h2 className="qv-section-title">Contribution audit</h2>
+                <p className="qv-section-subtitle">Sorted by total hours in the current reporting year.</p>
+              </div>
+            </div>
+
+            {summaries.length === 0 ? (
+              <div className="qv-empty"><h3 className="qv-empty-title">No people found</h3><p className="qv-empty-text">Add people to this local organization before tracking volunteer hours.</p></div>
+            ) : (
+              <div className="qv-member-list">
+                {summaries.map((summary) => (
+                  <article key={summary.personId} className="qv-member-row">
+                    <div className="qv-member-main">
+                      <div className="qv-member-text">
+                        <div className="qv-member-name">
+                          <Link href={`/members/${summary.personId}`} className="qv-inline-link">{summary.displayName}</Link>
+                        </div>
+                        <div className="qv-member-meta">{summary.email || 'No email on file'}</div>
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
+                          <span className="qv-mini-pill">{formatHours(summary.currentTotalHours)}h total</span>
+                          <span className="qv-mini-pill">{formatHours(summary.currentEventHours)}h events</span>
+                          <span className="qv-mini-pill">{formatHours(summary.currentManualHours)}h manual</span>
+                          <span className="qv-mini-pill">{summary.currentEventCount} events</span>
+                          <span className="qv-mini-pill">Last volunteered {formatDate(summary.lastVolunteeredOn)}</span>
+                        </div>
+
+                        {summary.recentEntries.length > 0 ? (
+                          <details style={{ marginTop: 12 }}>
+                            <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Recent entries</summary>
+                            <div className="qv-detail-list" style={{ marginTop: 10 }}>
+                              {summary.recentEntries.map((entry) => (
+                                <div key={entry.source_id} className="qv-detail-item">
+                                  <div className="qv-detail-label">{entry.source_type === 'event' ? 'Completed event' : 'Manual adjustment'} · {formatDate(entry.credited_on)}</div>
+                                  <div className="qv-detail-value">{entry.event_title ?? 'Manual adjustment'} · {formatHours(toNumber(entry.hours))}h</div>
+                                  {entry.note ? <div className="qv-member-meta">{entry.note}</div> : null}
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ) : null}
+
+                        {summary.activeAdjustments.length > 0 ? (
+                          <details style={{ marginTop: 12 }}>
+                            <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Active manual adjustments</summary>
+                            <div className="qv-detail-list" style={{ marginTop: 10 }}>
+                              {summary.activeAdjustments.map((adjustment) => (
+                                <div key={adjustment.id} className="qv-detail-item">
+                                  <div className="qv-detail-label">{formatDate(adjustment.credited_on)}</div>
+                                  <div className="qv-detail-value">{formatHours(toNumber(adjustment.hours_delta))}h</div>
+                                  {adjustment.note ? <div className="qv-member-meta">{adjustment.note}</div> : null}
+                                  <form action={voidVolunteerHourAdjustment} className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 10 }}>
+                                    <input type="hidden" name="adjustment_id" value={adjustment.id} />
+                                    <input type="hidden" name="person_id" value={summary.personId} />
+                                    <input type="hidden" name="void_reason" value="Voided from volunteer hours audit page." />
+                                    <button type="submit" className="qv-button-secondary">Void adjustment</button>
+                                  </form>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <aside className="qv-detail-stack">
+            <section className="qv-card">
+              <div className="qv-directory-section-head">
+                <div>
+                  <h2 className="qv-section-title">Add adjustment</h2>
+                  <p className="qv-section-subtitle">Use positive or negative hours. Event participation itself remains calculated.</p>
+                </div>
+              </div>
+
+              <form action={addVolunteerHourAdjustment} className="qv-form-grid">
+                <label className="qv-control">
+                  <span className="qv-label">Person</span>
+                  <select name="person_id" required>
+                    <option value="">Choose a person</option>
+                    {summaries.map((summary) => <option key={summary.personId} value={summary.personId}>{summary.displayName}</option>)}
+                  </select>
+                </label>
+
+                <label className="qv-control">
+                  <span className="qv-label">Related completed event</span>
+                  <select name="event_id">
+                    <option value="">No event / general adjustment</option>
+                    {completedEvents.map((event) => <option key={event.id} value={event.id}>{event.title} · {formatDate(event.starts_at.slice(0, 10))}</option>)}
+                  </select>
+                </label>
+
+                <label className="qv-control">
+                  <span className="qv-label">Hours adjustment</span>
+                  <input type="number" name="hours_delta" step="0.25" min="-999.99" max="999.99" required placeholder="2.5 or -1" />
+                </label>
+
+                <label className="qv-control">
+                  <span className="qv-label">Credited date</span>
+                  <input type="date" name="credited_on" defaultValue={new Date().toISOString().slice(0, 10)} required />
+                </label>
+
+                <label className="qv-control">
+                  <span className="qv-label">Note</span>
+                  <textarea name="note" placeholder="Reason for the adjustment" />
+                </label>
+
+                <div className="qv-form-actions">
+                  <button type="submit" className="qv-button-primary">Save adjustment</button>
+                </div>
+              </form>
+            </section>
+
+            <section className="qv-card">
+              <h2 className="qv-section-title">Rules</h2>
+              <div className="qv-detail-list">
+                <div className="qv-detail-item"><div className="qv-detail-label">Event hours</div><div className="qv-detail-value">Completed standard events only. End time sets duration; missing end time counts as 1 hour.</div></div>
+                <div className="qv-detail-item"><div className="qv-detail-label">People scope</div><div className="qv-detail-value">Only person-linked volunteer attendees in this local organization count.</div></div>
+                <div className="qv-detail-item"><div className="qv-detail-label">Recognition</div><div className="qv-detail-value">Gold/Silver/Bronze volunteer levels are intentionally deferred until reporting totals are stable.</div></div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </main>
+  )
+}
