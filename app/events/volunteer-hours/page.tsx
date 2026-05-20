@@ -3,24 +3,15 @@ import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import SectionMenuBar from '@/app/components/section-menu-bar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
-import { decryptPeopleRecords } from '@/lib/security/pii'
+import { listValidDirectoryPeopleForLocalUnit } from '@/lib/custom-lists'
 import { addVolunteerHourAdjustment, voidVolunteerHourAdjustment } from './actions'
 
 type PersonRow = {
   id: string
   first_name: string
   last_name: string
-  directory_display_name_override: string | null
-  email: string | null
-}
-
-type LocalUnitPersonRow = {
-  person_id: string | null
-}
-
-type MemberRecordRow = {
-  legacy_people_id: string | null
   preferred_display_name: string | null
+  email: string | null
 }
 
 type OrganizationRow = {
@@ -132,15 +123,15 @@ function buildReportingYearRange(settings: ReportingYearSettingsRow, today = new
   }
 }
 
-function personDisplayName(args: {
-  firstName: string
-  lastName: string
-  directoryDisplayNameOverride?: string | null
-  preferredDisplayName?: string | null
-}) {
-  const preferred = args.preferredDisplayName?.trim() || args.directoryDisplayNameOverride?.trim()
-  if (preferred) return preferred
-  return `${args.firstName} ${args.lastName}`.trim()
+function personDisplayName(person: PersonRow) {
+  const preferred = person.preferred_display_name?.trim()
+  if (!preferred) return `${person.first_name} ${person.last_name}`.trim()
+
+  const normalizedPreferred = preferred.toLowerCase()
+  const normalizedLastName = person.last_name.trim().toLowerCase()
+  if (normalizedLastName && normalizedPreferred.endsWith(normalizedLastName)) return preferred
+
+  return `${preferred} ${person.last_name}`.trim()
 }
 
 function isWithinRange(date: string, startDate: string, endDate: string) {
@@ -156,7 +147,7 @@ export default async function VolunteerHoursPage() {
 
   if (!localUnitId) notFound()
 
-  const [organizationResult, settingsResult, localUnitPeopleResult, memberRecordsResult, entriesResult, eventsResult, adjustmentsResult] = await Promise.all([
+  const [organizationResult, settingsResult, directoryPeopleResult, entriesResult, eventsResult, adjustmentsResult] = await Promise.all([
     council.organization_id
       ? supabase
           .from('organizations')
@@ -169,17 +160,9 @@ export default async function VolunteerHoursPage() {
       .select('year_label, year_start_month, year_start_day')
       .eq('local_unit_id', localUnitId)
       .maybeSingle<ReportingYearSettingsRow>(),
-    supabase
-      .from('local_unit_people')
-      .select('person_id')
-      .eq('local_unit_id', localUnitId)
-      .returns<LocalUnitPersonRow[]>(),
-    supabase
-      .from('member_records')
-      .select('legacy_people_id, preferred_display_name')
-      .eq('local_unit_id', localUnitId)
-      .is('archived_at', null)
-      .returns<MemberRecordRow[]>(),
+    listValidDirectoryPeopleForLocalUnit({ admin: supabase, localUnitId })
+      .then((data) => ({ data: data as PersonRow[], error: null }))
+      .catch((error: Error) => ({ data: [] as PersonRow[], error })),
     supabase
       .from('local_unit_volunteer_contribution_entries')
       .select('source_type, source_id, local_unit_id, person_id, event_id, event_title, credited_on, hours, note, sort_at, adjustment_id')
@@ -207,8 +190,7 @@ export default async function VolunteerHoursPage() {
   if (
     organizationResult.error ||
     settingsResult.error ||
-    localUnitPeopleResult.error ||
-    memberRecordsResult.error ||
+    directoryPeopleResult.error ||
     entriesResult.error ||
     eventsResult.error ||
     adjustmentsResult.error
@@ -223,38 +205,10 @@ export default async function VolunteerHoursPage() {
     )
   }
 
-  const scopedPersonIds = [...new Set((localUnitPeopleResult.data ?? []).map((row) => row.person_id).filter((value): value is string => Boolean(value)))]
-
-  const peopleResult = scopedPersonIds.length
-    ? await supabase
-        .from('people')
-        .select('id, first_name, last_name, directory_display_name_override, email')
-        .in('id', scopedPersonIds)
-        .is('archived_at', null)
-        .is('merged_into_person_id', null)
-        .returns<PersonRow[]>()
-    : { data: [] as PersonRow[], error: null }
-
-  if (peopleResult.error) {
-    return (
-      <main className="qv-page">
-        <div className="qv-shell">
-          <AppHeader permissions={permissions} />
-          <section className="qv-card qv-error">Could not load people for volunteer hour data.</section>
-        </div>
-      </main>
-    )
-  }
-
   const organization = organizationResult.data ?? null
   const defaultSettings = getDefaultReportingYearSettings(organization?.org_type_code)
   const reportingYearSettings = settingsResult.data ?? defaultSettings
   const reportingYear = buildReportingYearRange(reportingYearSettings)
-  const memberRecordByPersonId = new Map(
-    (memberRecordsResult.data ?? [])
-      .filter((row) => row.legacy_people_id)
-      .map((row) => [row.legacy_people_id as string, row])
-  )
   const entries = entriesResult.data ?? []
   const activeAdjustments = adjustmentsResult.data ?? []
   const entriesByPersonId = new Map<string, ContributionEntryRow[]>()
@@ -268,9 +222,8 @@ export default async function VolunteerHoursPage() {
     adjustmentsByPersonId.set(adjustment.person_id, [...(adjustmentsByPersonId.get(adjustment.person_id) ?? []), adjustment])
   }
 
-  const people = decryptPeopleRecords(peopleResult.data ?? [])
+  const people = directoryPeopleResult.data ?? []
   const summaries: PersonSummary[] = people.map((person) => {
-    const preferredDisplayName = memberRecordByPersonId.get(person.id)?.preferred_display_name ?? null
     const personEntries = entriesByPersonId.get(person.id) ?? []
     const currentEntries = personEntries.filter((entry) => isWithinRange(entry.credited_on, reportingYear.startDate, reportingYear.endDate))
     const eventEntries = currentEntries.filter((entry) => entry.source_type === 'event')
@@ -279,12 +232,7 @@ export default async function VolunteerHoursPage() {
 
     return {
       personId: person.id,
-      displayName: personDisplayName({
-        firstName: person.first_name,
-        lastName: person.last_name,
-        directoryDisplayNameOverride: person.directory_display_name_override,
-        preferredDisplayName,
-      }),
+      displayName: personDisplayName(person),
       email: person.email?.trim() ?? null,
       currentEventCount: new Set(eventEntries.map((entry) => entry.event_id).filter(Boolean)).size,
       currentEventHours: eventEntries.reduce((total, entry) => total + toNumber(entry.hours), 0),
@@ -443,7 +391,7 @@ export default async function VolunteerHoursPage() {
 
                 <label className="qv-control">
                   <span className="qv-label">Hours adjustment</span>
-                  <input type="number" name="hours_delta" step="0.25" min="-999.99" max="999.99" required placeholder="2.5 or -1" />
+                  <input type="number" name="hours_delta" step="0.25" min="-999" max="999" required placeholder="2.5 or -1" />
                 </label>
 
                 <label className="qv-control">
