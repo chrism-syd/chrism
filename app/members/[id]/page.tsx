@@ -13,6 +13,9 @@ type PageProps = { params: Promise<{ id: string }> }
 type PersonRow = { id: string; first_name: string; middle_name: string | null; last_name: string; email: string | null; cell_phone: string | null; home_phone: string | null; other_phone: string | null; address_line_1: string | null; address_line_2: string | null; city: string | null; state_province: string | null; postal_code: string | null; primary_relationship_code: string | null; council_activity_level_code: string | null; council_activity_context_code: string | null; council_reengagement_status_code: string | null }
 type MemberCustomListMembershipRow = { id: string; custom_list_id: string; claimed_by_person_id: string | null; last_contact_at: string | null; last_contact_by_person_id: string | null }
 type MemberCustomListRow = { id: string; local_unit_id: string | null; name: string; description: string | null }
+type OrganizationRow = { display_name: string | null; preferred_name: string | null; logo_storage_path: string | null; logo_alt_text: string | null; org_type_code: string | null; brand_profile?: { code: string | null; display_name: string | null; logo_storage_bucket: string | null; logo_storage_path: string | null; logo_alt_text: string | null } | null }
+type ReportingYearSettingsRow = { year_label: string; year_start_month: number; year_start_day: number }
+type VolunteerContributionEntryRow = { source_type: 'event' | 'manual_adjustment'; source_id: string; event_id: string | null; event_title: string | null; credited_on: string; hours: number | string; note: string | null }
 
 function formatAddress(person: Pick<PersonRow, 'address_line_1' | 'address_line_2' | 'city' | 'state_province' | 'postal_code'>) {
   const line1 = [person.address_line_1, person.address_line_2].filter(Boolean).join(', ')
@@ -28,6 +31,40 @@ function formatDisplayName(args: { firstName: string; lastName: string; preferre
   if (normalize(preferred).endsWith(normalize(args.lastName))) return preferred
   return `${preferred} ${args.lastName}`.trim()
 }
+function toNumber(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+function formatHours(value: number) {
+  const rounded = Math.round(value * 100) / 100
+  return rounded.toLocaleString('en-CA', {
+    minimumFractionDigits: rounded % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })
+}
+function formatShortDate(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${value}T12:00:00`))
+}
+function getDefaultReportingYearSettings(orgTypeCode?: string | null): ReportingYearSettingsRow {
+  if (orgTypeCode === 'knights_of_columbus') {
+    return { year_label: 'Fraternal year', year_start_month: 7, year_start_day: 1 }
+  }
+  return { year_label: 'Calendar year', year_start_month: 1, year_start_day: 1 }
+}
+function buildReportingYearRange(settings: ReportingYearSettingsRow, today = new Date()) {
+  const currentYear = today.getFullYear()
+  const startThisYear = new Date(Date.UTC(currentYear, settings.year_start_month - 1, settings.year_start_day, 12, 0, 0))
+  const startYear = today.getTime() >= startThisYear.getTime() ? currentYear : currentYear - 1
+  const start = new Date(Date.UTC(startYear, settings.year_start_month - 1, settings.year_start_day, 12, 0, 0))
+  const end = new Date(Date.UTC(startYear + 1, settings.year_start_month - 1, settings.year_start_day, 12, 0, 0))
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+    label: `${settings.year_label} ${startYear}-${String(startYear + 1).slice(-2)}`,
+  }
+}
+function isWithinRange(date: string, startDate: string, endDate: string) { return date >= startDate && date < endDate }
 
 export default async function MemberDetailPage({ params }: PageProps) {
   const { id } = await params
@@ -70,9 +107,9 @@ export default async function MemberDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const { data: organizationData } = council.organization_id ? await supabase.from('organizations').select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)').eq('id', council.organization_id).maybeSingle() : { data: null }
+  const { data: organizationData } = council.organization_id ? await supabase.from('organizations').select('display_name, preferred_name, logo_storage_path, logo_alt_text, org_type_code, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)').eq('id', council.organization_id).maybeSingle<OrganizationRow>() : { data: null }
 
-  const organization = organizationData as { display_name: string | null; preferred_name: string | null; logo_storage_path: string | null; logo_alt_text: string | null; brand_profile?: { code: string | null; display_name: string | null; logo_storage_bucket: string | null; logo_storage_path: string | null; logo_alt_text: string | null } | null } | null
+  const organization = (organizationData as OrganizationRow | null) ?? null
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
 
@@ -100,9 +137,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const activeOfficerTerms = (officerTerms ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
   const currentOfficerLabels = summarizeCurrentOfficerLabels(activeOfficerTerms, currentFraternalYear)
   const executiveOfficerLabels = summarizeExecutiveOfficerLabels(activeOfficerTerms, currentFraternalYear)
-  const lastingHonorificLabels = summarizeLastingHonorifics(officerTerms ?? [], {
-    useKnightsOfColumbusFraternalYear: true,
-  })
+  const lastingHonorificLabels = summarizeLastingHonorifics(officerTerms ?? [], { useKnightsOfColumbusFraternalYear: true })
   const officerSummary = executiveOfficerLabels.length > 0 ? executiveOfficerLabels.join(', ') : currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : null
   const relationshipLabel = person.primary_relationship_code === 'volunteer_only' ? 'Volunteer' : startCase(person.primary_relationship_code) ?? 'Person'
   const activityLevelLabel = startCase(person.council_activity_level_code)
@@ -113,15 +148,28 @@ export default async function MemberDetailPage({ params }: PageProps) {
   const customListIds = [...new Set(customListMemberships.map((membership) => membership.custom_list_id))]
   const relatedPeopleIds = [...new Set([...customListMemberships.map((membership) => membership.last_contact_by_person_id).filter((value): value is string => Boolean(value)), ...customListMemberships.map((membership) => membership.claimed_by_person_id).filter((value): value is string => Boolean(value))])]
 
-  const [customListsResult, relatedPeopleResult] = await Promise.all([
+  const [customListsResult, relatedPeopleResult, volunteerEntriesResult, reportingYearSettingsResult] = await Promise.all([
     customListIds.length > 0 ? supabase.from('custom_lists').select('id, local_unit_id, name, description').in('id', customListIds).eq('local_unit_id', localUnitId).is('archived_at', null).returns<MemberCustomListRow[]>() : Promise.resolve({ data: [] as MemberCustomListRow[] }),
     relatedPeopleIds.length > 0 ? supabase.from('people').select('id, first_name, last_name').in('id', relatedPeopleIds).returns<Array<{ id: string; first_name: string; last_name: string }>>() : Promise.resolve({ data: [] as Array<{ id: string; first_name: string; last_name: string }> }),
+    supabase.from('local_unit_volunteer_contribution_entries').select('source_type, source_id, event_id, event_title, credited_on, hours, note').eq('local_unit_id', localUnitId).eq('person_id', id).order('credited_on', { ascending: false }).limit(12).returns<VolunteerContributionEntryRow[]>(),
+    supabase.from('local_unit_reporting_year_settings').select('year_label, year_start_month, year_start_day').eq('local_unit_id', localUnitId).maybeSingle<ReportingYearSettingsRow>(),
   ])
 
   const customListsById = new Map((customListsResult.data ?? []).map((list) => [list.id, list]))
   const relatedPeopleById = new Map((relatedPeopleResult.data ?? []).map((relatedPerson) => [relatedPerson.id, `${relatedPerson.first_name} ${relatedPerson.last_name}`.trim()]))
   const memberCustomLists = customListMemberships.map((membership) => ({ membership, list: customListsById.get(membership.custom_list_id) ?? null, lastContactByName: membership.last_contact_by_person_id ? relatedPeopleById.get(membership.last_contact_by_person_id) ?? 'Unknown person' : null, claimedByName: membership.claimed_by_person_id ? relatedPeopleById.get(membership.claimed_by_person_id) ?? 'Unknown person' : null })).filter((item) => item.list)
   const customListGridColumns = memberCustomLists.length >= 3 ? 'repeat(3, minmax(0, 1fr))' : memberCustomLists.length === 2 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)'
+  const defaultReportingYearSettings = getDefaultReportingYearSettings(organization?.org_type_code)
+  const reportingYearSettings = reportingYearSettingsResult.data ?? defaultReportingYearSettings
+  const reportingYear = buildReportingYearRange(reportingYearSettings)
+  const volunteerEntries = volunteerEntriesResult.error ? [] : volunteerEntriesResult.data ?? []
+  const currentVolunteerEntries = volunteerEntries.filter((entry) => isWithinRange(entry.credited_on, reportingYear.startDate, reportingYear.endDate))
+  const currentEventEntries = currentVolunteerEntries.filter((entry) => entry.source_type === 'event')
+  const currentVolunteerEventCount = new Set(currentEventEntries.map((entry) => entry.event_id).filter(Boolean)).size
+  const currentVolunteerHours = currentVolunteerEntries.reduce((total, entry) => total + toNumber(entry.hours), 0)
+  const allTimeVolunteerHours = volunteerEntries.reduce((total, entry) => total + toNumber(entry.hours), 0)
+  const allTimeVolunteerEventCount = new Set(volunteerEntries.filter((entry) => entry.source_type === 'event').map((entry) => entry.event_id).filter(Boolean)).size
+  const recentVolunteerEntries = volunteerEntries.slice(0, 5)
 
   return <main className="qv-page"><div className="qv-shell"><AppHeader />
     <section style={{ display: 'grid', gap: 14, marginTop: 12, marginBottom: 18 }}>
@@ -145,11 +193,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
                   <span className="qv-badge">{relationshipLabel}</span>
                   {activityLevelLabel ? <span className="qv-badge qv-badge-soft">{activityLevelLabel}</span> : null}
                   {officerSummary ? <span className="qv-badge qv-badge-soft">{officerSummary}</span> : null}
-                  {lastingHonorificLabels.map((label) => (
-                    <span key={label} className="qv-badge qv-badge-soft">
-                      {label}
-                    </span>
-                  ))}
+                  {lastingHonorificLabels.map((label) => <span key={label} className="qv-badge qv-badge-soft">{label}</span>)}
                 </div>
               </div>
             </div>
@@ -172,6 +216,31 @@ export default async function MemberDetailPage({ params }: PageProps) {
           {permissions.isCouncilAdmin ? <div style={{ position: 'absolute', right: 28, top: 0, bottom: 0, display: 'flex', alignItems: 'center' }}><DeleteMemberIconButton memberId={person.id} memberName={personName} /></div> : null}
         </div>
       </div>
+    </section>
+
+    <section className="qv-card">
+      <div className="qv-directory-section-head">
+        <div>
+          <h2 className="qv-section-title">Volunteer contribution</h2>
+          <p className="qv-section-subtitle">Completed-event hours plus active manual adjustments for this local organization.</p>
+        </div>
+        <Link href="/events/volunteer-hours" className="qv-button-secondary qv-link-button">Audit all hours</Link>
+      </div>
+      {volunteerEntriesResult.error ? <div className="qv-error" style={{ marginTop: 16 }}>Could not load volunteer contribution data.</div> : <>
+        <div className="qv-stats" style={{ marginTop: 16 }}>
+          <div className="qv-stat-card"><div className="qv-stat-number">{formatHours(currentVolunteerHours)}</div><div className="qv-stat-label">Hours in {reportingYear.label}</div></div>
+          <div className="qv-stat-card"><div className="qv-stat-number">{currentVolunteerEventCount}</div><div className="qv-stat-label">Volunteer events this year</div></div>
+          <div className="qv-stat-card"><div className="qv-stat-number">{formatHours(allTimeVolunteerHours)}</div><div className="qv-stat-label">All-time hours</div></div>
+          <div className="qv-stat-card"><div className="qv-stat-number">{allTimeVolunteerEventCount}</div><div className="qv-stat-label">All-time volunteer events</div></div>
+        </div>
+        {recentVolunteerEntries.length > 0 ? <div className="qv-detail-list" style={{ marginTop: 18 }}>
+          {recentVolunteerEntries.map((entry) => <div key={entry.source_id} className="qv-detail-item">
+            <div className="qv-detail-label">{entry.source_type === 'event' ? 'Completed event' : 'Manual adjustment'} · {formatShortDate(entry.credited_on)}</div>
+            <div className="qv-detail-value">{entry.event_title ?? 'Manual adjustment'} · {formatHours(toNumber(entry.hours))}h</div>
+            {entry.note ? <div className="qv-member-meta">{entry.note}</div> : null}
+          </div>)}
+        </div> : <div className="qv-empty" style={{ marginTop: 16 }}><h3 className="qv-empty-title">No volunteer hours yet</h3><p className="qv-empty-text">Hours will appear after this person is marked as a volunteer on completed events, or after an adjustment is added.</p></div>}
+      </>}
     </section>
 
     {permissions.isCouncilAdmin && memberCustomLists.length > 0 ? <section className="qv-card"><div><h2 className="qv-section-title">{personName} appears on these lists</h2></div><div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: customListGridColumns, gap: 16, alignItems: 'start' }}>{memberCustomLists.map(({ membership, list, lastContactByName, claimedByName }) => <Link key={membership.id} href={`/custom-lists/${list!.id}`} className="qv-card qv-card-link qv-member-list-summary-card"><div className="qv-list-row-head"><div><h3 className="qv-list-row-title">{list!.name}</h3><p className="qv-inline-message" style={{ marginTop: 4 }}>{list!.description || 'No description yet.'}</p><div className="qv-detail-badges" style={{ marginTop: 10 }}>{membership.claimed_by_person_id ? <span className="qv-badge qv-badge-soft">Claimed by {claimedByName || 'Unknown person'}</span> : <span className="qv-badge qv-badge-soft">Unclaimed</span>}{membership.last_contact_at ? <span className="qv-badge qv-badge-soft">Last contact {formatDate(membership.last_contact_at)}</span> : <span className="qv-badge qv-badge-soft">No contact logged yet</span>}</div></div></div><div className="qv-detail-list"><div className="qv-detail-item"><div className="qv-detail-label">Contacted by</div><div className="qv-detail-value">{lastContactByName || '—'}</div></div></div></Link>)}</div></section> : null}
