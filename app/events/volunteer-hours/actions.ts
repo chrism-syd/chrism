@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
+import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
 
 function normalizeString(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : ''
@@ -53,19 +54,14 @@ async function assertScopedPerson(args: {
 }) {
   const { supabase, localUnitId, personId } = args
 
-  const { data, error } = await supabase
-    .from('local_unit_people')
-    .select('person_id')
-    .eq('local_unit_id', localUnitId)
-    .eq('person_id', personId)
-    .maybeSingle<{ person_id: string }>()
+  const validPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
+    admin: supabase,
+    localUnitId,
+    personIds: [personId],
+  })
 
-  if (error) {
-    throw new Error(`Could not verify local organization person scope. ${error.message}`)
-  }
-
-  if (!data?.person_id) {
-    throw new Error('That person is not in this local organization.')
+  if (!validPersonIds.includes(personId)) {
+    throw new Error('That person is not in this local organization directory.')
   }
 }
 
