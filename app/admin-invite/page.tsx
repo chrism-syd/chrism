@@ -1,9 +1,9 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
 import { acceptAdminInvitationAction } from './actions'
+import InviteSignInForm from './invite-sign-in-form'
 import SwitchAccountButton from './switch-account-button'
 
 type PageProps = {
@@ -130,14 +130,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
 
           <div style={{ marginTop: 22 }}>
             {!permissions.authUser ? (
-              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                <Link
-                  href={`/login?next=${encodeURIComponent(invitePath)}`}
-                  className="qv-link-button qv-button-primary"
-                >
-                  Sign in to continue
-                </Link>
-              </div>
+              <InviteSignInForm inviteeEmail={invitation.invitee_email} invitePath={invitePath} />
             ) : invitation.status_code !== 'pending' || invitation.isExpired ? (
               <p className="qv-inline-message">
                 This invite can no longer be accepted. Ask a current admin to send a fresh one.
