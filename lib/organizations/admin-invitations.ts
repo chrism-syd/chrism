@@ -193,44 +193,62 @@ function buildAdminInvitationEmailCopy(args: {
 }) {
   const organizationLabel = args.organizationName.trim() || 'this organization'
   const councilBits = [args.councilName?.trim(), args.councilNumber ? `Council ${args.councilNumber}` : null].filter(Boolean)
-  const councilLabel = councilBits.length > 0 ? councilBits.join(' • ') : null
+  const councilLabel = councilBits.length > 0 ? councilBits.join(' · ') : null
   const greetingName = args.inviteeName?.trim() || 'there'
-  const inviterLine = args.inviterName?.trim() ? `${args.inviterName.trim()} invited you to help manage` : 'You were invited to help manage'
+  const inviterLine = args.inviterName?.trim()
+    ? `${args.inviterName.trim()} invited you to become an admin for`
+    : 'You have been invited to become an admin for'
+  const subject = `Admin invite for ${organizationLabel}`
   const notesHtml = args.notes?.trim()
-    ? `<p style="margin:16px 0 0;color:#334155;font-size:15px;line-height:1.6;"><strong>Onboarding notes:</strong> ${escapeHtml(args.notes.trim())}</p>`
+    ? `<div style="margin-top:18px;padding:16px 18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0;"><p style="margin:0 0 6px;color:#64748b;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;">Onboarding note</p><p style="margin:0;color:#334155;font-size:15px;line-height:1.6;">${escapeHtml(args.notes.trim())}</p></div>`
     : ''
-  const notesText = args.notes?.trim() ? `
+  const notesText = args.notes?.trim() ? `\n\nOnboarding note:\n${args.notes.trim()}` : ''
+  const councilHtml = councilLabel
+    ? `<p style="margin:8px 0 0;color:#475569;font-size:15px;line-height:1.5;">${escapeHtml(councilLabel)}</p>`
+    : ''
+  const councilText = councilLabel ? `\n${councilLabel}` : ''
 
-Onboarding notes: ${args.notes.trim()}` : ''
-  const councilHtml = councilLabel ? `<p style="margin:8px 0 0;color:#475569;font-size:14px;">${escapeHtml(councilLabel)}</p>` : ''
-  const councilText = councilLabel ? `
-${councilLabel}` : ''
-  const subject = `You are invited to manage ${organizationLabel} on Chrism`
   const htmlContent = `
-    <div style="background:#f8fafc;padding:32px 16px;font-family:Arial,sans-serif;color:#0f172a;">
-      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;">
-        <p style="margin:0 0 12px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Chrism admin invite</p>
-        <h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;color:#0f172a;">You have been invited to help manage ${escapeHtml(organizationLabel)}</h1>
-        <p style="margin:0;color:#334155;font-size:16px;line-height:1.6;">Hi ${escapeHtml(greetingName)},</p>
-        <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.6;">${escapeHtml(inviterLine)} <strong>${escapeHtml(organizationLabel)}</strong> in Chrism.</p>
-        ${councilHtml}
-        ${notesHtml}
-        <div style="margin:28px 0;">
-          <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:600;">Accept admin invite</a>
-        </div>
-        <p style="margin:0;color:#475569;font-size:14px;line-height:1.6;">This secure link will sign you in or finish creating your account, then bring you straight to the invite acceptance screen.</p>
-        <p style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.6;word-break:break-word;">If the button does not work, paste this link into your browser:<br>${escapeHtml(args.acceptUrl)}</p>
-      </div>
+    <div style="margin:0;padding:0;background:#f6f3ec;font-family:Arial,Helvetica,sans-serif;color:#151515;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f3ec;margin:0;padding:32px 16px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fffaf1;border:1px solid #e4dccb;border-radius:24px;overflow:hidden;">
+              <tr>
+                <td style="padding:34px 34px 22px;">
+                  <p style="margin:0 0 18px;color:#8a5a17;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;">Chrism admin invite</p>
+                  <h1 style="margin:0;color:#151515;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.08;letter-spacing:-.03em;">You have been invited to manage ${escapeHtml(organizationLabel)}</h1>
+                  ${councilHtml}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 34px 8px;">
+                  <p style="margin:0;color:#334155;font-size:16px;line-height:1.65;">Hi ${escapeHtml(greetingName)},</p>
+                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">${escapeHtml(inviterLine)} <strong>${escapeHtml(organizationLabel)}</strong> in Chrism.</p>
+                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">Chrism helps local councils manage people, admins, events, volunteer work, and local organization records in one secure workspace.</p>
+                  ${notesHtml}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px 34px 10px;">
+                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#151515;color:#fffaf1;text-decoration:none;padding:15px 24px;border-radius:999px;font-size:15px;font-weight:700;">Accept admin access</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 34px 30px;">
+                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure magic link will sign you in, then open a confirmation screen where you can accept admin access for this local organization.</p>
+                  <p style="margin:14px 0 0;color:#64748b;font-size:13px;line-height:1.6;">Only the invited email address can accept this invite. If the button does not work, paste this link into your browser:</p>
+                  <p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.5;word-break:break-all;">${escapeHtml(args.acceptUrl)}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </div>
   `.trim()
-  const textContent = `Hi ${greetingName},
 
-${inviterLine} ${organizationLabel} in Chrism.${councilText}${notesText}
-
-Accept your admin invite:
-${args.acceptUrl}
-
-This secure link will sign you in or finish creating your account, then bring you straight to the invite acceptance screen.`
+  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps local councils manage people, admins, events, volunteer work, and local organization records in one secure workspace.${notesText}\n\nAccept admin access:\n${args.acceptUrl}\n\nThis secure magic link will sign you in, then open a confirmation screen where you can accept admin access for this local organization. Only the invited email address can accept this invite.`
 
   return {
     subject,
