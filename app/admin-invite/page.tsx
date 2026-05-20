@@ -1,10 +1,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
 import { acceptAdminInvitationAction } from './actions'
+import SwitchAccountButton from './switch-account-button'
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -35,6 +35,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
   }
   const permissions = await getCurrentUserPermissions()
   const signedInEmail = permissions.email?.trim().toLowerCase() ?? null
+  const invitePath = `/admin-invite?token=${token}`
   const councilLabel = [invitation.councilName, invitation.councilNumber ? `Council ${invitation.councilNumber}` : null]
     .filter(Boolean)
     .join(' · ')
@@ -43,8 +44,6 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
   return (
     <main className="qv-page">
       <div className="qv-shell">
-        <AppHeader />
-
         <section style={{ display: 'grid', gap: 14, paddingTop: 28, marginBottom: 18 }}>
           <Image
             src="/Chrism-ops.svg"
@@ -54,7 +53,6 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
             priority
             style={{ width: 220, height: 'auto' }}
           />
-          <p className="qv-eyebrow" style={{ margin: 0 }}>Known local organization invite</p>
           <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 72px)', lineHeight: 0.94 }}>
             Accept admin access
           </h1>
@@ -134,7 +132,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
             {!permissions.authUser ? (
               <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
                 <Link
-                  href={`/login?next=${encodeURIComponent(`/admin-invite?token=${token}`)}`}
+                  href={`/login?next=${encodeURIComponent(invitePath)}`}
                   className="qv-link-button qv-button-primary"
                 >
                   Sign in to continue
@@ -145,10 +143,13 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
                 This invite can no longer be accepted. Ask a current admin to send a fresh one.
               </p>
             ) : signedInEmail !== invitation.invitee_email ? (
-              <p className="qv-inline-message qv-inline-error">
-                You are signed in as {permissions.email ?? 'an unknown account'}. This invite is for{' '}
-                {invitation.invitee_email}.
-              </p>
+              <div className="qv-inline-message qv-inline-error" style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
+                <p style={{ margin: 0 }}>
+                  You are signed in as {permissions.email ?? 'an unknown account'}. This invite is for{' '}
+                  {invitation.invitee_email}.
+                </p>
+                <SwitchAccountButton inviteeEmail={invitation.invitee_email} invitePath={invitePath} />
+              </div>
             ) : (
               <form action={acceptAdminInvitationAction} className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
                 <input type="hidden" name="token" value={token} />
