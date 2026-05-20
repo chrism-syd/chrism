@@ -190,6 +190,7 @@ function buildAdminInvitationEmailCopy(args: {
   inviterName?: string | null
   notes?: string | null
   acceptUrl: string
+  logoUrl?: string | null
 }) {
   const organizationLabel = args.organizationName.trim() || 'this organization'
   const councilBits = [args.councilName?.trim(), args.councilNumber ? `Council ${args.councilNumber}` : null].filter(Boolean)
@@ -213,6 +214,7 @@ function buildAdminInvitationEmailCopy(args: {
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f3ec;margin:0;padding:32px 16px;">
         <tr>
           <td align="center">
+            ${args.logoUrl ? `<div style="max-width:680px;margin:0 auto 18px;text-align:left;"><img src="${escapeHtml(args.logoUrl)}" alt="Chrism Operations" width="210" style="display:block;width:210px;height:auto;border:0;" /></div>` : ''}
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fffaf1;border:1px solid #e4dccb;border-radius:24px;overflow:hidden;">
               <tr>
                 <td style="padding:34px 34px 22px;">
@@ -225,7 +227,7 @@ function buildAdminInvitationEmailCopy(args: {
                 <td style="padding:0 34px 8px;">
                   <p style="margin:0;color:#334155;font-size:16px;line-height:1.65;">Hi ${escapeHtml(greetingName)},</p>
                   <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">${escapeHtml(inviterLine)} <strong>${escapeHtml(organizationLabel)}</strong> in Chrism.</p>
-                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">Chrism helps local councils manage people, admins, events, volunteer work, and local organization records in one secure workspace.</p>
+                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">Chrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.</p>
                   ${notesHtml}
                 </td>
               </tr>
@@ -236,7 +238,7 @@ function buildAdminInvitationEmailCopy(args: {
               </tr>
               <tr>
                 <td style="padding:12px 34px 30px;">
-                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure magic link will sign you in, then open a confirmation screen where you can accept admin access for this local organization.</p>
+                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure link will sign you in, then open a confirmation screen where you can accept admin access for this organization.</p>
                   <p style="margin:14px 0 0;color:#64748b;font-size:13px;line-height:1.6;">Only the invited email address can accept this invite. If the button does not work, paste this link into your browser:</p>
                   <p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.5;word-break:break-all;">${escapeHtml(args.acceptUrl)}</p>
                 </td>
@@ -248,7 +250,7 @@ function buildAdminInvitationEmailCopy(args: {
     </div>
   `.trim()
 
-  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps local councils manage people, admins, events, volunteer work, and local organization records in one secure workspace.${notesText}\n\nAccept admin access:\n${args.acceptUrl}\n\nThis secure magic link will sign you in, then open a confirmation screen where you can accept admin access for this local organization. Only the invited email address can accept this invite.`
+  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.${notesText}\n\nAccept admin access:\n${args.acceptUrl}\n\nThis secure link will sign you in, then open a confirmation screen where you can accept admin access for this organization. Only the invited email address can accept this invite.`
 
   return {
     subject,
@@ -285,8 +287,9 @@ export async function sendOrganizationAdminInvitationEmail(args: {
     throw new Error('Supabase did not return a hashed invite token for this admin invite.')
   }
 
+  const baseUrl = args.origin || getBaseUrl()
   const acceptUrl = buildAdminInvitationAuthPath({
-    baseUrl: args.origin || getBaseUrl(),
+    baseUrl,
     invitePath: args.invitePath,
     tokenHash,
     type: properties?.verification_type ?? 'magiclink',
@@ -300,6 +303,7 @@ export async function sendOrganizationAdminInvitationEmail(args: {
     inviterName: args.inviterName,
     notes: args.notes,
     acceptUrl,
+    logoUrl: `${baseUrl}/Chrism-ops.svg`,
   })
 
   await sendBrevoTransactionalEmail({
