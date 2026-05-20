@@ -303,7 +303,7 @@ export async function sendOrganizationAdminInvitationEmail(args: {
     inviterName: args.inviterName,
     notes: args.notes,
     acceptUrl,
-    logoUrl: `${baseUrl}/Chrism-ops.svg`,
+    logoUrl: `${baseUrl}/Chrism.png`,
   })
 
   await sendBrevoTransactionalEmail({
