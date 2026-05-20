@@ -55,6 +55,7 @@ export default function AdminInviteConfirmClient() {
     async function run() {
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type')
+      const code = searchParams.get('code')
       const supabase = createClient()
 
       try {
@@ -63,6 +64,17 @@ export default function AdminInviteConfirmClient() {
             type: type as never,
             token_hash: tokenHash,
           })
+
+          if (!error) {
+            if (!isCancelled) {
+              router.replace(nextPath)
+            }
+            return
+          }
+        }
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
 
           if (!error) {
             if (!isCancelled) {
