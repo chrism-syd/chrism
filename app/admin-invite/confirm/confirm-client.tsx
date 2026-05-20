@@ -131,7 +131,7 @@ export default function AdminInviteConfirmClient() {
             Opening your invite
           </h1>
           <p style={{ margin: 0, maxWidth: 560, color: 'var(--text-secondary)', fontSize: 16, fontWeight: 700, lineHeight: 1.45 }}>
-            We are confirming your magic link and preparing the local organization admin screen.
+            We are confirming your secure sign-in link and preparing the organization admin screen.
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export default function AdminInviteConfirmClient() {
           priority
           style={{ width: 190, height: 'auto' }}
         />
-        <p className="qv-eyebrow" style={{ margin: 0 }}>Invite help</p>
+        <p className="qv-eyebrow" style={{ margin: 0 }}>Secure admin invite</p>
         <h1 className="qv-section-title" style={{ margin: 0 }}>Admin invite link could not be completed</h1>
         <p className="qv-inline-message qv-inline-error" style={{ marginTop: 0 }}>
           {errorMessage}
@@ -176,9 +176,6 @@ export default function AdminInviteConfirmClient() {
       <div className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 0 }}>
         <Link href="/login" className="qv-link-button qv-button-primary">
           Go to sign in
-        </Link>
-        <Link href="/admin-invite/invalid?reason=auth" className="qv-link-button">
-          Open invite help
         </Link>
       </div>
     </InviteShell>
