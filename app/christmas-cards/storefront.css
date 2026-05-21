@@ -1,6 +1,6 @@
 .ccic-page {
   min-height: 100vh;
-  background: #f7f1e6;
+  background: #ffffff;
   color: #1d1712;
   padding: clamp(20px, 4vw, 48px);
 }
@@ -20,11 +20,18 @@
   padding: clamp(28px, 5vw, 64px) 0 32px;
 }
 
+.ccic-brand-logo {
+  display: block;
+  width: min(360px, 100%);
+  height: auto;
+  margin-bottom: 24px;
+}
+
 .ccic-hero-copy h1 {
   margin: 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(44px, 8vw, 86px);
-  line-height: 0.9;
+  font-size: clamp(38px, 7vw, 74px);
+  line-height: 0.95;
   letter-spacing: -0.055em;
 }
 
@@ -38,9 +45,9 @@
 
 .ccic-hero-note {
   padding: 16px 18px;
-  border: 1px solid #decfb7;
+  border: 1px solid #e5ded3;
   border-radius: 18px;
-  background: #fffaf1;
+  background: #faf8f4;
   font-size: 16px !important;
 }
 
@@ -57,10 +64,10 @@
 .ccic-panel,
 .ccic-summary-card,
 .ccic-how {
-  border: 1px solid #dfcfb7;
+  border: 1px solid #e7e0d7;
   border-radius: 28px;
-  background: #fffaf1;
-  box-shadow: 0 22px 60px rgba(53, 32, 14, 0.08);
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(31, 25, 18, 0.08);
 }
 
 .ccic-hero-card {
@@ -102,12 +109,12 @@
   gap: 8px;
   padding: 18px;
   border-radius: 18px;
-  background: #f7f1e6;
+  background: #faf8f4;
 }
 
 .ccic-steps strong,
 .ccic-product-card h3,
-.ccic-box-row h3,
+.ccic-gallery-card h3,
 .ccic-summary-section h3 {
   margin: 0;
   color: #1d1712;
@@ -116,7 +123,7 @@
 .ccic-steps span,
 .ccic-section-heading p,
 .ccic-product-card p,
-.ccic-box-row p,
+.ccic-gallery-card p,
 .ccic-muted {
   color: #6b5a4b;
   line-height: 1.5;
@@ -150,26 +157,46 @@
   font-size: 16px;
 }
 
-.ccic-card-list,
-.ccic-box-grid {
+.ccic-card-list {
   display: grid;
   gap: 14px;
 }
 
-.ccic-product-card,
-.ccic-box-row {
+.ccic-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.ccic-product-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
-  align-items: center;
-  padding: 18px;
-  border: 1px solid #eadcc5;
-  border-radius: 20px;
-  background: #fffdf8;
+  align-items: start;
+  padding: 22px;
+  border: 1px solid #eee7dd;
+  border-radius: 22px;
+  background: #ffffff;
+}
+
+.ccic-gallery-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #eee7dd;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(31, 25, 18, 0.06);
+}
+
+.ccic-gallery-copy {
+  display: grid;
+  gap: 7px;
 }
 
 .ccic-product-kicker {
-  margin: 0 0 6px !important;
+  margin: 0 !important;
   color: #8a4d13 !important;
   font-size: 12px;
   font-weight: 800;
@@ -192,20 +219,85 @@
   font-weight: 800;
 }
 
-.ccic-simple-list {
-  margin: 10px 0 0;
-  padding-left: 20px;
+.ccic-card-art {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #ece6dd;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f7f4ee, #ffffff);
+}
+
+.ccic-card-art-large {
+  aspect-ratio: 5 / 7;
+  min-height: 250px;
+}
+
+.ccic-card-art-small {
+  aspect-ratio: 5 / 7;
+  width: 88px;
+  min-height: 122px;
+  flex: 0 0 auto;
+}
+
+.ccic-card-art img {
+  object-fit: cover;
+}
+
+.ccic-card-art.is-placeholder {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: #8b7b6a;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ccic-inside-preview {
+  margin-top: 4px;
+}
+
+.ccic-inside-preview summary,
+.ccic-case-details summary {
+  cursor: pointer;
+  color: #1d1712;
+  font-weight: 900;
+}
+
+.ccic-inside-preview p {
+  margin: 8px 0 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #faf8f4;
   color: #4c3b2e;
+  font-size: 14px;
+}
+
+.ccic-case-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.ccic-case-gallery-item {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  color: #4c3b2e;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .ccic-quantity {
   display: grid;
   grid-template-columns: 44px 58px 44px;
   align-items: center;
+  justify-self: start;
   border: 1px solid #d8c6ab;
   border-radius: 999px;
   overflow: hidden;
-  background: #fffaf1;
+  background: #ffffff;
 }
 
 .ccic-quantity button,
@@ -240,7 +332,7 @@
   padding: 18px;
   margin-bottom: 16px;
   border-radius: 18px;
-  background: #f7f1e6;
+  background: #faf8f4;
   color: #4c3b2e;
 }
 
@@ -280,7 +372,7 @@
   border: 1px solid #d8c6ab;
   border-radius: 14px;
   padding: 14px 16px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #1d1712;
   font: inherit;
 }
@@ -304,7 +396,7 @@
   display: grid;
   gap: 8px;
   padding-top: 14px;
-  border-top: 1px solid #eadcc5;
+  border-top: 1px solid #eee7dd;
 }
 
 .ccic-summary-line {
@@ -379,8 +471,11 @@
     padding: 16px;
   }
 
-  .ccic-product-card,
-  .ccic-box-row {
+  .ccic-product-card {
+    grid-template-columns: 1fr;
+  }
+
+  .ccic-gallery-grid {
     grid-template-columns: 1fr;
   }
 

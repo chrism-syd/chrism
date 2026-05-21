@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import CardArt from './card-art'
 import {
   CHRISTMAS_CARD_ORDER_CONFIG,
   formatChristmasCardMoney,
@@ -59,6 +60,37 @@ function QuantityControl({
   )
 }
 
+function BoxGalleryCard({
+  box,
+  quantityLabel,
+  quantity,
+  onQuantityChange,
+  showPrice = true,
+}: {
+  box: ChristmasCardBox
+  quantityLabel: string
+  quantity: number
+  onQuantityChange: (quantity: number) => void
+  showPrice?: boolean
+}) {
+  return (
+    <article className="ccic-gallery-card">
+      <CardArt title={box.title} imageUrl={box.frontImageUrl} />
+      <div className="ccic-gallery-copy">
+        <p className="ccic-product-kicker">{box.sku}</p>
+        <h3>{box.title}</h3>
+        <p>{box.cardsPerBox} cards + envelopes per box</p>
+        {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)} per box</strong> : null}
+        <details className="ccic-inside-preview">
+          <summary>Inside wording</summary>
+          <p>{box.insideMessage}</p>
+        </details>
+      </div>
+      <QuantityControl label={quantityLabel} value={quantity} onChange={onQuantityChange} />
+    </article>
+  )
+}
+
 export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [customCaseBoxQuantities, setCustomCaseBoxQuantities] = useState<QuantityMap>({})
@@ -97,16 +129,16 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const remainingIndividualBoxes = primaryCase
     ? eligibleIndividualBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
     : eligibleIndividualBoxCount
+  const individualBoxPriceCents = eligibleIndividualBoxes[0]?.priceCents ?? 0
   const individualCaseAdjustedTotalCents = primaryCase
-    ? fullCaseGroupsFromIndividualBoxes * primaryCase.priceCents +
-      remainingIndividualBoxes * (eligibleIndividualBoxes[0]?.priceCents ?? 0)
+    ? fullCaseGroupsFromIndividualBoxes * primaryCase.priceCents + remainingIndividualBoxes * individualBoxPriceCents
     : individualBoxRegularTotalCents
   const individualCaseSavingsCents = Math.max(0, individualBoxRegularTotalCents - individualCaseAdjustedTotalCents)
   const boxesUntilNextCase = remainingIndividualBoxes === 0
     ? 0
     : CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase - remainingIndividualBoxes
-  const caseSavingsCents = primaryCase && eligibleIndividualBoxes[0]
-    ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * eligibleIndividualBoxes[0].priceCents - primaryCase.priceCents
+  const caseSavingsCents = primaryCase
+    ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents - primaryCase.priceCents
     : 0
 
   const curatedCaseTotalCents = selectedCuratedCases.reduce(
@@ -138,7 +170,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
           <div className="ccic-card-list">
             {cases.map((item) => {
               const value = quantityFromMap(caseQuantities, item.id)
-              const individualValue = item.boxesPerCase * (boxes[0]?.priceCents ?? 0)
+              const individualValue = item.boxesPerCase * individualBoxPriceCents
               const savings = Math.max(0, individualValue - item.priceCents)
               return (
                 <article className="ccic-product-card" key={item.id}>
@@ -150,14 +182,19 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                       {formatChristmasCardMoney(item.priceCents)} per case
                       {savings > 0 ? <span>Save {formatChristmasCardMoney(savings)} per case</span> : null}
                     </p>
-                    <details>
+                    <details className="ccic-case-details">
                       <summary>See what is included</summary>
-                      <ul className="ccic-simple-list">
+                      <div className="ccic-case-gallery">
                         {item.components.map((component) => {
                           const box = boxesById.get(component.boxId)
-                          return box ? <li key={component.boxId}>{component.quantityBoxes} × {box.title}</li> : null
+                          return box ? (
+                            <div className="ccic-case-gallery-item" key={component.boxId}>
+                              <CardArt title={box.title} imageUrl={box.frontImageUrl} size="small" />
+                              <span>{component.quantityBoxes} × {box.title}</span>
+                            </div>
+                          ) : null
                         })}
-                      </ul>
+                      </div>
                     </details>
                   </div>
                   <QuantityControl
@@ -189,21 +226,18 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             </span>
           </div>
 
-          <div className="ccic-box-grid">
+          <div className="ccic-gallery-grid">
             {sortedBoxes.map((box) => {
               const value = quantityFromMap(customCaseBoxQuantities, box.id)
               return (
-                <article className="ccic-box-row" key={`custom-${box.id}`}>
-                  <div>
-                    <h3>{box.title}</h3>
-                    <p>{box.cardsPerBox} cards + envelopes per box</p>
-                  </div>
-                  <QuantityControl
-                    label={`${box.title} boxes in custom case`}
-                    value={value}
-                    onChange={(quantity) => setCustomCaseBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
-                  />
-                </article>
+                <BoxGalleryCard
+                  key={`custom-${box.id}`}
+                  box={box}
+                  showPrice={false}
+                  quantityLabel={`${box.title} boxes in custom case`}
+                  quantity={value}
+                  onQuantityChange={(quantity) => setCustomCaseBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
+                />
               )
             })}
           </div>
@@ -216,22 +250,17 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             <p>For smaller orders or extra boxes beyond a case. Individual boxes cost more per box than cases.</p>
           </div>
 
-          <div className="ccic-box-grid">
+          <div className="ccic-gallery-grid">
             {sortedBoxes.map((box) => {
               const value = quantityFromMap(individualBoxQuantities, box.id)
               return (
-                <article className="ccic-box-row" key={`individual-${box.id}`}>
-                  <div>
-                    <h3>{box.title}</h3>
-                    <p>{box.cardsPerBox} cards + envelopes per box</p>
-                    <strong>{formatChristmasCardMoney(box.priceCents)} per box</strong>
-                  </div>
-                  <QuantityControl
-                    label={`${box.title} individual boxes`}
-                    value={value}
-                    onChange={(quantity) => setIndividualBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
-                  />
-                </article>
+                <BoxGalleryCard
+                  key={`individual-${box.id}`}
+                  box={box}
+                  quantityLabel={`${box.title} individual boxes`}
+                  quantity={value}
+                  onQuantityChange={(quantity) => setIndividualBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
+                />
               )
             })}
           </div>
