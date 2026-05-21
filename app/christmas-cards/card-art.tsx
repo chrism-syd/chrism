@@ -1,5 +1,8 @@
 'use client'
 
+import Image from 'next/image'
+import { useState } from 'react'
+
 type CardArtProps = {
   title: string
   imageUrl: string | null
@@ -7,7 +10,9 @@ type CardArtProps = {
 }
 
 export default function CardArt({ title, imageUrl, size = 'large' }: CardArtProps) {
-  if (!imageUrl) {
+  const [failed, setFailed] = useState(false)
+
+  if (!imageUrl || failed) {
     return (
       <div className={`ccic-card-art ccic-card-art-${size} is-placeholder`} aria-label={`${title} artwork placeholder`}>
         <span>Card image coming soon</span>
@@ -17,7 +22,13 @@ export default function CardArt({ title, imageUrl, size = 'large' }: CardArtProp
 
   return (
     <div className={`ccic-card-art ccic-card-art-${size}`}>
-      <img src={imageUrl} alt={`${title} card front`} loading="lazy" />
+      <Image
+        src={imageUrl}
+        alt={`${title} card front`}
+        fill
+        sizes={size === 'small' ? '120px' : '(max-width: 640px) 100vw, 280px'}
+        onError={() => setFailed(true)}
+      />
     </div>
   )
 }
