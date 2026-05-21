@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import ChristmasCardsOrderBuilder from './order-builder'
 import {
   CHRISTMAS_CARD_BOXES,
@@ -16,6 +17,14 @@ export default function ChristmasCardsPage() {
     <main className="ccic-page">
       <section className="ccic-hero">
         <div className="ccic-hero-copy">
+          <Image
+            src="/CCiC.png"
+            alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+            width={420}
+            height={180}
+            priority
+            className="ccic-brand-logo"
+          />
           <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
           <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
           <p>
