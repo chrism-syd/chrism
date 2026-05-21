@@ -17,16 +17,20 @@ export default function ChristmasCardsPage() {
     <main className="ccic-page">
       <section className="ccic-hero">
         <div className="ccic-hero-copy">
-          <Image
-            src="/CCiC.png"
-            alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-            width={420}
-            height={180}
-            priority
-            className="ccic-brand-logo"
-          />
-          <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
-          <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
+          <div className="ccic-hero-title-row">
+            <div>
+              <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
+              <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
+            </div>
+            <Image
+              src="/CCiC.png"
+              alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+              width={210}
+              height={90}
+              priority
+              className="ccic-brand-logo"
+            />
+          </div>
           <p>
             Catholic Christmas card cases and boxes for councils, parishes, and ministries. Choose a ready-made case,
             build your own case, or order individual boxes.

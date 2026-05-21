@@ -1,7 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import BoxGalleryCard from './box-gallery-card'
 import CardArt from './card-art'
+import CustomizationToggle from './customization-toggle'
+import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
 import {
   CHRISTMAS_CARD_ORDER_CONFIG,
   formatChristmasCardMoney,
@@ -15,80 +18,14 @@ type Props = {
 }
 
 type QuantityMap = Record<string, number>
+type BooleanMap = Record<string, boolean>
 
-function clampQuantity(value: number) {
-  if (!Number.isFinite(value)) return 0
-  return Math.max(0, Math.min(999, Math.floor(value)))
+function isCustomized(globalCustomization: boolean, optOuts: BooleanMap, key: string) {
+  return globalCustomization && !optOuts[key]
 }
 
-function quantityFromMap(map: QuantityMap, key: string) {
-  return clampQuantity(map[key] ?? 0)
-}
-
-function setQuantityValue(map: QuantityMap, key: string, value: number) {
-  return {
-    ...map,
-    [key]: clampQuantity(value),
-  }
-}
-
-function QuantityControl({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <div className="ccic-quantity" aria-label={label}>
-      <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 0} aria-label={`Remove one ${label}`}>
-        −
-      </button>
-      <input
-        aria-label={label}
-        inputMode="numeric"
-        pattern="[0-9]*"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-      <button type="button" onClick={() => onChange(value + 1)} aria-label={`Add one ${label}`}>
-        +
-      </button>
-    </div>
-  )
-}
-
-function BoxGalleryCard({
-  box,
-  quantityLabel,
-  quantity,
-  onQuantityChange,
-  showPrice = true,
-}: {
-  box: ChristmasCardBox
-  quantityLabel: string
-  quantity: number
-  onQuantityChange: (quantity: number) => void
-  showPrice?: boolean
-}) {
-  return (
-    <article className="ccic-gallery-card">
-      <CardArt title={box.title} imageUrl={box.frontImageUrl} />
-      <div className="ccic-gallery-copy">
-        <p className="ccic-product-kicker">{box.sku}</p>
-        <h3>{box.title}</h3>
-        <p>{box.cardsPerBox} cards + envelopes per box</p>
-        {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)} per box</strong> : null}
-        <details className="ccic-inside-preview">
-          <summary>Inside wording</summary>
-          <p>{box.insideMessage}</p>
-        </details>
-      </div>
-      <QuantityControl label={quantityLabel} value={quantity} onChange={onQuantityChange} />
-    </article>
-  )
+function CustomStatus({ enabled }: { enabled: boolean }) {
+  return <p className={enabled ? 'ccic-custom-status is-yes' : 'ccic-custom-status is-no'}>{enabled ? 'Custom logo/text' : 'No custom logo/text'}</p>
 }
 
 export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
@@ -97,6 +34,9 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const [individualBoxQuantities, setIndividualBoxQuantities] = useState<QuantityMap>({})
   const [customizationRequested, setCustomizationRequested] = useState(false)
   const [customLineText, setCustomLineText] = useState('')
+  const [caseCustomizationOptOuts, setCaseCustomizationOptOuts] = useState<BooleanMap>({})
+  const [customCaseCustomizationOptOuts, setCustomCaseCustomizationOptOuts] = useState<BooleanMap>({})
+  const [individualCustomizationOptOuts, setIndividualCustomizationOptOuts] = useState<BooleanMap>({})
 
   const sortedBoxes = useMemo(() => [...boxes].sort((left, right) => left.sortOrder - right.sortOrder), [boxes])
   const boxesById = useMemo(() => new Map(boxes.map((box) => [box.id, box])), [boxes])
@@ -141,12 +81,23 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents - primaryCase.priceCents
     : 0
 
+  const anyCustomCaseBoxCustomized = customCaseComplete && sortedBoxes.some((box) =>
+    quantityFromMap(customCaseBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, customCaseCustomizationOptOuts, box.id)
+  )
+  const anyIndividualBoxCustomized = sortedBoxes.some((box) =>
+    quantityFromMap(individualBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, individualCustomizationOptOuts, box.id)
+  )
+  const anyCuratedCaseCustomized = selectedCuratedCases.some((entry) =>
+    isCustomized(customizationRequested, caseCustomizationOptOuts, entry.item.id)
+  )
+  const hasCustomizedSelection = anyCustomCaseBoxCustomized || anyIndividualBoxCustomized || anyCuratedCaseCustomized
+
   const curatedCaseTotalCents = selectedCuratedCases.reduce(
     (total, entry) => total + entry.quantity * entry.item.priceCents,
     0
   )
   const customCaseTotalCents = customCaseComplete && primaryCase ? primaryCase.priceCents : 0
-  const customizationFeeCents = customizationRequested ? CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents : 0
+  const customizationFeeCents = hasCustomizedSelection ? CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents : 0
   const subtotalCents = curatedCaseTotalCents + customCaseTotalCents + individualCaseAdjustedTotalCents + customizationFeeCents
 
   const totalSelectedCases = selectedCuratedCases.reduce((total, entry) => total + entry.quantity, 0) + (customCaseComplete ? 1 : 0) + fullCaseGroupsFromIndividualBoxes
@@ -172,6 +123,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               const value = quantityFromMap(caseQuantities, item.id)
               const individualValue = item.boxesPerCase * individualBoxPriceCents
               const savings = Math.max(0, individualValue - item.priceCents)
+              const itemCustomized = isCustomized(customizationRequested, caseCustomizationOptOuts, item.id)
               return (
                 <article className="ccic-product-card" key={item.id}>
                   <div>
@@ -182,6 +134,11 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                       {formatChristmasCardMoney(item.priceCents)} per case
                       {savings > 0 ? <span>Save {formatChristmasCardMoney(savings)} per case</span> : null}
                     </p>
+                    <CustomizationToggle
+                      checked={itemCustomized}
+                      disabled={!customizationRequested}
+                      onChange={(checked) => setCaseCustomizationOptOuts((current) => ({ ...current, [item.id]: !checked }))}
+                    />
                     <details className="ccic-case-details">
                       <summary>See what is included</summary>
                       <div className="ccic-case-gallery">
@@ -189,8 +146,17 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                           const box = boxesById.get(component.boxId)
                           return box ? (
                             <div className="ccic-case-gallery-item" key={component.boxId}>
-                              <CardArt title={box.title} imageUrl={box.frontImageUrl} size="small" />
-                              <span>{component.quantityBoxes} × {box.title}</span>
+                              <CardArt
+                                title={box.title}
+                                imageUrl={box.frontImageUrl}
+                                size="small"
+                                images={[
+                                  { label: 'Front', url: box.frontImageUrl },
+                                  { label: 'Inside', url: box.insideImageUrl },
+                                  { label: 'Outside', url: box.outsideImageUrl },
+                                ]}
+                              />
+                              <span>{component.quantityBoxes} x {box.title}</span>
                             </div>
                           ) : null
                         })}
@@ -206,41 +172,76 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               )
             })}
           </div>
+
+          <details className="ccic-expand-section">
+            <summary>Build your own case instead</summary>
+            <div className="ccic-expand-content" id="custom-case">
+              <div className="ccic-section-heading">
+                <p className="ccic-eyebrow">Build your own</p>
+                <h2>Build your own case</h2>
+                <p>Choose exactly 35 boxes total. The case price applies when the case is complete.</p>
+              </div>
+
+              <div className={`ccic-progress ${customCaseComplete ? 'is-complete' : ''} ${customCaseTooMany ? 'is-error' : ''}`}>
+                <strong>{customCaseBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes selected</strong>
+                <span>
+                  {customCaseComplete
+                    ? 'Your custom case is complete.'
+                    : customCaseTooMany
+                      ? `Remove ${Math.abs(customCaseRemaining)} boxes to complete this case.`
+                      : `Add ${customCaseRemaining} more boxes to complete this case.`}
+                </span>
+              </div>
+
+              <div className="ccic-gallery-grid">
+                {sortedBoxes.map((box) => {
+                  const value = quantityFromMap(customCaseBoxQuantities, box.id)
+                  return (
+                    <BoxGalleryCard
+                      key={`custom-${box.id}`}
+                      box={box}
+                      showPrice={false}
+                      customized={isCustomized(customizationRequested, customCaseCustomizationOptOuts, box.id)}
+                      customizationDisabled={!customizationRequested}
+                      onCustomizedChange={(checked) => setCustomCaseCustomizationOptOuts((current) => ({ ...current, [box.id]: !checked }))}
+                      quantityLabel={`${box.title} boxes in custom case`}
+                      quantity={value}
+                      onQuantityChange={(quantity) => setCustomCaseBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          </details>
         </section>
 
-        <section className="ccic-panel" id="custom-case">
+        <section className="ccic-panel ccic-custom-callout" id="custom-logo">
           <div className="ccic-section-heading">
-            <p className="ccic-eyebrow">Build your own</p>
-            <h2>Build your own case</h2>
-            <p>Choose exactly 35 boxes total. The case price applies when the case is complete.</p>
+            <p className="ccic-eyebrow">Optional</p>
+            <h2>Add your local logo and message</h2>
+            <p>
+              For a flat {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents)} fee, we can replace the standard logo with your council, parish, or organization logo and a short custom line of text.
+            </p>
           </div>
-
-          <div className={`ccic-progress ${customCaseComplete ? 'is-complete' : ''} ${customCaseTooMany ? 'is-error' : ''}`}>
-            <strong>{customCaseBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes selected</strong>
-            <span>
-              {customCaseComplete
-                ? 'Your custom case is complete.'
-                : customCaseTooMany
-                  ? `Remove ${Math.abs(customCaseRemaining)} boxes to complete this case.`
-                  : `Add ${customCaseRemaining} more boxes to complete this case.`}
-            </span>
-          </div>
-
-          <div className="ccic-gallery-grid">
-            {sortedBoxes.map((box) => {
-              const value = quantityFromMap(customCaseBoxQuantities, box.id)
-              return (
-                <BoxGalleryCard
-                  key={`custom-${box.id}`}
-                  box={box}
-                  showPrice={false}
-                  quantityLabel={`${box.title} boxes in custom case`}
-                  quantity={value}
-                  onQuantityChange={(quantity) => setCustomCaseBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
-                />
-              )
-            })}
-          </div>
+          <label className="ccic-check-row">
+            <input
+              type="checkbox"
+              checked={customizationRequested}
+              onChange={(event) => setCustomizationRequested(event.target.checked)}
+            />
+            <span>Apply custom logo/text to selected cards.</span>
+          </label>
+          {customizationRequested ? (
+            <label className="ccic-field">
+              <span>Custom line of text</span>
+              <input
+                value={customLineText}
+                onChange={(event) => setCustomLineText(event.target.value)}
+                placeholder="Example: Sponsored by St. Patrick's Council 7689"
+              />
+              <small>You can turn this off on any case or card tile. After submitting, reply to the confirmation email with your logo file.</small>
+            </label>
+          ) : null}
         </section>
 
         <section className="ccic-panel" id="individual-boxes">
@@ -257,6 +258,9 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                 <BoxGalleryCard
                   key={`individual-${box.id}`}
                   box={box}
+                  customized={isCustomized(customizationRequested, individualCustomizationOptOuts, box.id)}
+                  customizationDisabled={!customizationRequested}
+                  onCustomizedChange={(checked) => setIndividualCustomizationOptOuts((current) => ({ ...current, [box.id]: !checked }))}
                   quantityLabel={`${box.title} individual boxes`}
                   quantity={value}
                   onQuantityChange={(quantity) => setIndividualBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
@@ -264,35 +268,6 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               )
             })}
           </div>
-        </section>
-
-        <section className="ccic-panel" id="custom-logo">
-          <div className="ccic-section-heading">
-            <p className="ccic-eyebrow">Optional</p>
-            <h2>Add your local logo and message</h2>
-            <p>
-              For a flat {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents)} fee, we can replace the standard logo with your council, parish, or organization logo and a short custom line of text.
-            </p>
-          </div>
-          <label className="ccic-check-row">
-            <input
-              type="checkbox"
-              checked={customizationRequested}
-              onChange={(event) => setCustomizationRequested(event.target.checked)}
-            />
-            <span>Yes, I want custom logo/text replacement.</span>
-          </label>
-          {customizationRequested ? (
-            <label className="ccic-field">
-              <span>Custom line of text</span>
-              <input
-                value={customLineText}
-                onChange={(event) => setCustomLineText(event.target.value)}
-                placeholder="Example: Sponsored by St. Patrick's Council 7689"
-              />
-              <small>After submitting, reply to the confirmation email with your logo file.</small>
-            </label>
-          ) : null}
         </section>
       </div>
 
@@ -306,12 +281,18 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
           {selectedCuratedCases.length > 0 ? (
             <div className="ccic-summary-section">
               <h3>Ready-made cases</h3>
-              {selectedCuratedCases.map((entry) => (
-                <div className="ccic-summary-line" key={entry.item.id}>
-                  <span>{entry.quantity} × {entry.item.title}</span>
-                  <strong>{formatChristmasCardMoney(entry.quantity * entry.item.priceCents)}</strong>
-                </div>
-              ))}
+              {selectedCuratedCases.map((entry) => {
+                const rowCustomized = isCustomized(customizationRequested, caseCustomizationOptOuts, entry.item.id)
+                return (
+                  <div className="ccic-summary-row" key={entry.item.id}>
+                    <div className="ccic-summary-line">
+                      <span>{entry.quantity} x {entry.item.title}</span>
+                      <strong>{formatChristmasCardMoney(entry.quantity * entry.item.priceCents)}</strong>
+                    </div>
+                    <CustomStatus enabled={rowCustomized} />
+                  </div>
+                )
+              })}
             </div>
           ) : null}
 
@@ -322,19 +303,34 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                 <span>{customCaseBoxCount} / {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes selected</span>
                 <strong>{customCaseComplete && primaryCase ? formatChristmasCardMoney(primaryCase.priceCents) : 'Not complete'}</strong>
               </div>
+              <CustomStatus enabled={anyCustomCaseBoxCustomized} />
             </div>
           ) : null}
 
           {eligibleIndividualBoxCount > 0 ? (
             <div className="ccic-summary-section">
               <h3>Individual boxes</h3>
+              {sortedBoxes.map((box) => {
+                const quantity = quantityFromMap(individualBoxQuantities, box.id)
+                if (quantity <= 0) return null
+                const rowCustomized = isCustomized(customizationRequested, individualCustomizationOptOuts, box.id)
+                return (
+                  <div className="ccic-summary-row" key={`summary-${box.id}`}>
+                    <div className="ccic-summary-line">
+                      <span>{quantity} x {box.title}</span>
+                      <strong>{formatChristmasCardMoney(quantity * box.priceCents)}</strong>
+                    </div>
+                    <CustomStatus enabled={rowCustomized} />
+                  </div>
+                )
+              })}
               <div className="ccic-summary-line">
-                <span>{eligibleIndividualBoxCount} boxes selected</span>
+                <span>Adjusted individual box total</span>
                 <strong>{formatChristmasCardMoney(individualCaseAdjustedTotalCents)}</strong>
               </div>
               {individualCaseSavingsCents > 0 ? (
                 <p className="ccic-good-news">Case pricing applied. You saved {formatChristmasCardMoney(individualCaseSavingsCents)}.</p>
-              ) : boxesUntilNextCase > 0 && caseSavingsCents > 0 ? (
+              ) : eligibleIndividualBoxCount >= 18 && boxesUntilNextCase > 0 && caseSavingsCents > 0 ? (
                 <p className="ccic-nudge">Add {boxesUntilNextCase} more boxes to make a case and save {formatChristmasCardMoney(caseSavingsCents)}.</p>
               ) : null}
               {fullCaseGroupsFromIndividualBoxes > 0 && remainingIndividualBoxes > 0 ? (
@@ -343,7 +339,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             </div>
           ) : null}
 
-          {customizationRequested ? (
+          {customizationFeeCents > 0 ? (
             <div className="ccic-summary-section">
               <h3>Customization</h3>
               <div className="ccic-summary-line">
