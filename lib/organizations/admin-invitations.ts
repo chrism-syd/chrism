@@ -1,5 +1,4 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { buildAuthConfirmRedirectUrl } from '@/lib/auth/redirects'
 import { sendBrevoTransactionalEmail } from '@/lib/email/brevo'
 import {
   normalizeAdminGrantEmail,
@@ -170,18 +169,6 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#39;')
 }
 
-function buildAdminInvitationAuthPath(args: { baseUrl: string; invitePath: string; tokenHash: string; type?: string | null }) {
-  const confirmUrl = new URL('/admin-invite/confirm', args.baseUrl)
-  const safeNextPath = buildAuthConfirmRedirectUrl(args.baseUrl, args.invitePath)
-  const nextPath = new URL(safeNextPath).searchParams.get('next')
-  if (nextPath) {
-    confirmUrl.searchParams.set('next', nextPath)
-  }
-  confirmUrl.searchParams.set('token_hash', args.tokenHash)
-  confirmUrl.searchParams.set('type', args.type || 'magiclink')
-  return confirmUrl.toString()
-}
-
 function buildAdminInvitationEmailCopy(args: {
   organizationName: string
   councilName?: string | null
@@ -238,7 +225,7 @@ function buildAdminInvitationEmailCopy(args: {
               </tr>
               <tr>
                 <td style="padding:12px 34px 30px;">
-                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure link will sign you in, then open a confirmation screen where you can accept admin access for this organization.</p>
+                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure link will open a confirmation screen. If needed, Chrism will ask you to sign in before you accept admin access for this organization.</p>
                   <p style="margin:14px 0 0;color:#64748b;font-size:13px;line-height:1.6;">Only the invited email address can accept this invite. If the button does not work, paste this link into your browser:</p>
                   <p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.5;word-break:break-all;">${escapeHtml(args.acceptUrl)}</p>
                 </td>
@@ -250,7 +237,7 @@ function buildAdminInvitationEmailCopy(args: {
     </div>
   `.trim()
 
-  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.${notesText}\n\nAccept admin access:\n${args.acceptUrl}\n\nThis secure link will sign you in, then open a confirmation screen where you can accept admin access for this organization. Only the invited email address can accept this invite.`
+  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.${notesText}\n\nAccept admin access:\n${args.acceptUrl}\n\nThis secure link will open a confirmation screen. If needed, Chrism will ask you to sign in before you accept admin access for this organization. Only the invited email address can accept this invite.`
 
   return {
     subject,
@@ -270,30 +257,8 @@ export async function sendOrganizationAdminInvitationEmail(args: {
   notes?: string | null
   origin?: string | null
 }) {
-  const admin = createAdminClient()
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email: args.inviteeEmail,
-  })
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  const properties = (data as { properties?: { hashed_token?: string | null; verification_type?: string | null } } | null)?.properties
-  const tokenHash = properties?.hashed_token?.trim()
-
-  if (!tokenHash) {
-    throw new Error('Supabase did not return a hashed invite token for this admin invite.')
-  }
-
   const baseUrl = args.origin || getBaseUrl()
-  const acceptUrl = buildAdminInvitationAuthPath({
-    baseUrl,
-    invitePath: args.invitePath,
-    tokenHash,
-    type: properties?.verification_type ?? 'magiclink',
-  })
+  const acceptUrl = new URL(args.invitePath, baseUrl).toString()
 
   const emailCopy = buildAdminInvitationEmailCopy({
     organizationName: args.organizationName,
