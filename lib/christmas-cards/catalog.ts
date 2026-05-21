@@ -5,6 +5,9 @@ export type ChristmasCardBox = {
   sku: string
   title: string
   description: string
+  insideMessage: string
+  frontImageUrl: string | null
+  insideImageUrl: string | null
   languageCode: ChristmasCardLanguageCode
   cardsPerBox: number
   priceCents: number
@@ -39,6 +42,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-MGM',
     title: 'Mary Gentle Mother',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/mary-gentle-mother-front.jpg',
+    insideImageUrl: '/christmas-cards/mary-gentle-mother-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -50,6 +56,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-SA',
     title: 'Shepherds Adore',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/shepherds-adore-front.jpg',
+    insideImageUrl: '/christmas-cards/shepherds-adore-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -61,6 +70,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-SOB',
     title: 'Star of Bethlehem',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/star-of-bethlehem-front.jpg',
+    insideImageUrl: '/christmas-cards/star-of-bethlehem-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -72,6 +84,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-HOM',
     title: 'Heart of Mary',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/heart-of-mary-front.jpg',
+    insideImageUrl: '/christmas-cards/heart-of-mary-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -83,6 +98,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-AC',
     title: 'Angelic Choir',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/angelic-choir-front.jpg',
+    insideImageUrl: '/christmas-cards/angelic-choir-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -94,6 +112,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-MAC',
     title: 'Madonna and Child',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/madonna-and-child-front.jpg',
+    insideImageUrl: '/christmas-cards/madonna-and-child-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -105,6 +126,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-TN',
     title: 'The Nativity',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/the-nativity-front.jpg',
+    insideImageUrl: '/christmas-cards/the-nativity-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -116,6 +140,9 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     sku: 'CIC-COW',
     title: 'Child of Wonder',
     description: 'A traditional Christmas card box with 12 folded cards and matching envelopes.',
+    insideMessage: 'Inside greeting preview to be added.',
+    frontImageUrl: '/christmas-cards/child-of-wonder-front.jpg',
+    insideImageUrl: '/christmas-cards/child-of-wonder-inside.jpg',
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
