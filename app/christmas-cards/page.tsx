@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import ChristmasCardsOrderBuilder from './order-builder'
+import PaymentOptionsDetails from './payment-options-details'
 import StickyHeader from './sticky-header'
 import {
   CHRISTMAS_CARD_BOXES,
@@ -31,19 +32,20 @@ export default function ChristmasCardsPage() {
           />
           <div>
             <p className="ccic-eyebrow">Christmas card ordering</p>
-            <h1>Christmas cards made for ministry</h1>
+            <h1>
+              Christmas cards made for<br />ministry
+            </h1>
           </div>
         </div>
 
         <div className="ccic-hero-copy">
           <p>
-            Meaningful Christmas cards for faith communities. Traditional sacred imagery paired with psalms and Scripture verses. Perfect for churches, parishes, and ministries.
+            Meaningful Christmas cards for faith communities. Beautiful, faith-centered designs paired with psalms and Scripture verses. Perfect for churches, parishes, and ministries.
           </p>
         </div>
         <div className="ccic-hero-card" aria-label="Payment and order confirmation details">
-          <strong>No payment collected online</strong>
-          <span>Review your selections first.</span>
-          <span>We confirm the final total, shipping, and payment instructions by email.</span>
+          <strong>No payment <span className="ccic-nowrap">collected online</span></strong>
+          <PaymentOptionsDetails />
         </div>
       </section>
 
@@ -52,15 +54,15 @@ export default function ChristmasCardsPage() {
         <div className="ccic-steps">
           <div>
             <strong>1. Choose your cards</strong>
-            <span>Select a curated case, make a custom selection, or add individual boxes.</span>
+            <span>Select our curated case, or choose individual boxes.</span>
           </div>
           <div>
             <strong>2. Review your order</strong>
-            <span>You will see your selections and estimated total before sending anything.</span>
+            <span>Review the summary of your selections and estimated total.</span>
           </div>
           <div>
-            <strong>3. We confirm by email</strong>
-            <span>We will confirm shipping, payment instructions, and timing before production.</span>
+            <strong>3. Place your order</strong>
+            <span>Enter your contact information, confirm delivery pricing or local pick-up and submit your order.</span>
           </div>
         </div>
       </section>
