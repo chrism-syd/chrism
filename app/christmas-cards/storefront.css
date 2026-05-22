@@ -24,7 +24,7 @@
 .ccic-hero-title-row {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 250px minmax(0, 640px);
+  grid-template-columns: 250px minmax(0, 720px);
   gap: clamp(24px, 4vw, 52px);
   align-items: center;
   justify-content: center;
@@ -38,10 +38,10 @@
   justify-self: end;
 }
 
-.ccic-hero-copy h1 {
+.ccic-hero-title-row h1 {
   margin: 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(38px, 7vw, 74px);
+  font-size: clamp(46px, 7vw, 86px);
   line-height: 0.95;
   letter-spacing: -0.055em;
 }
@@ -760,6 +760,10 @@
 
   .ccic-hero-title-row {
     grid-template-columns: 1fr;
+  }
+
+  .ccic-brand-logo {
+    justify-self: start;
   }
 
   .ccic-summary {
