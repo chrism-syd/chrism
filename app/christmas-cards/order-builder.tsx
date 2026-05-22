@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import BoxGalleryCard from './box-gallery-card'
 import CardArt from './card-art'
+import CustomLogoDetails from './custom-logo-details'
 import CustomizationToggle from './customization-toggle'
 import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
 import {
@@ -20,8 +21,15 @@ type Props = {
 type QuantityMap = Record<string, number>
 type BooleanMap = Record<string, boolean>
 
-function isCustomized(globalCustomization: boolean, optOuts: BooleanMap, key: string) {
-  return globalCustomization && !optOuts[key]
+function isCustomized(globalCustomization: boolean, overrides: BooleanMap, key: string) {
+  return globalCustomization ? !overrides[key] : Boolean(overrides[key])
+}
+
+function setCustomizationValue(map: BooleanMap, key: string, checked: boolean, globalCustomization: boolean) {
+  return {
+    ...map,
+    [key]: globalCustomization ? !checked : checked,
+  }
 }
 
 function CustomStatus({ enabled }: { enabled: boolean }) {
@@ -34,11 +42,20 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const [individualBoxQuantities, setIndividualBoxQuantities] = useState<QuantityMap>({})
   const [customizationRequested, setCustomizationRequested] = useState(false)
   const [customLineText, setCustomLineText] = useState('')
-  const [caseCustomizationOptOuts, setCaseCustomizationOptOuts] = useState<BooleanMap>({})
-  const [customCaseCustomizationOptOuts, setCustomCaseCustomizationOptOuts] = useState<BooleanMap>({})
-  const [individualCustomizationOptOuts, setIndividualCustomizationOptOuts] = useState<BooleanMap>({})
+  const [caseCustomizationOverrides, setCaseCustomizationOverrides] = useState<BooleanMap>({})
+  const [customCaseCustomizationOverrides, setCustomCaseCustomizationOverrides] = useState<BooleanMap>({})
+  const [individualCustomizationOverrides, setIndividualCustomizationOverrides] = useState<BooleanMap>({})
+  const [themeFilter, setThemeFilter] = useState('all')
 
   const sortedBoxes = useMemo(() => [...boxes].sort((left, right) => left.sortOrder - right.sortOrder), [boxes])
+  const themeOptions = useMemo(
+    () => Array.from(new Set(sortedBoxes.flatMap((box) => box.themeTags))).sort((left, right) => left.localeCompare(right)),
+    [sortedBoxes]
+  )
+  const visibleIndividualBoxes = useMemo(
+    () => themeFilter === 'all' ? sortedBoxes : sortedBoxes.filter((box) => box.themeTags.includes(themeFilter)),
+    [sortedBoxes, themeFilter]
+  )
   const boxesById = useMemo(() => new Map(boxes.map((box) => [box.id, box])), [boxes])
   const primaryCase = cases[0]
 
@@ -82,13 +99,13 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     : 0
 
   const anyCustomCaseBoxCustomized = customCaseComplete && sortedBoxes.some((box) =>
-    quantityFromMap(customCaseBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, customCaseCustomizationOptOuts, box.id)
+    quantityFromMap(customCaseBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, customCaseCustomizationOverrides, box.id)
   )
   const anyIndividualBoxCustomized = sortedBoxes.some((box) =>
-    quantityFromMap(individualBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, individualCustomizationOptOuts, box.id)
+    quantityFromMap(individualBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, individualCustomizationOverrides, box.id)
   )
   const anyCuratedCaseCustomized = selectedCuratedCases.some((entry) =>
-    isCustomized(customizationRequested, caseCustomizationOptOuts, entry.item.id)
+    isCustomized(customizationRequested, caseCustomizationOverrides, entry.item.id)
   )
   const hasCustomizedSelection = anyCustomCaseBoxCustomized || anyIndividualBoxCustomized || anyCuratedCaseCustomized
 
@@ -106,7 +123,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     (customCaseComplete ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase : 0) +
     eligibleIndividualBoxCount
 
-  const hasOrder = subtotalCents > 0 || customCaseBoxCount > 0 || customizationRequested
+  const hasOrder = subtotalCents > 0 || customCaseBoxCount > 0 || customizationRequested || hasCustomizedSelection
 
   return (
     <section className="ccic-builder" aria-label="Christmas card order builder">
@@ -123,7 +140,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               const value = quantityFromMap(caseQuantities, item.id)
               const individualValue = item.boxesPerCase * individualBoxPriceCents
               const savings = Math.max(0, individualValue - item.priceCents)
-              const itemCustomized = isCustomized(customizationRequested, caseCustomizationOptOuts, item.id)
+              const itemCustomized = isCustomized(customizationRequested, caseCustomizationOverrides, item.id)
               return (
                 <article className="ccic-product-card" key={item.id}>
                   <div>
@@ -136,8 +153,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                     </p>
                     <CustomizationToggle
                       checked={itemCustomized}
-                      disabled={!customizationRequested}
-                      onChange={(checked) => setCaseCustomizationOptOuts((current) => ({ ...current, [item.id]: !checked }))}
+                      onChange={(checked) => setCaseCustomizationOverrides((current) => setCustomizationValue(current, item.id, checked, customizationRequested))}
                     />
                     <details className="ccic-case-details">
                       <summary>See what is included</summary>
@@ -174,7 +190,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
           </div>
 
           <details className="ccic-expand-section">
-            <summary>Build your own case instead</summary>
+            <summary>Build your own case</summary>
             <div className="ccic-expand-content" id="custom-case">
               <div className="ccic-section-heading">
                 <p className="ccic-eyebrow">Build your own</p>
@@ -201,9 +217,8 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                       key={`custom-${box.id}`}
                       box={box}
                       showPrice={false}
-                      customized={isCustomized(customizationRequested, customCaseCustomizationOptOuts, box.id)}
-                      customizationDisabled={!customizationRequested}
-                      onCustomizedChange={(checked) => setCustomCaseCustomizationOptOuts((current) => ({ ...current, [box.id]: !checked }))}
+                      customized={isCustomized(customizationRequested, customCaseCustomizationOverrides, box.id)}
+                      onCustomizedChange={(checked) => setCustomCaseCustomizationOverrides((current) => setCustomizationValue(current, box.id, checked, customizationRequested))}
                       quantityLabel={`${box.title} boxes in custom case`}
                       quantity={value}
                       onQuantityChange={(quantity) => setCustomCaseBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
@@ -218,10 +233,11 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
         <section className="ccic-panel ccic-custom-callout" id="custom-logo">
           <div className="ccic-section-heading">
             <p className="ccic-eyebrow">Optional</p>
-            <h2>Add your local logo and message</h2>
+            <h2>Add your logo and message</h2>
             <p>
-              For a flat {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents)} fee, we can replace the standard logo with your council, parish, or organization logo and a short custom line of text.
+              For a flat {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents)} fee, add your council, parish, or organization logo and a short custom line of text.
             </p>
+            <CustomLogoDetails />
           </div>
           <label className="ccic-check-row">
             <input
@@ -236,10 +252,12 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               <span>Custom line of text</span>
               <input
                 value={customLineText}
-                onChange={(event) => setCustomLineText(event.target.value)}
+                onChange={(event) => setCustomLineText(event.target.value.slice(0, 150))}
+                maxLength={150}
                 placeholder="Example: Sponsored by St. Patrick's Council 7689"
               />
-              <small>You can turn this off on any case or card tile. After submitting, reply to the confirmation email with your logo file.</small>
+              <small>You can turn this off on any case or card box. After submitting, reply to the confirmation email with your logo file.</small>
+              <small>{customLineText.length}/150 characters</small>
             </label>
           ) : null}
         </section>
@@ -248,19 +266,26 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
           <div className="ccic-section-heading">
             <p className="ccic-eyebrow">Smaller orders</p>
             <h2>Add individual boxes</h2>
-            <p>For smaller orders or extra boxes beyond a case. Individual boxes cost more per box than cases.</p>
+            <p>For smaller orders or extra boxes beyond a case.</p>
           </div>
 
+          <label className="ccic-theme-filter">
+            <span>View cards by theme</span>
+            <select value={themeFilter} onChange={(event) => setThemeFilter(event.target.value)}>
+              <option value="all">All cards</option>
+              {themeOptions.map((theme) => <option key={theme} value={theme}>{theme}</option>)}
+            </select>
+          </label>
+
           <div className="ccic-gallery-grid">
-            {sortedBoxes.map((box) => {
+            {visibleIndividualBoxes.map((box) => {
               const value = quantityFromMap(individualBoxQuantities, box.id)
               return (
                 <BoxGalleryCard
                   key={`individual-${box.id}`}
                   box={box}
-                  customized={isCustomized(customizationRequested, individualCustomizationOptOuts, box.id)}
-                  customizationDisabled={!customizationRequested}
-                  onCustomizedChange={(checked) => setIndividualCustomizationOptOuts((current) => ({ ...current, [box.id]: !checked }))}
+                  customized={isCustomized(customizationRequested, individualCustomizationOverrides, box.id)}
+                  onCustomizedChange={(checked) => setIndividualCustomizationOverrides((current) => setCustomizationValue(current, box.id, checked, customizationRequested))}
                   quantityLabel={`${box.title} individual boxes`}
                   quantity={value}
                   onQuantityChange={(quantity) => setIndividualBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
@@ -282,7 +307,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             <div className="ccic-summary-section">
               <h3>Ready-made cases</h3>
               {selectedCuratedCases.map((entry) => {
-                const rowCustomized = isCustomized(customizationRequested, caseCustomizationOptOuts, entry.item.id)
+                const rowCustomized = isCustomized(customizationRequested, caseCustomizationOverrides, entry.item.id)
                 return (
                   <div className="ccic-summary-row" key={entry.item.id}>
                     <div className="ccic-summary-line">
@@ -313,7 +338,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               {sortedBoxes.map((box) => {
                 const quantity = quantityFromMap(individualBoxQuantities, box.id)
                 if (quantity <= 0) return null
-                const rowCustomized = isCustomized(customizationRequested, individualCustomizationOptOuts, box.id)
+                const rowCustomized = isCustomized(customizationRequested, individualCustomizationOverrides, box.id)
                 return (
                   <div className="ccic-summary-row" key={`summary-${box.id}`}>
                     <div className="ccic-summary-line">
