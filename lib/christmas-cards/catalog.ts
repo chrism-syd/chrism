@@ -9,6 +9,7 @@ export type ChristmasCardBox = {
   frontImageUrl: string | null
   insideImageUrl: string | null
   outsideImageUrl: string | null
+  themeTags: string[]
   languageCode: ChristmasCardLanguageCode
   cardsPerBox: number
   priceCents: number
@@ -47,6 +48,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/mary-gentle-mother-front.jpg',
     insideImageUrl: '/christmas-cards/mary-gentle-mother-inside.jpg',
     outsideImageUrl: '/christmas-cards/mary-gentle-mother-outside.jpg',
+    themeTags: ['Madonna & Child'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -62,6 +64,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/shepherds-adore-front.jpg',
     insideImageUrl: '/christmas-cards/shepherds-adore-inside.jpg',
     outsideImageUrl: '/christmas-cards/shepherds-adore-outside.jpg',
+    themeTags: ['Nativity'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -77,6 +80,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/star-of-bethlehem-front.jpg',
     insideImageUrl: '/christmas-cards/star-of-bethlehem-inside.jpg',
     outsideImageUrl: '/christmas-cards/star-of-bethlehem-outside.jpg',
+    themeTags: ['Nativity'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -92,6 +96,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/heart-of-mary-front.jpg',
     insideImageUrl: '/christmas-cards/heart-of-mary-inside.jpg',
     outsideImageUrl: '/christmas-cards/heart-of-mary-outside.jpg',
+    themeTags: ['Madonna & Child'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -107,6 +112,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/angelic-choir-front.jpg',
     insideImageUrl: '/christmas-cards/angelic-choir-inside.jpg',
     outsideImageUrl: '/christmas-cards/angelic-choir-outside.jpg',
+    themeTags: ['Custom category title placeholder 1'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -122,6 +128,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/madonna-and-child-front.jpg',
     insideImageUrl: '/christmas-cards/madonna-and-child-inside.jpg',
     outsideImageUrl: '/christmas-cards/madonna-and-child-outside.jpg',
+    themeTags: ['Madonna & Child'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -137,6 +144,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/the-nativity-front.jpg',
     insideImageUrl: '/christmas-cards/the-nativity-inside.jpg',
     outsideImageUrl: '/christmas-cards/the-nativity-outside.jpg',
+    themeTags: ['Nativity'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,
@@ -152,6 +160,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     frontImageUrl: '/christmas-cards/child-of-wonder-front.jpg',
     insideImageUrl: '/christmas-cards/child-of-wonder-inside.jpg',
     outsideImageUrl: '/christmas-cards/child-of-wonder-outside.jpg',
+    themeTags: ['Custom category title placeholder 1'],
     languageCode: 'en',
     cardsPerBox: 12,
     priceCents: 1300,

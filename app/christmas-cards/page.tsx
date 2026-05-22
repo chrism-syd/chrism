@@ -22,14 +22,6 @@ export default function ChristmasCardsPage() {
               <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
               <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
             </div>
-            <Image
-              src="/CCiC.png"
-              alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-              width={210}
-              height={90}
-              priority
-              className="ccic-brand-logo"
-            />
           </div>
           <p>
             Catholic Christmas card cases and boxes for councils, parishes, and ministries. Choose a ready-made case,
@@ -41,6 +33,14 @@ export default function ChristmasCardsPage() {
           </p>
         </div>
         <div className="ccic-hero-card" aria-label="Ordering summary">
+          <Image
+            src="/CCiC.png"
+            alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+            width={210}
+            height={90}
+            priority
+            className="ccic-brand-logo"
+          />
           <strong>Simple ordering</strong>
           <span>35 boxes per case</span>
           <span>12 cards + envelopes per box</span>
@@ -67,6 +67,11 @@ export default function ChristmasCardsPage() {
       </section>
 
       <ChristmasCardsOrderBuilder cases={CHRISTMAS_CARD_CURATED_CASES} boxes={CHRISTMAS_CARD_BOXES} />
+
+      <footer className="ccic-footer">
+        <span>Powered by</span>
+        <Image src="/Chrism.png" alt="Chrism" width={130} height={56} className="ccic-footer-logo" />
+      </footer>
     </main>
   )
 }
