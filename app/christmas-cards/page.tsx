@@ -15,6 +15,19 @@ export const metadata = {
 export default function ChristmasCardsPage() {
   return (
     <main className="ccic-page">
+      <header className="ccic-sticky-header" aria-label="Celebrate Christ in Christmas page header">
+        <div className="ccic-sticky-header-inner">
+          <Image
+            src="/CCiC.png"
+            alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+            width={72}
+            height={72}
+            className="ccic-sticky-logo"
+          />
+          <span>Catholic Christmas card ordering</span>
+        </div>
+      </header>
+
       <section className="ccic-hero">
         <div className="ccic-hero-title-row">
           <Image

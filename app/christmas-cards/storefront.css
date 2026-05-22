@@ -2,7 +2,37 @@
   min-height: 100vh;
   background: #ffffff;
   color: #1d1712;
-  padding: clamp(20px, 4vw, 48px);
+  padding: 0 clamp(20px, 4vw, 48px) clamp(20px, 4vw, 48px);
+}
+
+.ccic-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  margin: 0 calc(clamp(20px, 4vw, 48px) * -1) 0;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #eee7dd;
+  backdrop-filter: blur(14px);
+}
+
+.ccic-sticky-header-inner {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 8px clamp(20px, 4vw, 48px);
+  color: #8a4d13;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ccic-sticky-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .ccic-hero,
@@ -18,7 +48,7 @@
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: clamp(20px, 4vw, 42px);
   align-items: end;
-  padding: clamp(28px, 5vw, 64px) 0 32px;
+  padding: clamp(18px, 4vw, 42px) 0 32px;
 }
 
 .ccic-hero-title-row {
@@ -28,7 +58,7 @@
   gap: clamp(24px, 4vw, 52px);
   align-items: center;
   justify-content: center;
-  margin-bottom: clamp(34px, 5vw, 66px);
+  margin-bottom: clamp(18px, 4vw, 42px);
 }
 
 .ccic-brand-logo {
@@ -628,7 +658,7 @@
 
 .ccic-summary {
   position: sticky;
-  top: 24px;
+  top: 82px;
 }
 
 .ccic-summary-card {
@@ -773,7 +803,19 @@
 
 @media (max-width: 640px) {
   .ccic-page {
-    padding: 16px;
+    padding: 0 16px 16px;
+  }
+
+  .ccic-sticky-header {
+    margin-inline: -16px;
+  }
+
+  .ccic-sticky-header-inner {
+    padding-inline: 16px;
+  }
+
+  .ccic-sticky-header-inner span {
+    font-size: 11px;
   }
 
   .ccic-product-card {

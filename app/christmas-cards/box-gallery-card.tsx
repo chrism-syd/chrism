@@ -40,7 +40,7 @@ export default function BoxGalleryCard({
       <div className="ccic-gallery-copy">
         <p className="ccic-product-kicker">{box.sku}</p>
         <h3>{box.title}</h3>
-        <p>{box.cardsPerBox} cards + envelopes per box</p>
+        <p>{box.cardsPerBox} Cards + Envelopes</p>
         {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)} per box</strong> : null}
         <details className="ccic-inside-preview">
           <summary>Inside wording</summary>
