@@ -8,6 +8,7 @@ import {
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
 import './storefront.css'
+import './payment-polish.css'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
