@@ -6,13 +6,24 @@
 }
 
 .ccic-sticky-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 80;
-  margin: 0 calc(clamp(20px, 4vw, 48px) * -1) 0;
   background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid #eee7dd;
   backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-100%);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.ccic-sticky-header.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .ccic-sticky-header-inner {
@@ -305,6 +316,9 @@
 }
 
 .ccic-card-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
@@ -804,10 +818,6 @@
 @media (max-width: 640px) {
   .ccic-page {
     padding: 0 16px 16px;
-  }
-
-  .ccic-sticky-header {
-    margin-inline: -16px;
   }
 
   .ccic-sticky-header-inner {
