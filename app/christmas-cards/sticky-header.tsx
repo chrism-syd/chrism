@@ -25,7 +25,7 @@ export default function StickyHeader({ brandName }: { brandName: string }) {
     <header className={`ccic-sticky-header ${isVisible ? 'is-visible' : ''}`} aria-label={`${brandName} page header`}>
       <div className="ccic-sticky-header-inner">
         <Image src="/CCiC.png" alt={brandName} width={72} height={72} className="ccic-sticky-logo" />
-        <span>Catholic Christmas card ordering</span>
+        <span>Christmas card ordering</span>
       </div>
     </header>
   )
