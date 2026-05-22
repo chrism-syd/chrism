@@ -24,13 +24,15 @@ export default function BoxGalleryCard({
   customizationDisabled?: boolean
   onCustomizedChange: (checked: boolean) => void
 }) {
+  const thumbnailUrl = box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl
+
   return (
     <article className="ccic-gallery-card">
       <CardArt
         title={box.title}
-        imageUrl={box.frontImageUrl}
+        imageUrl={thumbnailUrl}
         images={[
-          { label: 'Front', url: box.frontImageUrl },
+          { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
           { label: 'Inside', url: box.insideImageUrl },
           { label: 'Outside', url: box.outsideImageUrl },
         ]}
