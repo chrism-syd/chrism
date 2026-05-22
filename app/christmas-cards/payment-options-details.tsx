@@ -8,9 +8,8 @@ export default function PaymentOptionsDetails() {
   return (
     <>
       <span className="ccic-payment-sentence">
-        View{' '}
         <button type="button" className="ccic-inline-text-button" onClick={() => setIsOpen(true)}>
-          payment options <span aria-hidden="true" className="ccic-open-link-icon">↗</span>
+          Payment options <span aria-hidden="true" className="ccic-open-link-icon">↗</span>
         </button>{' '}
         best suited to you.
       </span>
