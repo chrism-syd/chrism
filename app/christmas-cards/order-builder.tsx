@@ -42,7 +42,7 @@ function SavingsNudge({ boxesUntilNextCase, savingsCents, savingsPercent }: { bo
     <p className="ccic-nudge">
       <Image src="/chrism_star.png" alt="" width={26} height={26} className="ccic-nudge-star" />
       <span>
-        Add {boxesUntilNextCase} more boxes to make a case and save {formatChristmasCardMoney(savingsCents)}. That's a savings of {savingsPercent}%!
+        Add {boxesUntilNextCase} more boxes to make a case and save {formatChristmasCardMoney(savingsCents)}. That is a savings of {savingsPercent}%!
       </span>
     </p>
   )
