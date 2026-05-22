@@ -9,8 +9,8 @@ import {
 import './storefront.css'
 
 export const metadata = {
-  title: 'Celebrate Christ in Christmas | Christmas Cards',
-  description: 'Catholic Christmas card cases and boxes for councils, parishes, and ministries.',
+  title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
+  description: 'Meaningful Christmas cards for faith communities, churches, parishes, and ministries.',
 }
 
 export default function ChristmasCardsPage() {
@@ -30,26 +30,20 @@ export default function ChristmasCardsPage() {
             className="ccic-brand-logo"
           />
           <div>
-            <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
-            <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
+            <p className="ccic-eyebrow">Christmas card ordering</p>
+            <h1>Christmas cards made for ministry</h1>
           </div>
         </div>
 
         <div className="ccic-hero-copy">
           <p>
-            Catholic Christmas card cases and boxes for councils, parishes, and ministries. Choose a curated case,
-            make a custom selection, or order individual boxes.
-          </p>
-          <p className="ccic-hero-note">
-            No payment is collected online. After you submit your order request, we will confirm the final total,
-            shipping, and payment instructions by email.
+            Meaningful Christmas cards for faith communities. Traditional sacred imagery paired with psalms and Scripture verses. Perfect for churches, parishes, and ministries.
           </p>
         </div>
-        <div className="ccic-hero-card" aria-label="Ordering summary">
-          <strong>Simple ordering</strong>
-          <span>35 boxes per case</span>
-          <span>12 cards + envelopes per box</span>
-          <span>Custom logo/text available</span>
+        <div className="ccic-hero-card" aria-label="Payment and order confirmation details">
+          <strong>No payment collected online</strong>
+          <span>Review your selections first.</span>
+          <span>We confirm the final total, shipping, and payment instructions by email.</span>
         </div>
       </section>
 
