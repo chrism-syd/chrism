@@ -130,7 +130,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
         <section className="ccic-panel" id="curated-cases">
           <div className="ccic-section-heading">
             <p className="ccic-eyebrow ccic-eyebrow-gold">Best value</p>
-            <h2>Choose a curated case</h2>
+            <h2>Curated case</h2>
             <p>Each case includes 35 boxes. Each box includes 12 folded cards and matching envelopes.</p>
           </div>
 
