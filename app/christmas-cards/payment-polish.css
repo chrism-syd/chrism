@@ -1,0 +1,78 @@
+.ccic-hero {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.ccic-hero-card {
+  width: 100%;
+}
+
+.ccic-nowrap {
+  white-space: nowrap;
+}
+
+.ccic-inline-text-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #8a4d13;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ccic-open-link-icon {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 0.9em;
+  text-decoration: none;
+}
+
+.ccic-payment-sentence {
+  color: #4c3b2e;
+  line-height: 1.5;
+}
+
+.ccic-payment-panel {
+  width: min(780px, 100%);
+}
+
+.ccic-payment-options-list {
+  display: grid;
+  gap: 14px;
+}
+
+.ccic-payment-options-list section {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #eee7dd;
+  background: #faf8f4;
+}
+
+.ccic-payment-options-list h3,
+.ccic-payment-options-list p {
+  margin: 0;
+}
+
+.ccic-payment-options-list h3 {
+  color: #1d1712;
+  font-size: 18px;
+}
+
+.ccic-payment-options-list p {
+  color: #4c3b2e;
+  line-height: 1.5;
+}
+
+.ccic-eyebrow-gold {
+  color: #ffffff !important;
+}
+
+@media (max-width: 920px) {
+  .ccic-hero {
+    grid-template-columns: 1fr;
+  }
+}
