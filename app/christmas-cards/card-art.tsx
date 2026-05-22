@@ -45,7 +45,7 @@ export default function CardArt({ title, imageUrl, images, size = 'large' }: Car
   return (
     <>
       <button type="button" className={`ccic-card-art-button ccic-card-art-${size}`} onClick={openLightbox} aria-label={`Quick view ${title}`}>
-        <span className="ccic-card-art">
+        <span className={`ccic-card-art ccic-card-art-${size}`}>
           <Image
             src={imageUrl}
             alt={`${title} card front`}
