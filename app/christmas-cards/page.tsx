@@ -16,24 +16,25 @@ export default function ChristmasCardsPage() {
   return (
     <main className="ccic-page">
       <section className="ccic-hero">
-        <div className="ccic-hero-copy">
-          <div className="ccic-hero-title-row">
-            <Image
-              src="/CCiC.png"
-              alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-              width={210}
-              height={90}
-              priority
-              className="ccic-brand-logo"
-            />
-            <div>
-              <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
-              <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
-            </div>
+        <div className="ccic-hero-title-row">
+          <Image
+            src="/CCiC.png"
+            alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+            width={280}
+            height={120}
+            priority
+            className="ccic-brand-logo"
+          />
+          <div>
+            <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
+            <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
           </div>
+        </div>
+
+        <div className="ccic-hero-copy">
           <p>
-            Catholic Christmas card cases and boxes for councils, parishes, and ministries. Choose a ready-made case,
-            build your own case, or order individual boxes.
+            Catholic Christmas card cases and boxes for councils, parishes, and ministries. Choose a curated case,
+            make a custom selection, or order individual boxes.
           </p>
           <p className="ccic-hero-note">
             No payment is collected online. After you submit your order request, we will confirm the final total,
@@ -53,7 +54,7 @@ export default function ChristmasCardsPage() {
         <div className="ccic-steps">
           <div>
             <strong>1. Choose your cards</strong>
-            <span>Select a ready-made case, build your own case, or add individual boxes.</span>
+            <span>Select a curated case, make a custom selection, or add individual boxes.</span>
           </div>
           <div>
             <strong>2. Review your order</strong>

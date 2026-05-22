@@ -17,24 +17,25 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: clamp(20px, 4vw, 42px);
-  align-items: stretch;
+  align-items: end;
   padding: clamp(28px, 5vw, 64px) 0 32px;
 }
 
 .ccic-hero-title-row {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
-  gap: clamp(22px, 4vw, 46px);
-  align-items: start;
-  margin-bottom: clamp(28px, 5vw, 54px);
+  grid-template-columns: 250px minmax(0, 640px);
+  gap: clamp(24px, 4vw, 52px);
+  align-items: center;
+  justify-content: center;
+  margin-bottom: clamp(34px, 5vw, 66px);
 }
 
 .ccic-brand-logo {
   display: block;
-  width: 170px;
+  width: clamp(190px, 18vw, 250px);
   height: auto;
-  justify-self: start;
-  margin-top: 8px;
+  justify-self: end;
 }
 
 .ccic-hero-copy h1 {
@@ -74,10 +75,11 @@
   display: inline-grid;
   place-items: center;
   width: max-content;
-  padding: 7px 12px;
-  border-radius: 999px;
+  padding: 4px 8px;
+  border-radius: 0;
   background: #ffbf00;
-  color: #1d1712;
+  color: #ffffff;
+  line-height: 1.1;
 }
 
 .ccic-hero-card,

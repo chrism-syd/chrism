@@ -50,12 +50,10 @@ function SavingsNudge({ boxesUntilNextCase, savingsCents, savingsPercent }: { bo
 
 export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
-  const [customCaseBoxQuantities, setCustomCaseBoxQuantities] = useState<QuantityMap>({})
   const [individualBoxQuantities, setIndividualBoxQuantities] = useState<QuantityMap>({})
   const [customizationRequested, setCustomizationRequested] = useState(false)
   const [customLineText, setCustomLineText] = useState('')
   const [caseCustomizationOverrides, setCaseCustomizationOverrides] = useState<BooleanMap>({})
-  const [customCaseCustomizationOverrides, setCustomCaseCustomizationOverrides] = useState<BooleanMap>({})
   const [individualCustomizationOverrides, setIndividualCustomizationOverrides] = useState<BooleanMap>({})
   const [themeFilter, setThemeFilter] = useState('all')
 
@@ -75,14 +73,6 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     .map((item) => ({ item, quantity: quantityFromMap(caseQuantities, item.id) }))
     .filter((entry) => entry.quantity > 0)
 
-  const customCaseBoxCount = sortedBoxes.reduce(
-    (total, box) => total + quantityFromMap(customCaseBoxQuantities, box.id),
-    0
-  )
-  const customCaseComplete = customCaseBoxCount === CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
-  const customCaseTooMany = customCaseBoxCount > CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
-  const customCaseRemaining = CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase - customCaseBoxCount
-
   const eligibleIndividualBoxes = sortedBoxes.filter((box) => box.isCasePricingEligible)
   const eligibleIndividualBoxCount = eligibleIndividualBoxes.reduce(
     (total, box) => total + quantityFromMap(individualBoxQuantities, box.id),
@@ -92,7 +82,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     (total, box) => total + quantityFromMap(individualBoxQuantities, box.id) * box.priceCents,
     0
   )
-  const fullCaseGroupsFromIndividualBoxes = primaryCase
+  const customCaseCountFromSelection = primaryCase
     ? Math.floor(eligibleIndividualBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
     : 0
   const remainingIndividualBoxes = primaryCase
@@ -100,7 +90,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     : eligibleIndividualBoxCount
   const individualBoxPriceCents = eligibleIndividualBoxes[0]?.priceCents ?? 0
   const individualCaseAdjustedTotalCents = primaryCase
-    ? fullCaseGroupsFromIndividualBoxes * primaryCase.priceCents + remainingIndividualBoxes * individualBoxPriceCents
+    ? customCaseCountFromSelection * primaryCase.priceCents + remainingIndividualBoxes * individualBoxPriceCents
     : individualBoxRegularTotalCents
   const individualCaseSavingsCents = Math.max(0, individualBoxRegularTotalCents - individualCaseAdjustedTotalCents)
   const boxesUntilNextCase = remainingIndividualBoxes === 0
@@ -113,40 +103,34 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     ? Math.round((caseSavingsCents / (CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents)) * 100)
     : 0
 
-  const anyCustomCaseBoxCustomized = customCaseComplete && sortedBoxes.some((box) =>
-    quantityFromMap(customCaseBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, customCaseCustomizationOverrides, box.id)
-  )
   const anyIndividualBoxCustomized = sortedBoxes.some((box) =>
     quantityFromMap(individualBoxQuantities, box.id) > 0 && isCustomized(customizationRequested, individualCustomizationOverrides, box.id)
   )
   const anyCuratedCaseCustomized = selectedCuratedCases.some((entry) =>
     isCustomized(customizationRequested, caseCustomizationOverrides, entry.item.id)
   )
-  const hasCustomizedSelection = anyCustomCaseBoxCustomized || anyIndividualBoxCustomized || anyCuratedCaseCustomized
+  const hasCustomizedSelection = anyIndividualBoxCustomized || anyCuratedCaseCustomized
 
   const curatedCaseTotalCents = selectedCuratedCases.reduce(
     (total, entry) => total + entry.quantity * entry.item.priceCents,
     0
   )
-  const customCaseTotalCents = customCaseComplete && primaryCase ? primaryCase.priceCents : 0
   const customizationFeeCents = hasCustomizedSelection ? CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents : 0
-  const subtotalCents = curatedCaseTotalCents + customCaseTotalCents + individualCaseAdjustedTotalCents + customizationFeeCents
+  const subtotalCents = curatedCaseTotalCents + individualCaseAdjustedTotalCents + customizationFeeCents
 
-  const totalSelectedCases = selectedCuratedCases.reduce((total, entry) => total + entry.quantity, 0) + (customCaseComplete ? 1 : 0) + fullCaseGroupsFromIndividualBoxes
+  const totalSelectedCases = selectedCuratedCases.reduce((total, entry) => total + entry.quantity, 0) + customCaseCountFromSelection
   const totalSelectedBoxes =
-    selectedCuratedCases.reduce((total, entry) => total + entry.quantity * entry.item.boxesPerCase, 0) +
-    (customCaseComplete ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase : 0) +
-    eligibleIndividualBoxCount
+    selectedCuratedCases.reduce((total, entry) => total + entry.quantity * entry.item.boxesPerCase, 0) + eligibleIndividualBoxCount
 
-  const hasOrder = subtotalCents > 0 || customCaseBoxCount > 0 || customizationRequested || hasCustomizedSelection
+  const hasOrder = subtotalCents > 0 || customizationRequested || hasCustomizedSelection
 
   return (
     <section className="ccic-builder" aria-label="Christmas card order builder">
       <div className="ccic-builder-main">
-        <section className="ccic-panel" id="ready-made-cases">
+        <section className="ccic-panel" id="curated-cases">
           <div className="ccic-section-heading">
-            <p className="ccic-eyebrow">Best value</p>
-            <h2>Choose a ready-made case</h2>
+            <p className="ccic-eyebrow ccic-eyebrow-gold">Best value</p>
+            <h2>Choose a curated case</h2>
             <p>Each case includes 35 boxes. Each box includes 12 folded cards and matching envelopes.</p>
           </div>
 
@@ -203,46 +187,6 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               )
             })}
           </div>
-
-          <details className="ccic-expand-section">
-            <summary>Build your own case</summary>
-            <div className="ccic-expand-content" id="custom-case">
-              <div className="ccic-section-heading">
-                <p className="ccic-eyebrow">Build your own</p>
-                <h2>Build your own case</h2>
-                <p>Choose exactly 35 boxes total. The case price applies when the case is complete.</p>
-              </div>
-
-              <div className={`ccic-progress ${customCaseComplete ? 'is-complete' : ''} ${customCaseTooMany ? 'is-error' : ''}`}>
-                <strong>{customCaseBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes selected</strong>
-                <span>
-                  {customCaseComplete
-                    ? 'Your custom case is complete.'
-                    : customCaseTooMany
-                      ? `Remove ${Math.abs(customCaseRemaining)} boxes to complete this case.`
-                      : `Add ${customCaseRemaining} more boxes to complete this case.`}
-                </span>
-              </div>
-
-              <div className="ccic-gallery-grid">
-                {sortedBoxes.map((box) => {
-                  const value = quantityFromMap(customCaseBoxQuantities, box.id)
-                  return (
-                    <BoxGalleryCard
-                      key={`custom-${box.id}`}
-                      box={box}
-                      showPrice={false}
-                      customized={isCustomized(customizationRequested, customCaseCustomizationOverrides, box.id)}
-                      onCustomizedChange={(checked) => setCustomCaseCustomizationOverrides((current) => setCustomizationValue(current, box.id, checked, customizationRequested))}
-                      quantityLabel={`${box.title} boxes in custom case`}
-                      quantity={value}
-                      onQuantityChange={(quantity) => setCustomCaseBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          </details>
         </section>
 
         <section className="ccic-panel ccic-custom-callout" id="custom-logo">
@@ -279,9 +223,9 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
 
         <section className="ccic-panel" id="individual-boxes">
           <div className="ccic-section-heading">
-            <p className="ccic-eyebrow">Smaller orders</p>
-            <h2>Add individual boxes</h2>
-            <p>For smaller orders or extra boxes beyond a case.</p>
+            <p className="ccic-eyebrow">Individual boxes</p>
+            <h2>Custom selection</h2>
+            <p>Choose any card boxes. When your selection reaches 35 boxes, case pricing is applied automatically.</p>
           </div>
 
           <label className="ccic-theme-filter">
@@ -320,7 +264,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
 
           {selectedCuratedCases.length > 0 ? (
             <div className="ccic-summary-section">
-              <h3>Ready-made cases</h3>
+              <h3>Curated cases</h3>
               {selectedCuratedCases.map((entry) => {
                 const rowCustomized = isCustomized(customizationRequested, caseCustomizationOverrides, entry.item.id)
                 return (
@@ -336,20 +280,22 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             </div>
           ) : null}
 
-          {customCaseBoxCount > 0 ? (
+          {customCaseCountFromSelection > 0 ? (
             <div className="ccic-summary-section">
               <h3>Custom case</h3>
               <div className="ccic-summary-line">
-                <span>{customCaseBoxCount} / {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes selected</span>
-                <strong>{customCaseComplete && primaryCase ? formatChristmasCardMoney(primaryCase.priceCents) : 'Not complete'}</strong>
+                <span>{customCaseCountFromSelection} x custom 35-box case</span>
+                <strong>{primaryCase ? formatChristmasCardMoney(customCaseCountFromSelection * primaryCase.priceCents) : formatChristmasCardMoney(0)}</strong>
               </div>
-              <CustomStatus enabled={anyCustomCaseBoxCustomized} />
+              <p className="ccic-muted">Built from your custom selection.</p>
+              <CustomStatus enabled={anyIndividualBoxCustomized} />
             </div>
           ) : null}
 
           {eligibleIndividualBoxCount > 0 ? (
             <div className="ccic-summary-section">
               <h3>Individual boxes</h3>
+              {customCaseCountFromSelection > 0 ? <p className="ccic-muted">Selection details</p> : null}
               {sortedBoxes.map((box) => {
                 const quantity = quantityFromMap(individualBoxQuantities, box.id)
                 if (quantity <= 0) return null
@@ -364,8 +310,14 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                   </div>
                 )
               })}
+              {customCaseCountFromSelection > 0 ? (
+                <div className="ccic-summary-line">
+                  <span>Remaining individual boxes</span>
+                  <strong>{remainingIndividualBoxes}</strong>
+                </div>
+              ) : null}
               <div className="ccic-summary-line">
-                <span>Adjusted individual box total</span>
+                <span>Adjusted custom selection total</span>
                 <strong>{formatChristmasCardMoney(individualCaseAdjustedTotalCents)}</strong>
               </div>
               {individualCaseSavingsCents > 0 ? (
@@ -373,8 +325,8 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               ) : eligibleIndividualBoxCount >= 18 && boxesUntilNextCase > 0 && caseSavingsCents > 0 ? (
                 <SavingsNudge boxesUntilNextCase={boxesUntilNextCase} savingsCents={caseSavingsCents} savingsPercent={caseSavingsPercent} />
               ) : null}
-              {fullCaseGroupsFromIndividualBoxes > 0 && remainingIndividualBoxes > 0 ? (
-                <p className="ccic-muted">Case pricing applied to {fullCaseGroupsFromIndividualBoxes * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes. {remainingIndividualBoxes} extra boxes are priced individually.</p>
+              {customCaseCountFromSelection > 0 && remainingIndividualBoxes > 0 ? (
+                <p className="ccic-muted">{remainingIndividualBoxes} extra boxes are priced individually.</p>
               ) : null}
             </div>
           ) : null}
