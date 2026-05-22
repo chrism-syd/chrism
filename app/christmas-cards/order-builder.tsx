@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import BoxGalleryCard from './box-gallery-card'
 import CardArt from './card-art'
@@ -34,6 +35,17 @@ function setCustomizationValue(map: BooleanMap, key: string, checked: boolean, g
 
 function CustomStatus({ enabled }: { enabled: boolean }) {
   return <p className={enabled ? 'ccic-custom-status is-yes' : 'ccic-custom-status is-no'}>{enabled ? 'Custom logo/text' : 'No custom logo/text'}</p>
+}
+
+function SavingsNudge({ boxesUntilNextCase, savingsCents, savingsPercent }: { boxesUntilNextCase: number; savingsCents: number; savingsPercent: number }) {
+  return (
+    <p className="ccic-nudge">
+      <Image src="/chrism_star.png" alt="" width={26} height={26} className="ccic-nudge-star" />
+      <span>
+        Add {boxesUntilNextCase} more boxes to make a case and save {formatChristmasCardMoney(savingsCents)}. That's a savings of {savingsPercent}%!
+      </span>
+    </p>
+  )
 }
 
 export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
@@ -96,6 +108,9 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     : CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase - remainingIndividualBoxes
   const caseSavingsCents = primaryCase
     ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents - primaryCase.priceCents
+    : 0
+  const caseSavingsPercent = primaryCase && individualBoxPriceCents
+    ? Math.round((caseSavingsCents / (CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents)) * 100)
     : 0
 
   const anyCustomCaseBoxCustomized = customCaseComplete && sortedBoxes.some((box) =>
@@ -164,10 +179,10 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
                             <div className="ccic-case-gallery-item" key={component.boxId}>
                               <CardArt
                                 title={box.title}
-                                imageUrl={box.frontImageUrl}
+                                imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
                                 size="small"
                                 images={[
-                                  { label: 'Front', url: box.frontImageUrl },
+                                  { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
                                   { label: 'Inside', url: box.insideImageUrl },
                                   { label: 'Outside', url: box.outsideImageUrl },
                                 ]}
@@ -232,7 +247,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
 
         <section className="ccic-panel ccic-custom-callout" id="custom-logo">
           <div className="ccic-section-heading">
-            <p className="ccic-eyebrow">Optional</p>
+            <p className="ccic-eyebrow ccic-eyebrow-gold">New</p>
             <h2>Add your logo and message</h2>
             <p>
               For a flat {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents)} fee, add your council, parish, or organization logo and a short custom line of text.
@@ -356,7 +371,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               {individualCaseSavingsCents > 0 ? (
                 <p className="ccic-good-news">Case pricing applied. You saved {formatChristmasCardMoney(individualCaseSavingsCents)}.</p>
               ) : eligibleIndividualBoxCount >= 18 && boxesUntilNextCase > 0 && caseSavingsCents > 0 ? (
-                <p className="ccic-nudge">Add {boxesUntilNextCase} more boxes to make a case and save {formatChristmasCardMoney(caseSavingsCents)}.</p>
+                <SavingsNudge boxesUntilNextCase={boxesUntilNextCase} savingsCents={caseSavingsCents} savingsPercent={caseSavingsPercent} />
               ) : null}
               {fullCaseGroupsFromIndividualBoxes > 0 && remainingIndividualBoxes > 0 ? (
                 <p className="ccic-muted">Case pricing applied to {fullCaseGroupsFromIndividualBoxes * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes. {remainingIndividualBoxes} extra boxes are priced individually.</p>
