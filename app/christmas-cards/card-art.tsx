@@ -46,7 +46,14 @@ export default function CardArt({ title, imageUrl, images, size = 'large' }: Car
     <>
       <button type="button" className={`ccic-card-art-button ccic-card-art-${size}`} onClick={openLightbox} aria-label={`Quick view ${title}`}>
         <span className="ccic-card-art">
-          <img src={imageUrl} alt={`${title} card front`} onError={() => setFailed(true)} />
+          <Image
+            src={imageUrl}
+            alt={`${title} card front`}
+            fill
+            sizes={size === 'small' ? '120px' : '(max-width: 640px) 100vw, 280px'}
+            unoptimized
+            onError={() => setFailed(true)}
+          />
           <span className="ccic-quick-view">Quick View</span>
         </span>
       </button>
