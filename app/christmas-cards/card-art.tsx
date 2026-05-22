@@ -51,6 +51,7 @@ export default function CardArt({ title, imageUrl, images, size = 'large' }: Car
             alt={`${title} card front`}
             fill
             sizes={size === 'small' ? '120px' : '(max-width: 640px) 100vw, 280px'}
+            unoptimized
             onError={() => setFailed(true)}
           />
           <span className="ccic-quick-view">Quick View</span>
@@ -67,12 +68,12 @@ export default function CardArt({ title, imageUrl, images, size = 'large' }: Car
                 <h2>{title}</h2>
               </div>
               <button type="button" className="ccic-lightbox-close" onClick={() => setIsOpen(false)} aria-label="Close quick view">
-                ×
+                x
               </button>
             </div>
 
             <div className="ccic-lightbox-image-wrap">
-              <Image src={activeImage.url} alt={`${title} ${activeImage.label}`} fill sizes="(max-width: 900px) 92vw, 760px" />
+              <Image src={activeImage.url} alt={`${title} ${activeImage.label}`} fill sizes="(max-width: 900px) 92vw, 760px" unoptimized />
             </div>
 
             <div className="ccic-lightbox-tabs" aria-label="Preview images">
