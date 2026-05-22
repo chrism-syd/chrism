@@ -1,5 +1,6 @@
 .ccic-hero {
   grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: center;
 }
 
 .ccic-hero-card {
@@ -7,6 +8,12 @@
 }
 
 .ccic-nowrap {
+  white-space: nowrap;
+}
+
+.ccic-inline-price {
+  color: #1d1712;
+  font-weight: 900;
   white-space: nowrap;
 }
 

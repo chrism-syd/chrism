@@ -115,12 +115,22 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
     (total, entry) => total + entry.quantity * entry.item.priceCents,
     0
   )
-  const customizationFeeCents = hasCustomizedSelection ? CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents : 0
-  const subtotalCents = curatedCaseTotalCents + individualCaseAdjustedTotalCents + customizationFeeCents
-
   const totalSelectedCases = selectedCuratedCases.reduce((total, entry) => total + entry.quantity, 0) + customCaseCountFromSelection
   const totalSelectedBoxes =
     selectedCuratedCases.reduce((total, entry) => total + entry.quantity * entry.item.boxesPerCase, 0) + eligibleIndividualBoxCount
+  const totalSelectedCards = totalSelectedBoxes * (sortedBoxes[0]?.cardsPerBox ?? 12)
+  const customizedCuratedCaseBoxes = selectedCuratedCases.reduce((total, entry) => {
+    return total + (isCustomized(customizationRequested, caseCustomizationOverrides, entry.item.id) ? entry.quantity * entry.item.boxesPerCase : 0)
+  }, 0)
+  const customizedIndividualBoxes = sortedBoxes.reduce((total, box) => {
+    return total + (isCustomized(customizationRequested, individualCustomizationOverrides, box.id) ? quantityFromMap(individualBoxQuantities, box.id) : 0)
+  }, 0)
+  const customizedBoxCount = customizedCuratedCaseBoxes + customizedIndividualBoxes
+  const customizationSetupFeeCents = hasCustomizedSelection ? CHRISTMAS_CARD_ORDER_CONFIG.customLogoSetupFeeCents : 0
+  const customizationPerBoxFeeCents = customizedBoxCount * CHRISTMAS_CARD_ORDER_CONFIG.customLogoPerBoxFeeCents
+  const customizationFeeCents = customizationSetupFeeCents + customizationPerBoxFeeCents
+  const customizationCostPerCardCents = totalSelectedCards > 0 ? Math.ceil((customizationFeeCents / totalSelectedCards) * 100) / 100 : 0
+  const subtotalCents = curatedCaseTotalCents + individualCaseAdjustedTotalCents + customizationFeeCents
 
   const hasOrder = subtotalCents > 0 || customizationRequested || hasCustomizedSelection
 
@@ -194,7 +204,7 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             <p className="ccic-eyebrow ccic-eyebrow-gold">New</p>
             <h2>Add your logo and message</h2>
             <p>
-              For a flat {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoFeeCents)} fee, add your council, parish, or organization logo and a short custom line of text.
+              Make them yours with a one-time setup fee of <strong className="ccic-inline-price">{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoSetupFeeCents)}</strong> plus {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoPerBoxFeeCents)} per box. Add your council, parish, or organization logo and a short custom message.
             </p>
             <CustomLogoDetails />
           </div>
@@ -335,9 +345,14 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
             <div className="ccic-summary-section">
               <h3>Customization</h3>
               <div className="ccic-summary-line">
-                <span>Logo/text replacement</span>
-                <strong>{formatChristmasCardMoney(customizationFeeCents)}</strong>
+                <span>Logo/text setup</span>
+                <strong>{formatChristmasCardMoney(customizationSetupFeeCents)}</strong>
               </div>
+              <div className="ccic-summary-line">
+                <span>{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customLogoPerBoxFeeCents)} x {customizedBoxCount} box{customizedBoxCount === 1 ? '' : 'es'}</span>
+                <strong>{formatChristmasCardMoney(customizationPerBoxFeeCents)}</strong>
+              </div>
+              <p className="ccic-muted">That is {customizationCostPerCardCents.toFixed(2)} cents per card.</p>
               {customLineText.trim() ? <p className="ccic-muted">“{customLineText.trim()}”</p> : null}
             </div>
           ) : null}

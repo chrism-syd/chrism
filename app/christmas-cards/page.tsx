@@ -34,7 +34,7 @@ export default function ChristmasCardsPage() {
           <div>
             <p className="ccic-eyebrow">Christmas card ordering</p>
             <h1>
-              Christmas cards made for<br />ministry
+              Christmas cards made<br />for ministry
             </h1>
           </div>
         </div>
@@ -55,15 +55,15 @@ export default function ChristmasCardsPage() {
         <div className="ccic-steps">
           <div>
             <strong>1. Choose your cards</strong>
-            <span>Select our curated case, or choose individual boxes.</span>
+            <span>Select our curated case, or choose individual&nbsp;boxes.</span>
           </div>
           <div>
             <strong>2. Review your order</strong>
-            <span>Review the summary of your selections and estimated total.</span>
+            <span>Review the summary of your selections and estimated&nbsp;total.</span>
           </div>
           <div>
             <strong>3. Place your order</strong>
-            <span>Enter your contact information, confirm delivery pricing or local pick-up and submit your order.</span>
+            <span>Enter your contact information, confirm delivery pricing or local pick-up and submit your&nbsp;order.</span>
           </div>
         </div>
       </section>
