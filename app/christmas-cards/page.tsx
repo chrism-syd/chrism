@@ -18,6 +18,14 @@ export default function ChristmasCardsPage() {
       <section className="ccic-hero">
         <div className="ccic-hero-copy">
           <div className="ccic-hero-title-row">
+            <Image
+              src="/CCiC.png"
+              alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+              width={210}
+              height={90}
+              priority
+              className="ccic-brand-logo"
+            />
             <div>
               <p className="ccic-eyebrow">Catholic Christmas card ordering</p>
               <h1>{CHRISTMAS_CARD_ORDER_CONFIG.brandName}</h1>
@@ -33,14 +41,6 @@ export default function ChristmasCardsPage() {
           </p>
         </div>
         <div className="ccic-hero-card" aria-label="Ordering summary">
-          <Image
-            src="/CCiC.png"
-            alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-            width={210}
-            height={90}
-            priority
-            className="ccic-brand-logo"
-          />
           <strong>Simple ordering</strong>
           <span>35 boxes per case</span>
           <span>12 cards + envelopes per box</span>
@@ -70,7 +70,7 @@ export default function ChristmasCardsPage() {
 
       <footer className="ccic-footer">
         <span>Powered by</span>
-        <Image src="/Chrism.png" alt="Chrism" width={130} height={56} className="ccic-footer-logo" />
+        <Image src="/Chrism.png" alt="Chrism" width={156} height={67} className="ccic-footer-logo" />
       </footer>
     </main>
   )
