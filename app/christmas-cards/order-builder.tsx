@@ -210,6 +210,12 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
               </div>
             </label>
           </div>
+
+          {selectedPackage !== 'none' ? (
+            <button type="button" className="ccic-remove-package-button" onClick={() => setSelectedPackage('none')}>
+              Remove fundraising package
+            </button>
+          ) : null}
         </section>
 
         <section className="ccic-panel" id="individual-boxes">
