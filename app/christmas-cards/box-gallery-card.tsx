@@ -1,7 +1,6 @@
 'use client'
 
 import CardArt from './card-art'
-import CustomizationToggle from './customization-toggle'
 import QuantityControl from './quantity-control'
 import { formatChristmasCardMoney, type ChristmasCardBox } from '@/lib/christmas-cards/catalog'
 
@@ -11,18 +10,12 @@ export default function BoxGalleryCard({
   quantity,
   onQuantityChange,
   showPrice = true,
-  customized,
-  customizationDisabled,
-  onCustomizedChange,
 }: {
   box: ChristmasCardBox
   quantityLabel: string
   quantity: number
   onQuantityChange: (quantity: number) => void
   showPrice?: boolean
-  customized: boolean
-  customizationDisabled?: boolean
-  onCustomizedChange: (checked: boolean) => void
 }) {
   const thumbnailUrl = box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl
 
@@ -46,7 +39,6 @@ export default function BoxGalleryCard({
           <summary>Inside wording</summary>
           <p>{box.insideMessage}</p>
         </details>
-        <CustomizationToggle checked={customized} disabled={customizationDisabled} onChange={onCustomizedChange} />
       </div>
       <QuantityControl label={quantityLabel} value={quantity} onChange={onQuantityChange} />
     </article>
