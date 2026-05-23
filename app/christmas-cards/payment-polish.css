@@ -181,6 +181,25 @@
   font-weight: 800;
 }
 
+.ccic-remove-package-button {
+  justify-self: start;
+  margin-top: 16px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #8a4d13;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ccic-remove-package-button:hover,
+.ccic-remove-package-button:focus-visible {
+  color: #1d1712;
+}
+
 .ccic-eyebrow-gold {
   color: #ffffff !important;
 }
