@@ -180,28 +180,34 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
           </div>
 
           <div className="ccic-package-grid" role="radiogroup" aria-label="Fundraising package">
-            <label className={`ccic-package-card ${selectedPackage === 'none' ? 'is-selected' : ''}`}>
-              <input type="radio" name="ccic-package" checked={selectedPackage === 'none'} onChange={() => setSelectedPackage('none')} />
-              <span className="ccic-package-kicker">Good</span>
-              <strong>Classic Sacred Case</strong>
-              <span>Cards only</span>
-              <em>No package selected</em>
-            </label>
-
             <label className={`ccic-package-card ${selectedPackage === 'promotion' ? 'is-selected' : ''}`}>
               <input type="radio" name="ccic-package" checked={selectedPackage === 'promotion'} onChange={() => setSelectedPackage('promotion')} />
-              <span className="ccic-package-kicker">Better</span>
+              <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.promotionPackageCents)}</span>
               <strong>Promotion Package</strong>
-              <span>Parish logo integration, custom fundraiser message, digital proof approval, production setup, and priority handling.</span>
-              <em>+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.promotionPackageCents)}</em>
+              <p>Personalize your fundraising campaign with parish branding and messaging tailored to your community.</p>
+              <ul>
+                <li>Logo integration on every card, plus custom message</li>
+                <li>Digital proof approval</li>
+                <li>Production setup and formatting</li>
+                <li>Priority handling for customized orders</li>
+              </ul>
             </label>
 
-            <label className={`ccic-package-card ${selectedPackage === 'campaign' ? 'is-selected' : ''}`}>
+            <label className={`ccic-package-card ccic-package-card-featured ${selectedPackage === 'campaign' ? 'is-selected' : ''}`}>
               <input type="radio" name="ccic-package" checked={selectedPackage === 'campaign'} onChange={() => setSelectedPackage('campaign')} />
-              <span className="ccic-package-kicker">Best</span>
+              <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.campaignPackageCents)}</span>
               <strong>Campaign Package</strong>
-              <span>Everything in the Promotion Package, plus 5 promotional posters and 1 social media graphic.</span>
-              <em>+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.campaignPackageCents)}</em>
+              <p>A complete parish fundraising campaign package designed to help promote seasonal card sales within your church and community.</p>
+              <ul>
+                <li>Everything in the Promotion Package</li>
+                <li>5 × 18x24 promotional posters</li>
+                <li>1 custom graphic for email, bulletin, or social media</li>
+              </ul>
+              <div className="ccic-social-preview" aria-hidden="true">
+                <span>Parish Christmas Card Fundraiser</span>
+                <strong>Celebrate Christ in Christmas</strong>
+                <em>Order after Mass • Support local ministry</em>
+              </div>
             </label>
           </div>
         </section>
