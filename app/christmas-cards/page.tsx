@@ -50,6 +50,17 @@ export default function ChristmasCardsPage() {
         </div>
       </section>
 
+      <section className="ccic-trust-strip" aria-label="Product origin and paper certification">
+        <div>
+          <span className="ccic-maple-leaf" aria-hidden="true">🍁</span>
+          <strong>Designed, sourced, and printed in Canada</strong>
+        </div>
+        <div>
+          <span className="ccic-cert-mark" aria-hidden="true">FSC</span>
+          <strong>Printed on FSC certified paper</strong>
+        </div>
+      </section>
+
       <section className="ccic-how">
         <h2>How ordering works</h2>
         <div className="ccic-steps">
