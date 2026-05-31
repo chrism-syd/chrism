@@ -5,6 +5,7 @@ import ts from 'typescript'
 
 const projectRoot = process.cwd()
 const buildDir = path.join(projectRoot, '.next/store-catalog-seed')
+const storeCatalogMigrationPath = 'supabase/migrations/20260528211500_create_store_catalog_foundation.sql'
 
 const sources = [
   {
@@ -30,6 +31,23 @@ function rewriteImports(outputText) {
     .replace(/from ['"]\.\/catalog-model['"]/g, "from './catalog-model.mjs'")
     .replace(/from ['"]@\/lib\/store\/catalog-model['"]/g, "from './catalog-model.mjs'")
     .replace(/from ['"]@\/lib\/supabase\/admin['"]/g, "from './supabase-admin.mjs'")
+}
+
+function isMissingStoreCatalogTableError(error) {
+  if (!(error instanceof Error)) return false
+  return error.message.includes('store_categories') && error.message.includes('schema cache')
+}
+
+function printSeedFailure(error) {
+  if (isMissingStoreCatalogTableError(error)) {
+    console.error('Could not seed the CCiC store catalog because the store catalog tables do not exist yet.')
+    console.error('Apply the store catalog migration first, then rerun this command.')
+    console.error(`Migration: ${storeCatalogMigrationPath}`)
+    console.error('After applying the migration, if Supabase still reports a schema cache error, refresh/restart the local Supabase API or wait briefly for the hosted schema cache to refresh.')
+    return
+  }
+
+  console.error(error)
 }
 
 await mkdir(buildDir, { recursive: true })
@@ -67,6 +85,9 @@ try {
   console.log(`Products:   ${result.productCount}`)
   console.log(`Components: ${result.componentCount}`)
   console.log(`Media:      ${result.mediaCount}`)
+} catch (error) {
+  printSeedFailure(error)
+  process.exitCode = 1
 } finally {
   await rm(buildDir, { recursive: true, force: true })
 }
