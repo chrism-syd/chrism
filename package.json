@@ -16,6 +16,7 @@
     "verify:store-catalog-model": "node scripts/verify-store-catalog-model.mjs",
     "verify": "npm run lint -- --max-warnings=0 && npm run typecheck && npm run verify:officer-roles && npm run verify:rsvp-volunteers && npm run verify:custom-list-member-state && npm run verify:org-admin-area-access && npm run verify:local-unit-terminology && npm run verify:store-catalog-model",
     "schema:pull": "node scripts/pull-supabase-schema.mjs",
+    "store:seed-ccic": "node --env-file=.env.local scripts/seed-ccic-store-catalog.mjs",
     "pii:backfill": "node --env-file=.env.local scripts/backfill-encrypted-pii.mjs",
     "supreme:text-case-backfill": "node --env-file=.env.local scripts/backfill-supreme-import-text-case.mjs"
   },
