@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import {
-  initialCaseCompositionActionState,
+  type CaseCompositionActionState,
   updateChristmasCardCaseCompositionStateAction,
 } from './case-composition-actions'
 
@@ -20,14 +20,19 @@ type Props = {
   cardBoxes: CardBoxInput[]
 }
 
+const initialCaseCompositionActionState: CaseCompositionActionState = {
+  status: 'idle',
+  message: null,
+}
+
 export default function CaseCompositionForm({ caseProductId, currentTotal, cardBoxes }: Props) {
   const [state, formAction] = useActionState(updateChristmasCardCaseCompositionStateAction, initialCaseCompositionActionState)
   const displayedTotal = state.status === 'success' && typeof state.totalBoxes === 'number' ? state.totalBoxes : currentTotal
 
   return (
-    <form action={formAction} className="qv-form-grid" style={{ marginTop: 16 }}>
+    <form action={formAction} className="qv-form-grid ccic-admin-form" style={{ marginTop: 16 }}>
       <input type="hidden" name="case_product_id" value={caseProductId} />
-      <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
+      <div className="ccic-admin-note">
         <strong>Case composition</strong>
         <span>
           This case currently includes {displayedTotal} boxes. Saving will update the case box count to the submitted total.
@@ -45,10 +50,10 @@ export default function CaseCompositionForm({ caseProductId, currentTotal, cardB
         </section>
       ) : null}
 
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div className="ccic-admin-case-rows">
         {cardBoxes.map((box) => (
-          <div key={box.id} className="qv-form-row qv-form-row-2">
-            <label className="qv-field">
+          <div key={box.id} className="ccic-admin-case-row">
+            <label className="qv-field ccic-admin-quantity-field">
               <span>{box.title}</span>
               <input
                 name={`quantity_${box.id}`}
@@ -58,7 +63,7 @@ export default function CaseCompositionForm({ caseProductId, currentTotal, cardB
                 defaultValue={box.quantity}
               />
             </label>
-            <div className="qv-inline-message">
+            <div className="ccic-admin-row-meta">
               <span>{box.sku ?? 'No SKU'} • {box.priceLabel} per box</span>
             </div>
           </div>
@@ -67,7 +72,7 @@ export default function CaseCompositionForm({ caseProductId, currentTotal, cardB
 
       <label className="qv-field">
         <span>Confirmation</span>
-        <span className="qv-inline-message">
+        <span className="ccic-admin-confirmation">
           <input name="confirm_case_box_total" type="checkbox" /> I understand this will change the number of boxes included in this case.
         </span>
       </label>
