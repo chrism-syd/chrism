@@ -72,6 +72,7 @@ try {
   const supabaseAdmin = await import(`${pathToFileURL(path.join(buildDir, 'supabase-admin.mjs')).href}?t=${Date.now()}`)
 
   const seed = catalogModel.buildChristmasCardStoreCatalogSeed({
+    designs: christmasCatalog.CHRISTMAS_CARD_DESIGNS,
     boxes: christmasCatalog.CHRISTMAS_CARD_BOXES,
     curatedCases: christmasCatalog.CHRISTMAS_CARD_CURATED_CASES,
     config: christmasCatalog.CHRISTMAS_CARD_ORDER_CONFIG,
