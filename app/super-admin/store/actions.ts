@@ -9,6 +9,13 @@ type StoreProductKindRow = {
   id: string
   product_kind: string
   title: string | null
+  boxes_per_case: number | null
+}
+
+type StoreCardBoxRow = {
+  id: string
+  title: string
+  sort_order: number
 }
 
 const CARD_BOX_MEDIA_KINDS = ['front', 'inside', 'outside'] as const
@@ -25,6 +32,22 @@ function intValue(formData: FormData, key: string) {
   if (!value) return null
   const parsed = Number.parseInt(value, 10)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function nonNegativeWholeNumberValue(formData: FormData, key: string, label: string) {
+  const value = textValue(formData, key)
+  if (!value) return 0
+
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`${label} must be a whole number 0 or higher.`)
+  }
+
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a whole number 0 or higher.`)
+  }
+
+  return parsed
 }
 
 function priceCentsValue(formData: FormData, key: string) {
@@ -106,7 +129,7 @@ async function requireEditableStoreProduct(args: {
 }) {
   const productResponse = await args.admin
     .from('store_products')
-    .select('id, product_kind, title')
+    .select('id, product_kind, title, boxes_per_case')
     .eq('id', args.productId)
     .single<StoreProductKindRow>()
 
@@ -240,6 +263,92 @@ export async function updateStoreAddOnProductAction(formData: FormData) {
     redirectToStore({ notice: `${title} was updated.` })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not update that package right now.'
+    redirectToStore({ error: message })
+  }
+}
+
+export async function updateChristmasCardCaseCompositionAction(formData: FormData) {
+  const permissions = await requireSuperAdminNormalMode()
+  const actorUserId = permissions.authUser!.id
+  const caseProductId = textValue(formData, 'case_product_id')
+
+  if (!caseProductId) {
+    redirectToStore({ error: 'We could not tell which case to update.' })
+  }
+
+  const admin = createAdminClient()
+
+  try {
+    const caseProduct = await requireEditableStoreProduct({
+      admin,
+      productId: caseProductId,
+      expectedKind: 'christmas_card_case',
+      errorMessage: 'Only Christmas card cases can be edited in this section.',
+    })
+
+    if (!caseProduct.boxes_per_case || caseProduct.boxes_per_case <= 0) {
+      redirectToStore({ error: 'This case does not have a valid box count.' })
+    }
+
+    const boxResponse = await admin
+      .from('store_products')
+      .select('id, title, sort_order')
+      .eq('product_kind', 'christmas_card_box')
+      .order('sort_order', { ascending: true })
+      .order('title', { ascending: true })
+
+    if (boxResponse.error) {
+      throw new Error(boxResponse.error.message)
+    }
+
+    const boxes = (boxResponse.data as StoreCardBoxRow[] | null) ?? []
+    if (boxes.length === 0) {
+      redirectToStore({ error: 'Add at least one Christmas card box before editing case composition.' })
+    }
+
+    let totalBoxes = 0
+    const componentRows = boxes.flatMap((box, index) => {
+      const quantity = nonNegativeWholeNumberValue(formData, `quantity_${box.id}`, box.title)
+      totalBoxes += quantity
+      if (quantity === 0) return []
+
+      return [
+        {
+          parent_product_id: caseProductId,
+          component_product_id: box.id,
+          quantity,
+          component_role: 'included',
+          sort_order: (index + 1) * 10,
+          metadata: {},
+          created_by_auth_user_id: actorUserId,
+          updated_by_auth_user_id: actorUserId,
+          updated_at: new Date().toISOString(),
+        },
+      ]
+    })
+
+    if (totalBoxes !== caseProduct.boxes_per_case) {
+      redirectToStore({ error: `Case composition must total ${caseProduct.boxes_per_case} boxes. Current total is ${totalBoxes}.` })
+    }
+
+    const deleteResponse = await admin
+      .from('store_product_components')
+      .delete()
+      .eq('parent_product_id', caseProductId)
+
+    if (deleteResponse.error) {
+      throw new Error(deleteResponse.error.message)
+    }
+
+    const insertResponse = await admin.from('store_product_components').insert(componentRows)
+    if (insertResponse.error) {
+      throw new Error(insertResponse.error.message)
+    }
+
+    revalidatePath('/super-admin/store')
+    redirectToStore({ notice: `${caseProduct.title ?? 'Case'} composition was updated.` })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not update that case composition right now.'
     redirectToStore({ error: message })
   }
 }
