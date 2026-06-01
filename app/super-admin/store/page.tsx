@@ -154,6 +154,8 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
   const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const actionTarget = typeof resolvedSearchParams.target === 'string' ? resolvedSearchParams.target : null
+  const isCaseCompositionMessage = actionTarget === 'case-composition'
 
   const admin = createAdminClient()
   const [categoriesResponse, productsResponse, componentsResponse, mediaResponse] = await Promise.all([
@@ -188,10 +190,10 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
         <div className="qv-shell">
           <AppHeader />
 
-          {errorMessage ? (
+          {errorMessage && !isCaseCompositionMessage ? (
             <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
           ) : null}
-          {noticeMessage ? (
+          {noticeMessage && !isCaseCompositionMessage ? (
             <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
           ) : null}
 
@@ -242,10 +244,10 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
       <div className="qv-shell">
         <AppHeader />
 
-        {errorMessage ? (
+        {errorMessage && !isCaseCompositionMessage ? (
           <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
         ) : null}
-        {noticeMessage ? (
+        {noticeMessage && !isCaseCompositionMessage ? (
           <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
         ) : null}
 
@@ -474,6 +476,13 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                                 This case currently includes {currentComponentTotal} boxes. Saving will update the case box count to the submitted total.
                               </span>
                             </div>
+
+                            {errorMessage && isCaseCompositionMessage ? (
+                              <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
+                            ) : null}
+                            {noticeMessage && isCaseCompositionMessage ? (
+                              <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
+                            ) : null}
 
                             <div style={{ display: 'grid', gap: 10 }}>
                               {cardBoxes.map((box) => (
