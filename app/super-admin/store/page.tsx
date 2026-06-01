@@ -5,6 +5,7 @@ import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import CaseCompositionForm from './case-composition-form'
 import { updateChristmasCardBoxProductAction, updateStoreAddOnProductAction } from './actions'
+import './store-admin.css'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -151,8 +152,6 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
   const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
-  const actionTarget = typeof resolvedSearchParams.target === 'string' ? resolvedSearchParams.target : null
-  const isCaseCompositionMessage = actionTarget === 'case-composition'
 
   const admin = createAdminClient()
   const [categoriesResponse, productsResponse, componentsResponse, mediaResponse] = await Promise.all([
@@ -187,10 +186,10 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
         <div className="qv-shell">
           <AppHeader />
 
-          {errorMessage && !isCaseCompositionMessage ? (
+          {errorMessage ? (
             <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
           ) : null}
-          {noticeMessage && !isCaseCompositionMessage ? (
+          {noticeMessage ? (
             <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
           ) : null}
 
@@ -241,10 +240,10 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
       <div className="qv-shell">
         <AppHeader />
 
-        {errorMessage && !isCaseCompositionMessage ? (
+        {errorMessage ? (
           <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
         ) : null}
-        {noticeMessage && !isCaseCompositionMessage ? (
+        {noticeMessage ? (
           <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
         ) : null}
 
@@ -320,7 +319,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                     const currentComponentTotal = componentTotal(productComponents)
 
                     return (
-                      <article key={product.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
+                      <article key={product.id} className="qv-card ccic-admin-product-card">
                         <div style={{ display: 'grid', gap: 6 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                             <h4 className="qv-section-title" style={{ margin: 0 }}>{product.title}</h4>
@@ -338,7 +337,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                         </div>
 
                         {isCardBox ? (
-                          <form action={updateChristmasCardBoxProductAction} className="qv-form-grid" style={{ marginTop: 16 }}>
+                          <form action={updateChristmasCardBoxProductAction} className="qv-form-grid ccic-admin-form" style={{ marginTop: 16 }}>
                             <input type="hidden" name="product_id" value={product.id} />
 
                             <div className="qv-form-row qv-form-row-3">
@@ -396,7 +395,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                               </label>
                               <label className="qv-field">
                                 <span>Public</span>
-                                <span className="qv-inline-message">
+                                <span className="ccic-admin-confirmation">
                                   <input name="is_public" type="checkbox" defaultChecked={product.is_public} /> Show in public catalog once wired
                                 </span>
                               </label>
@@ -409,7 +408,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                         ) : null}
 
                         {isAddOn ? (
-                          <form action={updateStoreAddOnProductAction} className="qv-form-grid" style={{ marginTop: 16 }}>
+                          <form action={updateStoreAddOnProductAction} className="qv-form-grid ccic-admin-form" style={{ marginTop: 16 }}>
                             <input type="hidden" name="product_id" value={product.id} />
 
                             <div className="qv-form-row qv-form-row-3">
@@ -452,7 +451,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                               </label>
                               <label className="qv-field">
                                 <span>Public</span>
-                                <span className="qv-inline-message">
+                                <span className="ccic-admin-confirmation">
                                   <input name="is_public" type="checkbox" defaultChecked={product.is_public} /> Show in public catalog once wired
                                 </span>
                               </label>
