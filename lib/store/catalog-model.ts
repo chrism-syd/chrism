@@ -1,4 +1,5 @@
 export type StoreProductKind =
+  | 'christmas_card_design'
   | 'christmas_card_box'
   | 'christmas_card_set'
   | 'christmas_card_case'
@@ -63,6 +64,17 @@ export type StoreCatalogSeed = {
   media: StoreProductMediaSeed[]
 }
 
+type ChristmasCardDesignLike = {
+  id: string
+  sku: string
+  title: string
+  description: string
+  frontImageUrl: string | null
+  themeTags: string[]
+  styleFamily: string
+  sortOrder: number
+}
+
 type ChristmasCardBoxLike = {
   id: string
   sku: string
@@ -78,6 +90,10 @@ type ChristmasCardBoxLike = {
   priceCents: number
   isCasePricingEligible: boolean
   sortOrder: number
+  components: Array<{
+    designId: string
+    quantityCards: number
+  }>
 }
 
 type ChristmasCardCuratedCaseLike = {
@@ -112,6 +128,10 @@ export const CCIC_PROMOTION_PACKAGE_PRICE_CENTS = 6500
 export const CCIC_CAMPAIGN_PACKAGE_PRICE_CENTS = 19500
 export const CCIC_SHIPPING_LABEL = 'Shipping calculated after order review.'
 
+export function christmasCardDesignLegacyKey(designId: string) {
+  return `ccic-design:${designId}`
+}
+
 export function christmasCardBoxLegacyKey(boxId: string) {
   return `ccic-box:${boxId}`
 }
@@ -124,6 +144,13 @@ export function christmasCardAddOnLegacyKey(addOnCode: 'promotion-package' | 'ca
   return `ccic-add-on:${addOnCode}`
 }
 
+export function assertCcicDesignShape(product: Pick<StoreProductSeed, 'productKind' | 'priceCents' | 'cardsPerBox' | 'envelopesPerBox' | 'boxesPerCase' | 'isPublic' | 'title'>) {
+  if (product.productKind !== 'christmas_card_design') return
+  if (product.priceCents !== 0 || product.cardsPerBox !== null || product.envelopesPerBox !== null || product.boxesPerCase !== null || product.isPublic) {
+    throw new Error(`Invalid CCiC design shape for ${product.title}: designs are internal, non-sellable, and must not carry box or case sizing.`)
+  }
+}
+
 export function assertCcicBoxShape(product: Pick<StoreProductSeed, 'productKind' | 'cardsPerBox' | 'envelopesPerBox' | 'boxesPerCase' | 'title'>) {
   if (product.productKind !== 'christmas_card_box') return
   if (product.cardsPerBox !== CCIC_REQUIRED_CARDS_PER_BOX || product.envelopesPerBox !== CCIC_REQUIRED_ENVELOPES_PER_BOX || product.boxesPerCase !== null) {
@@ -133,8 +160,8 @@ export function assertCcicBoxShape(product: Pick<StoreProductSeed, 'productKind'
 
 export function assertCcicCaseShape(product: Pick<StoreProductSeed, 'productKind' | 'cardsPerBox' | 'envelopesPerBox' | 'boxesPerCase' | 'title'>) {
   if (product.productKind !== 'christmas_card_case') return
-  if (product.boxesPerCase !== CCIC_REQUIRED_BOXES_PER_CASE || product.cardsPerBox !== null || product.envelopesPerBox !== null) {
-    throw new Error(`Invalid CCiC case shape for ${product.title}: cases must contain 35 boxes and must not pretend to be a card box.`)
+  if (!product.boxesPerCase || product.boxesPerCase <= 0 || product.cardsPerBox !== null || product.envelopesPerBox !== null) {
+    throw new Error(`Invalid CCiC case shape for ${product.title}: cases must carry a positive box count and must not pretend to be a card box.`)
   }
 }
 
@@ -142,8 +169,21 @@ export function assertStoreProductShape(product: StoreProductSeed) {
   if (product.priceCents < 0) {
     throw new Error(`Invalid negative price for ${product.title}.`)
   }
+  assertCcicDesignShape(product)
   assertCcicBoxShape(product)
   assertCcicCaseShape(product)
+}
+
+function componentsByParentKey(components: StoreProductComponentSeed[]) {
+  const componentsByParent = new Map<string, StoreProductComponentSeed[]>()
+
+  for (const component of components) {
+    const bucket = componentsByParent.get(component.parentProductLegacyKey) ?? []
+    bucket.push(component)
+    componentsByParent.set(component.parentProductLegacyKey, bucket)
+  }
+
+  return componentsByParent
 }
 
 export function countBoxQuantityForProduct(args: {
@@ -152,13 +192,7 @@ export function countBoxQuantityForProduct(args: {
   components: StoreProductComponentSeed[]
 }) {
   const productsByKey = new Map(args.products.map((product) => [product.legacyKey, product]))
-  const componentsByParentKey = new Map<string, StoreProductComponentSeed[]>()
-
-  for (const component of args.components) {
-    const bucket = componentsByParentKey.get(component.parentProductLegacyKey) ?? []
-    bucket.push(component)
-    componentsByParentKey.set(component.parentProductLegacyKey, bucket)
-  }
+  const componentsByParent = componentsByParentKey(args.components)
 
   function visit(productLegacyKey: string, stack: Set<string>): number {
     if (stack.has(productLegacyKey)) {
@@ -174,7 +208,7 @@ export function countBoxQuantityForProduct(args: {
       return 1
     }
 
-    const components = componentsByParentKey.get(productLegacyKey) ?? []
+    const components = componentsByParent.get(productLegacyKey) ?? []
     if (product.productKind === 'christmas_card_set' || product.productKind === 'christmas_card_case') {
       const nextStack = new Set(stack)
       nextStack.add(productLegacyKey)
@@ -193,6 +227,8 @@ export function countBoxQuantityForProduct(args: {
 export function assertStoreCatalogSeedInvariants(seed: StoreCatalogSeed) {
   const categoryKeys = new Set(seed.categories.map((category) => category.legacyKey))
   const productKeys = new Set(seed.products.map((product) => product.legacyKey))
+  const productsByKey = new Map(seed.products.map((product) => [product.legacyKey, product]))
+  const componentsByParent = componentsByParentKey(seed.components)
 
   for (const product of seed.products) {
     assertStoreProductShape(product)
@@ -213,6 +249,27 @@ export function assertStoreCatalogSeedInvariants(seed: StoreCatalogSeed) {
     }
     if (!productKeys.has(component.componentProductLegacyKey)) {
       throw new Error(`Component references missing child product ${component.componentProductLegacyKey}.`)
+    }
+  }
+
+  for (const product of seed.products) {
+    if (product.productKind !== 'christmas_card_box') continue
+    const boxComponents = componentsByParent.get(product.legacyKey) ?? []
+    if (boxComponents.length === 0) {
+      throw new Error(`Box ${product.title} must contain card designs.`)
+    }
+
+    let cardTotal = 0
+    for (const component of boxComponents) {
+      const child = productsByKey.get(component.componentProductLegacyKey)
+      if (child?.productKind !== 'christmas_card_design') {
+        throw new Error(`Box ${product.title} can only contain card design components.`)
+      }
+      cardTotal += component.quantity
+    }
+
+    if (cardTotal !== product.cardsPerBox) {
+      throw new Error(`Box ${product.title} contains ${cardTotal} cards, expected ${product.cardsPerBox}.`)
     }
   }
 
@@ -248,6 +305,7 @@ export function assertChristmasCardOrderConfig(config: ChristmasCardOrderConfigL
 }
 
 export function buildChristmasCardStoreCatalogSeed(args: {
+  designs: ChristmasCardDesignLike[]
   boxes: ChristmasCardBoxLike[]
   curatedCases: ChristmasCardCuratedCaseLike[]
   config: ChristmasCardOrderConfigLike
@@ -269,6 +327,45 @@ export function buildChristmasCardStoreCatalogSeed(args: {
   const products: StoreProductSeed[] = []
   const components: StoreProductComponentSeed[] = []
   const media: StoreProductMediaSeed[] = []
+
+  for (const design of args.designs) {
+    const legacyKey = christmasCardDesignLegacyKey(design.id)
+    products.push({
+      legacyKey,
+      categoryLegacyKey: CCIC_CATEGORY_LEGACY_KEY,
+      slug: design.id,
+      sku: design.sku,
+      productKind: 'christmas_card_design',
+      title: design.title,
+      shortDescription: design.description,
+      description: design.description,
+      priceCents: 0,
+      currencyCode: args.config.currencyCode,
+      statusCode: 'draft',
+      isPublic: false,
+      sortOrder: design.sortOrder,
+      cardsPerBox: null,
+      envelopesPerBox: null,
+      boxesPerCase: null,
+      metadata: {
+        themeTags: design.themeTags,
+        styleFamily: design.styleFamily,
+        isSellable: false,
+      },
+    })
+
+    if (design.frontImageUrl) {
+      media.push({
+        productLegacyKey: legacyKey,
+        mediaKind: 'front',
+        publicUrl: design.frontImageUrl,
+        altText: `${design.title} card art`,
+        sortOrder: 10,
+        isPrimary: true,
+        metadata: {},
+      })
+    }
+  }
 
   for (const box of args.boxes) {
     if (box.cardsPerBox !== CCIC_REQUIRED_CARDS_PER_BOX) {
@@ -297,7 +394,19 @@ export function buildChristmasCardStoreCatalogSeed(args: {
         themeTags: box.themeTags,
         languageCode: box.languageCode,
         isCasePricingEligible: box.isCasePricingEligible,
+        packCompositionLabel: '4 designs x 3 cards each',
       },
+    })
+
+    box.components.forEach((component, index) => {
+      components.push({
+        parentProductLegacyKey: legacyKey,
+        componentProductLegacyKey: christmasCardDesignLegacyKey(component.designId),
+        quantity: component.quantityCards,
+        componentRole: 'included',
+        sortOrder: (index + 1) * 10,
+        metadata: { unit: 'cards' },
+      })
     })
 
     const imageEntries = [
@@ -338,7 +447,7 @@ export function buildChristmasCardStoreCatalogSeed(args: {
       sortOrder: 100,
       cardsPerBox: null,
       envelopesPerBox: null,
-      boxesPerCase: CCIC_REQUIRED_BOXES_PER_CASE,
+      boxesPerCase: curatedCase.boxesPerCase,
       metadata: {},
     })
 
@@ -349,7 +458,7 @@ export function buildChristmasCardStoreCatalogSeed(args: {
         quantity: component.quantityBoxes,
         componentRole: 'included',
         sortOrder: (index + 1) * 10,
-        metadata: {},
+        metadata: { unit: 'boxes' },
       })
     })
   }
