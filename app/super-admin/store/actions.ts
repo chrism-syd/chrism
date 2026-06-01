@@ -72,11 +72,29 @@ function checkboxValue(formData: FormData, key: string) {
   return formData.get(key) === 'on'
 }
 
+function isNextRedirectError(error: unknown) {
+  return (
+    typeof error === 'object'
+    && error !== null
+    && 'digest' in error
+    && typeof (error as { digest?: unknown }).digest === 'string'
+    && (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+  )
+}
+
 function redirectToStore(args: { error?: string | null; notice?: string | null }): never {
   const params = new URLSearchParams()
   if (args.error) params.set('error', args.error)
   if (args.notice) params.set('notice', args.notice)
   redirect(params.size > 0 ? `/super-admin/store?${params.toString()}` : '/super-admin/store')
+}
+
+function errorMessageForStore(error: unknown, fallback: string) {
+  if (isNextRedirectError(error)) {
+    throw error
+  }
+
+  return error instanceof Error ? error.message : fallback
 }
 
 async function requireSuperAdminNormalMode() {
@@ -210,7 +228,7 @@ export async function updateChristmasCardBoxProductAction(formData: FormData) {
     revalidatePath('/super-admin/store')
     redirectToStore({ notice: `${title} was updated.` })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not update that card box right now.'
+    const message = errorMessageForStore(error, 'Could not update that card box right now.')
     redirectToStore({ error: message })
   }
 }
@@ -262,7 +280,7 @@ export async function updateStoreAddOnProductAction(formData: FormData) {
     revalidatePath('/super-admin/store')
     redirectToStore({ notice: `${title} was updated.` })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not update that package right now.'
+    const message = errorMessageForStore(error, 'Could not update that package right now.')
     redirectToStore({ error: message })
   }
 }
@@ -276,6 +294,10 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
     redirectToStore({ error: 'We could not tell which case to update.' })
   }
 
+  if (!checkboxValue(formData, 'confirm_case_box_total')) {
+    redirectToStore({ error: 'Confirm the case box total before saving the case composition.' })
+  }
+
   const admin = createAdminClient()
 
   try {
@@ -285,10 +307,6 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
       expectedKind: 'christmas_card_case',
       errorMessage: 'Only Christmas card cases can be edited in this section.',
     })
-
-    if (!caseProduct.boxes_per_case || caseProduct.boxes_per_case <= 0) {
-      redirectToStore({ error: 'This case does not have a valid box count.' })
-    }
 
     const boxResponse = await admin
       .from('store_products')
@@ -327,8 +345,8 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
       ]
     })
 
-    if (totalBoxes !== caseProduct.boxes_per_case) {
-      redirectToStore({ error: `Case composition must total ${caseProduct.boxes_per_case} boxes. Current total is ${totalBoxes}.` })
+    if (totalBoxes <= 0) {
+      redirectToStore({ error: 'Case composition must include at least one box.' })
     }
 
     const deleteResponse = await admin
@@ -345,10 +363,24 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
       throw new Error(insertResponse.error.message)
     }
 
+    const caseUpdateResponse = await admin
+      .from('store_products')
+      .update({
+        boxes_per_case: totalBoxes,
+        updated_by_auth_user_id: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', caseProductId)
+      .eq('product_kind', 'christmas_card_case')
+
+    if (caseUpdateResponse.error) {
+      throw new Error(caseUpdateResponse.error.message)
+    }
+
     revalidatePath('/super-admin/store')
-    redirectToStore({ notice: `${caseProduct.title ?? 'Case'} composition was updated.` })
+    redirectToStore({ notice: `${caseProduct.title ?? 'Case'} now includes ${totalBoxes} boxes.` })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not update that case composition right now.'
+    const message = errorMessageForStore(error, 'Could not update that case composition right now.')
     redirectToStore({ error: message })
   }
 }
