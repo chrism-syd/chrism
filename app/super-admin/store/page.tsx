@@ -3,11 +3,8 @@ import AppHeader from '@/app/app-header'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
-import {
-  updateChristmasCardBoxProductAction,
-  updateChristmasCardCaseCompositionAction,
-  updateStoreAddOnProductAction,
-} from './actions'
+import CaseCompositionForm from './case-composition-form'
+import { updateChristmasCardBoxProductAction, updateStoreAddOnProductAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -468,57 +465,17 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                         ) : null}
 
                         {isCase ? (
-                          <form action={updateChristmasCardCaseCompositionAction} className="qv-form-grid" style={{ marginTop: 16 }}>
-                            <input type="hidden" name="case_product_id" value={product.id} />
-                            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
-                              <strong>Case composition</strong>
-                              <span>
-                                This case currently includes {currentComponentTotal} boxes. Saving will update the case box count to the submitted total.
-                              </span>
-                            </div>
-
-                            {errorMessage && isCaseCompositionMessage ? (
-                              <section className="qv-inline-message qv-inline-error" aria-live="polite">
-                                <p style={{ margin: 0 }}>{errorMessage}</p>
-                              </section>
-                            ) : null}
-                            {noticeMessage && isCaseCompositionMessage ? (
-                              <section className="qv-inline-message qv-inline-success" aria-live="polite">
-                                <p style={{ margin: 0 }}>{noticeMessage}</p>
-                              </section>
-                            ) : null}
-
-                            <div style={{ display: 'grid', gap: 10 }}>
-                              {cardBoxes.map((box) => (
-                                <div key={box.id} className="qv-form-row qv-form-row-2">
-                                  <label className="qv-field">
-                                    <span>{box.title}</span>
-                                    <input
-                                      name={`quantity_${box.id}`}
-                                      type="number"
-                                      min="0"
-                                      step="1"
-                                      defaultValue={quantityForComponent(productComponents, box.id)}
-                                    />
-                                  </label>
-                                  <div className="qv-inline-message">
-                                    <span>{box.sku ?? 'No SKU'} • {formatMoney(box.price_cents, box.currency_code)} per box</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            <label className="qv-field">
-                              <span>Confirmation</span>
-                              <span className="qv-inline-message">
-                                <input name="confirm_case_box_total" type="checkbox" /> I understand this will change the number of boxes included in this case.
-                              </span>
-                            </label>
-
-                            <div className="qv-form-actions">
-                              <button type="submit" className="qv-button-secondary">Save case composition</button>
-                            </div>
-                          </form>
+                          <CaseCompositionForm
+                            caseProductId={product.id}
+                            currentTotal={currentComponentTotal}
+                            cardBoxes={cardBoxes.map((box) => ({
+                              id: box.id,
+                              title: box.title,
+                              sku: box.sku,
+                              priceLabel: formatMoney(box.price_cents, box.currency_code),
+                              quantity: quantityForComponent(productComponents, box.id),
+                            }))}
+                          />
                         ) : null}
 
                         {productComponents.length > 0 ? (
