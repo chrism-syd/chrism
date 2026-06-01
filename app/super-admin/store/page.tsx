@@ -3,7 +3,11 @@ import AppHeader from '@/app/app-header'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { updateChristmasCardBoxProductAction, updateStoreAddOnProductAction } from './actions'
+import {
+  updateChristmasCardBoxProductAction,
+  updateChristmasCardCaseCompositionAction,
+  updateStoreAddOnProductAction,
+} from './actions'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -125,6 +129,14 @@ function mediaValuesForProduct(mediaByProductId: Map<string, StoreProductMediaRo
   }
 }
 
+function quantityForComponent(components: StoreProductComponentRow[], componentProductId: string) {
+  return components.find((component) => component.component_product_id === componentProductId)?.quantity ?? 0
+}
+
+function componentTotal(components: StoreProductComponentRow[]) {
+  return components.reduce((total, component) => total + component.quantity, 0)
+}
+
 export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   const permissions = await getCurrentUserPermissions()
   if (!permissions.authUser || !permissions.isSuperAdmin || permissions.actingMode !== 'normal') {
@@ -168,6 +180,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
 
   const categoriesById = new Map(categories.map((category) => [category.id, category]))
   const productsById = new Map(products.map((product) => [product.id, product]))
+  const cardBoxes = products.filter((product) => product.product_kind === 'christmas_card_box')
   const componentsByParentId = new Map<string, StoreProductComponentRow[]>()
   const mediaByProductId = new Map<string, StoreProductMediaRow[]>()
   const mediaCountByProductId = new Map<string, number>()
@@ -247,7 +260,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
         <section className="qv-card" style={{ marginTop: 18 }}>
           <h2 className="qv-section-title">Products</h2>
           <p className="qv-section-subtitle">
-            Christmas card boxes and packages can now be edited here. Cases stay read-only for this seam.
+            Christmas card boxes, packages, and case composition can now be edited here.
           </p>
 
           {products.length === 0 ? (
@@ -267,6 +280,8 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                     const mediaValues = mediaValuesForProduct(mediaByProductId, product.id)
                     const isCardBox = product.product_kind === 'christmas_card_box'
                     const isAddOn = product.product_kind === 'store_add_on'
+                    const isCase = product.product_kind === 'christmas_card_case'
+                    const currentComponentTotal = componentTotal(productComponents)
 
                     return (
                       <article key={product.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
@@ -409,6 +424,42 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
 
                             <div className="qv-form-actions">
                               <button type="submit" className="qv-button-secondary">Save package</button>
+                            </div>
+                          </form>
+                        ) : null}
+
+                        {isCase ? (
+                          <form action={updateChristmasCardCaseCompositionAction} className="qv-form-grid" style={{ marginTop: 16 }}>
+                            <input type="hidden" name="case_product_id" value={product.id} />
+                            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
+                              <strong>Case composition</strong>
+                              <span>
+                                Current total: {currentComponentTotal} / {product.boxes_per_case ?? 0} boxes. Save is allowed only when the submitted total equals the case size.
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: 10 }}>
+                              {cardBoxes.map((box) => (
+                                <div key={box.id} className="qv-form-row qv-form-row-2">
+                                  <label className="qv-field">
+                                    <span>{box.title}</span>
+                                    <input
+                                      name={`quantity_${box.id}`}
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      defaultValue={quantityForComponent(productComponents, box.id)}
+                                    />
+                                  </label>
+                                  <div className="qv-inline-message">
+                                    <span>{box.sku ?? 'No SKU'} • {formatMoney(box.price_cents, box.currency_code)} per box</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="qv-form-actions">
+                              <button type="submit" className="qv-button-secondary">Save case composition</button>
                             </div>
                           </form>
                         ) : null}
