@@ -434,7 +434,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                             <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
                               <strong>Case composition</strong>
                               <span>
-                                Current total: {currentComponentTotal} / {product.boxes_per_case ?? 0} boxes. Save is allowed only when the submitted total equals the case size.
+                                This case currently includes {currentComponentTotal} boxes. Saving will update the case box count to the submitted total.
                               </span>
                             </div>
 
@@ -457,6 +457,13 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                                 </div>
                               ))}
                             </div>
+
+                            <label className="qv-field">
+                              <span>Confirmation</span>
+                              <span className="qv-inline-message">
+                                <input name="confirm_case_box_total" type="checkbox" /> I understand this will change the number of boxes included in this case.
+                              </span>
+                            </label>
 
                             <div className="qv-form-actions">
                               <button type="submit" className="qv-button-secondary">Save case composition</button>
