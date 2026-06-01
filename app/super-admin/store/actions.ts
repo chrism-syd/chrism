@@ -82,16 +82,21 @@ function isNextRedirectError(error: unknown) {
   )
 }
 
-function redirectToStore(args: { error?: string | null; notice?: string | null }): never {
+function redirectToStore(args: { error?: string | null; notice?: string | null; target?: string | null }): never {
   const params = new URLSearchParams()
   if (args.error) params.set('error', args.error)
   if (args.notice) params.set('notice', args.notice)
+  if (args.target) params.set('target', args.target)
   redirect(params.size > 0 ? `/super-admin/store?${params.toString()}` : '/super-admin/store')
 }
 
 function errorMessageForStore(error: unknown, fallback: string) {
   if (isNextRedirectError(error)) {
     throw error
+  }
+
+  if (error instanceof Error && error.message.includes('store_products_christmas_card_case_shape')) {
+    return 'The database is still enforcing the old case box-count rule. Apply the variable case-count migration, then retry.'
   }
 
   return error instanceof Error ? error.message : fallback
@@ -291,11 +296,11 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
   const caseProductId = textValue(formData, 'case_product_id')
 
   if (!caseProductId) {
-    redirectToStore({ error: 'We could not tell which case to update.' })
+    redirectToStore({ error: 'We could not tell which case to update.', target: 'case-composition' })
   }
 
   if (!checkboxValue(formData, 'confirm_case_box_total')) {
-    redirectToStore({ error: 'Confirm the case box total before saving the case composition.' })
+    redirectToStore({ error: 'Confirm the case box total before saving the case composition.', target: 'case-composition' })
   }
 
   const admin = createAdminClient()
@@ -321,7 +326,7 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
 
     const boxes = (boxResponse.data as StoreCardBoxRow[] | null) ?? []
     if (boxes.length === 0) {
-      redirectToStore({ error: 'Add at least one Christmas card box before editing case composition.' })
+      redirectToStore({ error: 'Add at least one Christmas card box before editing case composition.', target: 'case-composition' })
     }
 
     let totalBoxes = 0
@@ -346,7 +351,7 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
     })
 
     if (totalBoxes <= 0) {
-      redirectToStore({ error: 'Case composition must include at least one box.' })
+      redirectToStore({ error: 'Case composition must include at least one box.', target: 'case-composition' })
     }
 
     const deleteResponse = await admin
@@ -378,9 +383,9 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
     }
 
     revalidatePath('/super-admin/store')
-    redirectToStore({ notice: `${caseProduct.title ?? 'Case'} now includes ${totalBoxes} boxes.` })
+    redirectToStore({ notice: `${caseProduct.title ?? 'Case'} now includes ${totalBoxes} boxes.`, target: 'case-composition' })
   } catch (error) {
     const message = errorMessageForStore(error, 'Could not update that case composition right now.')
-    redirectToStore({ error: message })
+    redirectToStore({ error: message, target: 'case-composition' })
   }
 }
