@@ -23,11 +23,6 @@ export type CaseCompositionActionState = {
   totalBoxes?: number
 }
 
-export const initialCaseCompositionActionState: CaseCompositionActionState = {
-  status: 'idle',
-  message: null,
-}
-
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
