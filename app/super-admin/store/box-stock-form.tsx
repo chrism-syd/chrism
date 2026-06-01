@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect } from 'react'
 import {
   type BoxStockActionState,
   updateCardBoxStockStateAction,
@@ -24,13 +24,11 @@ function valueFromBoxesLeft(value: number | null | undefined) {
 export default function BoxStockForm({ productId, initialBoxesLeft }: Props) {
   const router = useRouter()
   const [state, formAction] = useActionState(updateCardBoxStockStateAction, initialBoxStockActionState)
-  const [inputValue, setInputValue] = useState(valueFromBoxesLeft(initialBoxesLeft))
 
   useEffect(() => {
     if (state.status !== 'success') return
-    setInputValue(valueFromBoxesLeft(state.boxesLeft))
     router.refresh()
-  }, [router, state.boxesLeft, state.status])
+  }, [router, state.status])
 
   return (
     <form action={formAction} className="ccic-admin-stock-form">
@@ -42,8 +40,7 @@ export default function BoxStockForm({ productId, initialBoxesLeft }: Props) {
           type="number"
           min="0"
           step="1"
-          value={inputValue}
-          onChange={(event) => setInputValue(event.target.value)}
+          defaultValue={valueFromBoxesLeft(initialBoxesLeft)}
           placeholder="Not set"
         />
       </label>
