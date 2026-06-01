@@ -478,10 +478,14 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                             </div>
 
                             {errorMessage && isCaseCompositionMessage ? (
-                              <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
+                              <section className="qv-inline-message qv-inline-error" aria-live="polite">
+                                <p style={{ margin: 0 }}>{errorMessage}</p>
+                              </section>
                             ) : null}
                             {noticeMessage && isCaseCompositionMessage ? (
-                              <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
+                              <section className="qv-inline-message qv-inline-success" aria-live="polite">
+                                <p style={{ margin: 0 }}>{noticeMessage}</p>
+                              </section>
                             ) : null}
 
                             <div style={{ display: 'grid', gap: 10 }}>
