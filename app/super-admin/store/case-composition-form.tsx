@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useActionState } from 'react'
 import {
   type CaseCompositionActionState,
@@ -12,6 +13,7 @@ type CardBoxInput = {
   sku: string | null
   priceLabel: string
   quantity: number
+  thumbnailUrl: string | null
 }
 
 type Props = {
@@ -53,18 +55,28 @@ export default function CaseCompositionForm({ caseProductId, currentTotal, cardB
       <div className="ccic-admin-case-rows">
         {cardBoxes.map((box) => (
           <div key={box.id} className="ccic-admin-case-row">
-            <label className="qv-field ccic-admin-quantity-field">
-              <span>{box.title}</span>
-              <input
-                name={`quantity_${box.id}`}
-                type="number"
-                min="0"
-                step="1"
-                defaultValue={box.quantity}
-              />
-            </label>
-            <div className="ccic-admin-row-meta">
-              <span>{box.sku ?? 'No SKU'} • {box.priceLabel} per box</span>
+            {box.thumbnailUrl?.startsWith('/') ? (
+              <div className="ccic-admin-case-thumbnail">
+                <Image src={box.thumbnailUrl} alt={`${box.title} preview`} width={96} height={72} />
+              </div>
+            ) : (
+              <div className="ccic-admin-case-thumbnail ccic-admin-case-thumbnail-empty" aria-hidden="true" />
+            )}
+
+            <div className="ccic-admin-case-row-body">
+              <label className="qv-field ccic-admin-quantity-field">
+                <span>{box.title}</span>
+                <input
+                  name={`quantity_${box.id}`}
+                  type="number"
+                  min="0"
+                  step="1"
+                  defaultValue={box.quantity}
+                />
+              </label>
+              <div className="ccic-admin-row-meta">
+                <span>{box.sku ?? 'No SKU'} • {box.priceLabel} per box</span>
+              </div>
             </div>
           </div>
         ))}
