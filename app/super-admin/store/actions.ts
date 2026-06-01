@@ -13,8 +13,6 @@ type StoreProductKindRow = {
 
 const CARD_BOX_MEDIA_KINDS = ['front', 'inside', 'outside'] as const
 
-type CardBoxMediaKind = (typeof CARD_BOX_MEDIA_KINDS)[number]
-
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -27,6 +25,24 @@ function intValue(formData: FormData, key: string) {
   if (!value) return null
   const parsed = Number.parseInt(value, 10)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function priceCentsValue(formData: FormData, key: string) {
+  const value = textValue(formData, key)
+  if (!value) {
+    throw new Error('Card box price is required.')
+  }
+
+  if (!/^\d+(\.\d{1,2})?$/.test(value)) {
+    throw new Error('Card box price must be a positive dollar amount with no more than 2 decimal places.')
+  }
+
+  const cents = Math.round(Number(value) * 100)
+  if (!Number.isSafeInteger(cents) || cents < 0) {
+    throw new Error('Card box price must be a valid positive dollar amount.')
+  }
+
+  return cents
 }
 
 function checkboxValue(formData: FormData, key: string) {
@@ -120,6 +136,7 @@ export async function updateChristmasCardBoxProductAction(formData: FormData) {
         sku: textValue(formData, 'sku'),
         short_description: textValue(formData, 'short_description'),
         description: textValue(formData, 'description'),
+        price_cents: priceCentsValue(formData, 'price_dollars'),
         status_code: validatedStatusCode(textValue(formData, 'status_code')),
         is_public: checkboxValue(formData, 'is_public'),
         sort_order: intValue(formData, 'sort_order') ?? 0,
