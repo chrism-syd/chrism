@@ -71,6 +71,10 @@ function formatMoney(cents: number, currencyCode: string) {
   }).format(cents / 100)
 }
 
+function formatPriceInput(cents: number) {
+  return (cents / 100).toFixed(2)
+}
+
 function productKindLabel(kind: string) {
   switch (kind) {
     case 'christmas_card_box':
@@ -285,7 +289,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                           <form action={updateChristmasCardBoxProductAction} className="qv-form-grid" style={{ marginTop: 16 }}>
                             <input type="hidden" name="product_id" value={product.id} />
 
-                            <div className="qv-form-row qv-form-row-2">
+                            <div className="qv-form-row qv-form-row-3">
                               <label className="qv-field">
                                 <span>Card box title</span>
                                 <input name="title" type="text" required defaultValue={product.title} />
@@ -293,6 +297,10 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                               <label className="qv-field">
                                 <span>SKU</span>
                                 <input name="sku" type="text" defaultValue={product.sku ?? ''} />
+                              </label>
+                              <label className="qv-field">
+                                <span>Price (CAD)</span>
+                                <input name="price_dollars" type="number" min="0" step="0.01" required defaultValue={formatPriceInput(product.price_cents)} />
                               </label>
                             </div>
 
