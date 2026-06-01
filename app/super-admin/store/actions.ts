@@ -354,20 +354,6 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
       redirectToStore({ error: 'Case composition must include at least one box.', target: 'case-composition' })
     }
 
-    const deleteResponse = await admin
-      .from('store_product_components')
-      .delete()
-      .eq('parent_product_id', caseProductId)
-
-    if (deleteResponse.error) {
-      throw new Error(deleteResponse.error.message)
-    }
-
-    const insertResponse = await admin.from('store_product_components').insert(componentRows)
-    if (insertResponse.error) {
-      throw new Error(insertResponse.error.message)
-    }
-
     const caseUpdateResponse = await admin
       .from('store_products')
       .update({
@@ -380,6 +366,20 @@ export async function updateChristmasCardCaseCompositionAction(formData: FormDat
 
     if (caseUpdateResponse.error) {
       throw new Error(caseUpdateResponse.error.message)
+    }
+
+    const deleteResponse = await admin
+      .from('store_product_components')
+      .delete()
+      .eq('parent_product_id', caseProductId)
+
+    if (deleteResponse.error) {
+      throw new Error(deleteResponse.error.message)
+    }
+
+    const insertResponse = await admin.from('store_product_components').insert(componentRows)
+    if (insertResponse.error) {
+      throw new Error(insertResponse.error.message)
     }
 
     revalidatePath('/super-admin/store')
