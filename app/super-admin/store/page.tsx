@@ -67,6 +67,10 @@ type CardBoxMediaValues = {
   outside: string
 }
 
+type StoreLoadResponse = {
+  error: { message: string } | null
+}
+
 function formatMoney(cents: number, currencyCode: string) {
   return new Intl.NumberFormat('en-CA', {
     style: 'currency',
@@ -137,6 +141,10 @@ function componentTotal(components: StoreProductComponentRow[]) {
   return components.reduce((total, component) => total + component.quantity, 0)
 }
 
+function storeLoadErrorMessage(label: string, response: StoreLoadResponse) {
+  return response.error ? `Could not load ${label}: ${response.error.message}` : null
+}
+
 export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   const permissions = await getCurrentUserPermissions()
   if (!permissions.authUser || !permissions.isSuperAdmin || permissions.actingMode !== 'normal') {
@@ -168,10 +176,39 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
       .select('id, product_id, media_kind, public_url, is_primary'),
   ])
 
-  if (categoriesResponse.error) throw new Error(`Could not load store categories: ${categoriesResponse.error.message}`)
-  if (productsResponse.error) throw new Error(`Could not load store products: ${productsResponse.error.message}`)
-  if (componentsResponse.error) throw new Error(`Could not load store product components: ${componentsResponse.error.message}`)
-  if (mediaResponse.error) throw new Error(`Could not load store product media: ${mediaResponse.error.message}`)
+  const storeLoadError =
+    storeLoadErrorMessage('store categories', categoriesResponse)
+    ?? storeLoadErrorMessage('store products', productsResponse)
+    ?? storeLoadErrorMessage('store product components', componentsResponse)
+    ?? storeLoadErrorMessage('store product media', mediaResponse)
+
+  if (storeLoadError) {
+    return (
+      <main className="qv-page">
+        <div className="qv-shell">
+          <AppHeader />
+
+          {errorMessage ? (
+            <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
+          ) : null}
+          {noticeMessage ? (
+            <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
+          ) : null}
+
+          <section className="qv-card">
+            <h1 className="qv-section-title">Store catalog</h1>
+            <p className="qv-section-subtitle">
+              The store catalog could not be loaded right now. Refresh the page, or restart local Supabase if you just applied a migration.
+            </p>
+          </section>
+
+          <section className="qv-inline-message qv-inline-error" style={{ marginTop: 18 }}>
+            <p style={{ margin: 0 }}>{storeLoadError}</p>
+          </section>
+        </div>
+      </main>
+    )
+  }
 
   const categories = (categoriesResponse.data as StoreCategoryRow[] | null) ?? []
   const products = (productsResponse.data as StoreProductRow[] | null) ?? []
