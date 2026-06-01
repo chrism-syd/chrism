@@ -10,6 +10,35 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   background: #faf8f4;
 }
 
+.ccic-admin-hero-card {
+  position: relative;
+  overflow: hidden;
+  background: #fdfcf9;
+  border-color: rgba(92, 74, 114, 0.16);
+  box-shadow: 0 18px 44px rgba(46, 42, 52, 0.08);
+}
+
+.ccic-admin-hero-card::after {
+  content: '';
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: 0;
+  height: 7px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg, var(--qv-plum), color-mix(in srgb, var(--qv-plum) 42%, var(--qv-brass)));
+  opacity: 0.95;
+}
+
+.ccic-admin-stats {
+  margin-top: 22px;
+}
+
+.ccic-admin-stats .qv-stat-card {
+  background: #faf8f4;
+  border-color: #eee7dd;
+}
+
 .ccic-admin-product-card {
   border-color: #eee7dd;
   background: #ffffff !important;
@@ -58,27 +87,61 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
 
 .ccic-admin-case-rows {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .ccic-admin-case-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.55fr);
-  gap: 16px;
-  align-items: end;
-  padding: 14px;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px;
   border: 1px solid #eee7dd;
   border-radius: 18px;
   background: #faf8f4;
 }
 
+.ccic-admin-case-thumbnail {
+  width: 74px;
+  min-height: 104px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e7e0d7;
+  display: grid;
+  place-items: center;
+}
+
+.ccic-admin-case-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ccic-admin-case-thumbnail-empty::before {
+  content: 'No image';
+  font-size: 11px;
+  color: #9a917e;
+}
+
+.ccic-admin-case-row-body {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.ccic-admin-quantity-field {
+  gap: 8px;
+}
+
 .ccic-admin-quantity-field input {
-  max-width: 160px;
+  max-width: 118px;
 }
 
 .ccic-admin-row-meta {
-  padding-bottom: 13px;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .ccic-admin-confirmation {
@@ -95,12 +158,23 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   width: auto;
 }
 
+@media (max-width: 1040px) {
+  .ccic-admin-case-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
-  .ccic-admin-case-row {
+  .ccic-admin-hero-card::after {
+    left: 20px;
+    right: 20px;
+  }
+
+  .ccic-admin-case-rows {
     grid-template-columns: 1fr;
   }
 
-  .ccic-admin-row-meta {
-    padding-bottom: 0;
+  .ccic-admin-case-row {
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 }
