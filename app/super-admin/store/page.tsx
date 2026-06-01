@@ -3,6 +3,7 @@ import AppHeader from '@/app/app-header'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
+import BoxStockForm from './box-stock-form'
 import CaseCompositionForm from './case-composition-form'
 import { updateChristmasCardBoxProductAction, updateStoreAddOnProductAction } from './actions'
 import './store-admin.css'
@@ -12,15 +13,6 @@ export const revalidate = 0
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
-}
-
-type StoreCategoryRow = {
-  id: string
-  slug: string
-  name: string
-  description: string | null
-  sort_order: number
-  is_active: boolean
 }
 
 type StoreProductRow = {
@@ -40,6 +32,7 @@ type StoreProductRow = {
   cards_per_box: number | null
   envelopes_per_box: number | null
   boxes_per_case: number | null
+  boxes_left_count: number | null
 }
 
 type StoreProductComponentRow = {
@@ -180,15 +173,10 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
 
   const admin = createAdminClient()
-  const [categoriesResponse, productsResponse, componentsResponse, mediaResponse] = await Promise.all([
-    admin
-      .from('store_categories')
-      .select('id, slug, name, description, sort_order, is_active')
-      .order('sort_order', { ascending: true })
-      .order('name', { ascending: true }),
+  const [productsResponse, componentsResponse, mediaResponse] = await Promise.all([
     admin
       .from('store_products')
-      .select('id, category_id, slug, sku, product_kind, title, short_description, description, price_cents, currency_code, status_code, is_public, sort_order, cards_per_box, envelopes_per_box, boxes_per_case')
+      .select('id, category_id, slug, sku, product_kind, title, short_description, description, price_cents, currency_code, status_code, is_public, sort_order, cards_per_box, envelopes_per_box, boxes_per_case, boxes_left_count')
       .order('sort_order', { ascending: true })
       .order('title', { ascending: true }),
     admin
@@ -201,8 +189,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   ])
 
   const storeLoadError =
-    storeLoadErrorMessage('store categories', categoriesResponse)
-    ?? storeLoadErrorMessage('store products', productsResponse)
+    storeLoadErrorMessage('store products', productsResponse)
     ?? storeLoadErrorMessage('store product components', componentsResponse)
     ?? storeLoadErrorMessage('store product media', mediaResponse)
 
@@ -283,7 +270,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                 <h1 className="qv-directory-name">Store Catalog</h1>
               </div>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Manage CCiC cases, 12-card boxes, and fundraising packages.
+                Manage CCiC cases, 12-card boxes, fundraising packages, and admin-only box counts.
               </p>
             </div>
           </div>
@@ -311,7 +298,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
         <section className="qv-card" style={{ marginTop: 18 }}>
           <h2 className="qv-section-title">Packages</h2>
           <p className="qv-section-subtitle">
-            Cases appear first, followed by 12-card boxes and fundraising packages. Internal card designs stay hidden from this editor.
+            Cases appear first, followed by 12-card boxes and fundraising packages. Box counts are admin-only and never shown to purchasers.
           </p>
 
           {editableProductCount === 0 ? (
@@ -349,77 +336,86 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                           <p className="qv-section-subtitle" style={{ margin: 0 }}>
                             Status: {product.status_code} • Public: {product.is_public ? 'Yes' : 'No'} • Media: {mediaCount}
                           </p>
+                          {isCardBox ? (
+                            <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                              Boxes left, admin only: {product.boxes_left_count ?? 'Not set'}
+                            </p>
+                          ) : null}
                         </div>
 
                         {isCardBox ? (
-                          <form action={updateChristmasCardBoxProductAction} className="qv-form-grid ccic-admin-form" style={{ marginTop: 16 }}>
-                            <input type="hidden" name="product_id" value={product.id} />
+                          <>
+                            <form action={updateChristmasCardBoxProductAction} className="qv-form-grid ccic-admin-form" style={{ marginTop: 16 }}>
+                              <input type="hidden" name="product_id" value={product.id} />
 
-                            <div className="qv-form-row qv-form-row-3">
-                              <label className="qv-field">
-                                <span>Card box title</span>
-                                <input name="title" type="text" required defaultValue={product.title} />
-                              </label>
-                              <label className="qv-field">
-                                <span>SKU</span>
-                                <input name="sku" type="text" defaultValue={product.sku ?? ''} />
-                              </label>
-                              <label className="qv-field">
-                                <span>Price (CAD)</span>
-                                <input name="price_dollars" type="number" min="0" step="0.01" required defaultValue={formatPriceInput(product.price_cents)} />
-                              </label>
-                            </div>
+                              <div className="qv-form-row qv-form-row-3">
+                                <label className="qv-field">
+                                  <span>Card box title</span>
+                                  <input name="title" type="text" required defaultValue={product.title} />
+                                </label>
+                                <label className="qv-field">
+                                  <span>SKU</span>
+                                  <input name="sku" type="text" defaultValue={product.sku ?? ''} />
+                                </label>
+                                <label className="qv-field">
+                                  <span>Price (CAD)</span>
+                                  <input name="price_dollars" type="number" min="0" step="0.01" required defaultValue={formatPriceInput(product.price_cents)} />
+                                </label>
+                              </div>
 
-                            <label className="qv-field">
-                              <span>Short description</span>
-                              <textarea name="short_description" rows={2} defaultValue={product.short_description ?? ''} />
-                            </label>
+                              <label className="qv-field">
+                                <span>Short description</span>
+                                <textarea name="short_description" rows={2} defaultValue={product.short_description ?? ''} />
+                              </label>
 
-                            <label className="qv-field">
-                              <span>Inside message / longer description</span>
-                              <textarea name="description" rows={3} defaultValue={product.description ?? ''} />
-                            </label>
+                              <label className="qv-field">
+                                <span>Inside message / longer description</span>
+                                <textarea name="description" rows={3} defaultValue={product.description ?? ''} />
+                              </label>
 
-                            <div className="qv-form-row qv-form-row-3">
-                              <label className="qv-field">
-                                <span>Front image URL</span>
-                                <input name="front_image_url" type="text" defaultValue={mediaValues.front} placeholder="/christmas-cards/example-front.jpg" />
-                              </label>
-                              <label className="qv-field">
-                                <span>Inside image URL</span>
-                                <input name="inside_image_url" type="text" defaultValue={mediaValues.inside} placeholder="/christmas-cards/example-inside.jpg" />
-                              </label>
-                              <label className="qv-field">
-                                <span>Outside image URL</span>
-                                <input name="outside_image_url" type="text" defaultValue={mediaValues.outside} placeholder="/christmas-cards/example-outside.jpg" />
-                              </label>
-                            </div>
+                              <div className="qv-form-row qv-form-row-3">
+                                <label className="qv-field">
+                                  <span>Front image URL</span>
+                                  <input name="front_image_url" type="text" defaultValue={mediaValues.front} placeholder="/christmas-cards/example-front.jpg" />
+                                </label>
+                                <label className="qv-field">
+                                  <span>Inside image URL</span>
+                                  <input name="inside_image_url" type="text" defaultValue={mediaValues.inside} placeholder="/christmas-cards/example-inside.jpg" />
+                                </label>
+                                <label className="qv-field">
+                                  <span>Outside image URL</span>
+                                  <input name="outside_image_url" type="text" defaultValue={mediaValues.outside} placeholder="/christmas-cards/example-outside.jpg" />
+                                </label>
+                              </div>
 
-                            <div className="qv-form-row qv-form-row-3">
-                              <label className="qv-field">
-                                <span>Status</span>
-                                <select name="status_code" defaultValue={product.status_code}>
-                                  <option value="draft">Draft</option>
-                                  <option value="active">Active</option>
-                                  <option value="archived">Archived</option>
-                                </select>
-                              </label>
-                              <label className="qv-field">
-                                <span>Sort order</span>
-                                <input name="sort_order" type="number" defaultValue={product.sort_order} />
-                              </label>
-                              <label className="qv-field">
-                                <span>Public</span>
-                                <span className="ccic-admin-confirmation">
-                                  <input name="is_public" type="checkbox" defaultChecked={product.is_public} /> Show in public catalog once wired
-                                </span>
-                              </label>
-                            </div>
+                              <div className="qv-form-row qv-form-row-3">
+                                <label className="qv-field">
+                                  <span>Status</span>
+                                  <select name="status_code" defaultValue={product.status_code}>
+                                    <option value="draft">Draft</option>
+                                    <option value="active">Active</option>
+                                    <option value="archived">Archived</option>
+                                  </select>
+                                </label>
+                                <label className="qv-field">
+                                  <span>Sort order</span>
+                                  <input name="sort_order" type="number" defaultValue={product.sort_order} />
+                                </label>
+                                <label className="qv-field">
+                                  <span>Public</span>
+                                  <span className="ccic-admin-confirmation">
+                                    <input name="is_public" type="checkbox" defaultChecked={product.is_public} /> Show in public catalog once wired
+                                  </span>
+                                </label>
+                              </div>
 
-                            <div className="qv-form-actions">
-                              <button type="submit" className="qv-button-secondary">Save card box</button>
-                            </div>
-                          </form>
+                              <div className="qv-form-actions">
+                                <button type="submit" className="qv-button-secondary">Save card box</button>
+                              </div>
+                            </form>
+
+                            <BoxStockForm productId={product.id} initialBoxesLeft={product.boxes_left_count} />
+                          </>
                         ) : null}
 
                         {isAddOn ? (
