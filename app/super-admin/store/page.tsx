@@ -83,18 +83,39 @@ function formatPriceInput(cents: number) {
 
 function productKindLabel(kind: string) {
   switch (kind) {
+    case 'christmas_card_case':
+      return 'Cases'
     case 'christmas_card_box':
-      return 'Christmas card boxes'
+      return 'Card Boxes'
+    case 'store_add_on':
+      return 'Packages'
+    case 'christmas_card_design':
+      return 'Internal Card Designs'
     case 'christmas_card_set':
       return 'Christmas card sets'
-    case 'christmas_card_case':
-      return 'Christmas card cases'
-    case 'store_add_on':
-      return 'Add-ons'
     case 'physical_item':
       return 'Physical items'
     default:
       return kind
+  }
+}
+
+function productKindSortOrder(kind: string) {
+  switch (kind) {
+    case 'christmas_card_case':
+      return 10
+    case 'christmas_card_box':
+      return 20
+    case 'store_add_on':
+      return 30
+    case 'physical_item':
+      return 40
+    case 'christmas_card_set':
+      return 50
+    case 'christmas_card_design':
+      return 90
+    default:
+      return 100
   }
 }
 
@@ -107,6 +128,10 @@ function productUnitSummary(product: StoreProductRow) {
     return `${product.boxes_per_case ?? 0} boxes per case`
   }
 
+  if (product.product_kind === 'christmas_card_design') {
+    return 'Internal design, not sold directly'
+  }
+
   return 'Package'
 }
 
@@ -114,12 +139,13 @@ function buildProductGroups(products: StoreProductRow[]) {
   const groups = new Map<string, StoreProductRow[]>()
 
   for (const product of products) {
+    if (product.product_kind === 'christmas_card_design') continue
     const bucket = groups.get(product.product_kind) ?? []
     bucket.push(product)
     groups.set(product.product_kind, bucket)
   }
 
-  return [...groups.entries()].sort(([left], [right]) => productKindLabel(left).localeCompare(productKindLabel(right)))
+  return [...groups.entries()].sort(([left], [right]) => productKindSortOrder(left) - productKindSortOrder(right))
 }
 
 function mediaValuesForProduct(mediaByProductId: Map<string, StoreProductMediaRow[]>, productId: string): CardBoxMediaValues {
@@ -193,7 +219,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
             <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
           ) : null}
 
-          <section className="qv-card">
+          <section className="qv-card ccic-admin-hero-card">
             <h1 className="qv-section-title">Store catalog</h1>
             <p className="qv-section-subtitle">
               The store catalog could not be loaded right now. Refresh the page, or restart local Supabase if you just applied a migration.
@@ -208,14 +234,15 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
     )
   }
 
-  const categories = (categoriesResponse.data as StoreCategoryRow[] | null) ?? []
   const products = (productsResponse.data as StoreProductRow[] | null) ?? []
   const components = (componentsResponse.data as StoreProductComponentRow[] | null) ?? []
   const media = (mediaResponse.data as StoreProductMediaRow[] | null) ?? []
 
-  const categoriesById = new Map(categories.map((category) => [category.id, category]))
   const productsById = new Map(products.map((product) => [product.id, product]))
   const cardBoxes = products.filter((product) => product.product_kind === 'christmas_card_box')
+  const cases = products.filter((product) => product.product_kind === 'christmas_card_case')
+  const addOns = products.filter((product) => product.product_kind === 'store_add_on')
+  const designs = products.filter((product) => product.product_kind === 'christmas_card_design')
   const componentsByParentId = new Map<string, StoreProductComponentRow[]>()
   const mediaByProductId = new Map<string, StoreProductMediaRow[]>()
   const mediaCountByProductId = new Map<string, number>()
@@ -234,6 +261,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   }
 
   const groupedProducts = buildProductGroups(products)
+  const editableProductCount = cases.length + cardBoxes.length + addOns.length
 
   return (
     <main className="qv-page">
@@ -247,60 +275,48 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
           <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
         ) : null}
 
-        <section className="qv-card">
-          <h1 className="qv-section-title">Store catalog</h1>
-          <p className="qv-section-subtitle">
-            Manage the seeded store catalog. Current focus is Celebrate Christ in Christmas boxed cards, cases, and packages.
-          </p>
-        </section>
+        <section className="qv-hero-card ccic-admin-hero-card">
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
+              <p className="qv-eyebrow">Celebrate Christ in Christmas</p>
+              <div className="qv-directory-title-row">
+                <h1 className="qv-directory-name">Store Catalog</h1>
+              </div>
+              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
+                Manage CCiC cases, 12-card boxes, and fundraising packages.
+              </p>
+            </div>
+          </div>
 
-        <section className="qv-card" style={{ marginTop: 18 }}>
-          <h2 className="qv-section-title">Catalog summary</h2>
-          <div className="qv-form-row qv-form-row-3" style={{ marginTop: 14 }}>
-            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
-              <strong>{categories.length}</strong>
-              <span>Categories</span>
+          <div className="qv-stats ccic-admin-stats">
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{cases.length}</div>
+              <div className="qv-stat-label">Cases</div>
             </div>
-            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
-              <strong>{products.length}</strong>
-              <span>Products</span>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{cardBoxes.length}</div>
+              <div className="qv-stat-label">Card boxes</div>
             </div>
-            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
-              <strong>{components.length}</strong>
-              <span>Composition rows</span>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{addOns.length}</div>
+              <div className="qv-stat-label">Packages</div>
+            </div>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{designs.length}</div>
+              <div className="qv-stat-label">Internal designs</div>
             </div>
           </div>
         </section>
 
         <section className="qv-card" style={{ marginTop: 18 }}>
-          <h2 className="qv-section-title">Categories</h2>
-          {categories.length === 0 ? (
-            <div className="qv-empty" style={{ marginTop: 14 }}>
-              <p className="qv-empty-title">No store categories yet</p>
-              <p className="qv-empty-text">Run the CCiC seed after applying the store catalog migration.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-              {categories.map((category) => (
-                <div key={category.id} className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
-                  <strong>{category.name}</strong>
-                  <span>{category.description ?? 'No description'}.</span>
-                  <span>Slug: {category.slug} • {category.is_active ? 'Active' : 'Inactive'}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="qv-card" style={{ marginTop: 18 }}>
-          <h2 className="qv-section-title">Products</h2>
+          <h2 className="qv-section-title">Packages</h2>
           <p className="qv-section-subtitle">
-            Christmas card boxes, packages, and case composition can now be edited here.
+            Cases appear first, followed by 12-card boxes and fundraising packages. Internal card designs stay hidden from this editor.
           </p>
 
-          {products.length === 0 ? (
+          {editableProductCount === 0 ? (
             <div className="qv-empty" style={{ marginTop: 14 }}>
-              <p className="qv-empty-title">No store products yet</p>
+              <p className="qv-empty-title">No store packages yet</p>
               <p className="qv-empty-text">Run the CCiC seed after applying the store catalog migration.</p>
             </div>
           ) : (
@@ -309,7 +325,6 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                 <div key={kind} style={{ display: 'grid', gap: 10 }}>
                   <h3 className="qv-section-title" style={{ margin: 0 }}>{productKindLabel(kind)}</h3>
                   {kindProducts.map((product) => {
-                    const category = categoriesById.get(product.category_id)
                     const productComponents = componentsByParentId.get(product.id) ?? []
                     const mediaCount = mediaCountByProductId.get(product.id) ?? 0
                     const mediaValues = mediaValuesForProduct(mediaByProductId, product.id)
@@ -329,7 +344,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                             {product.short_description ?? 'No description'}
                           </p>
                           <p className="qv-section-subtitle" style={{ margin: 0 }}>
-                            {category?.name ?? 'Uncategorized'} • SKU: {product.sku ?? 'None'} • {productUnitSummary(product)}
+                            SKU: {product.sku ?? 'None'} • {productUnitSummary(product)}
                           </p>
                           <p className="qv-section-subtitle" style={{ margin: 0 }}>
                             Status: {product.status_code} • Public: {product.is_public ? 'Yes' : 'No'} • Media: {mediaCount}
@@ -467,13 +482,17 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                           <CaseCompositionForm
                             caseProductId={product.id}
                             currentTotal={currentComponentTotal}
-                            cardBoxes={cardBoxes.map((box) => ({
-                              id: box.id,
-                              title: box.title,
-                              sku: box.sku,
-                              priceLabel: formatMoney(box.price_cents, box.currency_code),
-                              quantity: quantityForComponent(productComponents, box.id),
-                            }))}
+                            cardBoxes={cardBoxes.map((box) => {
+                              const boxMedia = mediaValuesForProduct(mediaByProductId, box.id)
+                              return {
+                                id: box.id,
+                                title: box.title,
+                                sku: box.sku,
+                                priceLabel: formatMoney(box.price_cents, box.currency_code),
+                                quantity: quantityForComponent(productComponents, box.id),
+                                thumbnailUrl: boxMedia.front || null,
+                              }
+                            })}
                           />
                         ) : null}
 
