@@ -1,10 +1,16 @@
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { updateChristmasCardBoxProductAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
 
 type StoreCategoryRow = {
   id: string
@@ -23,6 +29,7 @@ type StoreProductRow = {
   product_kind: string
   title: string
   short_description: string | null
+  description: string | null
   price_cents: number
   currency_code: string
   status_code: string
@@ -46,7 +53,14 @@ type StoreProductMediaRow = {
   id: string
   product_id: string
   media_kind: string
+  public_url: string | null
   is_primary: boolean
+}
+
+type CardBoxMediaValues = {
+  front: string
+  inside: string
+  outside: string
 }
 
 function formatMoney(cents: number, currencyCode: string) {
@@ -98,11 +112,24 @@ function buildProductGroups(products: StoreProductRow[]) {
   return [...groups.entries()].sort(([left], [right]) => productKindLabel(left).localeCompare(productKindLabel(right)))
 }
 
-export default async function SuperAdminStorePage() {
+function mediaValuesForProduct(mediaByProductId: Map<string, StoreProductMediaRow[]>, productId: string): CardBoxMediaValues {
+  const rows = mediaByProductId.get(productId) ?? []
+  return {
+    front: rows.find((row) => row.media_kind === 'front')?.public_url ?? '',
+    inside: rows.find((row) => row.media_kind === 'inside')?.public_url ?? '',
+    outside: rows.find((row) => row.media_kind === 'outside')?.public_url ?? '',
+  }
+}
+
+export default async function SuperAdminStorePage({ searchParams }: PageProps) {
   const permissions = await getCurrentUserPermissions()
   if (!permissions.authUser || !permissions.isSuperAdmin || permissions.actingMode !== 'normal') {
     redirect('/me')
   }
+
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
+  const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
 
   const admin = createAdminClient()
   const [categoriesResponse, productsResponse, componentsResponse, mediaResponse] = await Promise.all([
@@ -113,7 +140,7 @@ export default async function SuperAdminStorePage() {
       .order('name', { ascending: true }),
     admin
       .from('store_products')
-      .select('id, category_id, slug, sku, product_kind, title, short_description, price_cents, currency_code, status_code, is_public, sort_order, cards_per_box, envelopes_per_box, boxes_per_case')
+      .select('id, category_id, slug, sku, product_kind, title, short_description, description, price_cents, currency_code, status_code, is_public, sort_order, cards_per_box, envelopes_per_box, boxes_per_case')
       .order('sort_order', { ascending: true })
       .order('title', { ascending: true }),
     admin
@@ -122,7 +149,7 @@ export default async function SuperAdminStorePage() {
       .order('sort_order', { ascending: true }),
     admin
       .from('store_product_media')
-      .select('id, product_id, media_kind, is_primary'),
+      .select('id, product_id, media_kind, public_url, is_primary'),
   ])
 
   if (categoriesResponse.error) throw new Error(`Could not load store categories: ${categoriesResponse.error.message}`)
@@ -138,6 +165,7 @@ export default async function SuperAdminStorePage() {
   const categoriesById = new Map(categories.map((category) => [category.id, category]))
   const productsById = new Map(products.map((product) => [product.id, product]))
   const componentsByParentId = new Map<string, StoreProductComponentRow[]>()
+  const mediaByProductId = new Map<string, StoreProductMediaRow[]>()
   const mediaCountByProductId = new Map<string, number>()
 
   for (const component of components) {
@@ -147,6 +175,9 @@ export default async function SuperAdminStorePage() {
   }
 
   for (const mediaItem of media) {
+    const bucket = mediaByProductId.get(mediaItem.product_id) ?? []
+    bucket.push(mediaItem)
+    mediaByProductId.set(mediaItem.product_id, bucket)
     mediaCountByProductId.set(mediaItem.product_id, (mediaCountByProductId.get(mediaItem.product_id) ?? 0) + 1)
   }
 
@@ -157,25 +188,32 @@ export default async function SuperAdminStorePage() {
       <div className="qv-shell">
         <AppHeader />
 
+        {errorMessage ? (
+          <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" />
+        ) : null}
+        {noticeMessage ? (
+          <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
+        ) : null}
+
         <section className="qv-card">
           <h1 className="qv-section-title">Store catalog</h1>
           <p className="qv-section-subtitle">
-            Read-only view of the seeded store catalog. Current focus is Celebrate Christ in Christmas boxed cards, cases, and packages.
+            Manage the seeded store catalog. Current focus is Celebrate Christ in Christmas boxed cards, cases, and packages.
           </p>
         </section>
 
         <section className="qv-card" style={{ marginTop: 18 }}>
           <h2 className="qv-section-title">Catalog summary</h2>
           <div className="qv-form-row qv-form-row-3" style={{ marginTop: 14 }}>
-            <div className="qv-inline-message">
+            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
               <strong>{categories.length}</strong>
               <span>Categories</span>
             </div>
-            <div className="qv-inline-message">
+            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
               <strong>{products.length}</strong>
               <span>Products</span>
             </div>
-            <div className="qv-inline-message">
+            <div className="qv-inline-message" style={{ display: 'grid', gap: 4 }}>
               <strong>{components.length}</strong>
               <span>Composition rows</span>
             </div>
@@ -205,7 +243,7 @@ export default async function SuperAdminStorePage() {
         <section className="qv-card" style={{ marginTop: 18 }}>
           <h2 className="qv-section-title">Products</h2>
           <p className="qv-section-subtitle">
-            This view is intentionally read-only until the catalog admin forms are added.
+            Christmas card boxes can now be edited here. Cases and packages stay read-only for this seam.
           </p>
 
           {products.length === 0 ? (
@@ -222,6 +260,8 @@ export default async function SuperAdminStorePage() {
                     const category = categoriesById.get(product.category_id)
                     const productComponents = componentsByParentId.get(product.id) ?? []
                     const mediaCount = mediaCountByProductId.get(product.id) ?? 0
+                    const mediaValues = mediaValuesForProduct(mediaByProductId, product.id)
+                    const isCardBox = product.product_kind === 'christmas_card_box'
 
                     return (
                       <article key={product.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
@@ -240,6 +280,73 @@ export default async function SuperAdminStorePage() {
                             Status: {product.status_code} • Public: {product.is_public ? 'Yes' : 'No'} • Media: {mediaCount}
                           </p>
                         </div>
+
+                        {isCardBox ? (
+                          <form action={updateChristmasCardBoxProductAction} className="qv-form-grid" style={{ marginTop: 16 }}>
+                            <input type="hidden" name="product_id" value={product.id} />
+
+                            <div className="qv-form-row qv-form-row-2">
+                              <label className="qv-field">
+                                <span>Card box title</span>
+                                <input name="title" type="text" required defaultValue={product.title} />
+                              </label>
+                              <label className="qv-field">
+                                <span>SKU</span>
+                                <input name="sku" type="text" defaultValue={product.sku ?? ''} />
+                              </label>
+                            </div>
+
+                            <label className="qv-field">
+                              <span>Short description</span>
+                              <textarea name="short_description" rows={2} defaultValue={product.short_description ?? ''} />
+                            </label>
+
+                            <label className="qv-field">
+                              <span>Inside message / longer description</span>
+                              <textarea name="description" rows={3} defaultValue={product.description ?? ''} />
+                            </label>
+
+                            <div className="qv-form-row qv-form-row-3">
+                              <label className="qv-field">
+                                <span>Front image URL</span>
+                                <input name="front_image_url" type="text" defaultValue={mediaValues.front} placeholder="/christmas-cards/example-front.jpg" />
+                              </label>
+                              <label className="qv-field">
+                                <span>Inside image URL</span>
+                                <input name="inside_image_url" type="text" defaultValue={mediaValues.inside} placeholder="/christmas-cards/example-inside.jpg" />
+                              </label>
+                              <label className="qv-field">
+                                <span>Outside image URL</span>
+                                <input name="outside_image_url" type="text" defaultValue={mediaValues.outside} placeholder="/christmas-cards/example-outside.jpg" />
+                              </label>
+                            </div>
+
+                            <div className="qv-form-row qv-form-row-3">
+                              <label className="qv-field">
+                                <span>Status</span>
+                                <select name="status_code" defaultValue={product.status_code}>
+                                  <option value="draft">Draft</option>
+                                  <option value="active">Active</option>
+                                  <option value="archived">Archived</option>
+                                </select>
+                              </label>
+                              <label className="qv-field">
+                                <span>Sort order</span>
+                                <input name="sort_order" type="number" defaultValue={product.sort_order} />
+                              </label>
+                              <label className="qv-field">
+                                <span>Public</span>
+                                <span className="qv-inline-message">
+                                  <input name="is_public" type="checkbox" defaultChecked={product.is_public} /> Show in public catalog once wired
+                                </span>
+                              </label>
+                            </div>
+
+                            <div className="qv-form-actions">
+                              <button type="submit" className="qv-button-secondary">Save card box</button>
+                            </div>
+                          </form>
+                        ) : null}
 
                         {productComponents.length > 0 ? (
                           <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
