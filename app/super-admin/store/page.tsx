@@ -3,7 +3,7 @@ import AppHeader from '@/app/app-header'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { updateChristmasCardBoxProductAction } from './actions'
+import { updateChristmasCardBoxProductAction, updateStoreAddOnProductAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -247,7 +247,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
         <section className="qv-card" style={{ marginTop: 18 }}>
           <h2 className="qv-section-title">Products</h2>
           <p className="qv-section-subtitle">
-            Christmas card boxes can now be edited here. Cases and packages stay read-only for this seam.
+            Christmas card boxes and packages can now be edited here. Cases stay read-only for this seam.
           </p>
 
           {products.length === 0 ? (
@@ -266,6 +266,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
                     const mediaCount = mediaCountByProductId.get(product.id) ?? 0
                     const mediaValues = mediaValuesForProduct(mediaByProductId, product.id)
                     const isCardBox = product.product_kind === 'christmas_card_box'
+                    const isAddOn = product.product_kind === 'store_add_on'
 
                     return (
                       <article key={product.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
@@ -352,6 +353,62 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
 
                             <div className="qv-form-actions">
                               <button type="submit" className="qv-button-secondary">Save card box</button>
+                            </div>
+                          </form>
+                        ) : null}
+
+                        {isAddOn ? (
+                          <form action={updateStoreAddOnProductAction} className="qv-form-grid" style={{ marginTop: 16 }}>
+                            <input type="hidden" name="product_id" value={product.id} />
+
+                            <div className="qv-form-row qv-form-row-3">
+                              <label className="qv-field">
+                                <span>Package title</span>
+                                <input name="title" type="text" required defaultValue={product.title} />
+                              </label>
+                              <label className="qv-field">
+                                <span>SKU</span>
+                                <input name="sku" type="text" defaultValue={product.sku ?? ''} />
+                              </label>
+                              <label className="qv-field">
+                                <span>Price</span>
+                                <input type="text" value={formatMoney(product.price_cents, product.currency_code)} readOnly aria-readonly="true" />
+                              </label>
+                            </div>
+
+                            <label className="qv-field">
+                              <span>Short description</span>
+                              <textarea name="short_description" rows={2} defaultValue={product.short_description ?? ''} />
+                            </label>
+
+                            <label className="qv-field">
+                              <span>Longer description</span>
+                              <textarea name="description" rows={3} defaultValue={product.description ?? ''} />
+                            </label>
+
+                            <div className="qv-form-row qv-form-row-3">
+                              <label className="qv-field">
+                                <span>Status</span>
+                                <select name="status_code" defaultValue={product.status_code}>
+                                  <option value="draft">Draft</option>
+                                  <option value="active">Active</option>
+                                  <option value="archived">Archived</option>
+                                </select>
+                              </label>
+                              <label className="qv-field">
+                                <span>Sort order</span>
+                                <input name="sort_order" type="number" defaultValue={product.sort_order} />
+                              </label>
+                              <label className="qv-field">
+                                <span>Public</span>
+                                <span className="qv-inline-message">
+                                  <input name="is_public" type="checkbox" defaultChecked={product.is_public} /> Show in public catalog once wired
+                                </span>
+                              </label>
+                            </div>
+
+                            <div className="qv-form-actions">
+                              <button type="submit" className="qv-button-secondary">Save package</button>
                             </div>
                           </form>
                         ) : null}
