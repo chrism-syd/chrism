@@ -1,3 +1,15 @@
+main:has(.ccic-admin-product-card) .qv-card {
+  border-color: #eee7dd;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(31, 25, 18, 0.06);
+}
+
+main:has(.ccic-admin-product-card) .qv-empty,
+main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
+  border-color: #eee7dd;
+  background: #faf8f4;
+}
+
 .ccic-admin-product-card {
   border-color: #eee7dd;
   background: #ffffff !important;
