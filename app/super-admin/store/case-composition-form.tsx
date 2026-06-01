@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import {
   type CaseCompositionActionState,
   updateChristmasCardCaseCompositionStateAction,
@@ -25,6 +25,26 @@ type Props = {
 const initialCaseCompositionActionState: CaseCompositionActionState = {
   status: 'idle',
   message: null,
+}
+
+function CaseBoxThumbnail({ title, thumbnailUrl }: { title: string; thumbnailUrl: string | null }) {
+  const [hasImageError, setHasImageError] = useState(false)
+
+  if (!thumbnailUrl?.startsWith('/') || hasImageError) {
+    return <div className="ccic-admin-case-thumbnail ccic-admin-case-thumbnail-empty" aria-hidden="true" />
+  }
+
+  return (
+    <div className="ccic-admin-case-thumbnail">
+      <Image
+        src={thumbnailUrl}
+        alt={`${title} preview`}
+        width={96}
+        height={72}
+        onError={() => setHasImageError(true)}
+      />
+    </div>
+  )
 }
 
 export default function CaseCompositionForm({ caseProductId, currentTotal, cardBoxes }: Props) {
@@ -55,13 +75,7 @@ export default function CaseCompositionForm({ caseProductId, currentTotal, cardB
       <div className="ccic-admin-case-rows">
         {cardBoxes.map((box) => (
           <div key={box.id} className="ccic-admin-case-row">
-            {box.thumbnailUrl?.startsWith('/') ? (
-              <div className="ccic-admin-case-thumbnail">
-                <Image src={box.thumbnailUrl} alt={`${box.title} preview`} width={96} height={72} />
-              </div>
-            ) : (
-              <div className="ccic-admin-case-thumbnail ccic-admin-case-thumbnail-empty" aria-hidden="true" />
-            )}
+            <CaseBoxThumbnail title={box.title} thumbnailUrl={box.thumbnailUrl} />
 
             <div className="ccic-admin-case-row-body">
               <label className="qv-field ccic-admin-quantity-field">
