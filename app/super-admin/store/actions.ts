@@ -98,6 +98,29 @@ function mediaRowsForCardBox(args: {
   })
 }
 
+async function requireEditableStoreProduct(args: {
+  admin: ReturnType<typeof createAdminClient>
+  productId: string
+  expectedKind: string
+  errorMessage: string
+}) {
+  const productResponse = await args.admin
+    .from('store_products')
+    .select('id, product_kind, title')
+    .eq('id', args.productId)
+    .single<StoreProductKindRow>()
+
+  if (productResponse.error) {
+    throw new Error(productResponse.error.message)
+  }
+
+  if (productResponse.data?.product_kind !== args.expectedKind) {
+    redirectToStore({ error: args.errorMessage })
+  }
+
+  return productResponse.data
+}
+
 export async function updateChristmasCardBoxProductAction(formData: FormData) {
   const permissions = await requireSuperAdminNormalMode()
   const actorUserId = permissions.authUser!.id
@@ -115,19 +138,12 @@ export async function updateChristmasCardBoxProductAction(formData: FormData) {
   const admin = createAdminClient()
 
   try {
-    const productResponse = await admin
-      .from('store_products')
-      .select('id, product_kind, title')
-      .eq('id', productId)
-      .single<StoreProductKindRow>()
-
-    if (productResponse.error) {
-      throw new Error(productResponse.error.message)
-    }
-
-    if (productResponse.data?.product_kind !== 'christmas_card_box') {
-      redirectToStore({ error: 'Only Christmas card boxes can be edited in this section.' })
-    }
+    await requireEditableStoreProduct({
+      admin,
+      productId,
+      expectedKind: 'christmas_card_box',
+      errorMessage: 'Only Christmas card boxes can be edited in this section.',
+    })
 
     const updateResponse = await admin
       .from('store_products')
@@ -172,6 +188,58 @@ export async function updateChristmasCardBoxProductAction(formData: FormData) {
     redirectToStore({ notice: `${title} was updated.` })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not update that card box right now.'
+    redirectToStore({ error: message })
+  }
+}
+
+export async function updateStoreAddOnProductAction(formData: FormData) {
+  const permissions = await requireSuperAdminNormalMode()
+  const actorUserId = permissions.authUser!.id
+  const productId = textValue(formData, 'product_id')
+
+  if (!productId) {
+    redirectToStore({ error: 'We could not tell which package to update.' })
+  }
+
+  const title = textValue(formData, 'title')
+  if (!title) {
+    redirectToStore({ error: 'Package title is required.' })
+  }
+
+  const admin = createAdminClient()
+
+  try {
+    await requireEditableStoreProduct({
+      admin,
+      productId,
+      expectedKind: 'store_add_on',
+      errorMessage: 'Only store packages can be edited in this section.',
+    })
+
+    const updateResponse = await admin
+      .from('store_products')
+      .update({
+        title,
+        sku: textValue(formData, 'sku'),
+        short_description: textValue(formData, 'short_description'),
+        description: textValue(formData, 'description'),
+        status_code: validatedStatusCode(textValue(formData, 'status_code')),
+        is_public: checkboxValue(formData, 'is_public'),
+        sort_order: intValue(formData, 'sort_order') ?? 0,
+        updated_by_auth_user_id: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', productId)
+      .eq('product_kind', 'store_add_on')
+
+    if (updateResponse.error) {
+      throw new Error(updateResponse.error.message)
+    }
+
+    revalidatePath('/super-admin/store')
+    redirectToStore({ notice: `${title} was updated.` })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not update that package right now.'
     redirectToStore({ error: message })
   }
 }
