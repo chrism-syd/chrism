@@ -10,6 +10,7 @@ type StoreProductKindRow = {
   product_kind: string
   title: string | null
   boxes_per_case: number | null
+  metadata?: Record<string, unknown> | null
 }
 
 type StoreCardBoxRow = {
@@ -18,7 +19,9 @@ type StoreCardBoxRow = {
   sort_order: number
 }
 
+const CCIC_CATEGORY_SLUG = 'christmas-cards'
 const CARD_BOX_MEDIA_KINDS = ['front', 'inside', 'outside'] as const
+const CARD_DESIGN_MEDIA_KINDS = ['front'] as const
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -50,19 +53,19 @@ function nonNegativeWholeNumberValue(formData: FormData, key: string, label: str
   return parsed
 }
 
-function priceCentsValue(formData: FormData, key: string) {
+function priceCentsValue(formData: FormData, key: string, label = 'Price') {
   const value = textValue(formData, key)
   if (!value) {
-    throw new Error('Card box price is required.')
+    throw new Error(`${label} is required.`)
   }
 
   if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-    throw new Error('Card box price must be a positive dollar amount with no more than 2 decimal places.')
+    throw new Error(`${label} must be a positive dollar amount with no more than 2 decimal places.`)
   }
 
   const cents = Math.round(Number(value) * 100)
   if (!Number.isSafeInteger(cents) || cents < 0) {
-    throw new Error('Card box price must be a valid positive dollar amount.')
+    throw new Error(`${label} must be a valid positive dollar amount.`)
   }
 
   return cents
@@ -80,6 +83,19 @@ function isNextRedirectError(error: unknown) {
     && typeof (error as { digest?: unknown }).digest === 'string'
     && (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
   )
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-')
+    || 'untitled'
+}
+
+function datedSlug(prefix: string) {
+  return `${prefix}-${Date.now()}`
 }
 
 function redirectToStore(args: { error?: string | null; notice?: string | null; target?: string | null }): never {
@@ -108,6 +124,20 @@ async function requireSuperAdminNormalMode() {
     redirect('/me')
   }
   return permissions
+}
+
+async function getCcicCategoryId(admin: ReturnType<typeof createAdminClient>) {
+  const categoryResponse = await admin
+    .from('store_categories')
+    .select('id')
+    .eq('slug', CCIC_CATEGORY_SLUG)
+    .single<{ id: string }>()
+
+  if (categoryResponse.error) {
+    throw new Error(`Could not load the Christmas Cards category: ${categoryResponse.error.message}`)
+  }
+
+  return categoryResponse.data.id
 }
 
 function validatedStatusCode(value: string | null) {
@@ -144,6 +174,57 @@ function mediaRowsForCardBox(args: {
   })
 }
 
+function mediaRowsForCardDesign(args: {
+  productId: string
+  title: string
+  actorUserId: string
+  formData: FormData
+}) {
+  return CARD_DESIGN_MEDIA_KINDS.flatMap((mediaKind, index) => {
+    const publicUrl = textValue(args.formData, `${mediaKind}_image_url`)
+    if (!publicUrl) return []
+
+    return [
+      {
+        product_id: args.productId,
+        media_kind: mediaKind,
+        public_url: publicUrl,
+        alt_text: `${args.title} ${mediaKind}`,
+        sort_order: (index + 1) * 10,
+        is_primary: true,
+        metadata: {},
+        created_by_auth_user_id: args.actorUserId,
+        updated_by_auth_user_id: args.actorUserId,
+        updated_at: new Date().toISOString(),
+      },
+    ]
+  })
+}
+
+async function replaceProductMedia(args: {
+  admin: ReturnType<typeof createAdminClient>
+  productId: string
+  mediaKinds: readonly string[]
+  mediaRows: Array<Record<string, unknown>>
+}) {
+  const mediaDeleteResponse = await args.admin
+    .from('store_product_media')
+    .delete()
+    .eq('product_id', args.productId)
+    .in('media_kind', [...args.mediaKinds])
+
+  if (mediaDeleteResponse.error) {
+    throw new Error(mediaDeleteResponse.error.message)
+  }
+
+  if (args.mediaRows.length > 0) {
+    const mediaInsertResponse = await args.admin.from('store_product_media').insert(args.mediaRows)
+    if (mediaInsertResponse.error) {
+      throw new Error(mediaInsertResponse.error.message)
+    }
+  }
+}
+
 async function requireEditableStoreProduct(args: {
   admin: ReturnType<typeof createAdminClient>
   productId: string
@@ -152,7 +233,7 @@ async function requireEditableStoreProduct(args: {
 }) {
   const productResponse = await args.admin
     .from('store_products')
-    .select('id, product_kind, title, boxes_per_case')
+    .select('id, product_kind, title, boxes_per_case, metadata')
     .eq('id', args.productId)
     .single<StoreProductKindRow>()
 
@@ -165,6 +246,173 @@ async function requireEditableStoreProduct(args: {
   }
 
   return productResponse.data
+}
+
+export async function createStoreCatalogItemAction(formData: FormData) {
+  const permissions = await requireSuperAdminNormalMode()
+  const actorUserId = permissions.authUser!.id
+  const itemKind = textValue(formData, 'item_kind')
+  const admin = createAdminClient()
+
+  try {
+    const categoryId = await getCcicCategoryId(admin)
+    const nowIso = new Date().toISOString()
+
+    if (itemKind === 'card') {
+      const title = 'Untitled Card'
+      const createResponse = await admin.from('store_products').insert({
+        category_id: categoryId,
+        slug: datedSlug('untitled-card'),
+        sku: null,
+        product_kind: 'christmas_card_design',
+        title,
+        short_description: null,
+        description: null,
+        price_cents: 0,
+        currency_code: 'CAD',
+        status_code: 'draft',
+        is_public: false,
+        sort_order: 999,
+        cards_per_box: null,
+        envelopes_per_box: null,
+        boxes_per_case: null,
+        metadata: { styleFamily: 'custom', isSellable: false },
+        created_by_auth_user_id: actorUserId,
+        updated_by_auth_user_id: actorUserId,
+        updated_at: nowIso,
+      })
+      if (createResponse.error) throw new Error(createResponse.error.message)
+      revalidatePath('/super-admin/store')
+      redirectToStore({ notice: 'New card created. Edit its fields in the Cards section.' })
+    }
+
+    if (itemKind === 'box') {
+      const title = 'Untitled Box'
+      const createResponse = await admin.from('store_products').insert({
+        category_id: categoryId,
+        slug: datedSlug('untitled-box'),
+        sku: null,
+        product_kind: 'christmas_card_box',
+        title,
+        short_description: null,
+        description: null,
+        price_cents: 0,
+        currency_code: 'CAD',
+        status_code: 'draft',
+        is_public: false,
+        sort_order: 999,
+        cards_per_box: 12,
+        envelopes_per_box: 12,
+        boxes_per_case: null,
+        metadata: { packCompositionLabel: '12 cards' },
+        created_by_auth_user_id: actorUserId,
+        updated_by_auth_user_id: actorUserId,
+        updated_at: nowIso,
+      })
+      if (createResponse.error) throw new Error(createResponse.error.message)
+      revalidatePath('/super-admin/store')
+      redirectToStore({ notice: 'New box created. Add 12 cards in the Boxes section.' })
+    }
+
+    if (itemKind === 'case') {
+      const title = 'Untitled Case'
+      const createResponse = await admin.from('store_products').insert({
+        category_id: categoryId,
+        slug: datedSlug('untitled-case'),
+        sku: null,
+        product_kind: 'christmas_card_case',
+        title,
+        short_description: null,
+        description: null,
+        price_cents: 0,
+        currency_code: 'CAD',
+        status_code: 'draft',
+        is_public: false,
+        sort_order: 999,
+        cards_per_box: null,
+        envelopes_per_box: null,
+        boxes_per_case: 1,
+        metadata: {},
+        created_by_auth_user_id: actorUserId,
+        updated_by_auth_user_id: actorUserId,
+        updated_at: nowIso,
+      })
+      if (createResponse.error) throw new Error(createResponse.error.message)
+      revalidatePath('/super-admin/store')
+      redirectToStore({ notice: 'New case created. Add boxes in the Cases section.' })
+    }
+
+    redirectToStore({ error: 'Choose whether to create a card, box, or case.' })
+  } catch (error) {
+    const message = errorMessageForStore(error, 'Could not create that catalog item right now.')
+    redirectToStore({ error: message })
+  }
+}
+
+export async function updateChristmasCardDesignProductAction(formData: FormData) {
+  const permissions = await requireSuperAdminNormalMode()
+  const actorUserId = permissions.authUser!.id
+  const productId = textValue(formData, 'product_id')
+
+  if (!productId) {
+    redirectToStore({ error: 'We could not tell which card to update.' })
+  }
+
+  const title = textValue(formData, 'title')
+  if (!title) {
+    redirectToStore({ error: 'Card title is required.' })
+  }
+
+  const admin = createAdminClient()
+
+  try {
+    const product = await requireEditableStoreProduct({
+      admin,
+      productId,
+      expectedKind: 'christmas_card_design',
+      errorMessage: 'Only internal card designs can be edited in this section.',
+    })
+
+    const styleFamily = textValue(formData, 'style_family')
+    const updateResponse = await admin
+      .from('store_products')
+      .update({
+        title,
+        slug: slugify(textValue(formData, 'slug') ?? title),
+        sku: textValue(formData, 'sku'),
+        short_description: textValue(formData, 'short_description'),
+        description: textValue(formData, 'description'),
+        status_code: validatedStatusCode(textValue(formData, 'status_code')),
+        is_public: false,
+        sort_order: intValue(formData, 'sort_order') ?? 0,
+        metadata: {
+          ...((product.metadata ?? {}) as Record<string, unknown>),
+          styleFamily,
+          isSellable: false,
+        },
+        updated_by_auth_user_id: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', productId)
+      .eq('product_kind', 'christmas_card_design')
+
+    if (updateResponse.error) {
+      throw new Error(updateResponse.error.message)
+    }
+
+    await replaceProductMedia({
+      admin,
+      productId,
+      mediaKinds: CARD_DESIGN_MEDIA_KINDS,
+      mediaRows: mediaRowsForCardDesign({ productId, title, actorUserId, formData }),
+    })
+
+    revalidatePath('/super-admin/store')
+    redirectToStore({ notice: `${title} was updated.` })
+  } catch (error) {
+    const message = errorMessageForStore(error, 'Could not update that card right now.')
+    redirectToStore({ error: message })
+  }
 }
 
 export async function updateChristmasCardBoxProductAction(formData: FormData) {
@@ -195,10 +443,11 @@ export async function updateChristmasCardBoxProductAction(formData: FormData) {
       .from('store_products')
       .update({
         title,
+        slug: slugify(textValue(formData, 'slug') ?? title),
         sku: textValue(formData, 'sku'),
         short_description: textValue(formData, 'short_description'),
         description: textValue(formData, 'description'),
-        price_cents: priceCentsValue(formData, 'price_dollars'),
+        price_cents: priceCentsValue(formData, 'price_dollars', 'Card box price'),
         status_code: validatedStatusCode(textValue(formData, 'status_code')),
         is_public: checkboxValue(formData, 'is_public'),
         sort_order: intValue(formData, 'sort_order') ?? 0,
@@ -212,28 +461,71 @@ export async function updateChristmasCardBoxProductAction(formData: FormData) {
       throw new Error(updateResponse.error.message)
     }
 
-    const mediaDeleteResponse = await admin
-      .from('store_product_media')
-      .delete()
-      .eq('product_id', productId)
-      .in('media_kind', [...CARD_BOX_MEDIA_KINDS])
-
-    if (mediaDeleteResponse.error) {
-      throw new Error(mediaDeleteResponse.error.message)
-    }
-
-    const mediaRows = mediaRowsForCardBox({ productId, title, actorUserId, formData })
-    if (mediaRows.length > 0) {
-      const mediaInsertResponse = await admin.from('store_product_media').insert(mediaRows)
-      if (mediaInsertResponse.error) {
-        throw new Error(mediaInsertResponse.error.message)
-      }
-    }
+    await replaceProductMedia({
+      admin,
+      productId,
+      mediaKinds: CARD_BOX_MEDIA_KINDS,
+      mediaRows: mediaRowsForCardBox({ productId, title, actorUserId, formData }),
+    })
 
     revalidatePath('/super-admin/store')
     redirectToStore({ notice: `${title} was updated.` })
   } catch (error) {
     const message = errorMessageForStore(error, 'Could not update that card box right now.')
+    redirectToStore({ error: message })
+  }
+}
+
+export async function updateChristmasCardCaseProductAction(formData: FormData) {
+  const permissions = await requireSuperAdminNormalMode()
+  const actorUserId = permissions.authUser!.id
+  const productId = textValue(formData, 'product_id')
+
+  if (!productId) {
+    redirectToStore({ error: 'We could not tell which case to update.' })
+  }
+
+  const title = textValue(formData, 'title')
+  if (!title) {
+    redirectToStore({ error: 'Case title is required.' })
+  }
+
+  const admin = createAdminClient()
+
+  try {
+    await requireEditableStoreProduct({
+      admin,
+      productId,
+      expectedKind: 'christmas_card_case',
+      errorMessage: 'Only Christmas card cases can be edited in this section.',
+    })
+
+    const updateResponse = await admin
+      .from('store_products')
+      .update({
+        title,
+        slug: slugify(textValue(formData, 'slug') ?? title),
+        sku: textValue(formData, 'sku'),
+        short_description: textValue(formData, 'short_description'),
+        description: textValue(formData, 'description'),
+        price_cents: priceCentsValue(formData, 'price_dollars', 'Case price'),
+        status_code: validatedStatusCode(textValue(formData, 'status_code')),
+        is_public: checkboxValue(formData, 'is_public'),
+        sort_order: intValue(formData, 'sort_order') ?? 0,
+        updated_by_auth_user_id: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', productId)
+      .eq('product_kind', 'christmas_card_case')
+
+    if (updateResponse.error) {
+      throw new Error(updateResponse.error.message)
+    }
+
+    revalidatePath('/super-admin/store')
+    redirectToStore({ notice: `${title} was updated.` })
+  } catch (error) {
+    const message = errorMessageForStore(error, 'Could not update that case right now.')
     redirectToStore({ error: message })
   }
 }
@@ -266,6 +558,7 @@ export async function updateStoreAddOnProductAction(formData: FormData) {
       .from('store_products')
       .update({
         title,
+        slug: slugify(textValue(formData, 'slug') ?? title),
         sku: textValue(formData, 'sku'),
         short_description: textValue(formData, 'short_description'),
         description: textValue(formData, 'description'),
