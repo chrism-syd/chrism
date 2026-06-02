@@ -113,6 +113,56 @@ function componentPayload(component: StoreProductComponentSeed, parentProductId:
   }
 }
 
+async function deleteStaleSeededCategoryProducts(args: {
+  admin: SupabaseAdminClient
+  categoryIds: string[]
+  seededProductIds: string[]
+}) {
+  if (args.categoryIds.length === 0 || args.seededProductIds.length === 0) return
+
+  const staleResponse = await args.admin
+    .from('store_products')
+    .select('id')
+    .in('category_id', args.categoryIds)
+    .not('id', 'in', `(${args.seededProductIds.join(',')})`)
+
+  if (staleResponse.error) {
+    throw new Error(`Could not find stale seeded category products: ${staleResponse.error.message}`)
+  }
+
+  const staleIds = ((staleResponse.data as Array<{ id: string }> | null) ?? []).map((row) => row.id)
+  if (staleIds.length === 0) return
+
+  const staleIdList = `(${staleIds.join(',')})`
+
+  const staleParentComponentDeleteResponse = await args.admin
+    .from('store_product_components')
+    .delete()
+    .in('parent_product_id', staleIds)
+
+  if (staleParentComponentDeleteResponse.error) {
+    throw new Error(`Could not clear stale product parent components: ${staleParentComponentDeleteResponse.error.message}`)
+  }
+
+  const staleChildComponentDeleteResponse = await args.admin
+    .from('store_product_components')
+    .delete()
+    .filter('component_product_id', 'in', staleIdList)
+
+  if (staleChildComponentDeleteResponse.error) {
+    throw new Error(`Could not clear stale product child components: ${staleChildComponentDeleteResponse.error.message}`)
+  }
+
+  const staleProductDeleteResponse = await args.admin
+    .from('store_products')
+    .delete()
+    .in('id', staleIds)
+
+  if (staleProductDeleteResponse.error) {
+    throw new Error(`Could not delete stale seeded category products: ${staleProductDeleteResponse.error.message}`)
+  }
+}
+
 export async function upsertStoreCatalogSeed({
   admin,
   seed,
@@ -205,6 +255,12 @@ export async function upsertStoreCatalogSeed({
       throw new Error(`Could not clear seeded product components: ${componentDeleteResponse.error.message}`)
     }
   }
+
+  await deleteStaleSeededCategoryProducts({
+    admin,
+    categoryIds: [...categoryIdsByLegacyKey.values()],
+    seededProductIds,
+  })
 
   const componentRows = seed.components.map((component) => {
     const parentProductId = productIdsByLegacyKey.get(component.parentProductLegacyKey)
