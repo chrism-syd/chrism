@@ -10,56 +10,92 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   background: #faf8f4;
 }
 
-.ccic-admin-hero-card {
-  position: relative;
-  overflow: hidden;
-  background: #fdfcf9;
-  border-color: rgba(92, 74, 114, 0.16);
-  box-shadow: 0 18px 44px rgba(46, 42, 52, 0.08);
-}
-
-.ccic-admin-hero-card::after {
-  content: '';
-  position: absolute;
-  left: 28px;
-  right: 28px;
-  bottom: 0;
-  height: 7px;
-  border-radius: 999px 999px 0 0;
-  background: linear-gradient(90deg, var(--qv-plum), color-mix(in srgb, var(--qv-plum) 42%, var(--qv-brass)));
-  opacity: 0.95;
-}
-
-.ccic-admin-stats {
-  margin-top: 22px;
-}
-
-.ccic-admin-stats .qv-stat-card {
-  background: #faf8f4;
-  border-color: #eee7dd;
-}
-
 .ccic-admin-product-card {
   border-color: #eee7dd;
   background: #ffffff !important;
   box-shadow: 0 14px 34px rgba(31, 25, 18, 0.06);
 }
 
-.ccic-admin-card-box-grid {
+.ccic-admin-layout-stack {
+  display: grid;
+  gap: 22px;
+  margin-top: 18px;
+}
+
+.ccic-admin-layout-card {
+  scroll-margin-top: 24px;
+}
+
+.ccic-admin-section-head {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.ccic-admin-add-button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #e7e0d7;
+  border-radius: 999px;
+  background: #faf8f4;
+  color: #1d1712;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ccic-admin-add-button:hover,
+.ccic-admin-add-button:focus-visible {
+  border-color: #8a4d13;
+  box-shadow: 0 0 0 3px rgba(138, 77, 19, 0.14);
+}
+
+.ccic-admin-section-body,
+.ccic-admin-box-list {
+  display: grid;
+  gap: 18px;
+}
+
+.ccic-admin-box-block {
+  display: grid;
+  gap: 0;
+}
+
+.ccic-admin-box-divider {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 18px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(90deg, var(--qv-plum), color-mix(in srgb, var(--qv-plum) 48%, var(--qv-brass)));
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.ccic-admin-box-inner-card {
+  border-top-left-radius: 0;
+}
+
+.ccic-admin-box-overview {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.ccic-admin-card-design-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
-.ccic-admin-card-box-card {
-  padding: 16px;
+.ccic-admin-design-edit-card {
+  align-items: start;
 }
 
-.ccic-admin-card-box-heading {
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
+.ccic-admin-design-edit-form {
+  gap: 10px;
 }
 
 .ccic-admin-card-box-thumbnail,
@@ -73,8 +109,8 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
 }
 
 .ccic-admin-card-box-thumbnail {
-  width: 82px;
-  min-height: 114px;
+  width: 100px;
+  min-height: 136px;
 }
 
 .ccic-admin-design-thumbnail {
@@ -89,15 +125,18 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   object-fit: cover;
 }
 
-.ccic-admin-compact-card-box-form {
-  margin-top: 14px;
+.ccic-admin-compact-two,
+.ccic-admin-compact-three {
+  display: grid;
   gap: 10px;
 }
 
 .ccic-admin-compact-two {
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+}
+
+.ccic-admin-compact-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .ccic-admin-form input,
@@ -219,28 +258,6 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   width: auto;
 }
 
-.ccic-admin-design-catalog-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.ccic-admin-design-card {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #eee7dd;
-  border-radius: 18px;
-  background: #faf8f4;
-  color: #6b5a4b;
-  font-size: 13px;
-}
-
-.ccic-admin-design-card strong {
-  color: #1d1712;
-}
-
 .ccic-admin-stock-form {
   display: grid;
   grid-template-columns: minmax(140px, 1fr) auto;
@@ -273,38 +290,27 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
 }
 
 @media (max-width: 1180px) {
-  .ccic-admin-card-box-grid,
+  .ccic-admin-card-design-grid,
   .ccic-admin-case-rows,
-  .ccic-admin-design-rows {
+  .ccic-admin-design-rows,
+  .ccic-admin-compact-three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ccic-admin-design-catalog-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
-  .ccic-admin-hero-card::after {
-    left: 20px;
-    right: 20px;
-  }
-
-  .ccic-admin-card-box-grid,
+  .ccic-admin-card-design-grid,
   .ccic-admin-case-rows,
   .ccic-admin-design-rows,
-  .ccic-admin-design-catalog-grid {
+  .ccic-admin-compact-two,
+  .ccic-admin-compact-three,
+  .ccic-admin-stock-form,
+  .ccic-admin-box-overview {
     grid-template-columns: 1fr;
   }
 
-  .ccic-admin-card-box-heading,
   .ccic-admin-case-row,
   .ccic-admin-design-row {
     grid-template-columns: 72px minmax(0, 1fr);
-  }
-
-  .ccic-admin-compact-two,
-  .ccic-admin-stock-form {
-    grid-template-columns: 1fr;
   }
 }
