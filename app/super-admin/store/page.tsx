@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import SectionMenuBar from '@/app/components/section-menu-bar'
 import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -69,7 +70,7 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
             <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
           ) : null}
 
-          <section className="qv-card ccic-admin-hero-card">
+          <section className="qv-card">
             <h1 className="qv-section-title">Store catalog</h1>
             <p className="qv-section-subtitle">
               The store catalog could not be loaded right now. Refresh the page, or restart local Supabase if you just applied a migration.
@@ -105,43 +106,88 @@ export default async function SuperAdminStorePage({ searchParams }: PageProps) {
           <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" />
         ) : null}
 
-        <section className="qv-hero-card ccic-admin-hero-card">
-          <div className="qv-directory-hero">
-            <div className="qv-directory-text">
-              <p className="qv-eyebrow">Celebrate Christ in Christmas</p>
-              <div className="qv-directory-title-row">
-                <h1 className="qv-directory-name">Store Catalog</h1>
-              </div>
-              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Manage CCiC cases, 12-card boxes, internal card designs, fundraising packages, and admin-only box counts.
-              </p>
-            </div>
-          </div>
+        <section
+          style={{
+            display: 'grid',
+            gap: 14,
+            paddingTop: 28,
+            marginBottom: 18,
+          }}
+        >
+          <h1
+            className="qv-directory-name"
+            style={{
+              margin: 0,
+              fontSize: 'clamp(42px, 6.4vw, 68px)',
+              lineHeight: 0.96,
+              letterSpacing: '-0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Store Catalog
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              maxWidth: '44ch',
+              fontSize: 15,
+              fontWeight: 700,
+              lineHeight: 1.35,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Build CCiC cards, boxes, and cases without exposing inventory or stock counts to purchasers.
+          </p>
+        </section>
 
-          <div className="qv-stats ccic-admin-stats">
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{cases.length}</div>
-              <div className="qv-stat-label">Cases</div>
+        <section className="qv-hero-card">
+          <div style={{ display: 'grid', gap: 16 }}>
+            <div className="qv-directory-hero">
+              <div className="qv-directory-text">
+                <p className="qv-eyebrow">Celebrate Christ in Christmas</p>
+                <h2 className="qv-section-title" style={{ margin: 0 }}>
+                  Catalog Builder
+                </h2>
+                <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
+                  Create internal card designs, assemble 12-card boxes, then build cases from those boxes. Individual cards are never sold directly.
+                </p>
+              </div>
             </div>
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{cardBoxes.length}</div>
-              <div className="qv-stat-label">Card boxes</div>
-            </div>
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{designs.length}</div>
-              <div className="qv-stat-label">Card designs</div>
-            </div>
-            <div className="qv-stat-card">
-              <div className="qv-stat-number">{addOns.length}</div>
-              <div className="qv-stat-label">Packages</div>
+
+            <div className="qv-stats" style={{ marginTop: 0 }}>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{designs.length}</div>
+                <div className="qv-stat-label">Cards</div>
+              </div>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{cardBoxes.length}</div>
+                <div className="qv-stat-label">Boxes</div>
+              </div>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{cases.length}</div>
+                <div className="qv-stat-label">Cases</div>
+              </div>
+              <div className="qv-stat-card">
+                <div className="qv-stat-number">{addOns.length}</div>
+                <div className="qv-stat-label">Packages</div>
+              </div>
             </div>
           </div>
         </section>
 
+        <SectionMenuBar
+          items={[
+            { label: 'New Card', href: '#card-designs' },
+            { label: 'New Box', href: '#card-boxes' },
+            { label: 'New Case', href: '#cases' },
+          ]}
+          mobileLabel="Catalog actions"
+        />
+
         <section className="qv-card" style={{ marginTop: 18 }}>
-          <h2 className="qv-section-title">Packages</h2>
+          <h2 className="qv-section-title">Catalog items</h2>
           <p className="qv-section-subtitle">
-            Cases contain card boxes. Card boxes contain internal card designs. Individual cards are not sold directly.
+            Cards are internal templates. Boxes are the sellable 12-packs. Cases are built from boxes.
           </p>
 
           {editableProductCount === 0 ? (
