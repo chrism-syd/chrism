@@ -45,6 +45,61 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   box-shadow: 0 14px 34px rgba(31, 25, 18, 0.06);
 }
 
+.ccic-admin-card-box-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ccic-admin-card-box-card {
+  padding: 16px;
+}
+
+.ccic-admin-card-box-heading {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.ccic-admin-card-box-thumbnail,
+.ccic-admin-design-thumbnail {
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e7e0d7;
+  display: grid;
+  place-items: center;
+}
+
+.ccic-admin-card-box-thumbnail {
+  width: 82px;
+  min-height: 114px;
+}
+
+.ccic-admin-design-thumbnail {
+  width: 64px;
+  min-height: 88px;
+}
+
+.ccic-admin-card-box-thumbnail img,
+.ccic-admin-design-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ccic-admin-compact-card-box-form {
+  margin-top: 14px;
+  gap: 10px;
+}
+
+.ccic-admin-compact-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .ccic-admin-form input,
 .ccic-admin-form select,
 .ccic-admin-form textarea,
@@ -88,13 +143,15 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   color: #1d1712;
 }
 
-.ccic-admin-case-rows {
+.ccic-admin-case-rows,
+.ccic-admin-design-rows {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-.ccic-admin-case-row {
+.ccic-admin-case-row,
+.ccic-admin-design-row {
   display: grid;
   grid-template-columns: 74px minmax(0, 1fr);
   gap: 12px;
@@ -128,7 +185,8 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   color: #9a917e;
 }
 
-.ccic-admin-case-row-body {
+.ccic-admin-case-row-body,
+.ccic-admin-design-row-body {
   display: grid;
   gap: 8px;
   align-content: start;
@@ -161,9 +219,31 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   width: auto;
 }
 
+.ccic-admin-design-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ccic-admin-design-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #eee7dd;
+  border-radius: 18px;
+  background: #faf8f4;
+  color: #6b5a4b;
+  font-size: 13px;
+}
+
+.ccic-admin-design-card strong {
+  color: #1d1712;
+}
+
 .ccic-admin-stock-form {
   display: grid;
-  grid-template-columns: minmax(160px, 240px) auto minmax(0, 1fr);
+  grid-template-columns: minmax(140px, 1fr) auto;
   gap: 12px;
   align-items: end;
   margin-top: 14px;
@@ -179,6 +259,7 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
 
 .ccic-admin-stock-message {
   margin: 0;
+  grid-column: 1 / -1;
   align-self: center;
   font-size: 13px;
 }
@@ -191,9 +272,15 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
   color: #24613b;
 }
 
-@media (max-width: 1040px) {
-  .ccic-admin-case-rows {
+@media (max-width: 1180px) {
+  .ccic-admin-card-box-grid,
+  .ccic-admin-case-rows,
+  .ccic-admin-design-rows {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ccic-admin-design-catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -203,14 +290,20 @@ main:has(.ccic-admin-product-card) .qv-inline-message[style*='display: grid'] {
     right: 20px;
   }
 
-  .ccic-admin-case-rows {
+  .ccic-admin-card-box-grid,
+  .ccic-admin-case-rows,
+  .ccic-admin-design-rows,
+  .ccic-admin-design-catalog-grid {
     grid-template-columns: 1fr;
   }
 
-  .ccic-admin-case-row {
+  .ccic-admin-card-box-heading,
+  .ccic-admin-case-row,
+  .ccic-admin-design-row {
     grid-template-columns: 72px minmax(0, 1fr);
   }
 
+  .ccic-admin-compact-two,
   .ccic-admin-stock-form {
     grid-template-columns: 1fr;
   }
