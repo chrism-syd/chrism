@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { searchSpiritualContent } from '@/lib/spiritual/search'
+import { isSpiritualExperienceEnabled } from '@/lib/spiritual/visibility'
 import sharedStyles from './spiritual-section.module.css'
 import styles from './spiritual.module.css'
 
@@ -15,6 +16,10 @@ type PageProps = {
 }
 
 export default async function SpiritualLandingPage({ searchParams }: PageProps) {
+  if (!isSpiritualExperienceEnabled) {
+    notFound()
+  }
+
   const permissions = await getCurrentUserPermissions()
 
   if (!permissions.isSignedIn) {
@@ -218,91 +223,6 @@ export default async function SpiritualLandingPage({ searchParams }: PageProps) 
                     {results.saints.length} companion{results.saints.length === 1 ? '' : 's'}
                   </p>
                 </div>
-
-                <div className={styles.resultCardGrid}>
-                  {results.saints.map((saint) => (
-                    <article key={saint.slug} className={styles.resultCard}>
-                      <div className={styles.resultCardBody}>
-                        <span className={styles.resultCardTitle}>{saint.commonName ?? saint.canonicalName}</span>
-                        {saint.shortBio ? <span className={styles.resultCardSummary}>{saint.shortBio}</span> : null}
-                        {saint.topics.length > 0 ? (
-                          <span className={styles.resultCardMeta}>
-                            {saint.topics
-                              .slice(0, 3)
-                              .map((topic) => topic.name)
-                              .join(' · ')}
-                          </span>
-                        ) : saint.patronSummary ? (
-                          <span className={styles.resultCardMeta}>{saint.patronSummary}</span>
-                        ) : null}
-                      </div>
-                      <button type="button" className={styles.cardSaveButton}>
-                        Add to My Devotions
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {results.catechism.length > 0 ? (
-              <section className={styles.resultSection} aria-labelledby="spiritual-results-catechism">
-                <div className={styles.resultSectionHeader}>
-                  <h3 id="spiritual-results-catechism" className={styles.resultSectionTitle}>
-                    Ground this in the faith
-                  </h3>
-                  <p className={styles.resultSectionMeta}>
-                    {results.catechism.length} reference{results.catechism.length === 1 ? '' : 's'}
-                  </p>
-                </div>
-
-                <div className={styles.resultCardGrid}>
-                  {results.catechism.map((reference) => (
-                    <article key={reference.slug} className={styles.resultCard}>
-                      <div className={styles.resultCardBody}>
-                        <span className={styles.resultCardTitle}>{reference.title ?? reference.referenceCode}</span>
-                        {reference.summary ? (
-                          <span className={styles.resultCardSummary}>{reference.summary}</span>
-                        ) : reference.bodyExcerpt ? (
-                          <span className={styles.resultCardSummary}>{reference.bodyExcerpt}</span>
-                        ) : null}
-                        <span className={styles.resultCardMeta}>{reference.referenceCode}</span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {results.relatedThemes.length > 0 ? (
-              <section className={styles.resultSection} aria-labelledby="spiritual-results-explore">
-                <div className={styles.resultSectionHeader}>
-                  <h3 id="spiritual-results-explore" className={styles.resultSectionTitle}>
-                    Keep exploring
-                  </h3>
-                </div>
-
-                <div className={styles.explorationRail}>
-                  {results.relatedThemes.map((theme) => (
-                    <Link
-                      key={theme.slug}
-                      href={`/spiritual?q=${encodeURIComponent(theme.name)}&topic=${encodeURIComponent(theme.slug)}`}
-                      className={styles.themeChip}
-                    >
-                      {theme.name}
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {!hasResults ? (
-              <section className={styles.emptyState} aria-live="polite">
-                <h3 className={styles.emptyStateTitle}>Nothing matched clearly yet.</h3>
-                <p className={styles.emptyStateCopy}>
-                  Try another doorway into the same need, or begin with a topic like Joseph, protection,
-                  fatherhood, or discernment.
-                </p>
               </section>
             ) : null}
           </section>
