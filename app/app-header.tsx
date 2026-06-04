@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUserPermissions, type CurrentUserPermissions } from '@/lib/auth/permissions'
 import { hasExplicitlySharedCustomListsForUser } from '@/lib/custom-lists'
 import { getPublicMeetingsHref, listMemberInvitedEvents } from '@/lib/member-navigation'
+import { isSpiritualExperienceEnabled } from '@/lib/spiritual/visibility'
 import UserMenu from './components/user-menu'
 import PrimaryNav from './components/primary-nav'
 import ModeSwitcher from './components/mode-switcher'
@@ -107,7 +108,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
           : []),
       ]
     : [
-        { label: 'Home', href: '/spiritual' },
+        ...(isSpiritualExperienceEnabled ? [{ label: 'Home', href: '/spiritual' }] : []),
         ...(hasSharedCustomLists ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
         ...(memberInvitedEvents.length > 0 ? [{ label: 'Events', href: '/events' }] : []),
         ...(publicMeetingsHref ? [{ label: 'Public meetings', href: publicMeetingsHref }] : []),
@@ -138,7 +139,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
 
         {permissions.isSignedIn && navItems.length > 0 ? <PrimaryNav items={navItems} /> : null}
 
-        {permissions.isSignedIn && permissions.hasStaffAccess ? (
+        {permissions.isSignedIn && permissions.hasStaffAccess && isSpiritualExperienceEnabled ? (
           <ModeSwitcher operationsHref="/" spiritualHref="/spiritual" />
         ) : null}
       </div>
