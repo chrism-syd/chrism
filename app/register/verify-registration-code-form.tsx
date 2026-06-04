@@ -12,6 +12,15 @@ type VerifyRegistrationCodeFormProps = {
 }
 
 const RESEND_COOLDOWN_SECONDS = 45
+const PROFILE_SYNC_TIMEOUT_MS = 15000
+
+function timeoutAfter(ms: number) {
+  return new Promise<never>((_resolve, reject) => {
+    window.setTimeout(() => {
+      reject(new Error('Chrism verified the code, but profile setup took too long. Please refresh and try continuing to your profile.'))
+    }, ms)
+  })
+}
 
 export default function VerifyRegistrationCodeForm({ email }: VerifyRegistrationCodeFormProps) {
   const router = useRouter()
@@ -43,26 +52,30 @@ export default function VerifyRegistrationCodeForm({ email }: VerifyRegistration
     setResending(true)
     setMessage('')
 
-    const supabase = createClient()
-    const emailRedirectTo = buildAuthConfirmRedirectUrl(window.location.origin, '/me')
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo,
-      },
-    })
+    try {
+      const supabase = createClient()
+      const emailRedirectTo = buildAuthConfirmRedirectUrl(window.location.origin, '/me')
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo,
+        },
+      })
 
-    if (error) {
+      if (error) {
+        setMessage(getOtpSendErrorMessage(error))
+        return
+      }
+
+      setCode('')
+      setMessage('We sent a fresh verification code.')
+      startResendCooldown()
+    } catch (error) {
       setMessage(getOtpSendErrorMessage(error))
+    } finally {
       setResending(false)
-      return
     }
-
-    setCode('')
-    setMessage('We sent a fresh verification code.')
-    startResendCooldown()
-    setResending(false)
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -70,29 +83,38 @@ export default function VerifyRegistrationCodeForm({ email }: VerifyRegistration
     setLoading(true)
     setMessage('')
 
-    const cleanedCode = code.replace(/\D/g, '')
-    const supabase = createClient()
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: cleanedCode,
-      type: 'email',
-    })
+    try {
+      const cleanedCode = code.replace(/\D/g, '')
+      const supabase = createClient()
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: cleanedCode,
+        type: 'email',
+      })
 
-    if (error) {
-      setMessage(getOtpErrorMessage(error))
+      if (error) {
+        setMessage(getOtpErrorMessage(error))
+        setLoading(false)
+        return
+      }
+
+      const result = await Promise.race([
+        markRegistrationEmailVerifiedAction(),
+        timeoutAfter(PROFILE_SYNC_TIMEOUT_MS),
+      ])
+
+      if (!result.ok) {
+        setMessage(result.message)
+        setLoading(false)
+        return
+      }
+
+      router.push('/me')
+      router.refresh()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Chrism verified the code, but could not finish profile setup yet. Please refresh and try again.')
       setLoading(false)
-      return
     }
-
-    const result = await markRegistrationEmailVerifiedAction()
-    if (!result.ok) {
-      setMessage(result.message)
-      setLoading(false)
-      return
-    }
-
-    router.push('/me')
-    router.refresh()
   }
 
   return (
