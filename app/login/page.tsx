@@ -21,9 +21,9 @@ const LOGIN_SLIDES: LoginSlide[] = [
     body: 'Tools for Catholic communities to stay organized without losing the pastoral heart. Members, events, and outreach in one thoughtful place.',
   },
   {
-    eyebrow: 'ROOTED IN FAITH',
-    title: 'A companion for your spiritual life.',
-    body: 'Daily scripture, guided prayer, and the Rosary. Chrism helps you bring your real life before God — calm, grounded, and faithful.',
+    eyebrow: 'MINISTRY MANAGEMENT',
+    title: 'Keep your local ministry organized.',
+    body: 'Member records, event planning, volunteering, and follow-up tools help ministry teams care for the people they serve.',
   },
   {
     eyebrow: 'FOSTERING COMMUNITY',
@@ -209,6 +209,9 @@ function LoginPageContent() {
             )}
 
             <div className="qv-login-footer-link-row">
+              <Link href="/register" className="qv-auth-footer-link">
+                Register with Chrism
+              </Link>
               <Link href="/about" className="qv-auth-footer-link">
                 About us
               </Link>
