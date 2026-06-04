@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { buildAuthConfirmRedirectUrl } from '@/lib/auth/redirects'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import {
   REGISTRATION_CONSENT_TEXT,
   REGISTRATION_CONSENT_VERSION,
@@ -18,6 +19,16 @@ function textValue(formData: FormData, key: string) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
+}
+
+function isNextRedirectError(error: unknown) {
+  return (
+    typeof error === 'object'
+    && error !== null
+    && 'digest' in error
+    && typeof (error as { digest?: unknown }).digest === 'string'
+    && (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+  )
 }
 
 function redirectToRegister(args: { error?: string | null; notice?: string | null; email?: string | null }): never {
@@ -95,11 +106,40 @@ export async function registerContactAction(formData: FormData) {
     }
 
     redirectToRegister({
-      notice: 'Check your email for a secure verification link. After you verify, Chrism can continue setting up your profile.',
+      notice: 'Check your email for your Chrism verification code, then enter it below.',
       email: normalizedEmail,
     })
   } catch (error) {
+    if (isNextRedirectError(error)) {
+      throw error
+    }
+
     const message = error instanceof Error ? error.message : 'We could not complete registration right now.'
     redirectToRegister({ error: message, email: normalizedEmail })
   }
+}
+
+export async function markRegistrationEmailVerifiedAction() {
+  const supabase = await createServerClient()
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+
+  if (userError || !userData.user?.email) {
+    return { ok: false, message: 'Your email was verified, but Chrism could not update the registration record yet.' }
+  }
+
+  const normalizedEmail = normalizeEmail(userData.user.email)
+  const admin = createAdminClient()
+  const updateResponse = await admin
+    .from('public_registration_intakes')
+    .update({
+      email_verification_status: 'verified',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('normalized_email', normalizedEmail)
+
+  if (updateResponse.error) {
+    return { ok: false, message: updateResponse.error.message }
+  }
+
+  return { ok: true, message: 'Email verified.' }
 }
