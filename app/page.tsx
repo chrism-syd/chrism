@@ -260,12 +260,12 @@ export default async function HomePage() {
   }
 
   if (permissions.isSuperAdmin && permissions.actingMode === 'member') {
-    redirect('/spiritual')
+    redirect('/me')
   }
 
   if (!permissions.hasStaffAccess) {
     const needsProfileLanding = !permissions.personId
-    redirect(needsProfileLanding ? '/me' : '/spiritual')
+    redirect(needsProfileLanding ? '/me' : '/me')
   }
 
   const admin = createAdminClient()
@@ -279,7 +279,7 @@ export default async function HomePage() {
     if (permissions.canAccessMemberData) redirect('/members')
     if (permissions.canManageCustomLists) redirect('/custom-lists')
     if (permissions.canAccessOrganizationSettings || permissions.canManageAdmins) redirect('/me/council')
-    redirect('/spiritual')
+    redirect('/me')
   }
 
   const organization = await loadOrganizationProfile({
