@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { formatAuthorityLabel, getPrayerBySlug, listPublishedPrayers } from '@/lib/spiritual/prayers'
+import { isSpiritualExperienceEnabled } from '@/lib/spiritual/visibility'
 import sharedStyles from '../../spiritual-section.module.css'
 import styles from './prayer-detail.module.css'
 
@@ -35,6 +36,10 @@ function renderPrayerText(body: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  if (!isSpiritualExperienceEnabled) {
+    return { title: 'Not Found | Chrism' }
+  }
+
   const { slug } = await params
   const prayer = await getPrayerBySlug(slug)
 
@@ -44,6 +49,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PrayerDetailPage({ params }: PageProps) {
+  if (!isSpiritualExperienceEnabled) {
+    notFound()
+  }
+
   const permissions = await getCurrentUserPermissions()
 
   if (!permissions.isSignedIn) {
