@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { buildAuthConfirmRedirectUrl } from '@/lib/auth/redirects'
+import { getOtpErrorMessage, getOtpSendErrorMessage } from '@/lib/auth/otp-messages'
 import { createClient } from '@/lib/supabase/browser'
 import { markRegistrationEmailVerifiedAction } from './actions'
 
@@ -10,12 +12,60 @@ type VerifyRegistrationCodeFormProps = {
   email: string
 }
 
+const RESEND_COOLDOWN_SECONDS = 45
+
 export default function VerifyRegistrationCodeForm({ email }: VerifyRegistrationCodeFormProps) {
   const router = useRouter()
   const [code, setCode] = useState('')
   const [message, setMessage] = useState('')
   const [isVerified, setIsVerified] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(() => Date.now() + RESEND_COOLDOWN_SECONDS * 1000)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!resendAvailableAt) return
+
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [resendAvailableAt])
+
+  const resendSecondsRemaining = resendAvailableAt ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)) : 0
+  const canResend = resendSecondsRemaining === 0 && !loading && !resending
+
+  function startResendCooldown() {
+    setNow(Date.now())
+    setResendAvailableAt(Date.now() + RESEND_COOLDOWN_SECONDS * 1000)
+  }
+
+  async function handleResendCode() {
+    if (!canResend) return
+
+    setResending(true)
+    setMessage('')
+
+    const supabase = createClient()
+    const emailRedirectTo = buildAuthConfirmRedirectUrl(window.location.origin, '/me')
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo,
+      },
+    })
+
+    if (error) {
+      setMessage(getOtpSendErrorMessage(error))
+      setResending(false)
+      return
+    }
+
+    setCode('')
+    setMessage('We sent a fresh verification code.')
+    startResendCooldown()
+    setResending(false)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -31,7 +81,7 @@ export default function VerifyRegistrationCodeForm({ email }: VerifyRegistration
     })
 
     if (error) {
-      setMessage(error.message)
+      setMessage(getOtpErrorMessage(error))
       setLoading(false)
       return
     }
@@ -95,8 +145,11 @@ export default function VerifyRegistrationCodeForm({ email }: VerifyRegistration
       </label>
 
       <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-        <button type="submit" className="qv-button-primary" disabled={loading}>
+        <button type="submit" className="qv-button-primary" disabled={loading || resending}>
           {loading ? 'Verifying...' : 'Verify email'}
+        </button>
+        <button type="button" className="qv-button-secondary" onClick={handleResendCode} disabled={!canResend}>
+          {resending ? 'Sending...' : resendSecondsRemaining > 0 ? `Resend in ${resendSecondsRemaining}s` : 'Resend code'}
         </button>
       </div>
 
