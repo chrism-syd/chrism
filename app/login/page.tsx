@@ -3,9 +3,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/browser'
-import { buildAuthConfirmRedirectUrl } from '@/lib/auth/redirects'
+import { buildAuthConfirmRedirectUrl, sanitizeNextPath } from '@/lib/auth/redirects'
 import { getLoginMessage } from '@/lib/auth/login-errors'
 
 type LoginSlide = {
@@ -33,8 +33,10 @@ const LOGIN_SLIDES: LoginSlide[] = [
 ]
 
 function LoginPageContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null)
@@ -53,7 +55,7 @@ function LoginPageContent() {
     [activeSlideIndex]
   )
 
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSendLoginCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
     setMessage('')
@@ -61,9 +63,10 @@ function LoginPageContent() {
     const supabase = createClient()
     const nextPath = searchParams.get('next')
     const emailRedirectTo = buildAuthConfirmRedirectUrl(window.location.origin, nextPath)
+    const normalizedEmail = email.trim().toLowerCase()
 
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: normalizedEmail,
       options: {
         shouldCreateUser: false,
         emailRedirectTo,
@@ -77,13 +80,42 @@ function LoginPageContent() {
       return
     }
 
-    setEmailSentTo(email)
-    setMessage(getLoginMessage(null))
+    setEmail(normalizedEmail)
+    setEmailSentTo(normalizedEmail)
+    setVerificationCode('')
+    setMessage('Check your email for your Chrism verification code.')
     setLoading(false)
+  }
+
+  async function handleVerifyLoginCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!emailSentTo) return
+
+    setLoading(true)
+    setMessage('')
+
+    const cleanedCode = verificationCode.replace(/\D/g, '')
+    const supabase = createClient()
+    const { error } = await supabase.auth.verifyOtp({
+      email: emailSentTo,
+      token: cleanedCode,
+      type: 'email',
+    })
+
+    if (error) {
+      setMessage(error.message)
+      setLoading(false)
+      return
+    }
+
+    const nextPath = sanitizeNextPath(searchParams.get('next')) ?? '/'
+    router.push(nextPath)
+    router.refresh()
   }
 
   function resetForm() {
     setEmail('')
+    setVerificationCode('')
     setEmailSentTo(null)
     setMessage('')
   }
@@ -162,31 +194,52 @@ function LoginPageContent() {
             </div>
 
             <div className="qv-login-panel-copy">
-              <h1 className="qv-login-panel-title">Sign in with a secure link</h1>
+              <h1 className="qv-login-panel-title">Sign in with a verification code</h1>
               <p className="qv-login-panel-text">
-                Enter your email address and we will send you a secure sign-in link.
+                Enter your email address and we will send you a short code. No password needed.
               </p>
             </div>
 
             {emailSentTo ? (
-              <div className="qv-auth-success-state">
-                <div className="qv-auth-success-icon" aria-hidden="true">✓</div>
-                <div className="qv-auth-success-copy">
-                  <h2 className="qv-section-title">Check your email</h2>
-                  <p className="qv-auth-success-text">
-                    We sent a secure sign-in link to <strong>{emailSentTo}</strong>.
-                  </p>
-                  <p className="qv-auth-success-text">
-                    After you click the link, return here if needed and the app will continue your sign-in.
-                  </p>
+              <form onSubmit={handleVerifyLoginCode} className="qv-form-grid qv-register-form">
+                <div className="qv-auth-success-state">
+                  <div className="qv-auth-success-icon" aria-hidden="true">#</div>
+                  <div className="qv-auth-success-copy">
+                    <h2 className="qv-section-title">Enter your verification code</h2>
+                    <p className="qv-auth-success-text">
+                      We sent a verification code to <strong>{emailSentTo}</strong>.
+                    </p>
+                  </div>
                 </div>
-                <button type="button" className="qv-button-secondary" onClick={resetForm}>
-                  Use a different email
-                </button>
-              </div>
+
+                <label className="qv-field">
+                  <span>Verification code</span>
+                  <input
+                    name="token"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value)}
+                    placeholder="Enter code"
+                    required
+                  />
+                </label>
+
+                <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                  <button type="submit" disabled={loading} className="qv-button-primary">
+                    {loading ? 'Verifying...' : 'Verify and sign in'}
+                  </button>
+                  <button type="button" className="qv-button-secondary" onClick={resetForm} disabled={loading}>
+                    Use a different email
+                  </button>
+                </div>
+
+                {message ? <p className="qv-inline-message qv-auth-message">{message}</p> : null}
+              </form>
             ) : (
               <>
-                <form onSubmit={handleLogin} className="qv-login-form">
+                <form onSubmit={handleSendLoginCode} className="qv-login-form">
                   <div className="qv-control">
                     <input
                       id="email"
@@ -200,7 +253,7 @@ function LoginPageContent() {
                   </div>
 
                   <button type="submit" disabled={loading} className="qv-button-primary">
-                    {loading ? 'Sending...' : 'Send link'}
+                    {loading ? 'Sending...' : 'Send code'}
                   </button>
                 </form>
 
