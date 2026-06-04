@@ -3,17 +3,27 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { buildAuthConfirmRedirectUrl } from '@/lib/auth/redirects'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import {
   REGISTRATION_CONSENT_TEXT,
   REGISTRATION_CONSENT_VERSION,
 } from '@/lib/registration/consent'
+import { protectPeoplePayload } from '@/lib/security/pii'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 type RegistrationAppUserRow = {
   id: string
   person_id: string | null
   is_active: boolean | null
+}
+
+type RegistrationIntakeRow = {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  normalized_email: string
+  phone: string | null
 }
 
 function textValue(formData: FormData, key: string) {
@@ -25,6 +35,13 @@ function textValue(formData: FormData, key: string) {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
+}
+
+function toInitialCaps(value: string | null) {
+  if (!value) return null
+  return value
+    .toLowerCase()
+    .replace(/(^|[\s'’-])([a-z])/g, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`)
 }
 
 function isNextRedirectError(error: unknown) {
@@ -49,6 +66,67 @@ function originFromHeaders(headerStore: Headers) {
   const host = headerStore.get('x-forwarded-host') ?? headerStore.get('host')
   const protocol = headerStore.get('x-forwarded-proto') ?? 'http'
   return host ? `${protocol}://${host}` : null
+}
+
+async function createProfileFromRegistrationIntake(args: {
+  admin: ReturnType<typeof createAdminClient>
+  authUserId: string
+  authEmail: string
+  intake: RegistrationIntakeRow
+}) {
+  const { admin, authUserId, authEmail, intake } = args
+  const nowIso = new Date().toISOString()
+  const email = intake.email?.trim() || authEmail
+  const phone = intake.phone?.trim() || null
+
+  const payload = protectPeoplePayload({
+    council_id: null,
+    first_name: toInitialCaps(intake.first_name) ?? intake.first_name,
+    last_name: toInitialCaps(intake.last_name) ?? intake.last_name,
+    email,
+    cell_phone: phone,
+    home_phone: null,
+    nickname: null,
+    primary_relationship_code: 'member',
+    created_source_code: 'admin_manual_member',
+    is_provisional_member: true,
+    created_by_auth_user_id: authUserId,
+    updated_by_auth_user_id: authUserId,
+  })
+
+  const { data: insertedPerson, error: insertError } = await admin
+    .from('people')
+    .insert(payload)
+    .select('id')
+    .maybeSingle<{ id: string }>()
+
+  if (insertError || !insertedPerson?.id) {
+    return {
+      ok: false as const,
+      message: 'Your email was verified, but Chrism could not create your profile record yet.',
+    }
+  }
+
+  const { error: userUpsertError } = await admin
+    .from('users')
+    .upsert({
+      id: authUserId,
+      person_id: insertedPerson.id,
+      is_active: true,
+      updated_at: nowIso,
+    }, { onConflict: 'id' })
+
+  if (userUpsertError) {
+    return {
+      ok: false as const,
+      message: 'Your email was verified and your profile was created, but Chrism could not link it to your account yet.',
+    }
+  }
+
+  return {
+    ok: true as const,
+    personId: insertedPerson.id,
+  }
 }
 
 export async function registerContactAction(formData: FormData) {
@@ -150,32 +228,24 @@ export async function markRegistrationEmailVerifiedAction() {
     return { ok: false, message: appUserResponse.error.message }
   }
 
-  const userInitiatedProfilePersonId = appUserResponse.data?.person_id ?? null
-  const hasUserInitiatedProfile = Boolean(userInitiatedProfilePersonId)
+  const existingProfilePersonId = appUserResponse.data?.person_id ?? null
 
-  const updatePayload = hasUserInitiatedProfile
-    ? {
+  if (existingProfilePersonId) {
+    const updateResponse = await admin
+      .from('public_registration_intakes')
+      .update({
         email_verification_status: 'verified',
         admin_review_status: 'matched',
-        matched_person_id: userInitiatedProfilePersonId,
+        matched_person_id: existingProfilePersonId,
         matched_at: nowIso,
         updated_at: nowIso,
-      }
-    : {
-        email_verification_status: 'verified',
-        updated_at: nowIso,
-      }
+      })
+      .eq('normalized_email', normalizedEmail)
 
-  const updateResponse = await admin
-    .from('public_registration_intakes')
-    .update(updatePayload)
-    .eq('normalized_email', normalizedEmail)
+    if (updateResponse.error) {
+      return { ok: false, message: updateResponse.error.message }
+    }
 
-  if (updateResponse.error) {
-    return { ok: false, message: updateResponse.error.message }
-  }
-
-  if (hasUserInitiatedProfile) {
     return {
       ok: true,
       status: 'existing_user_profile',
@@ -183,9 +253,48 @@ export async function markRegistrationEmailVerifiedAction() {
     }
   }
 
+  const intakeResponse = await admin
+    .from('public_registration_intakes')
+    .select('id, first_name, last_name, email, normalized_email, phone')
+    .eq('normalized_email', normalizedEmail)
+    .maybeSingle<RegistrationIntakeRow>()
+
+  if (intakeResponse.error || !intakeResponse.data) {
+    return {
+      ok: false,
+      message: 'Your email was verified, but Chrism could not find your registration details yet.',
+    }
+  }
+
+  const createProfileResult = await createProfileFromRegistrationIntake({
+    admin,
+    authUserId: userData.user.id,
+    authEmail: userData.user.email,
+    intake: intakeResponse.data,
+  })
+
+  if (!createProfileResult.ok) {
+    return { ok: false, message: createProfileResult.message }
+  }
+
+  const updateResponse = await admin
+    .from('public_registration_intakes')
+    .update({
+      email_verification_status: 'verified',
+      admin_review_status: 'matched',
+      matched_person_id: createProfileResult.personId,
+      matched_at: nowIso,
+      updated_at: nowIso,
+    })
+    .eq('id', intakeResponse.data.id)
+
+  if (updateResponse.error) {
+    return { ok: false, message: updateResponse.error.message }
+  }
+
   return {
     ok: true,
-    status: 'verified_registration',
-    message: 'Your email has been verified. Your registration has been saved.',
+    status: 'created_user_profile',
+    message: 'Your email has been verified and your Chrism profile is ready.',
   }
 }
