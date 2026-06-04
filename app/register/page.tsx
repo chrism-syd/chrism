@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import RegisterForm from './register-form'
+import VerifyRegistrationCodeForm from './verify-registration-code-form'
 
 export const metadata: Metadata = {
   title: 'Register | Chrism',
@@ -16,6 +17,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
   const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
   const defaultEmail = typeof resolvedSearchParams.email === 'string' ? resolvedSearchParams.email : null
+  const isVerificationStep = Boolean(defaultEmail && noticeMessage)
 
   return (
     <main className="qv-page qv-login-page">
@@ -58,14 +60,18 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             <div className="qv-login-panel-copy">
               <h1 className="qv-login-panel-title">Register with Chrism</h1>
               <p className="qv-login-panel-text">
-                No password needed. We will email you a secure verification link after you submit your details.
+                No password needed. We will email you a verification code after you submit your details.
               </p>
             </div>
 
             {errorMessage ? <p className="qv-inline-message qv-inline-error">{errorMessage}</p> : null}
             {noticeMessage ? <p className="qv-inline-message qv-inline-success">{noticeMessage}</p> : null}
 
-            <RegisterForm defaultEmail={defaultEmail} />
+            {isVerificationStep && defaultEmail ? (
+              <VerifyRegistrationCodeForm email={defaultEmail} />
+            ) : (
+              <RegisterForm defaultEmail={defaultEmail} />
+            )}
 
             <div className="qv-login-footer-link-row">
               <Link href="/login" className="qv-auth-footer-link">
