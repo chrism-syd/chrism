@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/browser'
@@ -13,6 +14,7 @@ export default function VerifyRegistrationCodeForm({ email }: VerifyRegistration
   const router = useRouter()
   const [code, setCode] = useState('')
   const [message, setMessage] = useState('')
+  const [isVerified, setIsVerified] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -35,13 +37,35 @@ export default function VerifyRegistrationCodeForm({ email }: VerifyRegistration
     }
 
     const result = await markRegistrationEmailVerifiedAction()
+    setMessage(result.message)
+
     if (!result.ok) {
-      setMessage(result.message)
       setLoading(false)
       return
     }
 
-    router.push('/me')
+    setIsVerified(true)
+    setLoading(false)
+  }
+
+  if (isVerified) {
+    return (
+      <div className="qv-auth-success-state">
+        <div className="qv-auth-success-icon" aria-hidden="true">✓</div>
+        <div className="qv-auth-success-copy">
+          <h2 className="qv-section-title">Email verified</h2>
+          <p className="qv-auth-success-text">{message}</p>
+        </div>
+        <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+          <button type="button" className="qv-button-primary" onClick={() => router.push('/me')}>
+            Continue to profile
+          </button>
+          <Link href="/login" className="qv-button-secondary qv-link-button">
+            Sign in instead
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
