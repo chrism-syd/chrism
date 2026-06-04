@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { listPublishedPrayers } from '@/lib/spiritual/prayers'
+import { isSpiritualExperienceEnabled } from '@/lib/spiritual/visibility'
 import PrayerLibraryClient from './prayer-library-client'
 import sharedStyles from '../spiritual-section.module.css'
 import styles from './prayer-library.module.css'
@@ -12,6 +13,10 @@ export const metadata: Metadata = {
 }
 
 export default async function PrayerLibraryPage() {
+  if (!isSpiritualExperienceEnabled) {
+    notFound()
+  }
+
   const permissions = await getCurrentUserPermissions()
 
   if (!permissions.isSignedIn) {
