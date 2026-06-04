@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import CleanCurrentUrl from '@/app/components/clean-current-url'
 import RegisterForm from './register-form'
 import VerifyRegistrationCodeForm from './verify-registration-code-form'
 
@@ -21,6 +22,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
   return (
     <main className="qv-page qv-login-page">
+      <CleanCurrentUrl />
       <div className="qv-login-shell">
         <div className="qv-login-surface">
           <section className="qv-login-showcase" aria-label="Chrism registration introduction">
