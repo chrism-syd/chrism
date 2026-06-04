@@ -10,6 +10,12 @@ import {
   REGISTRATION_CONSENT_VERSION,
 } from '@/lib/registration/consent'
 
+type RegistrationAppUserRow = {
+  id: string
+  person_id: string | null
+  is_active: boolean | null
+}
+
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -124,22 +130,62 @@ export async function markRegistrationEmailVerifiedAction() {
   const { data: userData, error: userError } = await supabase.auth.getUser()
 
   if (userError || !userData.user?.email) {
-    return { ok: false, message: 'Your email was verified, but Chrism could not update the registration record yet.' }
+    return {
+      ok: false,
+      message: 'Your email was verified, but Chrism could not update the registration record yet.',
+    }
   }
 
   const normalizedEmail = normalizeEmail(userData.user.email)
   const admin = createAdminClient()
+  const nowIso = new Date().toISOString()
+
+  const appUserResponse = await admin
+    .from('users')
+    .select('id, person_id, is_active')
+    .eq('id', userData.user.id)
+    .maybeSingle<RegistrationAppUserRow>()
+
+  if (appUserResponse.error) {
+    return { ok: false, message: appUserResponse.error.message }
+  }
+
+  const userInitiatedProfilePersonId = appUserResponse.data?.person_id ?? null
+  const hasUserInitiatedProfile = Boolean(userInitiatedProfilePersonId)
+
+  const updatePayload = hasUserInitiatedProfile
+    ? {
+        email_verification_status: 'verified',
+        admin_review_status: 'matched',
+        matched_person_id: userInitiatedProfilePersonId,
+        matched_at: nowIso,
+        updated_at: nowIso,
+      }
+    : {
+        email_verification_status: 'verified',
+        updated_at: nowIso,
+      }
+
   const updateResponse = await admin
     .from('public_registration_intakes')
-    .update({
-      email_verification_status: 'verified',
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('normalized_email', normalizedEmail)
 
   if (updateResponse.error) {
     return { ok: false, message: updateResponse.error.message }
   }
 
-  return { ok: true, message: 'Email verified.' }
+  if (hasUserInitiatedProfile) {
+    return {
+      ok: true,
+      status: 'existing_user_profile',
+      message: 'Looks like this email is already connected to a Chrism profile. You are signed in and can continue to your profile.',
+    }
+  }
+
+  return {
+    ok: true,
+    status: 'verified_registration',
+    message: 'Your email has been verified. Your registration has been saved.',
+  }
 }
