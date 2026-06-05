@@ -171,9 +171,6 @@ export default function AboutPage() {
                 By combining ministry software, fundraising goods, and institutional print sourcing, Chrism creates a
                 closed-loop ecosystem where commercial activity helps fund the infrastructure local ministries need.
               </p>
-              <p className={styles.statement}>
-                When the faith-based marketplace succeeds, the faith-based ministry directly thrives.
-              </p>
             </div>
           </section>
         </section>
@@ -270,7 +267,6 @@ export default function AboutPage() {
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>Details</p>
             <h2 className={styles.sectionTitle}>Common questions</h2>
           </div>
 
