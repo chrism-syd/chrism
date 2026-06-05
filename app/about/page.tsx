@@ -68,11 +68,6 @@ const faqs = [
       'Chrism offers ministry software for member management, events, volunteer coordination, communication, and local organization context. It also supports print sourcing, fundraising products, sacramental materials, and institutional procurement work.',
   },
   {
-    question: 'Is Chrism only for Catholic organizations?',
-    answer:
-      'Chrism is built from a Catholic worldview and designed first for Catholic ministries, councils, schools, and parish communities. Some sourcing and operational services may also support aligned local organizations where the fit is clear.',
-  },
-  {
     question: 'What kind of print work can Chrism source?',
     answer:
       'Chrism can help source Christmas cards, certificates, postcards, signs, banners, apparel, forms, bulletins, fundraising materials, and other institutional print needs.',
@@ -121,8 +116,7 @@ export default function AboutPage() {
         </header>
 
         <section className={styles.heroBlock}>
-          <p className={styles.eyebrow}>Mission & Ecosystem</p>
-          <h1 className={styles.heroTitle}>Our Mission & The Chrism Ecosystem</h1>
+          <h1 className={styles.heroTitle}>The Chrism Ecosystem</h1>
           <p className={styles.heroLead}>
             Chrism bridges commercial enterprise and community stewardship so operational capital can stay closer to the
             ministries, schools, councils, and local organizations doing the work on the ground.
@@ -160,7 +154,7 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <section className={styles.contentCard}>
+          <section className={styles.contentPlain}>
             <p className={styles.eyebrow}>Why Chrism Exists</p>
             <h2 className={styles.sectionTitle}>Ministry deserves better tools and better economics.</h2>
             <div className={styles.copyStack}>
@@ -243,6 +237,16 @@ export default function AboutPage() {
                 <p>{step.copy}</p>
               </article>
             ))}
+          </div>
+
+          <div className={styles.freeBanner}>
+            <h3 className={styles.freeBannerTitle}>Chrism&apos;s core functionality will always be FREE.</h3>
+            <div className={styles.freeBannerCopy}>
+              <p>
+                The essential tools of member engagement and care should be accessible to every ministry, not just the ones
+                with a budget.
+              </p>
+            </div>
           </div>
         </section>
 
