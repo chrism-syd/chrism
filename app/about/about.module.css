@@ -35,7 +35,7 @@
 
 .eyebrow,
 .pillarEyebrow {
-  margin: 0 0 -4px;
+  margin: 0 0 -8px;
   font-size: 12px;
   line-height: 1.2;
   letter-spacing: 0.16em;
@@ -123,12 +123,13 @@
 
 .contentPlain {
   align-content: start;
+  gap: 12px;
   padding-top: 18px;
 }
 
 .sectionIntroWide {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   max-width: 980px;
 }
 
@@ -141,6 +142,7 @@
 }
 
 .sectionTitle {
+  color: var(--qv-plum);
   font-size: clamp(34px, 4.2vw, 56px);
   line-height: 0.98;
 }
@@ -148,6 +150,7 @@
 .copyStack {
   display: grid;
   gap: 14px;
+  margin-top: 12px;
 }
 
 .copyStack p,
