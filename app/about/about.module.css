@@ -50,7 +50,8 @@
 .ctaTitle,
 .platformCard h3,
 .stepCard h3,
-.valueCard h3 {
+.valueCard h3,
+.freeBannerTitle {
   font-family: var(--font-heading), Georgia, serif;
 }
 
@@ -60,7 +61,7 @@
   line-height: 0.92;
   letter-spacing: -0.055em;
   color: var(--text-primary);
-  max-width: 13ch;
+  max-width: 11ch;
 }
 
 .heroLead {
@@ -74,7 +75,7 @@
 .visionGrid {
   display: grid;
   grid-template-columns: minmax(280px, 0.52fr) minmax(0, 1fr);
-  gap: 28px;
+  gap: 44px;
   align-items: start;
 }
 
@@ -87,10 +88,9 @@
   position: relative;
   overflow: hidden;
   background: var(--bg-sunken);
-  border-radius: 26px;
+  border-radius: 8px;
   aspect-ratio: 1 / 1.25;
   border: 1px solid var(--divider);
-  box-shadow: var(--shadow-card);
 }
 
 .aboutImage {
@@ -110,36 +110,24 @@
   text-underline-offset: 2px;
 }
 
-.contentCard,
-.valuesSection,
-.flywheelSection,
+.contentPlain,
 .platformSection,
+.flywheelSection,
 .trustBand,
 .faqSection,
 .ctaSection {
-  border: 1px solid var(--divider);
-  border-radius: 26px;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-card);
-}
-
-.contentCard {
   display: grid;
-  gap: 18px;
-  padding: 32px;
+  gap: 26px;
 }
 
-.sectionIntro,
+.contentPlain {
+  align-content: start;
+  padding-top: 18px;
+}
+
 .sectionIntroWide {
   display: grid;
   gap: 12px;
-}
-
-.sectionIntro {
-  max-width: 760px;
-}
-
-.sectionIntroWide {
   max-width: 980px;
 }
 
@@ -162,11 +150,11 @@
 }
 
 .copyStack p,
-.sectionIntro p,
 .sectionIntroWide p,
 .stepCard p,
 .platformCard p,
 .valueCard p,
+.freeBannerCopy p,
 .faqItem p {
   margin: 0;
   color: var(--text-secondary);
@@ -179,20 +167,28 @@
   font-weight: 800;
 }
 
-.valuesSection,
-.flywheelSection,
-.platformSection,
-.faqSection {
+.valuesSection {
   display: grid;
-  gap: 26px;
-  padding: 32px;
+  gap: 22px;
 }
 
 .cardGrid,
 .flywheelGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 18px;
+}
+
+.platformSection,
+.flywheelSection,
+.trustBand,
+.faqSection,
+.ctaSection {
+  border: 1px solid var(--divider);
+  border-radius: 26px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  padding: 32px;
 }
 
 .stepCard,
@@ -200,11 +196,18 @@
 .valueCard {
   display: grid;
   gap: 14px;
-  padding: 22px;
+  padding: 24px;
   border: 1px solid var(--divider);
-  border-radius: 20px;
-  background: var(--bg-sunken);
+  border-radius: 24px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
   align-content: start;
+}
+
+.platformCard,
+.stepCard {
+  background: var(--bg-sunken);
+  box-shadow: none;
 }
 
 .stepLabel {
@@ -229,11 +232,39 @@
   letter-spacing: -0.03em;
 }
 
+.freeBanner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
+  gap: 48px;
+  padding: 48px;
+  border-radius: 34px;
+  background: #e3bc58;
+  color: var(--text-primary);
+}
+
+.freeBannerTitle {
+  margin: 0;
+  font-size: clamp(48px, 6vw, 88px);
+  line-height: 0.94;
+  letter-spacing: -0.05em;
+  max-width: 9ch;
+}
+
+.freeBannerCopy {
+  display: grid;
+  align-content: center;
+}
+
+.freeBannerCopy p {
+  color: var(--text-primary);
+  font-size: clamp(24px, 2.5vw, 32px);
+  line-height: 1.45;
+}
+
 .trustBand {
   display: grid;
   grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
   gap: 28px;
-  padding: 32px;
   background:
     linear-gradient(135deg, rgba(245, 194, 66, 0.22), transparent 38%),
     var(--bg-card);
@@ -284,10 +315,7 @@
 }
 
 .ctaSection {
-  display: grid;
   justify-items: center;
-  gap: 16px;
-  padding: 34px;
   text-align: center;
 }
 
@@ -307,17 +335,22 @@
 
 @media (max-width: 1060px) {
   .visionGrid,
-  .trustBand {
+  .trustBand,
+  .freeBanner {
     grid-template-columns: 1fr;
   }
 
   .heroTitle {
-    max-width: 14ch;
+    max-width: 12ch;
   }
 
   .cardGrid,
   .flywheelGrid {
     grid-template-columns: 1fr;
+  }
+
+  .freeBannerTitle {
+    max-width: none;
   }
 }
 
@@ -335,10 +368,8 @@
     width: 210px;
   }
 
-  .contentCard,
-  .valuesSection,
-  .flywheelSection,
   .platformSection,
+  .flywheelSection,
   .trustBand,
   .faqSection,
   .ctaSection {
@@ -356,8 +387,18 @@
   }
 
   .imageFrame {
-    border-radius: 22px;
+    border-radius: 6px;
     aspect-ratio: 1 / 0.95;
+  }
+
+  .freeBanner {
+    padding: 28px 22px;
+    gap: 24px;
+    border-radius: 26px;
+  }
+
+  .freeBannerCopy p {
+    font-size: 20px;
   }
 
   .ctaActions {
