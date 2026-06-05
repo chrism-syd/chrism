@@ -28,22 +28,9 @@
 
 .heroBlock {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.46fr);
-  gap: 24px;
-  align-items: stretch;
-  padding: 34px;
-  border: 1px solid var(--divider);
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top right, rgba(245, 194, 66, 0.18), transparent 32%),
-    var(--bg-card);
-  box-shadow: var(--shadow-card);
-}
-
-.heroTextBlock {
-  display: grid;
-  gap: 18px;
-  align-content: center;
+  gap: 20px;
+  max-width: 1080px;
+  padding: 28px 0 12px;
 }
 
 .eyebrow,
@@ -62,13 +49,14 @@
 .trustTitle,
 .ctaTitle,
 .platformCard h3,
-.stepCard h3 {
+.stepCard h3,
+.valueCard h3 {
   font-family: var(--font-heading), Georgia, serif;
 }
 
 .heroTitle {
   margin: 0;
-  font-size: clamp(48px, 6.8vw, 88px);
+  font-size: clamp(52px, 7.6vw, 94px);
   line-height: 0.92;
   letter-spacing: -0.055em;
   color: var(--text-primary);
@@ -77,27 +65,10 @@
 
 .heroLead {
   margin: 0;
-  max-width: 760px;
-  font-size: clamp(19px, 2.2vw, 28px);
-  line-height: 1.2;
+  max-width: 880px;
+  font-size: clamp(20px, 2.2vw, 29px);
+  line-height: 1.22;
   color: var(--text-primary);
-}
-
-.heroCard {
-  display: flex;
-  align-items: flex-end;
-  min-height: 260px;
-  padding: 24px;
-  border-radius: 22px;
-  background: var(--bg-sunken);
-  border: 1px solid var(--divider);
-}
-
-.heroCard p {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.55;
-  color: var(--text-secondary);
 }
 
 .visionGrid {
@@ -140,9 +111,11 @@
 }
 
 .contentCard,
+.valuesSection,
 .flywheelSection,
 .platformSection,
 .trustBand,
+.faqSection,
 .ctaSection {
   border: 1px solid var(--divider);
   border-radius: 26px;
@@ -190,9 +163,11 @@
 
 .copyStack p,
 .sectionIntro p,
+.sectionIntroWide p,
 .stepCard p,
 .platformCard p,
-.platformCard li {
+.valueCard p,
+.faqItem p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 15px;
@@ -204,13 +179,16 @@
   font-weight: 800;
 }
 
+.valuesSection,
 .flywheelSection,
-.platformSection {
+.platformSection,
+.faqSection {
   display: grid;
   gap: 26px;
   padding: 32px;
 }
 
+.cardGrid,
 .flywheelGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -218,13 +196,15 @@
 }
 
 .stepCard,
-.platformCard {
+.platformCard,
+.valueCard {
   display: grid;
   gap: 14px;
   padding: 22px;
   border: 1px solid var(--divider);
   border-radius: 20px;
   background: var(--bg-sunken);
+  align-content: start;
 }
 
 .stepLabel {
@@ -240,29 +220,13 @@
 }
 
 .stepCard h3,
-.platformCard h3 {
+.platformCard h3,
+.valueCard h3 {
   margin: 0;
   color: var(--text-primary);
   font-size: clamp(26px, 2.8vw, 36px);
   line-height: 1;
   letter-spacing: -0.03em;
-}
-
-.pillarGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.platformCard {
-  align-content: start;
-}
-
-.platformCard ul {
-  margin: 2px 0 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 8px;
 }
 
 .trustBand {
@@ -279,6 +243,44 @@
   margin-top: 10px;
   font-size: clamp(36px, 4.4vw, 58px);
   line-height: 0.96;
+}
+
+.faqList {
+  display: grid;
+  gap: 10px;
+}
+
+.faqItem {
+  border: 1px solid var(--divider);
+  border-radius: 18px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.faqItem summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 20px;
+  color: var(--text-primary);
+  font-weight: 800;
+}
+
+.faqItem summary::-webkit-details-marker {
+  display: none;
+}
+
+.faqItem summary::after {
+  content: '+';
+  float: right;
+  color: var(--text-secondary);
+}
+
+.faqItem[open] summary::after {
+  content: '–';
+}
+
+.faqItem p {
+  padding: 0 20px 18px;
 }
 
 .ctaSection {
@@ -304,7 +306,6 @@
 }
 
 @media (max-width: 1060px) {
-  .heroBlock,
   .visionGrid,
   .trustBand {
     grid-template-columns: 1fr;
@@ -314,12 +315,8 @@
     max-width: 14ch;
   }
 
-  .heroCard {
-    min-height: auto;
-  }
-
-  .flywheelGrid,
-  .pillarGrid {
+  .cardGrid,
+  .flywheelGrid {
     grid-template-columns: 1fr;
   }
 }
@@ -338,11 +335,12 @@
     width: 210px;
   }
 
-  .heroBlock,
   .contentCard,
+  .valuesSection,
   .flywheelSection,
   .platformSection,
   .trustBand,
+  .faqSection,
   .ctaSection {
     padding: 22px;
     border-radius: 22px;
