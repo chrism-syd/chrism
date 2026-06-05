@@ -22,7 +22,7 @@ const valueCards = [
 
 const ecosystemCards = [
   {
-    title: 'Chrism Software',
+    title: 'Chrism Operations',
     eyebrow: 'The Ministry OS',
     copy:
       'A streamlined coordination platform for member records, events, volunteers, communication, and local organization context.',
@@ -110,8 +110,8 @@ export default function LandingPage() {
             />
           </Link>
 
-          <Link href="/app" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
-            Launch the app
+          <Link href="/operations" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
+            Launch Operations
           </Link>
         </header>
 
@@ -290,8 +290,8 @@ export default function LandingPage() {
             <Link href="mailto:syd.fernandez@chrism.app?subject=Chrism%20comparison%20quote" className="qv-link-button qv-button-secondary">
               Get a Comparison Quote
             </Link>
-            <Link href="/app" className="qv-link-button qv-button-primary">
-              Launch the App
+            <Link href="/operations" className="qv-link-button qv-button-primary">
+              Launch Operations
             </Link>
           </div>
         </section>
