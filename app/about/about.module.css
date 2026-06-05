@@ -1,6 +1,6 @@
 .aboutShell {
-  gap: 34px;
-  padding-bottom: 32px;
+  gap: 68px;
+  padding-bottom: 64px;
 }
 
 .topBar {
@@ -28,14 +28,14 @@
 
 .heroBlock {
   display: grid;
-  gap: 20px;
-  max-width: 1080px;
-  padding: 28px 0 12px;
+  gap: 22px;
+  max-width: none;
+  padding: 28px 0 10px;
 }
 
 .eyebrow,
 .pillarEyebrow {
-  margin: 0;
+  margin: 0 0 -4px;
   font-size: 12px;
   line-height: 1.2;
   letter-spacing: 0.16em;
@@ -57,25 +57,26 @@
 
 .heroTitle {
   margin: 0;
-  font-size: clamp(52px, 7.6vw, 94px);
+  font-size: clamp(52px, 7vw, 112px);
   line-height: 0.92;
   letter-spacing: -0.055em;
-  color: var(--text-primary);
-  max-width: 11ch;
+  color: rgb(46, 42, 52);
+  max-width: none;
+  white-space: nowrap;
 }
 
 .heroLead {
   margin: 0;
-  max-width: 880px;
+  max-width: 900px;
   font-size: clamp(20px, 2.2vw, 29px);
   line-height: 1.22;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .visionGrid {
   display: grid;
   grid-template-columns: minmax(280px, 0.52fr) minmax(0, 1fr);
-  gap: 44px;
+  gap: 56px;
   align-items: start;
 }
 
@@ -87,10 +88,10 @@
 .imageFrame {
   position: relative;
   overflow: hidden;
-  background: var(--bg-sunken);
-  border-radius: 8px;
+  background: transparent;
+  border-radius: 0;
   aspect-ratio: 1 / 1.25;
-  border: 1px solid var(--divider);
+  border: 0;
 }
 
 .aboutImage {
@@ -127,7 +128,7 @@
 
 .sectionIntroWide {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   max-width: 980px;
 }
 
@@ -135,7 +136,7 @@
 .trustTitle,
 .ctaTitle {
   margin: 0;
-  color: var(--text-primary);
+  color: rgb(46, 42, 52);
   letter-spacing: -0.035em;
 }
 
@@ -157,19 +158,14 @@
 .freeBannerCopy p,
 .faqItem p {
   margin: 0;
-  color: var(--text-secondary);
+  color: rgb(46, 42, 52);
   font-size: 15px;
   line-height: 1.58;
 }
 
-.statement {
-  color: var(--text-primary) !important;
-  font-weight: 800;
-}
-
 .valuesSection {
   display: grid;
-  gap: 22px;
+  gap: 26px;
 }
 
 .cardGrid,
@@ -215,8 +211,8 @@
   width: fit-content;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #f5c242;
-  color: var(--text-primary);
+  background: rgb(245, 194, 66);
+  color: rgb(46, 42, 52);
   font-size: 12px;
   line-height: 1;
   font-weight: 800;
@@ -226,7 +222,7 @@
 .platformCard h3,
 .valueCard h3 {
   margin: 0;
-  color: var(--text-primary);
+  color: rgb(46, 42, 52);
   font-size: clamp(26px, 2.8vw, 36px);
   line-height: 1;
   letter-spacing: -0.03em;
@@ -238,16 +234,16 @@
   gap: 48px;
   padding: 48px;
   border-radius: 34px;
-  background: #e3bc58;
-  color: var(--text-primary);
+  background: rgb(245, 194, 66);
+  color: rgb(46, 42, 52);
 }
 
 .freeBannerTitle {
   margin: 0;
-  font-size: clamp(48px, 6vw, 88px);
-  line-height: 0.94;
-  letter-spacing: -0.05em;
-  max-width: 9ch;
+  font-size: clamp(34px, 4.2vw, 56px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  max-width: 14ch;
 }
 
 .freeBannerCopy {
@@ -256,9 +252,9 @@
 }
 
 .freeBannerCopy p {
-  color: var(--text-primary);
-  font-size: clamp(24px, 2.5vw, 32px);
-  line-height: 1.45;
+  color: rgb(46, 42, 52);
+  font-size: 20px;
+  line-height: 1.5;
 }
 
 .trustBand {
@@ -271,7 +267,7 @@
 }
 
 .trustTitle {
-  margin-top: 10px;
+  margin-top: 6px;
   font-size: clamp(36px, 4.4vw, 58px);
   line-height: 0.96;
 }
@@ -292,7 +288,7 @@
   cursor: pointer;
   list-style: none;
   padding: 18px 20px;
-  color: var(--text-primary);
+  color: rgb(46, 42, 52);
   font-weight: 800;
 }
 
@@ -341,7 +337,7 @@
   }
 
   .heroTitle {
-    max-width: 12ch;
+    white-space: normal;
   }
 
   .cardGrid,
@@ -356,7 +352,7 @@
 
 @media (max-width: 720px) {
   .aboutShell {
-    gap: 22px;
+    gap: 42px;
   }
 
   .topBar {
@@ -387,7 +383,7 @@
   }
 
   .imageFrame {
-    border-radius: 6px;
+    border-radius: 0;
     aspect-ratio: 1 / 0.95;
   }
 
@@ -398,7 +394,7 @@
   }
 
   .freeBannerCopy p {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .ctaActions {
