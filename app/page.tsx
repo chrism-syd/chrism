@@ -159,17 +159,23 @@ export default function LandingPage() {
             <h2 className={styles.sectionTitle}>Ministry deserves better tools and better economics.</h2>
             <div className={styles.copyStack}>
               <p>
+                Ministry runs on care: volunteers who show up, leaders who remember names, and members who stay connected
+                across seasons of life.
+              </p>
+              <p>
+                What they rarely have is a simple, affordable tool built to support that work. Enterprise CRM software wasn&apos;t
+                designed for parish life. Spreadsheets don&apos;t scale. And the people doing this work deserve better than
+                cobbled-together workarounds — better tools, and better economics.
+              </p>
+              <p>
                 Faith-driven communities, families, educators, and leaders are called to pursue excellence, support their
-                neighbors, and build healthy local institutions. But the tools around that work are often fragmented,
-                expensive, and designed for businesses rather than communities.
+                neighbors, and build healthy local institutions. But the tools around that work are fragmented, expensive,
+                and designed for businesses rather than communities.
               </p>
               <p>
-                Ministry teams are left balancing spreadsheets, email threads, retail print pricing, scattered vendors,
-                bloated software contracts, and volunteer exhaustion. Chrism exists to make that work lighter.
-              </p>
-              <p>
-                By combining ministry software, fundraising goods, and institutional print sourcing, Chrism creates a
-                closed-loop ecosystem where commercial activity helps fund the infrastructure local ministries need.
+                Chrism exists to make that work lighter. By combining ministry software, fundraising goods, and institutional
+                print sourcing, Chrism creates a closed-loop ecosystem where commercial activity helps fund the infrastructure
+                local ministries need.
               </p>
             </div>
           </section>
