@@ -23,23 +23,32 @@ const valueCards = [
 const ecosystemCards = [
   {
     title: 'Chrism Operations',
-    eyebrow: 'The Ministry OS',
+    eyebrow: 'Ministry OS',
+    variant: 'operations',
     copy:
       'A streamlined coordination platform for member records, events, volunteers, communication, and local organization context.',
   },
   {
     title: 'Chrism Commerce',
-    eyebrow: 'Fundraising & Sacred Goods',
+    eyebrow: 'Fundraising',
+    variant: 'commerce',
     copy:
       'Premium Christmas cards, sacramental certificates, and print collateral designed to honor the dignity of the mission while creating strong local fundraising opportunities.',
   },
   {
     title: 'Chrism Brokerage',
-    eyebrow: 'Institutional Print Sourcing',
+    eyebrow: 'Print Sourcing',
+    variant: 'brokerage',
     copy:
       'Commercial print, signage, apparel, and procurement sourcing through trade-aware production partners that help institutions avoid unnecessary retail markup.',
   },
-]
+] as const
+
+function pillarTagClass(variant: (typeof ecosystemCards)[number]['variant']) {
+  if (variant === 'operations') return styles.pillarTagOperations
+  if (variant === 'commerce') return styles.pillarTagCommerce
+  return styles.pillarTagBrokerage
+}
 
 const flywheelSteps = [
   {
@@ -211,10 +220,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className={styles.cardGrid}>
+          <div className={styles.pillarColumns}>
             {ecosystemCards.map((card) => (
-              <article key={card.title} className={styles.platformCard} id={card.title === 'Chrism Brokerage' ? 'sourcing' : undefined}>
-                <p className={styles.pillarEyebrow}>{card.eyebrow}</p>
+              <article key={card.title} className={styles.pillarColumn} id={card.title === 'Chrism Brokerage' ? 'sourcing' : undefined}>
+                <p className={`${styles.pillarTag} ${pillarTagClass(card.variant)}`}>{card.eyebrow}</p>
                 <h3>{card.title}</h3>
                 <p>{card.copy}</p>
               </article>
@@ -232,10 +241,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className={styles.flywheelGrid}>
+          <div className={styles.flowGrid}>
             {flywheelSteps.map((step, index) => (
-              <article key={step.title} className={styles.stepCard}>
-                <span className={styles.stepLabel}>{String(index + 1).padStart(2, '0')}</span>
+              <article key={step.title} className={styles.flowItem}>
+                <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
                 <h3>{step.title}</h3>
                 <p>{step.copy}</p>
               </article>
