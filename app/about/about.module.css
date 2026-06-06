@@ -157,9 +157,9 @@
 }
 
 .copyStack p,
-.sectionIntroWide p,
+.sectionIntroWide p:not(.eyebrow),
 .stepCard p,
-.platformCard p,
+.platformCard p:not(.pillarEyebrow),
 .valueCard p,
 .freeBannerCopy p,
 .faqItem p {
