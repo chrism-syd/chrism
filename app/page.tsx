@@ -240,7 +240,7 @@ export default function LandingPage() {
             <h3 className={styles.freeBannerTitle}>Chrism&apos;s core functionality will always be FREE.</h3>
             <div className={styles.freeBannerCopy}>
               <p>
-                The essential tools of member engagement and care should be accessible to every ministry, not just the ones
+                The essential tools of member engagement and care will always be accessible to every ministry, not just the ones
                 with a budget.
               </p>
             </div>
@@ -248,9 +248,9 @@ export default function LandingPage() {
         </section>
 
         <section className={styles.trustBand}>
-          <div>
+          <div className={styles.trustIntro}>
             <p className={styles.eyebrow}>Trust</p>
-            <h2 className={styles.trustTitle}>Built for responsible stewardship</h2>
+            <h2 className={styles.trustTitle}>Responsible stewardship</h2>
           </div>
           <div className={styles.copyStack}>
             <p>
