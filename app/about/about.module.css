@@ -123,11 +123,12 @@
 
 .contentPlain {
   align-content: start;
-  gap: 12px;
-  padding-top: 18px;
+  gap: 6px;
+  padding-top: 0;
 }
 
-.sectionIntroWide {
+.sectionIntroWide,
+.trustIntro {
   display: grid;
   gap: 6px;
   max-width: 980px;
@@ -141,7 +142,9 @@
   letter-spacing: -0.035em;
 }
 
-.sectionTitle {
+.sectionTitle,
+.trustTitle,
+.ctaTitle {
   color: var(--qv-plum);
   font-size: clamp(34px, 4.2vw, 56px);
   line-height: 0.98;
@@ -269,12 +272,6 @@
     var(--bg-card);
 }
 
-.trustTitle {
-  margin-top: 6px;
-  font-size: clamp(36px, 4.4vw, 58px);
-  line-height: 0.96;
-}
-
 .faqList {
   display: grid;
   gap: 10px;
@@ -320,8 +317,6 @@
 
 .ctaTitle {
   max-width: 760px;
-  font-size: clamp(34px, 4vw, 54px);
-  line-height: 1;
 }
 
 .ctaActions {
