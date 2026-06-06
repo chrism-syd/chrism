@@ -48,8 +48,8 @@
 .sectionTitle,
 .trustTitle,
 .ctaTitle,
-.platformCard h3,
-.stepCard h3,
+.pillarColumn h3,
+.flowItem h3,
 .valueCard h3,
 .freeBannerTitle {
   font-family: var(--font-heading), Georgia, serif;
@@ -158,8 +158,8 @@
 
 .copyStack p,
 .sectionIntroWide p:not(.eyebrow),
-.stepCard p,
-.platformCard p:not(.pillarEyebrow),
+.pillarColumn p:not(.pillarTag),
+.flowItem p:not(.flowNumber),
 .valueCard p,
 .freeBannerCopy p,
 .faqItem p {
@@ -174,8 +174,7 @@
   gap: 26px;
 }
 
-.cardGrid,
-.flywheelGrid {
+.cardGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
@@ -193,8 +192,6 @@
   padding: 32px;
 }
 
-.stepCard,
-.platformCard,
 .valueCard {
   display: grid;
   gap: 14px;
@@ -206,32 +203,100 @@
   align-content: start;
 }
 
-.platformCard,
-.stepCard {
-  background: var(--bg-sunken);
-  box-shadow: none;
-}
-
-.stepLabel {
-  display: inline-flex;
-  width: fit-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgb(245, 194, 66);
-  color: rgb(46, 42, 52);
-  font-size: 12px;
-  line-height: 1;
-  font-weight: 800;
-}
-
-.stepCard h3,
-.platformCard h3,
 .valueCard h3 {
   margin: 0;
   color: rgb(46, 42, 52);
   font-size: clamp(26px, 2.8vw, 36px);
   line-height: 1;
   letter-spacing: -0.03em;
+}
+
+.pillarColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+}
+
+.pillarColumn {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 28px;
+}
+
+.pillarColumn + .pillarColumn {
+  border-left: 1px solid var(--divider);
+}
+
+.pillarTag {
+  width: fit-content;
+  margin: 0 0 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pillarTagOperations {
+  background: rgba(245, 194, 66, 0.36);
+  color: #6d5110;
+}
+
+.pillarTagCommerce {
+  background: rgba(80, 173, 131, 0.18);
+  color: #226342;
+}
+
+.pillarTagBrokerage {
+  background: rgba(94, 72, 126, 0.16);
+  color: var(--qv-plum);
+}
+
+.pillarColumn h3,
+.flowItem h3 {
+  margin: 0;
+  color: rgb(46, 42, 52);
+  font-size: clamp(26px, 2.8vw, 36px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.flowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 56px;
+  padding: 28px 0 8px;
+}
+
+.flowItem {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.flowItem + .flowItem::before {
+  content: '→';
+  position: absolute;
+  top: 12px;
+  left: -38px;
+  color: rgba(46, 42, 52, 0.34);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.flowNumber {
+  margin: 0;
+  color: rgba(46, 42, 52, 0.28);
+  font-size: clamp(48px, 6vw, 78px);
+  line-height: 0.9;
+  font-weight: 800;
+  letter-spacing: -0.06em;
 }
 
 .freeBanner {
@@ -272,22 +337,24 @@
     var(--bg-card);
 }
 
+.faqSection {
+  box-shadow: none;
+}
+
 .faqList {
   display: grid;
-  gap: 10px;
+  border-top: 1px solid var(--divider);
 }
 
 .faqItem {
-  border: 1px solid var(--divider);
-  border-radius: 18px;
-  background: var(--bg-sunken);
-  overflow: hidden;
+  border-bottom: 1px solid var(--divider);
+  background: transparent;
 }
 
 .faqItem summary {
   cursor: pointer;
   list-style: none;
-  padding: 18px 20px;
+  padding: 18px 0;
   color: rgb(46, 42, 52);
   font-weight: 800;
 }
@@ -307,7 +374,7 @@
 }
 
 .faqItem p {
-  padding: 0 20px 18px;
+  padding: 0 0 18px;
 }
 
 .ctaSection {
@@ -339,8 +406,18 @@
   }
 
   .cardGrid,
-  .flywheelGrid {
+  .flowGrid,
+  .pillarColumns {
     grid-template-columns: 1fr;
+  }
+
+  .pillarColumn + .pillarColumn {
+    border-left: 0;
+    border-top: 1px solid var(--divider);
+  }
+
+  .flowItem + .flowItem::before {
+    display: none;
   }
 
   .freeBannerTitle {
@@ -383,6 +460,15 @@
   .imageFrame {
     border-radius: 0;
     aspect-ratio: 1 / 0.95;
+  }
+
+  .pillarColumn {
+    padding: 22px 0;
+  }
+
+  .flowGrid {
+    gap: 28px;
+    padding-top: 12px;
   }
 
   .freeBanner {
