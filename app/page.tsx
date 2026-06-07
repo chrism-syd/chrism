@@ -4,6 +4,7 @@ import styles from './about/about.module.css'
 import faqStyles from './faq-image.module.css'
 import flywheelStyles from './flywheel-star.module.css'
 import InvoiceReviewCta from './invoice-review-cta'
+import stewardshipStyles from './stewardship-section.module.css'
 import heroStyles from './landing-hero.module.css'
 
 function noOrphan(text: string) {
@@ -195,7 +196,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className={styles.trustBand}>
+        <section className={`${styles.trustBand} ${stewardshipStyles.plainTrust}`}>
           <div className={styles.trustIntro}>
             <h2 className={`${styles.trustTitle} ${heroStyles.visionTitle}`}>Responsible stewardship</h2>
           </div>
