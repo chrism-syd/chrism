@@ -125,7 +125,11 @@ export default function LandingPage() {
         </header>
 
         <section className={styles.heroBlock}>
-          <h1 className={styles.heroTitle}>The Chrism Ecosystem</h1>
+          <h1 className={styles.heroTitle}>
+            Built for community.
+            <br />
+            Optimized for business.
+          </h1>
           <p className={styles.heroLead}>
             Chrism bridges commercial enterprise and community stewardship so operational capital can stay closer to the
             ministries, schools, councils, and local organizations doing the work on the ground.
