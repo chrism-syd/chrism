@@ -13,7 +13,7 @@
   position: absolute;
   z-index: 0;
   right: clamp(-18px, 1vw, 24px);
-  top: clamp(250px, 25vw, 340px);
+  top: clamp(220px, 22vw, 310px);
   width: min(38vw, 500px);
   pointer-events: none;
 }
@@ -40,6 +40,19 @@
 .schoolHeroTitle {
   white-space: normal;
   max-width: 17ch;
+}
+
+.animatedSchoolHeroTitle {
+  opacity: 0;
+  transform: translateY(0.12em);
+  animation: schoolHeroTitleIn 900ms cubic-bezier(0.16, 0.84, 0.24, 1) forwards;
+  animation-delay: 160ms;
+}
+
+.schoolHeroAccent {
+  color: rgb(46, 42, 52);
+  animation: schoolHeroAccentColor 850ms ease forwards;
+  animation-delay: 1250ms;
 }
 
 .schoolHeroLower {
@@ -95,7 +108,7 @@
 }
 
 .suppliesIntro {
-  max-width: min(42vw, 560px);
+  max-width: min(39vw, 520px);
 }
 
 .eyebrow {
@@ -201,11 +214,37 @@
   letter-spacing: -0.03em;
 }
 
+@keyframes schoolHeroTitleIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes schoolHeroAccentColor {
+  to {
+    color: var(--qv-plum);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animatedSchoolHeroTitle,
+  .schoolHeroAccent {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .schoolHeroAccent {
+    color: var(--qv-plum);
+  }
+}
+
 @media (max-width: 1100px) {
   .bridgeSweater {
     opacity: 0.22;
     right: -10vw;
-    top: 290px;
+    top: 260px;
     width: min(52vw, 500px);
   }
 
@@ -218,7 +257,7 @@
   }
 
   .suppliesIntro {
-    max-width: min(52vw, 640px);
+    max-width: min(50vw, 600px);
   }
 
   .howGrid {
