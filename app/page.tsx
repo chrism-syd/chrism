@@ -168,27 +168,25 @@ export default function LandingPage() {
           </div>
 
           <section className={styles.contentPlain}>
-            <p className={styles.eyebrow}>Why Chrism Exists</p>
-            <h2 className={styles.sectionTitle}>Ministry deserves better tools and better economics.</h2>
+            <p className={styles.eyebrow}>Why Chrism exists</p>
+            <h2 className={styles.sectionTitle}>
+              The organizations holding communities together deserve better tools — and better economics.
+            </h2>
             <div className={styles.copyStack}>
               <p>
-                Ministry runs on care: volunteers who show up, leaders who remember names, and members who stay connected
-                across seasons of life.
+                Educators, faith communities, and the people who quietly keep local institutions running are doing some of
+                the most important work in any community. Most of them never set out to run an organization — they set out
+                to serve people. But here they are, juggling a patchwork of tools, bootstrapping on free tiers, and spending
+                time on administration that should be going toward the people they&apos;re trying to reach.
               </p>
               <p>
-                What they rarely have is a simple, affordable tool built to support that work. Enterprise CRM software wasn&apos;t
-                designed for parish life. Spreadsheets don&apos;t scale. And the people doing this work deserve better than
-                cobbled-together workarounds — better tools, and better economics.
+                The infrastructure available to them was designed for businesses — not communities. The software assumes
+                enterprise budgets. The pricing assumes high-volume buyers. And the gap between what&apos;s available and what&apos;s
+                actually needed keeps falling on the people least positioned to absorb it.
               </p>
               <p>
-                Faith-driven communities, families, educators, and leaders are called to pursue excellence, support their
-                neighbors, and build healthy local institutions. But the tools around that work are fragmented, expensive,
-                and designed for businesses rather than communities.
-              </p>
-              <p>
-                Chrism exists to make that work lighter. By combining ministry software, fundraising goods, and institutional
-                print sourcing, Chrism creates a closed-loop ecosystem where commercial activity helps fund the infrastructure
-                local ministries need.
+                Chrism exists to close that gap. Operations software, fundraising goods, and institutional print sourcing —
+                connected in one place, so more value stays with the organizations doing the work.
               </p>
             </div>
           </section>
