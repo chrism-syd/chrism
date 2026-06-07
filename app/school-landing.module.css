@@ -7,18 +7,18 @@
 
 .schoolHeroCopy {
   gap: clamp(24px, 3vw, 36px);
-  max-width: min(100%, 1120px);
+  max-width: min(100%, 1260px);
 }
 
 .schoolHeroTitle {
   white-space: normal;
-  max-width: 14ch;
+  max-width: 17ch;
 }
 
 .schoolHeroLower {
   display: grid;
-  grid-template-columns: minmax(0, 0.68fr) minmax(280px, 0.32fr);
-  gap: clamp(28px, 5vw, 72px);
+  grid-template-columns: minmax(0, 0.48fr) minmax(420px, 0.52fr);
+  gap: clamp(28px, 4vw, 64px);
   align-items: end;
 }
 
@@ -32,6 +32,11 @@
 
 .schoolHeroArtwork {
   justify-self: end;
+}
+
+.schoolHeroArtwork img {
+  width: min(52vw, 760px);
+  max-height: none;
 }
 
 .suppliesSection,
@@ -153,6 +158,10 @@
 }
 
 @media (max-width: 1100px) {
+  .schoolHeroLower {
+    grid-template-columns: minmax(0, 0.54fr) minmax(360px, 0.46fr);
+  }
+
   .howGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -173,6 +182,10 @@
 
   .schoolHeroArtwork {
     justify-self: start;
+  }
+
+  .schoolHeroArtwork img {
+    width: min(100%, 520px);
   }
 
   .suppliesRail {
