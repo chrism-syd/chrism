@@ -103,7 +103,7 @@ export default function InvoiceReviewCta() {
       }
 
       setSubmitState('success')
-      setMessage('Thanks. Your invoice was sent to Chrism for review.')
+      setMessage(null)
       formRef.current?.reset()
     } catch (error) {
       setSubmitState('error')
@@ -157,54 +157,69 @@ export default function InvoiceReviewCta() {
               ×
             </button>
 
-            <div className={styles.invoiceModalHeader}>
-              <p className={styles.eyebrow}>Invoice review</p>
-              <h3 id="invoice-modal-title">Tell us about you</h3>
-              {selectedFile ? (
-                <p className={`${styles.invoiceFileSummary} ${invoiceStyles.invoiceFileSummary}`}>
-                  Attached: <strong>{selectedFile.name}</strong> <span>{formatFileSize(selectedFile.size)}</span>
+            {submitState === 'success' ? (
+              <div className={invoiceStyles.invoiceConfirmation}>
+                <p className={styles.eyebrow}>Invoice review</p>
+                <h3 id="invoice-modal-title">Thanks. Your invoice was sent to Chrism for review.</h3>
+                <p>
+                  We&apos;ll reach out to you at your email address if we have any questions, or with our review of your invoice.
                 </p>
-              ) : null}
-            </div>
-
-            <form ref={formRef} className={`${styles.invoiceForm} ${invoiceStyles.invoiceForm}`} onSubmit={handleSubmit}>
-              <label>
-                Name
-                <input name="name" type="text" autoComplete="name" required />
-              </label>
-              <label>
-                Email
-                <input name="email" type="email" autoComplete="email" required />
-              </label>
-              <label>
-                Org
-                <input name="organization" type="text" autoComplete="organization" required />
-              </label>
-              <label>
-                Org Type
-                <select name="organizationType" required defaultValue="">
-                  <option value="" disabled>
-                    Select one
-                  </option>
-                  <option value="Faith community">Faith community</option>
-                  <option value="Education">Education</option>
-                  <option value="Nonprofit">Nonprofit</option>
-                  <option value="Business">Business</option>
-                  <option value="Other">Other</option>
-                </select>
-              </label>
-
-              {message ? <p className={styles.invoiceStatus}>{message}</p> : null}
-
-              <div className={styles.invoiceFormActions}>
-                <button type="button" className="qv-button-secondary" onClick={openFilePicker} disabled={submitState === 'submitting'}>
-                  Change file
-                </button>
-                <button type="submit" className="qv-button-primary" disabled={submitState === 'submitting'}>
-                  {submitState === 'submitting' ? 'Sending...' : 'Submit'}
+                <button type="button" className="qv-button-primary" onClick={closeModal}>
+                  Close
                 </button>
               </div>
-            </form>
+            ) : (
+              <>
+                <div className={styles.invoiceModalHeader}>
+                  <p className={styles.eyebrow}>Invoice review</p>
+                  <h3 id="invoice-modal-title">Tell us about you</h3>
+                  {selectedFile ? (
+                    <p className={`${styles.invoiceFileSummary} ${invoiceStyles.invoiceFileSummary}`}>
+                      Attached: <strong>{selectedFile.name}</strong> <span>{formatFileSize(selectedFile.size)}</span>
+                    </p>
+                  ) : null}
+                </div>
+
+                <form ref={formRef} className={`${styles.invoiceForm} ${invoiceStyles.invoiceForm}`} onSubmit={handleSubmit}>
+                  <label>
+                    Name
+                    <input name="name" type="text" autoComplete="name" required />
+                  </label>
+                  <label>
+                    Email
+                    <input name="email" type="email" autoComplete="email" required />
+                  </label>
+                  <label>
+                    Org
+                    <input name="organization" type="text" autoComplete="organization" required />
+                  </label>
+                  <label>
+                    Org Type
+                    <select name="organizationType" required defaultValue="">
+                      <option value="" disabled>
+                        Select one
+                      </option>
+                      <option value="Faith community">Faith community</option>
+                      <option value="Education">Education</option>
+                      <option value="Nonprofit">Nonprofit</option>
+                      <option value="Business">Business</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+
+                  {message ? <p className={styles.invoiceStatus}>{message}</p> : null}
+
+                  <div className={styles.invoiceFormActions}>
+                    <button type="button" className="qv-button-secondary" onClick={openFilePicker} disabled={submitState === 'submitting'}>
+                      Change file
+                    </button>
+                    <button type="submit" className="qv-button-primary" disabled={submitState === 'submitting'}>
+                      {submitState === 'submitting' ? 'Sending...' : 'Submit'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       ) : null}
