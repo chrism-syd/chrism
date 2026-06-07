@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useRef } from 'react'
 import styles from './school-landing.module.css'
 
@@ -97,23 +98,35 @@ export default function SchoolSuppliesSection() {
         </p>
       </div>
 
-      <div className={styles.suppliesRailShell}>
-        <div ref={railRef} className={styles.suppliesRail} aria-label="School supply categories">
-          {supplyCards.map((card) => (
-            <article key={card.label} className={styles.supplyCard}>
-              <h3>{card.title}</h3>
-              <p>{noOrphan(card.copy)}</p>
-            </article>
-          ))}
+      <div className={styles.suppliesCarouselRow}>
+        <div className={styles.pennantFrame} aria-hidden="true">
+          <Image
+            src="/YCDSB_Pennant.svg"
+            alt=""
+            width={360}
+            height={360}
+            className={styles.pennantImage}
+          />
         </div>
 
-        <div className={styles.carouselControls} aria-label="Supply carousel controls">
-          <button type="button" onClick={() => scrollSupplyCards('previous')} aria-label="Previous supply categories">
-            ←
-          </button>
-          <button type="button" onClick={() => scrollSupplyCards('next')} aria-label="Next supply categories">
-            →
-          </button>
+        <div className={styles.suppliesRailShell}>
+          <div ref={railRef} className={styles.suppliesRail} aria-label="School supply categories">
+            {supplyCards.map((card) => (
+              <article key={card.label} className={styles.supplyCard}>
+                <h3>{card.title}</h3>
+                <p>{noOrphan(card.copy)}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className={styles.carouselControls} aria-label="Supply carousel controls">
+            <button type="button" onClick={() => scrollSupplyCards('previous')} aria-label="Previous supply categories">
+              ←
+            </button>
+            <button type="button" onClick={() => scrollSupplyCards('next')} aria-label="Next supply categories">
+              →
+            </button>
+          </div>
         </div>
       </div>
     </section>
