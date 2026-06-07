@@ -45,11 +45,11 @@
 }
 
 .visionImageColumn {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 .visionCopyColumn {
-  grid-column: span 4;
+  grid-column: span 3;
 }
 
 .visionTitle {
