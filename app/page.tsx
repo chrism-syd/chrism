@@ -144,7 +144,7 @@ export default function LandingPage() {
 
           <div className={heroStyles.heroArtwork} aria-hidden="true">
             <Image
-              src="/Chair.png"
+              src="/Chair.png?v=2"
               alt=""
               width={780}
               height={780}
