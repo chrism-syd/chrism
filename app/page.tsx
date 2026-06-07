@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './about/about.module.css'
+import flywheelStyles from './flywheel-star.module.css'
 import InvoiceReviewCta from './invoice-review-cta'
 import heroStyles from './landing-hero.module.css'
 
@@ -171,7 +172,7 @@ export default function LandingPage() {
           </section>
         </section>
 
-        <section className={styles.flywheelSection}>
+        <section className={`${styles.flywheelSection} ${flywheelStyles.flywheelWithStar}`}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Flywheel</p>
             <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
