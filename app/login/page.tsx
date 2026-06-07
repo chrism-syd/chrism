@@ -194,9 +194,9 @@ function LoginPageContent() {
             </div>
 
             <div className="qv-login-panel-copy">
-              <h1 className="qv-login-panel-title">Sign in with a verification code</h1>
+              <h1 className="qv-login-panel-title">Sign in</h1>
               <p className="qv-login-panel-text">
-                Enter your email address and we will send you a short code. No password needed.
+                Enter your email address and we'll send you a verification code. No password needed.
               </p>
             </div>
 
@@ -265,11 +265,14 @@ function LoginPageContent() {
               <Link href="/register" className="qv-auth-footer-link">
                 Register with Chrism
               </Link>
-              <Link href="/about" className="qv-auth-footer-link">
-                About us
-              </Link>
             </div>
           </section>
+        </div>
+
+        <div style={{ marginTop: '14px', textAlign: 'center' }}>
+          <Link href="/about" className="qv-auth-footer-link">
+            About us
+          </Link>
         </div>
       </div>
     </main>
