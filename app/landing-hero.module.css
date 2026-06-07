@@ -23,23 +23,23 @@
 .heroSentenceSecondary {
   display: block;
   opacity: 0;
-  transform: translateY(0.12em);
-  animation: heroSentenceIn 700ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  transform: translateY(0.14em);
+  animation: heroSentenceIn 1050ms cubic-bezier(0.16, 0.84, 0.24, 1) forwards;
 }
 
 .heroSentencePrimary {
-  animation-delay: 120ms;
+  animation-delay: 180ms;
 }
 
 .heroSentenceSecondary {
-  animation-delay: 760ms;
+  animation-delay: 1450ms;
 }
 
 .heroAccent {
   color: rgb(46, 42, 52);
   white-space: nowrap;
-  animation: heroAccentColor 700ms ease forwards;
-  animation-delay: 1480ms;
+  animation: heroAccentColor 950ms ease forwards;
+  animation-delay: 2850ms;
 }
 
 .heroArtwork {
