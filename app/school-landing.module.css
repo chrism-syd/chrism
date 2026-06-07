@@ -1,8 +1,8 @@
 .schoolHeroBlock {
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(24px, 2.8vw, 38px);
-  min-height: auto;
-  padding-bottom: clamp(10px, 2vw, 28px);
+  min-height: calc(100vh - 104px);
+  padding-bottom: clamp(36px, 5vw, 72px);
 }
 
 .schoolHeroCopy {
@@ -56,7 +56,7 @@
 }
 
 .suppliesSection {
-  padding-top: 0;
+  padding-top: clamp(16px, 3vw, 42px);
 }
 
 .suppliesIntro,
@@ -170,6 +170,10 @@
 }
 
 @media (max-width: 1100px) {
+  .schoolHeroBlock {
+    min-height: auto;
+  }
+
   .schoolHeroLower {
     grid-template-columns: minmax(0, 0.54fr) minmax(360px, 0.46fr);
   }
@@ -182,7 +186,7 @@
 @media (max-width: 900px) {
   .schoolHeroBlock {
     gap: 24px;
-    padding-bottom: 22px;
+    padding-bottom: 36px;
   }
 
   .schoolHeroTitle {
