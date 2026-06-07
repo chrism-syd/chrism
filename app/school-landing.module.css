@@ -31,12 +31,19 @@
 }
 
 .schoolHeroArtwork {
+  display: flex;
+  justify-content: flex-end;
   justify-self: end;
+  align-items: flex-end;
+  min-width: 0;
 }
 
-.schoolHeroArtwork img {
-  width: min(52vw, 760px);
-  max-height: none;
+.schoolHeroImage {
+  display: block;
+  width: min(42vw, 560px);
+  height: auto;
+  object-fit: contain;
+  object-position: right bottom;
 }
 
 .suppliesSection,
@@ -181,11 +188,12 @@
   }
 
   .schoolHeroArtwork {
+    justify-content: flex-start;
     justify-self: start;
   }
 
-  .schoolHeroArtwork img {
-    width: min(100%, 520px);
+  .schoolHeroImage {
+    width: min(100%, 420px);
   }
 
   .suppliesRail {
