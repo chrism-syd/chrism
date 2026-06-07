@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './about/about.module.css'
+import faqStyles from './faq-image.module.css'
 import flywheelStyles from './flywheel-star.module.css'
 import InvoiceReviewCta from './invoice-review-cta'
 import heroStyles from './landing-hero.module.css'
@@ -222,18 +223,50 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className={styles.faqSection}>
-          <div className={styles.sectionIntroWide}>
-            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common Questions')}</h2>
+        <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
+          <div className={faqStyles.faqContent}>
+            <div className={styles.sectionIntroWide}>
+              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common Questions')}</h2>
+            </div>
+
+            <div className={styles.faqList}>
+              {faqs.map((faq) => (
+                <details key={faq.question} className={styles.faqItem}>
+                  <summary>{faq.question}</summary>
+                  <p>{noOrphan(faq.answer)}</p>
+                </details>
+              ))}
+            </div>
           </div>
 
-          <div className={styles.faqList}>
-            {faqs.map((faq) => (
-              <details key={faq.question} className={styles.faqItem}>
-                <summary>{faq.question}</summary>
-                <p>{noOrphan(faq.answer)}</p>
-              </details>
-            ))}
+          <div className={faqStyles.faqImageColumn}>
+            <div className={faqStyles.faqImageFrame}>
+              <Image
+                src="/elvira-blumfelde-XzI0bYWdhbY-unsplash.jpg"
+                alt="Person leaning on a white concrete fence"
+                fill
+                className={faqStyles.faqImage}
+                sizes="(max-width: 900px) 100vw, 24vw"
+              />
+              <p className={faqStyles.faqImageCredit}>
+                Photo by{' '}
+                <a
+                  href="https://unsplash.com/@perlamutrs?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Elvira Blumfelde
+                </a>{' '}
+                on{' '}
+                <a
+                  href="https://unsplash.com/photos/person-leaning-on-white-concrete-fence-XzI0bYWdhbY?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Unsplash
+                </a>
+              </p>
+            </div>
           </div>
         </section>
 
