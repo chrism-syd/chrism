@@ -32,9 +32,12 @@
 
 .faqImageCredit {
   position: absolute;
-  right: 12px;
+  right: auto;
   bottom: 12px;
   left: 12px;
+  display: inline-block;
+  width: fit-content;
+  max-width: calc(100% - 24px);
   margin: 0;
   padding: 8px 10px;
   border-radius: 12px;
