@@ -77,12 +77,10 @@ export default function SchoolSuppliesSection() {
     const rail = railRef.current
     if (!rail) return
 
-    const firstCard = rail.querySelector<HTMLElement>(`.${styles.supplyCard}`)
-    const cardWidth = firstCard?.offsetWidth ?? 320
-    const gap = 18
+    const scrollDistance = Math.max(rail.clientWidth * 0.86, 320)
 
     rail.scrollBy({
-      left: direction === 'next' ? cardWidth + gap : -(cardWidth + gap),
+      left: direction === 'next' ? scrollDistance : -scrollDistance,
       behavior: 'smooth',
     })
   }
