@@ -1,3 +1,32 @@
+.modelGroup {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: clamp(26px, 3vw, 40px);
+  overflow: hidden;
+  padding: clamp(56px, 7vw, 84px) 0 clamp(38px, 5vw, 64px);
+}
+
+.modelGroup::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  width: min(64vw, 820px);
+  aspect-ratio: 1;
+  right: -12vw;
+  top: 0;
+  background: rgba(92, 74, 114, 0.07);
+  mask: url('/chrism-star-muted.svg') center / contain no-repeat;
+  -webkit-mask: url('/chrism-star-muted.svg') center / contain no-repeat;
+  animation: flywheelStarSpin 120s linear infinite;
+  pointer-events: none;
+}
+
+.modelGroup > * {
+  position: relative;
+  z-index: 1;
+}
+
 .flywheelWithStar {
   position: relative;
   overflow: hidden;
@@ -32,12 +61,24 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .modelGroup::before,
   .flywheelWithStar::before {
     animation: none;
   }
 }
 
 @media (max-width: 900px) {
+  .modelGroup {
+    padding: 56px 0 42px;
+  }
+
+  .modelGroup::before {
+    width: min(104vw, 700px);
+    right: -40vw;
+    top: 8%;
+    background: rgba(92, 74, 114, 0.052);
+  }
+
   .flywheelWithStar {
     padding: 56px 0 0;
   }
