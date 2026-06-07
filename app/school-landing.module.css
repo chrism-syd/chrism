@@ -12,9 +12,9 @@
 .bridgeSweater {
   position: absolute;
   z-index: 0;
-  right: clamp(-12px, 1vw, 18px);
-  top: clamp(360px, 37vw, 520px);
-  width: min(39vw, 520px);
+  right: clamp(-18px, 1vw, 24px);
+  top: clamp(310px, 31vw, 430px);
+  width: min(38vw, 500px);
   pointer-events: none;
 }
 
@@ -44,14 +44,15 @@
 
 .schoolHeroLower {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.46fr) minmax(320px, 0.54fr);
   gap: clamp(28px, 4vw, 64px);
   align-items: start;
 }
 
 .schoolHeroLead {
+  grid-column: 1;
   margin: 0;
-  max-width: 760px;
+  max-width: 620px;
   color: rgb(46, 42, 52);
   font-size: clamp(18px, 2vw, 24px);
   line-height: 1.36;
@@ -194,10 +195,14 @@
 
 @media (max-width: 1100px) {
   .bridgeSweater {
-    opacity: 0.28;
-    right: -8vw;
-    top: 400px;
-    width: min(52vw, 520px);
+    opacity: 0.22;
+    right: -10vw;
+    top: 350px;
+    width: min(52vw, 500px);
+  }
+
+  .schoolHeroLower {
+    grid-template-columns: minmax(0, 0.58fr) minmax(260px, 0.42fr);
   }
 
   .howGrid {
@@ -217,6 +222,14 @@
 
   .schoolHeroTitle {
     max-width: 11ch;
+  }
+
+  .schoolHeroLower {
+    grid-template-columns: 1fr;
+  }
+
+  .schoolHeroLead {
+    max-width: 760px;
   }
 
   .suppliesRail {
