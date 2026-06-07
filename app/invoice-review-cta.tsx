@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, FormEvent, useRef, useState } from 'react'
 import styles from './about/about.module.css'
+import invoiceStyles from './invoice-review-cta.module.css'
 
 const acceptedFileTypes = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.csv'
 const maxFileSizeBytes = 10 * 1024 * 1024
@@ -119,11 +120,11 @@ export default function InvoiceReviewCta() {
           <br />
           No obligation.
         </p>
-        <p className={styles.invoiceCtaNote}>(We truly just want to help.)</p>
+        <p className={invoiceStyles.invoiceCtaNote}>(We truly just want to help.)</p>
       </div>
 
       <div
-        className={styles.invoiceDropzone}
+        className={`${styles.invoiceDropzone} ${invoiceStyles.invoiceDropzone}`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -145,9 +146,9 @@ export default function InvoiceReviewCta() {
       {message && !isModalOpen ? <p className={styles.invoiceStatus}>{message}</p> : null}
 
       {isModalOpen ? (
-        <div className={styles.invoiceModalBackdrop} role="presentation">
+        <div className={`${styles.invoiceModalBackdrop} ${invoiceStyles.invoiceModalBackdrop}`} role="presentation">
           <div
-            className={styles.invoiceModal}
+            className={`${styles.invoiceModal} ${invoiceStyles.invoiceModal}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="invoice-modal-title"
@@ -160,13 +161,13 @@ export default function InvoiceReviewCta() {
               <p className={styles.eyebrow}>Invoice review</p>
               <h3 id="invoice-modal-title">Tell us about you</h3>
               {selectedFile ? (
-                <p className={styles.invoiceFileSummary}>
+                <p className={`${styles.invoiceFileSummary} ${invoiceStyles.invoiceFileSummary}`}>
                   Attached: <strong>{selectedFile.name}</strong> <span>{formatFileSize(selectedFile.size)}</span>
                 </p>
               ) : null}
             </div>
 
-            <form ref={formRef} className={styles.invoiceForm} onSubmit={handleSubmit}>
+            <form ref={formRef} className={`${styles.invoiceForm} ${invoiceStyles.invoiceForm}`} onSubmit={handleSubmit}>
               <label>
                 Name
                 <input name="name" type="text" autoComplete="name" required />
