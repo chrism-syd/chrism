@@ -13,7 +13,7 @@
   position: absolute;
   z-index: 0;
   right: clamp(-18px, 1vw, 24px);
-  top: clamp(270px, 27vw, 370px);
+  top: clamp(250px, 25vw, 340px);
   width: min(38vw, 500px);
   pointer-events: none;
 }
@@ -95,7 +95,7 @@
 }
 
 .suppliesIntro {
-  max-width: min(58vw, 760px);
+  max-width: min(48vw, 660px);
 }
 
 .eyebrow {
@@ -205,7 +205,7 @@
   .bridgeSweater {
     opacity: 0.22;
     right: -10vw;
-    top: 310px;
+    top: 290px;
     width: min(52vw, 500px);
   }
 
@@ -218,7 +218,7 @@
   }
 
   .suppliesIntro {
-    max-width: min(66vw, 760px);
+    max-width: min(58vw, 700px);
   }
 
   .howGrid {
