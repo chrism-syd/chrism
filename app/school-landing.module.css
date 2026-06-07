@@ -179,6 +179,7 @@
 }
 
 .suppliesCarouselRow {
+  --supply-card-top: 4px;
   display: grid;
   grid-template-columns: minmax(170px, 0.28fr) minmax(0, 1fr);
   gap: clamp(20px, 3vw, 42px);
@@ -196,7 +197,7 @@
   display: block;
   width: min(100%, 300px);
   height: auto;
-  margin-top: clamp(72px, 4.5vw, 88px);
+  margin-top: var(--supply-card-top);
 }
 
 .suppliesRailShell {
@@ -216,7 +217,7 @@
   scroll-snap-type: inline mandatory;
   scrollbar-width: none;
   margin-left: calc(-1 * var(--carousel-slant));
-  padding: 4px 4px 16px var(--carousel-slant);
+  padding: var(--supply-card-top) 4px 16px var(--carousel-slant);
   clip-path: polygon(var(--carousel-slant) 0, 100% 0, 100% 100%, 0 100%);
 }
 
@@ -227,20 +228,20 @@
 .carouselControls {
   display: flex;
   justify-content: flex-end;
-  gap: 14px;
+  gap: 10px;
   padding-right: 4px;
 }
 
 .carouselControls button {
   display: inline-grid;
   place-items: center;
-  width: 88px;
-  height: 88px;
+  width: 60px;
+  height: 60px;
   border: 0;
   border-radius: 999px;
   background: var(--bg-card);
   color: rgb(46, 42, 52);
-  font-size: 42px;
+  font-size: clamp(24px, 2.4vw, 34px);
   line-height: 1;
   cursor: pointer;
   box-shadow: var(--shadow-card);
@@ -393,7 +394,6 @@
 
   .pennantImage {
     width: min(100%, 240px);
-    margin-top: clamp(48px, 5vw, 64px);
   }
 
   .howSection::before {
@@ -454,7 +454,7 @@
   .suppliesRail {
     grid-auto-columns: minmax(270px, 78%);
     margin-inline: -4px;
-    padding: 4px 4px 16px;
+    padding: var(--supply-card-top) 4px 16px;
     clip-path: none;
   }
 
@@ -463,9 +463,9 @@
   }
 
   .carouselControls button {
-    width: 64px;
-    height: 64px;
-    font-size: 30px;
+    width: 54px;
+    height: 54px;
+    font-size: 28px;
   }
 
   .howSection::before {
