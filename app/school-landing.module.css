@@ -105,8 +105,6 @@
 .howSection {
   position: relative;
   isolation: isolate;
-  min-height: clamp(820px, 72vw, 1020px);
-  padding-bottom: clamp(112px, 12vw, 176px);
 }
 
 .howSection::before {
@@ -210,20 +208,16 @@
 }
 
 .suppliesRail {
-  --carousel-slant: var(--supply-card-gap);
-  --carousel-start-padding: calc(var(--carousel-slant) + var(--supply-card-gap));
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(280px, 36%);
   gap: var(--supply-card-gap);
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  scroll-padding-inline-start: var(--carousel-start-padding);
+  scroll-padding-inline-start: var(--supply-card-gap);
   scroll-snap-type: inline mandatory;
   scrollbar-width: none;
-  margin-left: calc(-1 * var(--carousel-slant));
-  padding: var(--supply-card-top) 4px 16px var(--carousel-start-padding);
-  clip-path: polygon(var(--carousel-slant) 0, 100% 0, 100% 100%, 0 100%);
+  padding: var(--supply-card-top) 4px 16px var(--supply-card-gap);
 }
 
 .suppliesRail::-webkit-scrollbar {
@@ -307,15 +301,34 @@
   z-index: 2;
 }
 
+.schoolStoryGrid {
+  margin-top: clamp(52px, 7vw, 108px);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 52px);
+}
+
+.schoolStoryImageColumn {
+  grid-column: span 2;
+  max-width: 360px;
+}
+
+.schoolStoryCopyColumn {
+  grid-column: span 4;
+  max-width: 820px;
+}
+
 .reasonList {
   display: grid;
-  gap: 18px;
-  margin-top: 14px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(18px, 2.4vw, 30px);
+  margin-top: 4px;
 }
 
 .reasonItem {
   display: grid;
-  gap: 4px;
+  align-content: start;
+  gap: 8px;
 }
 
 .reasonItem h3 {
@@ -332,9 +345,12 @@
   border: 0;
 }
 
-.schoolCtaSection [class*='invoiceDropzone'],
 .schoolCtaSection [class*='invoiceModal'] {
   border: 0;
+}
+
+.schoolCtaSection [class*='invoiceDropzone'] {
+  border: 1px dashed rgba(46, 42, 52, 0.34);
 }
 
 @keyframes schoolHeroTitleIn {
@@ -401,10 +417,6 @@
     width: min(100%, 240px);
   }
 
-  .howSection {
-    min-height: clamp(720px, 86vw, 900px);
-  }
-
   .howSection::before {
     top: 42px;
   }
@@ -447,8 +459,20 @@
     max-width: 760px;
   }
 
-  .suppliesCarouselRow {
+  .suppliesCarouselRow,
+  .schoolStoryGrid,
+  .reasonList {
     grid-template-columns: 1fr;
+  }
+
+  .schoolStoryGrid {
+    margin-top: 40px;
+  }
+
+  .schoolStoryImageColumn,
+  .schoolStoryCopyColumn {
+    grid-column: auto;
+    max-width: none;
   }
 
   .pennantFrame {
@@ -464,7 +488,6 @@
     grid-auto-columns: minmax(270px, 78%);
     margin-inline: -4px;
     padding: var(--supply-card-top) 4px 16px;
-    clip-path: none;
   }
 
   .carouselControls {
