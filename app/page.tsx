@@ -169,55 +169,57 @@ export default function LandingPage() {
           </section>
         </section>
 
-        <section className={`${styles.flywheelSection} ${flywheelStyles.flywheelWithStar}`}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>The Flywheel</p>
-            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-              Why the model <span className={heroStyles.accentWord}>works</span>
-            </h2>
-            <p>
-              {noOrphan(
-                'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism.'
-              )}
-            </p>
-            <p>{noOrphan('The difference is what we do with it.')}</p>
-          </div>
+        <div className={flywheelStyles.modelGroup}>
+          <section className={styles.flywheelSection}>
+            <div className={styles.sectionIntroWide}>
+              <p className={styles.eyebrow}>The Flywheel</p>
+              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
+                Why the model <span className={heroStyles.accentWord}>works</span>
+              </h2>
+              <p>
+                {noOrphan(
+                  'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism.'
+                )}
+              </p>
+              <p>{noOrphan('The difference is what we do with it.')}</p>
+            </div>
 
-          <div className={styles.flowGrid}>
-            {flywheelSteps.map((step, index) => (
-              <article key={step.title} className={styles.flowItem}>
-                <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
-                <h3>
-                  <span className={heroStyles.accentWord}>{step.title}</span>
-                </h3>
-                <p>{noOrphan(step.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+            <div className={styles.flowGrid}>
+              {flywheelSteps.map((step, index) => (
+                <article key={step.title} className={styles.flowItem}>
+                  <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
+                  <h3>
+                    <span className={heroStyles.accentWord}>{step.title}</span>
+                  </h3>
+                  <p>{noOrphan(step.copy)}</p>
+                </article>
+              ))}
+            </div>
+          </section>
 
-        <section className={`${styles.trustBand} ${stewardshipStyles.plainTrust}`}>
-          <div className={styles.trustIntro}>
-            <h2 className={`${styles.trustTitle} ${heroStyles.visionTitle}`}>Responsible stewardship</h2>
-          </div>
-          <div className={styles.copyStack}>
-            <p>
-              {noOrphan(
-                'Chrism is a registered business in Ontario, Canada — built lean, operated responsibly, and designed to be a vendor you can actually rely on.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'The platform uses secure HTTPS, passwordless authentication, and organization-based permissions. Your data stays with your organization — it\'s never shared, sold, or used outside the context you set.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'We\'re not a faceless platform. If something isn\'t working, there\'s a real person behind it.'
-              )}
-            </p>
-          </div>
-        </section>
+          <section className={stewardshipStyles.plainTrust}>
+            <div className={styles.trustIntro}>
+              <h2 className={`${styles.trustTitle} ${heroStyles.visionTitle}`}>Responsible stewardship</h2>
+            </div>
+            <div className={styles.copyStack}>
+              <p>
+                {noOrphan(
+                  'Chrism is a registered business in Ontario, Canada — built lean, operated responsibly, and designed to be a vendor you can actually rely on.'
+                )}
+              </p>
+              <p>
+                {noOrphan(
+                  'The platform uses secure HTTPS, passwordless authentication, and organization-based permissions. Your data stays with your organization — it\'s never shared, sold, or used outside the context you set.'
+                )}
+              </p>
+              <p>
+                {noOrphan(
+                  'We\'re not a faceless platform. If something isn\'t working, there\'s a real person behind it.'
+                )}
+              </p>
+            </div>
+          </section>
+        </div>
 
         <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
           <div className={faqStyles.faqContent}>
