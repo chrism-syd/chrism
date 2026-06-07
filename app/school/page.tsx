@@ -71,8 +71,9 @@ export default function SchoolLandingPage() {
 
           <section className={`${styles.heroBlock} ${heroStyles.heroBlock} ${schoolStyles.schoolHeroBlock}`}>
             <div className={`${heroStyles.heroCopy} ${schoolStyles.schoolHeroCopy}`}>
-              <h1 className={`${styles.heroTitle} ${schoolStyles.schoolHeroTitle}`}>
-                Everything your school needs to print, promote, and slay. fr.
+              <h1 className={`${styles.heroTitle} ${schoolStyles.schoolHeroTitle} ${schoolStyles.animatedSchoolHeroTitle}`}>
+                Everything your school needs to print, promote, and{' '}
+                <span className={schoolStyles.schoolHeroAccent}>slay</span>. fr.
               </h1>
             </div>
 
