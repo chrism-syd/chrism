@@ -57,23 +57,36 @@ export default function SchoolLandingPage() {
           </Link>
         </header>
 
-        <section className={`${styles.heroBlock} ${heroStyles.heroBlock} ${schoolStyles.schoolHeroBlock}`}>
-          <div className={`${heroStyles.heroCopy} ${schoolStyles.schoolHeroCopy}`}>
-            <h1 className={`${styles.heroTitle} ${schoolStyles.schoolHeroTitle}`}>
-              Everything your school needs to print, promote, and show up well.
-            </h1>
+        <div className={schoolStyles.heroSupplyBridge}>
+          <div className={schoolStyles.bridgeSweater} aria-hidden="true">
+            <Image
+              src="/st-eds_royals_sweater.png"
+              alt=""
+              width={880}
+              height={880}
+              priority
+              className={schoolStyles.bridgeSweaterImage}
+            />
           </div>
 
-          <div className={schoolStyles.schoolHeroLower}>
-            <p className={schoolStyles.schoolHeroLead}>
-              {noOrphan(
-                'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
-              )}
-            </p>
-          </div>
-        </section>
+          <section className={`${styles.heroBlock} ${heroStyles.heroBlock} ${schoolStyles.schoolHeroBlock}`}>
+            <div className={`${heroStyles.heroCopy} ${schoolStyles.schoolHeroCopy}`}>
+              <h1 className={`${styles.heroTitle} ${schoolStyles.schoolHeroTitle}`}>
+                Everything your school needs to print, promote, and show up well.
+              </h1>
+            </div>
 
-        <SchoolSuppliesSection />
+            <div className={schoolStyles.schoolHeroLower}>
+              <p className={schoolStyles.schoolHeroLead}>
+                {noOrphan(
+                  'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
+                )}
+              </p>
+            </div>
+          </section>
+
+          <SchoolSuppliesSection />
+        </div>
 
         <SchoolHowItWorksSection />
 
