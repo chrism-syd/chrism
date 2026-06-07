@@ -1,0 +1,15 @@
+.plainTrust {
+  margin-top: clamp(-44px, -4vw, -28px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .plainTrust {
+    margin-top: -28px;
+    padding: 0;
+  }
+}
