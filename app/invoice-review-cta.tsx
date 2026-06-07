@@ -113,9 +113,11 @@ export default function InvoiceReviewCta() {
   return (
     <div className={styles.invoiceCta}>
       <div className={styles.invoiceCtaIntro}>
-        <h2 className={styles.ctaTitle}>Already working with a vendor? Send us their invoice.</h2>
+        <h2 className={styles.ctaTitle}>Already working with a vendor?</h2>
         <p>
-          We&apos;ll tell you if we can do better. No obligation. We truly just want to help.
+          Send us their invoice. We&apos;ll tell you if we can do better. No obligation.
+          <br />
+          We truly just want to help.
         </p>
       </div>
 
