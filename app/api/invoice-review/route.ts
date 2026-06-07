@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server'
 
+export const runtime = 'nodejs'
+
 const recipientEmail = 'syd.fernandez@chrism.app'
 const maxFileSizeBytes = 10 * 1024 * 1024
+const acceptedMimeTypes = new Set([
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'text/csv',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+])
 
 type BrevoApiError = {
   message?: string
@@ -19,6 +32,10 @@ function escapeHtml(value: string) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+function isUploadedFile(value: FormDataEntryValue | null): value is File {
+  return typeof value === 'object' && value !== null && 'name' in value && 'size' in value && 'arrayBuffer' in value
 }
 
 function getBrevoConfig() {
@@ -123,12 +140,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Please complete every field before submitting.' }, { status: 400 })
     }
 
-    if (!(invoice instanceof File)) {
+    if (!isUploadedFile(invoice) || invoice.size === 0) {
       return NextResponse.json({ error: 'Please attach an invoice before submitting.' }, { status: 400 })
     }
 
     if (invoice.size > maxFileSizeBytes) {
       return NextResponse.json({ error: 'Please upload a file under 10 MB.' }, { status: 400 })
+    }
+
+    if (invoice.type && !acceptedMimeTypes.has(invoice.type)) {
+      return NextResponse.json(
+        { error: 'Please upload a PDF, image, spreadsheet, CSV, or document file.' },
+        { status: 400 }
+      )
     }
 
     await sendInvoiceReviewEmail({
