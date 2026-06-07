@@ -100,6 +100,31 @@
   padding-top: clamp(28px, 5vw, 72px);
 }
 
+.howSection {
+  position: relative;
+  isolation: isolate;
+}
+
+.howSection::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  width: min(61vw, 784px);
+  aspect-ratio: 1;
+  right: -14vw;
+  top: 4%;
+  background: rgba(92, 74, 114, 0.075);
+  mask: url('/chrism-star-muted.svg') center / contain no-repeat;
+  -webkit-mask: url('/chrism-star-muted.svg') center / contain no-repeat;
+  animation: schoolStarSpin 120s linear infinite;
+  pointer-events: none;
+}
+
+.howSection > * {
+  position: relative;
+  z-index: 1;
+}
+
 .suppliesIntro,
 .howIntro {
   display: grid;
@@ -175,20 +200,20 @@
 .carouselControls {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 14px;
   padding-right: 4px;
 }
 
 .carouselControls button {
   display: inline-grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 88px;
+  height: 88px;
   border: 1px solid var(--divider);
   border-radius: 999px;
   background: var(--bg-card);
   color: rgb(46, 42, 52);
-  font-size: 22px;
+  font-size: 42px;
   line-height: 1;
   cursor: pointer;
   box-shadow: var(--shadow-card);
@@ -230,20 +255,21 @@
 .howGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(28px, 3vw, 42px);
+  gap: clamp(24px, 3vw, 42px);
 }
 
 .howCard {
   position: relative;
 }
 
-.howArrow {
+.howCard + .howCard::before {
+  content: '→';
   position: absolute;
   top: 50%;
-  right: clamp(-32px, -2.2vw, -20px);
-  transform: translateY(-50%);
+  left: calc(-1 * clamp(23px, 2.8vw, 38px));
+  transform: translate(-50%, -50%);
   color: rgba(46, 42, 52, 0.42);
-  font-size: clamp(28px, 3vw, 42px);
+  font-size: clamp(24px, 2.4vw, 34px);
   line-height: 1;
   z-index: 2;
 }
@@ -281,6 +307,12 @@
   }
 }
 
+@keyframes schoolStarSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animatedSchoolHeroTitle,
   .schoolHeroAccent {
@@ -291,6 +323,10 @@
 
   .schoolHeroAccent {
     color: var(--qv-plum);
+  }
+
+  .howSection::before {
+    animation: none;
   }
 }
 
@@ -318,7 +354,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .howArrow {
+  .howCard + .howCard::before {
     display: none;
   }
 }
@@ -354,7 +390,13 @@
   }
 
   .carouselControls {
-    justify-content: flex-start;
+    justify-content: flex-end;
+  }
+
+  .carouselControls button {
+    width: 64px;
+    height: 64px;
+    font-size: 30px;
   }
 
   .howGrid {
