@@ -13,8 +13,8 @@
   position: absolute;
   z-index: 0;
   right: clamp(-18px, 1vw, 24px);
-  top: clamp(120px, 13vw, 190px);
-  width: min(38vw, 500px);
+  top: clamp(165px, 17vw, 245px);
+  width: min(35vw, 460px);
   pointer-events: none;
 }
 
@@ -244,8 +244,8 @@
   .bridgeSweater {
     opacity: 0.22;
     right: -10vw;
-    top: 180px;
-    width: min(52vw, 500px);
+    top: 220px;
+    width: min(48vw, 460px);
   }
 
   .schoolHeroBlock {
