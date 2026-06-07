@@ -91,15 +91,15 @@ export default function SchoolLandingPage() {
 
         <SchoolHowItWorksSection />
 
-        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix}`}>
-          <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn}`}>
+        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`}>
+          <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
             <div className={styles.imageFrame}>
               <Image
                 src="/birmingham-museums-trust-aE0-ZJb2VTQ-unsplash.jpg"
                 alt="Painting of a woman wearing a red beaded necklace"
                 fill
                 className={styles.aboutImage}
-                sizes="(max-width: 900px) 100vw, 32vw"
+                sizes="(max-width: 900px) 100vw, 26vw"
               />
               <p className={faqStyles.faqImageCredit}>
                 Photo by{' '}
@@ -122,8 +122,8 @@ export default function SchoolLandingPage() {
             </div>
           </div>
 
-          <section className={`${styles.contentPlain} ${heroStyles.visionCopyColumn}`}>
-            <p className={styles.eyebrow}>Why schools work with us</p>
+          <section className={`${styles.contentPlain} ${heroStyles.visionCopyColumn} ${schoolStyles.schoolStoryCopyColumn}`}>
+            <p className={styles.eyebrow}>Why schools would like us</p>
             <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
               We know what things cost{' '}
               <span className={heroStyles.noWrap}>
