@@ -1,6 +1,6 @@
 .schoolHeroBlock {
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(4px, 1vw, 14px);
+  gap: clamp(24px, 2.8vw, 38px);
   min-height: auto;
   padding-bottom: clamp(54px, 8vw, 104px);
 }
@@ -177,7 +177,7 @@
 
 @media (max-width: 900px) {
   .schoolHeroBlock {
-    gap: 12px;
+    gap: 24px;
   }
 
   .schoolHeroTitle {
