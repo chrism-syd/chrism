@@ -87,14 +87,17 @@ export default function LandingPage() {
 
         <section className={`${styles.heroBlock} ${heroStyles.heroBlock}`}>
           <div className={heroStyles.heroCopy}>
-            <h1 className={styles.heroTitle}>
-              Built for
-              <br />
-              community.
-              <br />
-              <span className={heroStyles.heroAccent}>Optimized</span>
-              <br />
-              for business.
+            <h1 className={`${styles.heroTitle} ${heroStyles.animatedHeroTitle}`}>
+              <span className={heroStyles.heroSentencePrimary}>
+                Built for
+                <br />
+                community.
+              </span>
+              <span className={heroStyles.heroSentenceSecondary}>
+                <span className={heroStyles.heroAccent}>Optimized</span>
+                <br />
+                for business.
+              </span>
             </h1>
           </div>
 
