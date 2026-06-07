@@ -2,7 +2,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(24px, 2.8vw, 38px);
   min-height: auto;
-  padding-bottom: clamp(54px, 8vw, 104px);
+  padding-bottom: clamp(10px, 2vw, 28px);
 }
 
 .schoolHeroCopy {
@@ -53,6 +53,10 @@
   gap: clamp(24px, 3vw, 36px);
   padding: clamp(18px, 3vw, 32px) 0 clamp(28px, 4vw, 48px);
   overflow: hidden;
+}
+
+.suppliesSection {
+  padding-top: 0;
 }
 
 .suppliesIntro,
@@ -178,6 +182,7 @@
 @media (max-width: 900px) {
   .schoolHeroBlock {
     gap: 24px;
+    padding-bottom: 22px;
   }
 
   .schoolHeroTitle {
