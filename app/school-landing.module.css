@@ -108,7 +108,7 @@
 }
 
 .suppliesIntro {
-  max-width: min(39vw, 520px);
+  max-width: min(54vw, 760px);
 }
 
 .eyebrow {
@@ -132,9 +132,17 @@
   letter-spacing: -0.035em;
 }
 
+.suppliesIntro h2 {
+  max-width: 680px;
+}
+
+.suppliesIntro p:not(.eyebrow) {
+  max-width: 840px;
+}
+
 .suppliesIntro p:not(.eyebrow),
 .howIntro p:not(.eyebrow),
-.supplyCard p:not(.supplyNumber),
+.supplyCard p,
 .howCard p:not(.supplyNumber),
 .reasonList p {
   margin: 0;
@@ -143,16 +151,47 @@
   line-height: 1.58;
 }
 
+.suppliesRailShell {
+  display: grid;
+  gap: 18px;
+}
+
 .suppliesRail {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 34%);
+  grid-auto-columns: minmax(280px, 31%);
   gap: 18px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: inline mandatory;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   padding: 4px 4px 16px;
+}
+
+.suppliesRail::-webkit-scrollbar {
+  display: none;
+}
+
+.carouselControls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.carouselControls button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: rgb(46, 42, 52);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
 }
 
 .supplyCard,
@@ -191,7 +230,22 @@
 .howGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(18px, 2vw, 28px);
+  gap: clamp(28px, 3vw, 42px);
+}
+
+.howCard {
+  position: relative;
+}
+
+.howArrow {
+  position: absolute;
+  top: 50%;
+  right: clamp(-32px, -2.2vw, -20px);
+  transform: translateY(-50%);
+  color: rgba(46, 42, 52, 0.42);
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1;
+  z-index: 2;
 }
 
 .reasonList {
@@ -257,11 +311,15 @@
   }
 
   .suppliesIntro {
-    max-width: min(50vw, 600px);
+    max-width: min(60vw, 700px);
   }
 
   .howGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .howArrow {
+    display: none;
   }
 }
 
@@ -284,13 +342,19 @@
   }
 
   .schoolHeroLead,
-  .suppliesIntro {
+  .suppliesIntro,
+  .suppliesIntro h2,
+  .suppliesIntro p:not(.eyebrow) {
     max-width: 760px;
   }
 
   .suppliesRail {
     grid-auto-columns: minmax(270px, 78%);
     margin-inline: -4px;
+  }
+
+  .carouselControls {
+    justify-content: flex-start;
   }
 
   .howGrid {
