@@ -11,20 +11,20 @@ function noOrphan(text: string) {
 const flywheelSteps = [
   {
     title: 'Reach',
-    copy: 'Chrism reaches organizations through software, fundraising goods, print sourcing, and practical operational support.',
+    copy: 'Access to trade-level vendors, pricing, and production relationships your organization couldn\'t easily get on its own.',
   },
   {
     title: 'Redirect',
-    copy: 'Commercial margin is redirected into the Chrism ecosystem instead of leaking away from the community.',
+    copy: 'Most of that margin stays in the ecosystem — not in a corporate bottom line somewhere else. We run lean so more of it can.',
   },
   {
     title: 'Reinvest',
-    copy: 'That value helps keep core tools free or deeply subsidized while funding better products, services, and support.',
+    copy: 'That value keeps core tools free or deeply subsidized for the organizations that need them most.',
   },
   {
     title: 'Repeat',
     copy:
-      'Every order, every subscription, every sourcing request makes the ecosystem stronger. The more Chrism is used, the more it can do — for everyone in it.',
+      'Every order, every subscription, every sourcing request compounds. The more Chrism is used, the more it can do — for everyone in it.',
   },
 ]
 
@@ -82,7 +82,7 @@ export default function LandingPage() {
             />
           </Link>
 
-          <Link href="/operations" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
+          <Link href="https://operations.chrism.app" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
             Launch Operations
           </Link>
         </header>
@@ -174,7 +174,9 @@ export default function LandingPage() {
         <section className={styles.flywheelSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Flywheel</p>
-            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>Why the model works</h2>
+            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
+              Why the model <span className={heroStyles.accentWord}>works</span>
+            </h2>
             <p>
               {noOrphan(
                 'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism.'
@@ -187,7 +189,9 @@ export default function LandingPage() {
             {flywheelSteps.map((step, index) => (
               <article key={step.title} className={styles.flowItem}>
                 <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
-                <h3>{step.title}</h3>
+                <h3>
+                  <span className={heroStyles.accentWord}>{step.title}</span>
+                </h3>
                 <p>{noOrphan(step.copy)}</p>
               </article>
             ))}
@@ -196,7 +200,7 @@ export default function LandingPage() {
 
         <section className={styles.trustBand}>
           <div className={styles.trustIntro}>
-            <h2 className={styles.trustTitle}>Responsible stewardship</h2>
+            <h2 className={`${styles.trustTitle} ${heroStyles.visionTitle}`}>Responsible stewardship</h2>
           </div>
           <div className={styles.copyStack}>
             <p>
@@ -214,7 +218,7 @@ export default function LandingPage() {
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
-            <h2 className={styles.sectionTitle}>{noOrphan('Common questions')}</h2>
+            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common Questions')}</h2>
           </div>
 
           <div className={styles.faqList}>
