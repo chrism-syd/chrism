@@ -8,7 +8,7 @@ const howSteps = [
   {
     title: 'Request a quote',
     copy:
-      'Send us your project details or an existing invoice and we\'ll come back with pricing. Most quotes are turned around within one business day.',
+      'Have a finished file or a seed of an idea — either works. Tell us what you\'re thinking and we\'ll take it from there.',
   },
   {
     title: 'We handle production',
@@ -46,6 +46,7 @@ export default function SchoolHowItWorksSection() {
             <p className={styles.supplyNumber}>{String(index + 1).padStart(2, '0')}</p>
             <h3>{step.title}</h3>
             <p>{noOrphan(step.copy)}</p>
+            {index < howSteps.length - 1 ? <span className={styles.howArrow} aria-hidden="true">→</span> : null}
           </article>
         ))}
       </div>
