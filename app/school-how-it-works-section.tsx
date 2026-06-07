@@ -32,7 +32,7 @@ export default function SchoolHowItWorksSection() {
     <section className={styles.howSection}>
       <div className={styles.howIntro}>
         <p className={styles.eyebrow}>How it works</p>
-        <h2>Getting started is straightforward.</h2>
+        <h2>Ideas, delivered.</h2>
         <p>
           {noOrphan(
             'There\'s no complicated onboarding — just tell us what you need and we\'ll take it from there.'
@@ -41,12 +41,11 @@ export default function SchoolHowItWorksSection() {
       </div>
 
       <div className={styles.howGrid}>
-        {howSteps.map((step, index) => (
+        {howSteps.map((step) => (
           <article key={step.title} className={styles.howCard}>
-            <p className={styles.supplyNumber}>{String(index + 1).padStart(2, '0')}</p>
+            <p className={styles.supplyNumber}>{String(howSteps.indexOf(step) + 1).padStart(2, '0')}</p>
             <h3>{step.title}</h3>
             <p>{noOrphan(step.copy)}</p>
-            {index < howSteps.length - 1 ? <span className={styles.howArrow} aria-hidden="true">→</span> : null}
           </article>
         ))}
       </div>
