@@ -176,7 +176,7 @@ export default function SchoolsLandingPage() {
           </section>
         </section>
 
-        <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
+        <section className={`${styles.faqSection} ${faqStyles.faqWithImage} ${schoolStyles.schoolFaqSection}`}>
           <div className={faqStyles.faqContent}>
             <div className={styles.sectionIntroWide}>
               <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common questions')}</h2>
@@ -223,7 +223,7 @@ export default function SchoolsLandingPage() {
           </div>
         </section>
 
-        <section className={styles.ctaSection}>
+        <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`}>
           <InvoiceReviewCta />
         </section>
       </div>
