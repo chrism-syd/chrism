@@ -39,6 +39,31 @@
   object-position: right bottom;
 }
 
+.visionGridSix {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(28px, 4.5vw, 56px);
+}
+
+.visionImageColumn {
+  grid-column: span 2;
+}
+
+.visionCopyColumn {
+  grid-column: span 4;
+}
+
+.visionTitle {
+  color: rgb(46, 42, 52);
+}
+
+.noWrap {
+  white-space: nowrap;
+}
+
+.accentWord {
+  color: var(--qv-plum);
+}
+
 @media (max-width: 1060px) {
   .heroBlock {
     grid-template-columns: minmax(0, 1fr);
@@ -54,6 +79,15 @@
   .heroChairImage {
     width: min(100%, 460px);
     max-height: none;
+  }
+
+  .visionGridSix {
+    grid-template-columns: 1fr;
+  }
+
+  .visionImageColumn,
+  .visionCopyColumn {
+    grid-column: auto;
   }
 }
 
