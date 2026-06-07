@@ -70,17 +70,6 @@ export default function SchoolLandingPage() {
                 'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
               )}
             </p>
-
-            <div className={schoolStyles.schoolHeroArtwork} aria-hidden="true">
-              <Image
-                src="/st-eds_royals_sweater.png"
-                alt=""
-                width={880}
-                height={880}
-                priority
-                className={schoolStyles.schoolHeroImage}
-              />
-            </div>
           </div>
         </section>
 
@@ -92,8 +81,8 @@ export default function SchoolLandingPage() {
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn}`}>
             <div className={styles.imageFrame}>
               <Image
-                src="/jonny-gios-QMesAlxmi6g-unsplash-chrism.png"
-                alt="Large mural text reading you and me"
+                src="/birmingham-museums-trust-aE0-ZJb2VTQ-unsplash.jpg"
+                alt="Painting of a woman wearing a red beaded necklace"
                 fill
                 className={styles.aboutImage}
                 sizes="(max-width: 900px) 100vw, 32vw"
@@ -101,15 +90,15 @@ export default function SchoolLandingPage() {
               <p className={faqStyles.faqImageCredit}>
                 Photo by{' '}
                 <a
-                  href="https://unsplash.com/@supergios?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                  href="https://unsplash.com/@birminghammuseumstrust?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Jonny Gios
+                  Birmingham Museums Trust
                 </a>{' '}
                 on{' '}
                 <a
-                  href="https://unsplash.com/photos/a-black-and-white-sign-that-says-you-and-me-and-you-and-me-QMesAlxmi6g?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                  href="https://unsplash.com/photos/woman-wearing-red-beaded-necklace-painting-aE0-ZJb2VTQ?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
                   target="_blank"
                   rel="noreferrer"
                 >
