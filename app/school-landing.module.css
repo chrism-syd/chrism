@@ -1,6 +1,6 @@
 .schoolHeroBlock {
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(12px, 2vw, 26px);
+  gap: clamp(4px, 1vw, 14px);
   min-height: auto;
   padding-bottom: clamp(54px, 8vw, 104px);
 }
@@ -19,7 +19,7 @@
   display: grid;
   grid-template-columns: minmax(0, 0.48fr) minmax(420px, 0.52fr);
   gap: clamp(28px, 4vw, 64px);
-  align-items: end;
+  align-items: start;
 }
 
 .schoolHeroLead {
@@ -34,6 +34,7 @@
   display: flex;
   justify-content: flex-end;
   justify-self: end;
+  align-self: end;
   align-items: flex-end;
   min-width: 0;
 }
@@ -176,7 +177,7 @@
 
 @media (max-width: 900px) {
   .schoolHeroBlock {
-    gap: 20px;
+    gap: 12px;
   }
 
   .schoolHeroTitle {
