@@ -1,0 +1,59 @@
+.qv-login-panel .qv-login-form,
+.qv-login-panel .qv-register-form {
+  width: 100%;
+}
+
+.qv-login-panel .qv-login-form .qv-button-primary,
+.qv-login-panel .qv-register-form .qv-button-primary {
+  min-height: 52px;
+}
+
+.qv-login-panel .qv-login-form .qv-button-primary {
+  width: 100%;
+}
+
+.qv-login-panel .qv-control,
+.qv-login-panel .qv-field {
+  min-width: 0;
+}
+
+.qv-login-panel .qv-control input,
+.qv-login-panel .qv-field input:not([type='checkbox']) {
+  min-height: 52px;
+}
+
+.qv-register-consent {
+  display: block;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.qv-register-consent > span {
+  display: block;
+}
+
+.qv-register-consent input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  margin: 0 9px 0 0;
+  padding: 0;
+  vertical-align: -2px;
+  accent-color: var(--interactive);
+}
+
+.qv-login-footer-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.qv-auth-surface-link-row {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.qv-auth-surface-link-row .qv-auth-footer-link {
+  font-size: 14px;
+}
