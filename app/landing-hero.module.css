@@ -1,9 +1,9 @@
 .heroBlock {
   grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.85fr);
   align-items: start;
-  gap: clamp(36px, 6vw, 96px);
+  gap: clamp(44px, 7vw, 112px);
   min-height: calc(100vh - 190px);
-  padding: clamp(36px, 5vw, 70px) 0 clamp(84px, 12vh, 160px);
+  padding: clamp(12px, 2.5vw, 32px) 0 clamp(84px, 12vh, 160px);
 }
 
 .heroCopy {
@@ -68,6 +68,7 @@
   .heroBlock {
     grid-template-columns: minmax(0, 1fr);
     min-height: auto;
+    gap: 42px;
     padding-bottom: 72px;
   }
 
@@ -93,8 +94,8 @@
 
 @media (max-width: 720px) {
   .heroBlock {
-    gap: 32px;
-    padding-top: 24px;
+    gap: 38px;
+    padding-top: 12px;
     padding-bottom: 56px;
   }
 }
