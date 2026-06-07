@@ -13,7 +13,7 @@
   position: absolute;
   z-index: 0;
   right: clamp(-18px, 1vw, 24px);
-  top: clamp(220px, 22vw, 310px);
+  top: clamp(120px, 13vw, 190px);
   width: min(38vw, 500px);
   pointer-events: none;
 }
@@ -244,7 +244,7 @@
   .bridgeSweater {
     opacity: 0.22;
     right: -10vw;
-    top: 260px;
+    top: 180px;
     width: min(52vw, 500px);
   }
 
