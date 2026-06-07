@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
+import './auth-polish.css'
 
 const bodyFont = localFont({
   src: [
@@ -46,9 +47,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${bodyFont.variable} ${headingFont.variable}`}>
-  {children}
-  <Analytics />
-</body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   )
 }
