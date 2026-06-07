@@ -9,16 +9,21 @@ function noOrphan(text: string) {
 
 const flywheelSteps = [
   {
-    title: 'Broker',
-    copy: 'We source and manage production for print, signage, apparel, and institutional collateral.',
+    title: 'Reach',
+    copy: 'Chrism reaches organizations through software, fundraising goods, print sourcing, and practical operational support.',
   },
   {
-    title: 'Fuel',
-    copy: 'Commercial sourcing margin is redirected into the Chrism ecosystem instead of leaving the community.',
+    title: 'Redirect',
+    copy: 'Commercial margin is redirected into the Chrism ecosystem instead of leaking away from the community.',
   },
   {
-    title: 'Subsidize',
-    copy: 'That value helps keep core software free or deeply subsidized for local organizations.',
+    title: 'Reinvest',
+    copy: 'That value helps keep core tools free or deeply subsidized while funding better products, services, and support.',
+  },
+  {
+    title: 'Repeat',
+    copy:
+      'Every order, every subscription, every sourcing request makes the ecosystem stronger. The more Chrism is used, the more it can do — for everyone in it.',
   },
 ]
 
