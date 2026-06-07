@@ -11,21 +11,88 @@ p.invoiceCtaNote {
 }
 
 .invoiceModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
   background: rgba(46, 42, 52, 0.46);
   backdrop-filter: blur(8px);
 }
 
 .invoiceModal {
+  position: relative;
+  width: min(100%, 860px);
+  max-height: min(92vh, 920px);
+  overflow: auto;
+  border: 1px solid var(--divider);
+  border-radius: 30px;
   background: linear-gradient(180deg, #faf6f2 0%, #f3edf7 100%);
+  box-shadow: 0 28px 90px rgba(46, 42, 52, 0.24);
+  padding: clamp(24px, 4vw, 48px);
+}
+
+.invoiceModalClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(46, 42, 52, 0.08);
+  color: rgb(46, 42, 52);
+  font-size: 34px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.invoiceModalHeader {
+  display: grid;
+  gap: 16px;
+  padding-right: 62px;
+}
+
+.invoiceModalHeader h3 {
+  margin: 0;
+  color: rgb(46, 42, 52);
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(44px, 6vw, 82px);
+  line-height: 0.94;
+  letter-spacing: -0.045em;
 }
 
 .invoiceFileSummary {
+  margin: 0;
+  padding: 18px 22px;
+  border-radius: 22px;
   background: rgba(92, 74, 114, 0.1);
+  color: rgb(46, 42, 52);
+  font-size: clamp(17px, 2vw, 22px);
+  line-height: 1.35;
+}
+
+.invoiceFileSummary span {
+  color: var(--text-secondary);
+}
+
+.invoiceForm {
+  margin-top: 26px;
 }
 
 .invoiceForm input,
 .invoiceForm select {
   background: var(--bg-card);
+}
+
+.invoiceStatus {
+  margin: 0;
+  color: rgb(46, 42, 52);
+  font-size: 15px;
+  line-height: 1.58;
 }
 
 .invoiceConfirmation {
@@ -51,4 +118,27 @@ p.invoiceCtaNote {
   color: rgb(46, 42, 52);
   font-size: clamp(18px, 2vw, 23px);
   line-height: 1.36;
+}
+
+@media (max-width: 640px) {
+  .invoiceModalBackdrop {
+    padding: 12px;
+  }
+
+  .invoiceModal {
+    border-radius: 24px;
+    padding: 22px;
+  }
+
+  .invoiceModalClose {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 30px;
+  }
+
+  .invoiceModalHeader {
+    padding-right: 48px;
+  }
 }
