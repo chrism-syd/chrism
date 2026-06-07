@@ -95,7 +95,7 @@
 }
 
 .suppliesIntro {
-  max-width: min(48vw, 660px);
+  max-width: min(42vw, 560px);
 }
 
 .eyebrow {
@@ -218,7 +218,7 @@
   }
 
   .suppliesIntro {
-    max-width: min(58vw, 700px);
+    max-width: min(52vw, 640px);
   }
 
   .howGrid {
