@@ -128,7 +128,22 @@ export default function LandingPage() {
           <h1 className={styles.heroTitle}>
             Built for community.
             <br />
-            Optimized for business.
+            <span style={{ color: 'var(--qv-plum)', whiteSpace: 'nowrap' }}>
+              Optimized
+              <sup
+                aria-hidden="true"
+                style={{ display: 'inline-flex', marginLeft: '0.04em', verticalAlign: 'super' }}
+              >
+                <Image
+                  src="/chrism_star.png"
+                  alt=""
+                  width={36}
+                  height={36}
+                  style={{ display: 'block', width: '0.28em', height: '0.28em', objectFit: 'contain' }}
+                />
+              </sup>
+            </span>{' '}
+            for business.
           </h1>
           <p className={styles.heroLead}>
             Chrism bridges commercial enterprise and community stewardship so operational capital can stay closer to the
@@ -174,10 +189,10 @@ export default function LandingPage() {
             </h2>
             <div className={styles.copyStack}>
               <p>
-                Educators, faith communities, and the people who quietly keep local institutions running are doing some of
-                the most important work in any community. Most of them never set out to run an organization — they set out
-                to serve people. But here they are, juggling a patchwork of tools, bootstrapping on free tiers, and spending
-                time on administration that should be going toward the people they&apos;re trying to reach.
+                Educators, ministry leaders, and the people who quietly keep local institutions running are doing some of the
+                most important work in any community. Most never planned to run an organization — they wanted to serve people.
+                Yet here they are, juggling a patchwork of tools, bootstrapping on free tiers, and watching the person they
+                set out to be get kicked in the shins by everything that has nothing to do with why they showed up.
               </p>
               <p>
                 The infrastructure available to them was designed for businesses — not communities. The software assumes
