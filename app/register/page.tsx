@@ -79,11 +79,14 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               <Link href="/login" className="qv-auth-footer-link">
                 Already registered? Sign in
               </Link>
-              <Link href="/about" className="qv-auth-footer-link">
-                About us
-              </Link>
             </div>
           </section>
+        </div>
+
+        <div style={{ marginTop: '14px', textAlign: 'center' }}>
+          <Link href="/about" className="qv-auth-footer-link">
+            About us
+          </Link>
         </div>
       </div>
     </main>
