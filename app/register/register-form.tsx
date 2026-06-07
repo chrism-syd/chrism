@@ -42,8 +42,10 @@ export default function RegisterForm({ defaultEmail }: RegisterFormProps) {
       </label>
 
       <label className="qv-register-consent">
-        <input name="consent_accepted" type="checkbox" required />
-        <span>{REGISTRATION_CONSENT_TEXT}</span>
+        <span>
+          <input name="consent_accepted" type="checkbox" required />
+          {REGISTRATION_CONSENT_TEXT}
+        </span>
       </label>
 
       <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
