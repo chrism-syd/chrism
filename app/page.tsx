@@ -7,45 +7,27 @@ function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
 
-const valueCards = [
-  {
-    title: 'Community',
-    copy:
-      'Chrism helps ministries know their people, stay connected, coordinate volunteers, and strengthen the local relationships that make parish and community life real.',
-  },
-  {
-    title: 'Faith',
-    copy:
-      'Chrism is shaped by a Catholic imagination: beautiful materials, future spiritual tools, and a practical respect for the sacred work ministries are already doing.',
-  },
-  {
-    title: 'Service',
-    copy:
-      'Chrism reduces operational burden so leaders and volunteers can spend less time wrestling spreadsheets, vendors, and scattered systems, and more time serving people.',
-  },
-]
-
 const ecosystemCards = [
   {
     title: 'Chrism Operations',
-    eyebrow: 'Ministry OS',
+    eyebrow: 'Platform',
     variant: 'operations',
     copy:
-      'A streamlined coordination platform for member records, events, volunteers, communication, and local organization context.',
+      'A streamlined coordination layer for records, events, volunteers, communication, and local organization context.',
   },
   {
     title: 'Chrism Commerce',
     eyebrow: 'Fundraising',
     variant: 'commerce',
     copy:
-      'Premium Christmas cards, sacramental certificates, and print collateral designed to honor the dignity of the mission while creating strong local fundraising opportunities.',
+      'Premium goods and designed materials that help organizations raise money without lowering the dignity of their mission.',
   },
   {
     title: 'Chrism Brokerage',
-    eyebrow: 'Print Sourcing',
+    eyebrow: 'Sourcing',
     variant: 'brokerage',
     copy:
-      'Commercial print, signage, apparel, and procurement sourcing through trade-aware production partners that help institutions avoid unnecessary retail markup.',
+      'Print, signage, apparel, and procurement sourcing through trade-aware production partners that help institutions avoid unnecessary retail markup.',
   },
 ] as const
 
@@ -66,20 +48,20 @@ const flywheelSteps = [
   },
   {
     title: 'Subsidize',
-    copy: 'That value helps keep ministry software free or deeply subsidized for local organizations.',
+    copy: 'That value helps keep core software free or deeply subsidized for local organizations.',
   },
 ]
 
 const faqs = [
   {
-    question: 'How is Chrism free for ministries?',
+    question: 'How is Chrism free for organizations?',
     answer:
-      'Chrism uses commercial print sourcing, fundraising products, and procurement margin to subsidize the software platform. The goal is to let commercial activity support ministry infrastructure instead of asking every small ministry to carry another software bill.',
+      'Chrism uses commercial print sourcing, fundraising products, and procurement margin to subsidize the software platform. The goal is to let commercial activity support community infrastructure instead of asking every small organization to carry another software bill.',
   },
   {
     question: 'What does Chrism offer?',
     answer:
-      'Chrism offers ministry software for member management, events, volunteer coordination, communication, and local organization context. It also supports print sourcing, fundraising products, sacramental materials, and institutional procurement work.',
+      'Chrism offers software for member management, events, volunteer coordination, communication, and local organization context. It also supports print sourcing, fundraising products, designed materials, and institutional procurement work.',
   },
   {
     question: 'What kind of print work can Chrism source?',
@@ -92,9 +74,9 @@ const faqs = [
       'Chrism designs and sources premium goods at wholesale or trade-aware pricing so local groups can sell them at healthy margins. The model is especially useful for products like Christmas cards, where strong design and production quality can become a real fundraising advantage.',
   },
   {
-    question: 'Does Chrism replace parish systems?',
+    question: 'Does Chrism replace existing systems?',
     answer:
-      'No. Chrism is best understood as a practical coordination layer for ministries, councils, volunteers, events, members, and local leadership. It is meant to reduce everyday friction, not replace every system a parish or organization already uses.',
+      'No. Chrism is best understood as a practical coordination layer for organizations, members, leaders, volunteers, events, and local operations. It is meant to reduce everyday friction, not replace every system an organization already uses.',
   },
   {
     question: 'How does Chrism protect user information?',
@@ -102,7 +84,7 @@ const faqs = [
       'Chrism uses passwordless authentication, secure HTTPS, responsible access controls, and organization-based permissions. User information is shared only with organizations a user belongs to or chooses to connect with.',
   },
   {
-    question: 'Can my council, parish, school, or organization request a quote?',
+    question: 'Can my organization request a quote?',
     answer:
       'Yes. Chrism can review existing print or sourcing needs and provide a comparison quote so your organization can see whether there is a meaningful savings opportunity.',
   },
@@ -213,49 +195,6 @@ export default function LandingPage() {
           </section>
         </section>
 
-        <section className={styles.valuesSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>What Drives Us</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Community, Faith, and Service')}</h2>
-            <p>
-              {noOrphan(
-                'These are not side themes. They are the reason Chrism exists, and the reason our tools are built around the day-to-day reality of ministries, councils, schools, volunteers, and local leaders.'
-              )}
-            </p>
-          </div>
-
-          <div className={styles.cardGrid}>
-            {valueCards.map((value) => (
-              <article key={value.title} className={styles.valueCard}>
-                <h3>{value.title}</h3>
-                <p>{noOrphan(value.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.platformSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>The Ecosystem</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Three connected parts. One purpose.')}</h2>
-            <p>
-              {noOrphan(
-                'Chrism connects software, commerce, and sourcing so ministry support is not dependent on yet another isolated subscription or one-off vendor relationship.'
-              )}
-            </p>
-          </div>
-
-          <div className={styles.pillarColumns}>
-            {ecosystemCards.map((card) => (
-              <article key={card.title} className={styles.pillarColumn} id={card.title === 'Chrism Brokerage' ? 'sourcing' : undefined}>
-                <p className={`${styles.pillarTag} ${pillarTagClass(card.variant)}`}>{card.eyebrow}</p>
-                <h3>{card.title}</h3>
-                <p>{noOrphan(card.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className={styles.flywheelSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Flywheel</p>
@@ -282,10 +221,32 @@ export default function LandingPage() {
             <div className={styles.freeBannerCopy}>
               <p>
                 {noOrphan(
-                  'The essential tools of member engagement and care will always be accessible to every ministry, not just the ones with a budget.'
+                  'The essential tools of member engagement and care will always be accessible to every organization, not just the ones with a budget.'
                 )}
               </p>
             </div>
+          </div>
+        </section>
+
+        <section className={styles.platformSection}>
+          <div className={styles.sectionIntroWide}>
+            <p className={styles.eyebrow}>The Ecosystem</p>
+            <h2 className={styles.sectionTitle}>{noOrphan('Three connected parts. One purpose.')}</h2>
+            <p>
+              {noOrphan(
+                'Chrism connects software, commerce, and sourcing so organizational support is not dependent on yet another isolated subscription or one-off vendor relationship.'
+              )}
+            </p>
+          </div>
+
+          <div className={styles.pillarColumns}>
+            {ecosystemCards.map((card) => (
+              <article key={card.title} className={styles.pillarColumn} id={card.title === 'Chrism Brokerage' ? 'sourcing' : undefined}>
+                <p className={`${styles.pillarTag} ${pillarTagClass(card.variant)}`}>{card.eyebrow}</p>
+                <h3>{card.title}</h3>
+                <p>{noOrphan(card.copy)}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -297,7 +258,7 @@ export default function LandingPage() {
           <div className={styles.copyStack}>
             <p>
               {noOrphan(
-                'Because Chrism bridges procurement, ministry coordination, and community management, the platform is built around practical security standards, including secure HTTPS, passwordless authentication, organization-based permissions, and modern email authentication practices.'
+                'Because Chrism bridges procurement, coordination, and community management, the platform is built around practical security standards, including secure HTTPS, passwordless authentication, organization-based permissions, and modern email authentication practices.'
               )}
             </p>
             <p>
