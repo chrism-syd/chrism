@@ -196,7 +196,7 @@ function LoginPageContent() {
             <div className="qv-login-panel-copy">
               <h1 className="qv-login-panel-title">Sign in</h1>
               <p className="qv-login-panel-text">
-                Enter your email address and we'll send you a verification code. No password needed.
+                Enter your email address and we&apos;ll send you a verification code. No password needed.
               </p>
             </div>
 
