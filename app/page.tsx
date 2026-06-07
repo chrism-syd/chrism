@@ -154,7 +154,7 @@ export default function LandingPage() {
           <div className={styles.imageColumn}>
             <div className={styles.imageFrame}>
               <Image
-                src="/jonny-gios-QMesAlxmi6g-unsplash.jpg"
+                src="/j-gios-QMesAlxmi6g-unsplash-chrism.png"
                 alt="Large mural text reading you and me"
                 fill
                 className={styles.aboutImage}
@@ -183,9 +183,7 @@ export default function LandingPage() {
 
           <section className={styles.contentPlain}>
             <p className={styles.eyebrow}>Why Chrism exists</p>
-            <h2 className={styles.sectionTitle}>
-              The organizations holding communities together deserve better tools — and better economics.
-            </h2>
+            <h2 className={styles.sectionTitle}>The people holding communities together deserve better.</h2>
             <div className={styles.copyStack}>
               <p>
                 Educators, ministry leaders, and the people who quietly keep local institutions running are doing some of the
