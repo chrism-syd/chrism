@@ -27,3 +27,28 @@ p.invoiceCtaNote {
 .invoiceForm select {
   background: var(--bg-card);
 }
+
+.invoiceConfirmation {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  padding: clamp(18px, 4vw, 34px) 0;
+}
+
+.invoiceConfirmation h3 {
+  margin: 0;
+  max-width: 11ch;
+  color: rgb(46, 42, 52);
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+}
+
+.invoiceConfirmation p:not(.eyebrow) {
+  margin: 0;
+  max-width: 560px;
+  color: rgb(46, 42, 52);
+  font-size: clamp(18px, 2vw, 23px);
+  line-height: 1.36;
+}
