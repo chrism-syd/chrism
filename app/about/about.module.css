@@ -192,6 +192,7 @@
 }
 
 .flywheelSection {
+  gap: 18px;
   padding-block: 32px;
 }
 
@@ -273,7 +274,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(24px, 3vw, 42px);
-  padding: 28px 0 8px;
+  padding: 8px 0 8px;
 }
 
 .flowItem {
