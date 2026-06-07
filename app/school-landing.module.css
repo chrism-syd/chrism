@@ -1,8 +1,8 @@
 .schoolHeroBlock {
   grid-template-columns: minmax(0, 1fr);
   gap: clamp(24px, 2.8vw, 38px);
-  min-height: calc(100vh - 104px);
-  padding-bottom: clamp(36px, 5vw, 72px);
+  min-height: auto;
+  padding-bottom: clamp(54px, 8vw, 104px);
 }
 
 .schoolHeroCopy {
@@ -17,7 +17,7 @@
 
 .schoolHeroLower {
   display: grid;
-  grid-template-columns: minmax(0, 0.48fr) minmax(420px, 0.52fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(28px, 4vw, 64px);
   align-items: start;
 }
@@ -53,10 +53,6 @@
   gap: clamp(24px, 3vw, 36px);
   padding: clamp(18px, 3vw, 32px) 0 clamp(28px, 4vw, 48px);
   overflow: hidden;
-}
-
-.suppliesSection {
-  padding-top: clamp(16px, 3vw, 42px);
 }
 
 .suppliesIntro,
@@ -170,14 +166,6 @@
 }
 
 @media (max-width: 1100px) {
-  .schoolHeroBlock {
-    min-height: auto;
-  }
-
-  .schoolHeroLower {
-    grid-template-columns: minmax(0, 0.54fr) minmax(360px, 0.46fr);
-  }
-
   .howGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -191,19 +179,6 @@
 
   .schoolHeroTitle {
     max-width: 11ch;
-  }
-
-  .schoolHeroLower {
-    grid-template-columns: 1fr;
-  }
-
-  .schoolHeroArtwork {
-    justify-content: flex-start;
-    justify-self: start;
-  }
-
-  .schoolHeroImage {
-    width: min(100%, 420px);
   }
 
   .suppliesRail {
