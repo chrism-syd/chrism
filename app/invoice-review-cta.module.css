@@ -53,6 +53,7 @@ p.invoiceCtaNote {
 .invoiceModalHeader {
   display: grid;
   gap: 16px;
+  justify-items: center;
   padding-right: 62px;
 }
 
@@ -66,6 +67,7 @@ p.invoiceCtaNote {
 }
 
 .invoiceFileSummary {
+  width: min(100%, 760px);
   margin: 0;
   padding: 18px 22px;
   border-radius: 22px;
@@ -73,6 +75,7 @@ p.invoiceCtaNote {
   color: rgb(46, 42, 52);
   font-size: clamp(17px, 2vw, 22px);
   line-height: 1.35;
+  text-align: center;
 }
 
 .invoiceFileSummary span {
@@ -80,7 +83,13 @@ p.invoiceCtaNote {
 }
 
 .invoiceForm {
-  margin-top: 26px;
+  width: min(100%, 760px);
+  margin: 26px auto 0;
+}
+
+.invoiceForm label {
+  justify-items: start;
+  text-align: left;
 }
 
 .invoiceForm input,
