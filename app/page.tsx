@@ -7,36 +7,6 @@ function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
 
-const ecosystemCards = [
-  {
-    title: 'Chrism Operations',
-    eyebrow: 'Platform',
-    variant: 'operations',
-    copy:
-      'A streamlined coordination layer for records, events, volunteers, communication, and local organization context.',
-  },
-  {
-    title: 'Chrism Commerce',
-    eyebrow: 'Fundraising',
-    variant: 'commerce',
-    copy:
-      'Premium goods and designed materials that help organizations raise money without lowering the dignity of their mission.',
-  },
-  {
-    title: 'Chrism Brokerage',
-    eyebrow: 'Sourcing',
-    variant: 'brokerage',
-    copy:
-      'Print, signage, apparel, and procurement sourcing through trade-aware production partners that help institutions avoid unnecessary retail markup.',
-  },
-] as const
-
-function pillarTagClass(variant: (typeof ecosystemCards)[number]['variant']) {
-  if (variant === 'operations') return styles.pillarTagOperations
-  if (variant === 'commerce') return styles.pillarTagCommerce
-  return styles.pillarTagBrokerage
-}
-
 const flywheelSteps = [
   {
     title: 'Broker',
@@ -219,33 +189,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className={styles.platformSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>The Ecosystem</p>
-            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-              Three <span className={heroStyles.accentWord}>connected</span> parts. One purpose.
-            </h2>
-            <p>
-              {noOrphan(
-                'Chrism connects software, commerce, and sourcing so organizational support is not dependent on yet another isolated subscription or one-off vendor relationship.'
-              )}
-            </p>
-          </div>
-
-          <div className={styles.pillarColumns}>
-            {ecosystemCards.map((card) => (
-              <article key={card.title} className={styles.pillarColumn} id={card.title === 'Chrism Brokerage' ? 'sourcing' : undefined}>
-                <p className={`${styles.pillarTag} ${pillarTagClass(card.variant)}`}>{card.eyebrow}</p>
-                <h3>{card.title}</h3>
-                <p>{noOrphan(card.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className={styles.trustBand}>
           <div className={styles.trustIntro}>
-            <h2 className={styles.trustTitle}>{noOrphan('Responsible stewardship')}</h2>
+            <h2 className={styles.trustTitle}>Responsible stewardship</h2>
           </div>
           <div className={styles.copyStack}>
             <p>
