@@ -3,6 +3,10 @@ import Link from 'next/link'
 import styles from './about/about.module.css'
 import heroStyles from './landing-hero.module.css'
 
+function noOrphan(text: string) {
+  return text.replace(/\s+(\S+)$/, '\u00a0$1')
+}
+
 const valueCards = [
   {
     title: 'Community',
@@ -150,15 +154,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className={styles.visionGrid}>
-          <div className={styles.imageColumn}>
+        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix}`}>
+          <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn}`}>
             <div className={styles.imageFrame}>
               <Image
                 src="/jonny-gios-QMesAlxmi6g-unsplash-chrism.png"
                 alt="Large mural text reading you and me"
                 fill
                 className={styles.aboutImage}
-                sizes="(max-width: 900px) 100vw, 38vw"
+                sizes="(max-width: 900px) 100vw, 32vw"
               />
             </div>
             <p className={styles.photoCredit}>
@@ -181,24 +185,29 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <section className={styles.contentPlain}>
+          <section className={`${styles.contentPlain} ${heroStyles.visionCopyColumn}`}>
             <p className={styles.eyebrow}>Why Chrism exists</p>
-            <h2 className={styles.sectionTitle}>The people holding communities together deserve better.</h2>
+            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
+              The people holding communities together{' '}
+              <span className={heroStyles.noWrap}>
+                deserve <span className={heroStyles.accentWord}>better.</span>
+              </span>
+            </h2>
             <div className={styles.copyStack}>
               <p>
-                Educators, ministry leaders, and the people who quietly keep local institutions running are doing some of the
-                most important work in any community. Most never planned to run an organization — they wanted to serve people.
-                Yet here they are, juggling a patchwork of tools, bootstrapping on free tiers, and watching the person they
-                set out to be get kicked in the shins by everything that has nothing to do with why they showed up.
+                {noOrphan(
+                  'Educators, ministry leaders, and the people who quietly keep local institutions running are doing some of the most important work in any community. Most never planned to run an organization — they wanted to serve people. Yet here they are, juggling a patchwork of tools, bootstrapping on free tiers, and watching the person they set out to be get kicked in the shins by everything that has nothing to do with why they showed up.'
+                )}
               </p>
               <p>
-                The infrastructure available to them was designed for businesses — not communities. The software assumes
-                enterprise budgets. The pricing assumes high-volume buyers. And the gap between what&apos;s available and what&apos;s
-                actually needed keeps falling on the people least positioned to absorb it.
+                {noOrphan(
+                  'The infrastructure available to them was designed for businesses — not communities. The software assumes enterprise budgets. The pricing assumes high-volume buyers. And the gap between what\'s available and what\'s actually needed keeps falling on the people least positioned to absorb it.'
+                )}
               </p>
               <p>
-                Chrism exists to close that gap. Operations software, fundraising goods, and institutional print sourcing —
-                connected in one place, so more value stays with the organizations doing the work.
+                {noOrphan(
+                  'Chrism exists to close that gap. Operations software, fundraising goods, and institutional print sourcing — connected in one place, so more value stays with the organizations doing the work.'
+                )}
               </p>
             </div>
           </section>
@@ -207,10 +216,11 @@ export default function LandingPage() {
         <section className={styles.valuesSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>What Drives Us</p>
-            <h2 className={styles.sectionTitle}>Community, Faith, and Service</h2>
+            <h2 className={styles.sectionTitle}>{noOrphan('Community, Faith, and Service')}</h2>
             <p>
-              These are not side themes. They are the reason Chrism exists, and the reason our tools are built around the
-              day-to-day reality of ministries, councils, schools, volunteers, and local leaders.
+              {noOrphan(
+                'These are not side themes. They are the reason Chrism exists, and the reason our tools are built around the day-to-day reality of ministries, councils, schools, volunteers, and local leaders.'
+              )}
             </p>
           </div>
 
@@ -218,7 +228,7 @@ export default function LandingPage() {
             {valueCards.map((value) => (
               <article key={value.title} className={styles.valueCard}>
                 <h3>{value.title}</h3>
-                <p>{value.copy}</p>
+                <p>{noOrphan(value.copy)}</p>
               </article>
             ))}
           </div>
@@ -227,10 +237,11 @@ export default function LandingPage() {
         <section className={styles.platformSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Ecosystem</p>
-            <h2 className={styles.sectionTitle}>Three connected parts. One purpose.</h2>
+            <h2 className={styles.sectionTitle}>{noOrphan('Three connected parts. One purpose.')}</h2>
             <p>
-              Chrism connects software, commerce, and sourcing so ministry support is not dependent on yet another isolated
-              subscription or one-off vendor relationship.
+              {noOrphan(
+                'Chrism connects software, commerce, and sourcing so ministry support is not dependent on yet another isolated subscription or one-off vendor relationship.'
+              )}
             </p>
           </div>
 
@@ -239,7 +250,7 @@ export default function LandingPage() {
               <article key={card.title} className={styles.pillarColumn} id={card.title === 'Chrism Brokerage' ? 'sourcing' : undefined}>
                 <p className={`${styles.pillarTag} ${pillarTagClass(card.variant)}`}>{card.eyebrow}</p>
                 <h3>{card.title}</h3>
-                <p>{card.copy}</p>
+                <p>{noOrphan(card.copy)}</p>
               </article>
             ))}
           </div>
@@ -248,10 +259,11 @@ export default function LandingPage() {
         <section className={styles.flywheelSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Flywheel</p>
-            <h2 className={styles.sectionTitle}>How the model works</h2>
+            <h2 className={styles.sectionTitle}>{noOrphan('How the model works')}</h2>
             <p>
-              Commercial print and sourcing work creates margin. Instead of extracting that value away from the community,
-              Chrism redirects it into tools, services, and fundraising mechanisms that support the community.
+              {noOrphan(
+                'Commercial print and sourcing work creates margin. Instead of extracting that value away from the community, Chrism redirects it into tools, services, and fundraising mechanisms that support the community.'
+              )}
             </p>
           </div>
 
@@ -260,17 +272,18 @@ export default function LandingPage() {
               <article key={step.title} className={styles.flowItem}>
                 <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
                 <h3>{step.title}</h3>
-                <p>{step.copy}</p>
+                <p>{noOrphan(step.copy)}</p>
               </article>
             ))}
           </div>
 
           <div className={styles.freeBanner}>
-            <h3 className={styles.freeBannerTitle}>Chrism&apos;s core functionality will always be FREE.</h3>
+            <h3 className={styles.freeBannerTitle}>{noOrphan('Chrism\'s core functionality will always be FREE.')}</h3>
             <div className={styles.freeBannerCopy}>
               <p>
-                The essential tools of member engagement and care will always be accessible to every ministry, not just the ones
-                with a budget.
+                {noOrphan(
+                  'The essential tools of member engagement and care will always be accessible to every ministry, not just the ones with a budget.'
+                )}
               </p>
             </div>
           </div>
@@ -279,31 +292,32 @@ export default function LandingPage() {
         <section className={styles.trustBand}>
           <div className={styles.trustIntro}>
             <p className={styles.eyebrow}>Trust</p>
-            <h2 className={styles.trustTitle}>Responsible stewardship</h2>
+            <h2 className={styles.trustTitle}>{noOrphan('Responsible stewardship')}</h2>
           </div>
           <div className={styles.copyStack}>
             <p>
-              Because Chrism bridges procurement, ministry coordination, and community management, the platform is built
-              around practical security standards, including secure HTTPS, passwordless authentication, organization-based
-              permissions, and modern email authentication practices.
+              {noOrphan(
+                'Because Chrism bridges procurement, ministry coordination, and community management, the platform is built around practical security standards, including secure HTTPS, passwordless authentication, organization-based permissions, and modern email authentication practices.'
+              )}
             </p>
             <p>
-              Chrism is an Ontario-registered sole proprietorship dedicated to keeping operational capital where it matters
-              most: directly supporting your mission.
+              {noOrphan(
+                'Chrism is an Ontario-registered sole proprietorship dedicated to keeping operational capital where it matters most: directly supporting your mission.'
+              )}
             </p>
           </div>
         </section>
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
-            <h2 className={styles.sectionTitle}>Common questions</h2>
+            <h2 className={styles.sectionTitle}>{noOrphan('Common questions')}</h2>
           </div>
 
           <div className={styles.faqList}>
             {faqs.map((faq) => (
               <details key={faq.question} className={styles.faqItem}>
                 <summary>{faq.question}</summary>
-                <p>{faq.answer}</p>
+                <p>{noOrphan(faq.answer)}</p>
               </details>
             ))}
           </div>
@@ -311,7 +325,7 @@ export default function LandingPage() {
 
         <section className={styles.ctaSection}>
           <p className={styles.eyebrow}>Next Step</p>
-          <h2 className={styles.ctaTitle}>Ready to optimize your organization&apos;s ecosystem?</h2>
+          <h2 className={styles.ctaTitle}>{noOrphan('Ready to optimize your organization\'s ecosystem?')}</h2>
           <div className={styles.ctaActions}>
             <Link href="#sourcing" className="qv-link-button qv-button-secondary">
               Explore Our Sourcing Network
