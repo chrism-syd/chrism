@@ -143,17 +143,17 @@ export default function InvoiceReviewCta() {
         </button>
       </div>
 
-      {message && !isModalOpen ? <p className={styles.invoiceStatus}>{message}</p> : null}
+      {message && !isModalOpen ? <p className={invoiceStyles.invoiceStatus}>{message}</p> : null}
 
       {isModalOpen ? (
-        <div className={`${styles.invoiceModalBackdrop} ${invoiceStyles.invoiceModalBackdrop}`} role="presentation">
+        <div className={invoiceStyles.invoiceModalBackdrop} role="presentation">
           <div
-            className={`${styles.invoiceModal} ${invoiceStyles.invoiceModal}`}
+            className={invoiceStyles.invoiceModal}
             role="dialog"
             aria-modal="true"
             aria-labelledby="invoice-modal-title"
           >
-            <button type="button" className={styles.invoiceModalClose} onClick={closeModal} aria-label="Close invoice form">
+            <button type="button" className={invoiceStyles.invoiceModalClose} onClick={closeModal} aria-label="Close invoice form">
               ×
             </button>
 
@@ -170,11 +170,11 @@ export default function InvoiceReviewCta() {
               </div>
             ) : (
               <>
-                <div className={styles.invoiceModalHeader}>
+                <div className={invoiceStyles.invoiceModalHeader}>
                   <p className={styles.eyebrow}>Invoice review</p>
                   <h3 id="invoice-modal-title">Tell us about you</h3>
                   {selectedFile ? (
-                    <p className={`${styles.invoiceFileSummary} ${invoiceStyles.invoiceFileSummary}`}>
+                    <p className={invoiceStyles.invoiceFileSummary}>
                       Attached: <strong>{selectedFile.name}</strong> <span>{formatFileSize(selectedFile.size)}</span>
                     </p>
                   ) : null}
@@ -207,7 +207,7 @@ export default function InvoiceReviewCta() {
                     </select>
                   </label>
 
-                  {message ? <p className={styles.invoiceStatus}>{message}</p> : null}
+                  {message ? <p className={invoiceStyles.invoiceStatus}>{message}</p> : null}
 
                   <div className={styles.invoiceFormActions}>
                     <button type="button" className="qv-button-secondary" onClick={openFilePicker} disabled={submitState === 'submitting'}>
