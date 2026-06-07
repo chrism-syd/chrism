@@ -176,9 +176,10 @@ export default function LandingPage() {
             <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>Why the model works</h2>
             <p>
               {noOrphan(
-                'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism. The difference is what we do with it.'
+                'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism.'
               )}
             </p>
+            <p>{noOrphan('The difference is what we do with it.')}</p>
           </div>
 
           <div className={styles.flowGrid}>
