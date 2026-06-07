@@ -173,12 +173,10 @@ export default function LandingPage() {
         <section className={styles.flywheelSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Flywheel</p>
-            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-              How the model <span className={heroStyles.accentWord}>works</span>
-            </h2>
+            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>Why the model works</h2>
             <p>
               {noOrphan(
-                'Commercial print and sourcing work creates margin. Instead of extracting that value away from the community, Chrism redirects it into tools, services, and fundraising mechanisms that support the community.'
+                'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism. The difference is what we do with it.'
               )}
             </p>
           </div>
