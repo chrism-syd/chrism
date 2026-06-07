@@ -1,5 +1,9 @@
 .plainTrust {
-  margin-top: clamp(-44px, -4vw, -28px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: clamp(24px, 3vw, 42px);
+  row-gap: 24px;
+  align-items: start;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -7,9 +11,25 @@
   box-shadow: none;
 }
 
+.plainTrust > :first-child {
+  grid-column: span 1;
+  max-width: none;
+}
+
+.plainTrust > :last-child {
+  grid-column: 2 / -1;
+  max-width: none;
+}
+
 @media (max-width: 900px) {
   .plainTrust {
-    margin-top: -28px;
+    grid-template-columns: 1fr;
+    row-gap: 18px;
     padding: 0;
+  }
+
+  .plainTrust > :first-child,
+  .plainTrust > :last-child {
+    grid-column: auto;
   }
 }
