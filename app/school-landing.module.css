@@ -176,15 +176,36 @@
   line-height: 1.58;
 }
 
+.suppliesCarouselRow {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.28fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 42px);
+  align-items: center;
+}
+
+.pennantFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.pennantImage {
+  display: block;
+  width: min(100%, 300px);
+  height: auto;
+}
+
 .suppliesRailShell {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
 
 .suppliesRail {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 31%);
+  grid-auto-columns: minmax(280px, 36%);
   gap: 18px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
@@ -350,6 +371,14 @@
     max-width: min(60vw, 700px);
   }
 
+  .suppliesCarouselRow {
+    grid-template-columns: minmax(140px, 0.22fr) minmax(0, 1fr);
+  }
+
+  .pennantImage {
+    width: min(100%, 240px);
+  }
+
   .howGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -382,6 +411,18 @@
   .suppliesIntro h2,
   .suppliesIntro p:not(.eyebrow) {
     max-width: 760px;
+  }
+
+  .suppliesCarouselRow {
+    grid-template-columns: 1fr;
+  }
+
+  .pennantFrame {
+    justify-content: flex-start;
+  }
+
+  .pennantImage {
+    width: min(64vw, 260px);
   }
 
   .suppliesRail {
