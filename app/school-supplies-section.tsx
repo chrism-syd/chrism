@@ -90,7 +90,13 @@ export default function SchoolSuppliesSection() {
     <section className={styles.suppliesSection}>
       <div className={styles.suppliesIntro}>
         <p className={styles.eyebrow}>What we supply</p>
-        <h2>Print, apparel, signage, and promotional sourcing without the vendor shuffle.</h2>
+        <h2>
+          Print, apparel, signage,
+          <br />
+          and promotional sourcing without
+          <br />
+          the vendor shuffle.
+        </h2>
         <p>
           {noOrphan(
             'Chrism sources and manages production across print, apparel, signage, and promotional products — handling everything from quote to delivery so your school or board doesn\'t have to manage multiple vendors.'
