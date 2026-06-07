@@ -61,11 +61,6 @@ const faqs = [
     answer:
       'Chrism uses passwordless authentication, secure HTTPS, responsible access controls, and organization-based permissions. User information is shared only with organizations a user belongs to or chooses to connect with.',
   },
-  {
-    question: 'Can my organization request a quote?',
-    answer:
-      'Yes. Chrism can review existing print or sourcing needs and provide a comparison quote so your organization can see whether there is a meaningful savings opportunity.',
-  },
 ]
 
 export default function LandingPage() {
@@ -226,7 +221,7 @@ export default function LandingPage() {
         <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
           <div className={faqStyles.faqContent}>
             <div className={styles.sectionIntroWide}>
-              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common Questions')}</h2>
+              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common questions')}</h2>
             </div>
 
             <div className={styles.faqList}>
