@@ -55,10 +55,6 @@ export default function SchoolLandingPage() {
               className={styles.brandImage}
             />
           </Link>
-
-          <Link href="https://operations.chrism.app" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
-            Launch Operations
-          </Link>
         </header>
 
         <section className={`${styles.heroBlock} ${heroStyles.heroBlock} ${schoolStyles.schoolHeroBlock}`}>
@@ -74,17 +70,6 @@ export default function SchoolLandingPage() {
                 'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
               )}
             </p>
-
-            <div className={`${heroStyles.heroArtwork} ${schoolStyles.schoolHeroArtwork}`} aria-hidden="true">
-              <Image
-                src="/chair_school.png"
-                alt=""
-                width={780}
-                height={780}
-                priority
-                className={heroStyles.heroChairImage}
-              />
-            </div>
           </div>
         </section>
 
