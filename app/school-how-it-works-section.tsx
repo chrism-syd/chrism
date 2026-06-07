@@ -41,9 +41,9 @@ export default function SchoolHowItWorksSection() {
       </div>
 
       <div className={styles.howGrid}>
-        {howSteps.map((step) => (
+        {howSteps.map((step, index) => (
           <article key={step.title} className={styles.howCard}>
-            <p className={styles.supplyNumber}>{String(howSteps.indexOf(step) + 1).padStart(2, '0')}</p>
+            <p className={styles.supplyNumber}>{String(index + 1).padStart(2, '0')}</p>
             <h3>{step.title}</h3>
             <p>{noOrphan(step.copy)}</p>
           </article>
