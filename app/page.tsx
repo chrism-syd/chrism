@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './about/about.module.css'
+import InvoiceReviewCta from './invoice-review-cta'
 import heroStyles from './landing-hero.module.css'
 
 function noOrphan(text: string) {
@@ -227,19 +228,7 @@ export default function LandingPage() {
         </section>
 
         <section className={styles.ctaSection}>
-          <p className={styles.eyebrow}>Next Step</p>
-          <h2 className={styles.ctaTitle}>{noOrphan('Ready to optimize your organization\'s ecosystem?')}</h2>
-          <div className={styles.ctaActions}>
-            <Link href="#sourcing" className="qv-link-button qv-button-secondary">
-              Explore Our Sourcing Network
-            </Link>
-            <Link href="mailto:syd.fernandez@chrism.app?subject=Chrism%20comparison%20quote" className="qv-link-button qv-button-secondary">
-              Get a Comparison Quote
-            </Link>
-            <Link href="/operations" className="qv-link-button qv-button-primary">
-              Launch Operations
-            </Link>
-          </div>
+          <InvoiceReviewCta />
         </section>
       </div>
     </main>
