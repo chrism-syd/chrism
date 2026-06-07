@@ -2,67 +2,41 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from '../about/about.module.css'
 import faqStyles from '../faq-image.module.css'
-import flywheelStyles from '../flywheel-star.module.css'
 import heroStyles from '../landing-hero.module.css'
 import InvoiceReviewCta from '../invoice-review-cta'
+import SchoolHowItWorksSection from '../school-how-it-works-section'
 import schoolStyles from '../school-landing.module.css'
 import SchoolSuppliesSection from '../school-supplies-section'
-import stewardshipStyles from '../stewardship-section.module.css'
 
 function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
 
-const flywheelSteps = [
-  {
-    title: 'Reach',
-    copy: 'Access to trade-level vendors, pricing, and production relationships your school couldn\'t easily get on its own.',
-  },
-  {
-    title: 'Redirect',
-    copy: 'Most of that margin stays in the ecosystem — not in a corporate bottom line somewhere else. We run lean so more of it can.',
-  },
-  {
-    title: 'Reinvest',
-    copy: 'That value keeps core tools free or deeply subsidized for the schools and communities that need them most.',
-  },
-  {
-    title: 'Repeat',
-    copy:
-      'Every order, every subscription, every sourcing request compounds. The more Chrism is used, the more it can do — for every school in it.',
-  },
-]
-
 const faqs = [
-  {
-    question: 'How is Chrism free for schools?',
-    answer:
-      'Chrism uses commercial print sourcing, fundraising products, and procurement margin to subsidize the software platform. The goal is to let commercial activity support school community infrastructure instead of asking every small school to carry another software bill.',
-  },
-  {
-    question: 'What does Chrism offer schools?',
-    answer:
-      'Chrism offers software for community management, events, volunteer coordination, communication, and local organization context. It also supports print sourcing, fundraising products, designed materials, and institutional procurement work.',
-  },
   {
     question: 'What kind of print work can Chrism source?',
     answer:
-      'Chrism can help source Christmas cards, certificates, postcards, signs, banners, apparel, forms, bulletins, fundraising materials, and other school print needs.',
+      'Chrism can help source flyers, brochures, booklets, posters, newsletters, presentation folders, forms, certificates, signs, banners, apparel, promotional products, and other school print needs.',
   },
   {
-    question: 'How does Chrism help fundraising?',
+    question: 'Can Chrism work with school boards or procurement procedures?',
     answer:
-      'Chrism designs and sources premium goods at wholesale or trade-aware pricing so school groups can sell them at healthy margins. The model is especially useful for products like Christmas cards, where strong design and production quality can become a real fundraising advantage.',
+      'Yes. Chrism can work within existing institutional procurement procedures, including purchase orders and formal payment terms.',
   },
   {
-    question: 'Does Chrism replace existing school systems?',
+    question: 'How quickly can we get a quote?',
     answer:
-      'No. Chrism is best understood as a practical coordination layer for school communities, leaders, volunteers, events, and local operations. It is meant to reduce everyday friction, not replace every system a school already uses.',
+      'Most quotes are turned around within one business day, depending on the complexity of the request and whether files or specifications are ready.',
   },
   {
-    question: 'How does Chrism protect school information?',
+    question: 'Can you compare against an existing invoice?',
     answer:
-      'Chrism uses passwordless authentication, secure HTTPS, responsible access controls, and organization-based permissions. User information is shared only with organizations a user belongs to or chooses to connect with.',
+      'Yes. Send the invoice or project details and Chrism can tell you whether there is a meaningful savings opportunity.',
+  },
+  {
+    question: 'Do you only work with schools?',
+    answer:
+      'No. Chrism also supports school boards, parent councils, faith communities, nonprofits, and local organizations with practical sourcing and production support.',
   },
 ]
 
@@ -87,31 +61,36 @@ export default function SchoolLandingPage() {
           </Link>
         </header>
 
-        <section className={`${styles.heroBlock} ${heroStyles.heroBlock}`}>
+        <section className={`${styles.heroBlock} ${heroStyles.heroBlock} ${schoolStyles.schoolHeroBlock}`}>
           <div className={`${heroStyles.heroCopy} ${schoolStyles.schoolHeroCopy}`}>
             <h1 className={`${styles.heroTitle} ${schoolStyles.schoolHeroTitle}`}>
               Everything your school needs to print, promote, and show up well.
             </h1>
+          </div>
+
+          <div className={schoolStyles.schoolHeroLower}>
             <p className={schoolStyles.schoolHeroLead}>
               {noOrphan(
                 'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
               )}
             </p>
-          </div>
 
-          <div className={heroStyles.heroArtwork} aria-hidden="true">
-            <Image
-              src="/chair_school.png"
-              alt=""
-              width={780}
-              height={780}
-              priority
-              className={heroStyles.heroChairImage}
-            />
+            <div className={`${heroStyles.heroArtwork} ${schoolStyles.schoolHeroArtwork}`} aria-hidden="true">
+              <Image
+                src="/chair_school.png"
+                alt=""
+                width={780}
+                height={780}
+                priority
+                className={heroStyles.heroChairImage}
+              />
+            </div>
           </div>
         </section>
 
         <SchoolSuppliesSection />
+
+        <SchoolHowItWorksSection />
 
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix}`}>
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn}`}>
@@ -145,84 +124,58 @@ export default function SchoolLandingPage() {
           </div>
 
           <section className={`${styles.contentPlain} ${heroStyles.visionCopyColumn}`}>
-            <p className={styles.eyebrow}>Why Chrism exists for schools</p>
+            <p className={styles.eyebrow}>Why schools work with us</p>
             <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-              The people holding school communities together{' '}
+              We know what things cost{' '}
               <span className={heroStyles.noWrap}>
-                deserve <span className={heroStyles.accentWord}>better.</span>
+                and what they <span className={heroStyles.accentWord}>should cost.</span>
               </span>
             </h2>
             <div className={styles.copyStack}>
               <p>
                 {noOrphan(
-                  'Educators, administrators, parent volunteers, and the people who quietly keep school communities running are doing some of the most important work in any community. Most never planned to run an organization — they wanted to serve students. Yet here they are, juggling a patchwork of tools, bootstrapping on free tiers, and watching the person they set out to be get kicked in the shins by everything that has nothing to do with why they showed up.'
+                  'We\'ve sat in the parent council meetings. We know what things cost — and what they should cost.'
                 )}
               </p>
               <p>
                 {noOrphan(
-                  'The infrastructure available to them was designed for businesses — not school communities. The software assumes enterprise budgets. The pricing assumes high-volume buyers. And the gap between what\'s available and what\'s actually needed keeps falling on the people least positioned to absorb it.'
+                  'Chrism was built by someone embedded in the school community, not looking at it from the outside. That means we understand the difference between a grad keepsake that feels worthy of the moment and one that feels like it came from a dollar store. We know that spirit day banners need to arrive before spirit day. And we know that parent councils are often doing this work on evenings and weekends with whatever budget is left over.'
                 )}
               </p>
               <p>
                 {noOrphan(
-                  'Chrism exists to close that gap. Operations software, fundraising goods, and institutional print sourcing — connected in one place, so more value stays with the schools doing the work.'
+                  'That\'s why we run lean, keep our margins low, and stay flexible. Not as a favour — because it\'s the model.'
                 )}
               </p>
+              <div className={schoolStyles.reasonList}>
+                <div className={schoolStyles.reasonItem}>
+                  <h3>One vendor. Everything your school needs.</h3>
+                  <p>
+                    {noOrphan(
+                      'Print, signage, apparel, and promotional products — sourced and managed in one place. No coordinating between suppliers. No explaining your needs three times to three different reps.'
+                    )}
+                  </p>
+                </div>
+                <div className={schoolStyles.reasonItem}>
+                  <h3>Trade pricing. Not retail markup.</h3>
+                  <p>
+                    {noOrphan(
+                      'Because we source at wholesale and operate with low overhead, we can offer pricing that most schools aren\'t currently getting — and we\'ll show you the comparison if you want to see it.'
+                    )}
+                  </p>
+                </div>
+                <div className={schoolStyles.reasonItem}>
+                  <h3>A real person on every order.</h3>
+                  <p>
+                    {noOrphan(
+                      'Not a ticket system. Not a chatbot. Someone who knows your order, knows your school, and picks up the phone.'
+                    )}
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
         </section>
-
-        <div className={flywheelStyles.modelGroup}>
-          <section className={styles.flywheelSection}>
-            <div className={styles.sectionIntroWide}>
-              <p className={styles.eyebrow}>The Flywheel</p>
-              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-                Why the model <span className={heroStyles.accentWord}>works</span>
-              </h2>
-              <p>
-                {noOrphan(
-                  'Every vendor your school deals with is running a business and extracting value from every transaction. So is Chrism.'
-                )}
-              </p>
-              <p>{noOrphan('The difference is what we do with it.')}</p>
-            </div>
-
-            <div className={styles.flowGrid}>
-              {flywheelSteps.map((step, index) => (
-                <article key={step.title} className={styles.flowItem}>
-                  <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
-                  <h3>
-                    <span className={heroStyles.accentWord}>{step.title}</span>
-                  </h3>
-                  <p>{noOrphan(step.copy)}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className={stewardshipStyles.plainTrust}>
-            <div className={styles.trustIntro}>
-              <h2 className={`${styles.trustTitle} ${heroStyles.visionTitle}`}>Responsible stewardship</h2>
-            </div>
-            <div className={styles.copyStack}>
-              <p>
-                {noOrphan(
-                  'Chrism is a registered business in Ontario, Canada — built lean, operated responsibly, and designed to be a vendor your school can actually rely on.'
-                )}
-              </p>
-              <p>
-                {noOrphan(
-                  'The platform uses secure HTTPS, passwordless authentication, and organization-based permissions. Your data stays with your organization — it\'s never shared, sold, or used outside the context you set.'
-                )}
-              </p>
-              <p>
-                {noOrphan(
-                  'We\'re not a faceless platform. If something isn\'t working, there\'s a real person behind it.'
-                )}
-              </p>
-            </div>
-          </section>
-        </div>
 
         <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
           <div className={faqStyles.faqContent}>
