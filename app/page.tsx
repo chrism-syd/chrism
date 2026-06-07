@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './about/about.module.css'
+import heroStyles from './landing-hero.module.css'
 
 const valueCards = [
   {
@@ -124,14 +125,14 @@ export default function LandingPage() {
           </Link>
         </header>
 
-        <section className={styles.heroBlock}>
-          <div className={styles.heroCopy}>
+        <section className={`${styles.heroBlock} ${heroStyles.heroBlock}`}>
+          <div className={heroStyles.heroCopy}>
             <h1 className={styles.heroTitle}>
               Built for
               <br />
               community.
               <br />
-              <span className={styles.heroAccent}>Optimized</span>
+              <span className={heroStyles.heroAccent}>Optimized</span>
               <br />
               for business.
             </h1>
@@ -141,14 +142,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className={styles.heroArtwork} aria-hidden="true">
+          <div className={heroStyles.heroArtwork} aria-hidden="true">
             <Image
               src="/Chair.png"
               alt=""
               width={780}
               height={780}
               priority
-              className={styles.heroChairImage}
+              className={heroStyles.heroChairImage}
             />
           </div>
         </section>
