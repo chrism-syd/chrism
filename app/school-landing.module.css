@@ -206,6 +206,7 @@
 }
 
 .suppliesRail {
+  --carousel-slant: clamp(56px, 4.8vw, 82px);
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(280px, 36%);
@@ -214,7 +215,9 @@
   overscroll-behavior-inline: contain;
   scroll-snap-type: inline mandatory;
   scrollbar-width: none;
-  padding: 4px 4px 16px;
+  margin-left: calc(-1 * var(--carousel-slant));
+  padding: 4px 4px 16px var(--carousel-slant);
+  clip-path: polygon(var(--carousel-slant) 0, 100% 0, 100% 100%, 0 100%);
 }
 
 .suppliesRail::-webkit-scrollbar {
@@ -451,6 +454,8 @@
   .suppliesRail {
     grid-auto-columns: minmax(270px, 78%);
     margin-inline: -4px;
+    padding: 4px 4px 16px;
+    clip-path: none;
   }
 
   .carouselControls {
