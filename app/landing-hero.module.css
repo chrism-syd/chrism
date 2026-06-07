@@ -1,6 +1,6 @@
 .heroBlock {
   grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.85fr);
-  align-items: end;
+  align-items: start;
   gap: clamp(36px, 6vw, 96px);
   min-height: calc(100vh - 190px);
   padding: clamp(36px, 5vw, 70px) 0 clamp(84px, 12vh, 160px);
@@ -8,6 +8,7 @@
 
 .heroCopy {
   display: grid;
+  align-self: start;
   min-width: 0;
   position: relative;
   z-index: 1;
