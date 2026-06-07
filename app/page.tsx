@@ -198,7 +198,9 @@ export default function LandingPage() {
         <section className={styles.flywheelSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Flywheel</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('How the model works')}</h2>
+            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
+              How the model <span className={heroStyles.accentWord}>works</span>
+            </h2>
             <p>
               {noOrphan(
                 'Commercial print and sourcing work creates margin. Instead of extracting that value away from the community, Chrism redirects it into tools, services, and fundraising mechanisms that support the community.'
@@ -215,23 +217,14 @@ export default function LandingPage() {
               </article>
             ))}
           </div>
-
-          <div className={styles.freeBanner}>
-            <h3 className={styles.freeBannerTitle}>{noOrphan('Chrism\'s core functionality will always be FREE.')}</h3>
-            <div className={styles.freeBannerCopy}>
-              <p>
-                {noOrphan(
-                  'The essential tools of member engagement and care will always be accessible to every organization, not just the ones with a budget.'
-                )}
-              </p>
-            </div>
-          </div>
         </section>
 
         <section className={styles.platformSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>The Ecosystem</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Three connected parts. One purpose.')}</h2>
+            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
+              Three <span className={heroStyles.accentWord}>connected</span> parts. One purpose.
+            </h2>
             <p>
               {noOrphan(
                 'Chrism connects software, commerce, and sourcing so organizational support is not dependent on yet another isolated subscription or one-off vendor relationship.'
@@ -252,7 +245,6 @@ export default function LandingPage() {
 
         <section className={styles.trustBand}>
           <div className={styles.trustIntro}>
-            <p className={styles.eyebrow}>Trust</p>
             <h2 className={styles.trustTitle}>{noOrphan('Responsible stewardship')}</h2>
           </div>
           <div className={styles.copyStack}>
