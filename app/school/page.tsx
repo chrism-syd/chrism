@@ -3,9 +3,11 @@ import Link from 'next/link'
 import styles from '../about/about.module.css'
 import faqStyles from '../faq-image.module.css'
 import flywheelStyles from '../flywheel-star.module.css'
-import InvoiceReviewCta from '../invoice-review-cta'
-import stewardshipStyles from '../stewardship-section.module.css'
 import heroStyles from '../landing-hero.module.css'
+import InvoiceReviewCta from '../invoice-review-cta'
+import schoolStyles from '../school-landing.module.css'
+import SchoolSuppliesSection from '../school-supplies-section'
+import stewardshipStyles from '../stewardship-section.module.css'
 
 function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
@@ -86,24 +88,20 @@ export default function SchoolLandingPage() {
         </header>
 
         <section className={`${styles.heroBlock} ${heroStyles.heroBlock}`}>
-          <div className={heroStyles.heroCopy}>
-            <h1 className={`${styles.heroTitle} ${heroStyles.animatedHeroTitle}`}>
-              <span className={heroStyles.heroSentencePrimary}>
-                Built for
-                <br />
-                school.
-              </span>
-              <span className={heroStyles.heroSentenceSecondary}>
-                <span className={heroStyles.heroAccent}>Optimized</span>
-                <br />
-                for community.
-              </span>
+          <div className={`${heroStyles.heroCopy} ${schoolStyles.schoolHeroCopy}`}>
+            <h1 className={`${styles.heroTitle} ${schoolStyles.schoolHeroTitle}`}>
+              Everything your school needs to print, promote, and show up well.
             </h1>
+            <p className={schoolStyles.schoolHeroLead}>
+              {noOrphan(
+                'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
+              )}
+            </p>
           </div>
 
           <div className={heroStyles.heroArtwork} aria-hidden="true">
             <Image
-              src="/black_chair.png"
+              src="/chair_school.png"
               alt=""
               width={780}
               height={780}
@@ -112,6 +110,8 @@ export default function SchoolLandingPage() {
             />
           </div>
         </section>
+
+        <SchoolSuppliesSection />
 
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix}`}>
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn}`}>
