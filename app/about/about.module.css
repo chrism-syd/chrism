@@ -332,23 +332,30 @@
 }
 
 .trustBand {
-  gap: 22px;
+  grid-template-columns: minmax(250px, 0.38fr) minmax(0, 1fr);
+  align-items: start;
+  column-gap: clamp(48px, 7vw, 120px);
+  row-gap: 22px;
   background:
     linear-gradient(135deg, rgba(245, 194, 66, 0.22), transparent 38%),
     var(--bg-card);
 }
 
 .trustIntro {
-  max-width: none;
+  min-width: 0;
+  max-width: 24ch;
 }
 
 .trustTitle {
-  max-width: 14ch;
-  font-size: clamp(34px, 4vw, 54px);
+  max-width: 10ch;
+  font-size: clamp(34px, 3.4vw, 52px);
+  overflow-wrap: normal;
 }
 
 .trustBand .copyStack {
+  min-width: 0;
   max-width: 820px;
+  margin-top: 0;
 }
 
 .faqSection {
