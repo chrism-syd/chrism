@@ -126,7 +126,9 @@ export default function LandingPage() {
 
         <section className={styles.heroBlock}>
           <h1 className={styles.heroTitle}>
-            Built for community.
+            Built for
+            <br />
+            community.
             <br />
             <span style={{ color: 'var(--qv-plum)', whiteSpace: 'nowrap' }}>
               Optimized
@@ -142,7 +144,8 @@ export default function LandingPage() {
                   style={{ display: 'block', width: '0.28em', height: '0.28em', objectFit: 'contain' }}
                 />
               </sup>
-            </span>{' '}
+            </span>
+            <br />
             for business.
           </h1>
           <p className={styles.heroLead}>
