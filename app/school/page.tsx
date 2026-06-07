@@ -70,6 +70,17 @@ export default function SchoolLandingPage() {
                 'Chrism is a registered Ontario business offering commercial print, custom apparel, signage, and promotional sourcing to schools and school boards at trade-level pricing.'
               )}
             </p>
+
+            <div className={schoolStyles.schoolHeroArtwork} aria-hidden="true">
+              <Image
+                src="/st-eds_royals_sweater.png"
+                alt=""
+                width={880}
+                height={880}
+                priority
+                className={schoolStyles.schoolHeroImage}
+              />
+            </div>
           </div>
         </section>
 
