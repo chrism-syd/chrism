@@ -1,0 +1,29 @@
+.invoiceCtaNote {
+  margin: -6px 0 0;
+  max-width: 660px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.58;
+}
+
+.invoiceDropzone {
+  background: rgba(253, 252, 249, 0.78);
+}
+
+.invoiceModalBackdrop {
+  background: rgba(46, 42, 52, 0.46);
+  backdrop-filter: blur(8px);
+}
+
+.invoiceModal {
+  background: linear-gradient(180deg, #faf6f2 0%, #f3edf7 100%);
+}
+
+.invoiceFileSummary {
+  background: rgba(92, 74, 114, 0.1);
+}
+
+.invoiceForm input,
+.invoiceForm select {
+  background: var(--bg-card);
+}
