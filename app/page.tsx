@@ -205,12 +205,17 @@ export default function LandingPage() {
           <div className={styles.copyStack}>
             <p>
               {noOrphan(
-                'Because Chrism bridges procurement, coordination, and community management, the platform is built around practical security standards, including secure HTTPS, passwordless authentication, organization-based permissions, and modern email authentication practices.'
+                'Chrism is a registered business in Ontario, Canada — built lean, operated responsibly, and designed to be a vendor you can actually rely on.'
               )}
             </p>
             <p>
               {noOrphan(
-                'Chrism is an Ontario-registered sole proprietorship dedicated to keeping operational capital where it matters most: directly supporting your mission.'
+                'The platform uses secure HTTPS, passwordless authentication, and organization-based permissions. Your data stays with your organization — it\'s never shared, sold, or used outside the context you set.'
+              )}
+            </p>
+            <p>
+              {noOrphan(
+                'We\'re not a faceless platform. If something isn\'t working, there\'s a real person behind it.'
               )}
             </p>
           </div>
