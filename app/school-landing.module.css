@@ -1,11 +1,25 @@
+.schoolHeroBlock {
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 52px);
+  min-height: auto;
+  padding-bottom: clamp(54px, 8vw, 104px);
+}
+
 .schoolHeroCopy {
   gap: clamp(24px, 3vw, 36px);
-  max-width: min(100%, 940px);
+  max-width: min(100%, 1120px);
 }
 
 .schoolHeroTitle {
   white-space: normal;
-  max-width: 11ch;
+  max-width: 14ch;
+}
+
+.schoolHeroLower {
+  display: grid;
+  grid-template-columns: minmax(0, 0.68fr) minmax(280px, 0.32fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: end;
 }
 
 .schoolHeroLead {
@@ -16,14 +30,20 @@
   line-height: 1.36;
 }
 
-.suppliesSection {
+.schoolHeroArtwork {
+  justify-self: end;
+}
+
+.suppliesSection,
+.howSection {
   display: grid;
   gap: clamp(24px, 3vw, 36px);
   padding: clamp(18px, 3vw, 32px) 0 clamp(28px, 4vw, 48px);
   overflow: hidden;
 }
 
-.suppliesIntro {
+.suppliesIntro,
+.howIntro {
   display: grid;
   gap: 12px;
   max-width: 900px;
@@ -39,7 +59,8 @@
   font-weight: 700;
 }
 
-.suppliesIntro h2 {
+.suppliesIntro h2,
+.howIntro h2 {
   margin: 0;
   max-width: 780px;
   color: rgb(46, 42, 52);
@@ -50,7 +71,10 @@
 }
 
 .suppliesIntro p:not(.eyebrow),
-.supplyCard p:not(.supplyNumber) {
+.howIntro p:not(.eyebrow),
+.supplyCard p:not(.supplyNumber),
+.howCard p:not(.supplyNumber),
+.reasonList p {
   margin: 0;
   color: rgb(46, 42, 52);
   font-size: 15px;
@@ -69,7 +93,8 @@
   padding: 4px 4px 16px;
 }
 
-.supplyCard {
+.supplyCard,
+.howCard {
   display: grid;
   align-content: start;
   gap: 12px;
@@ -91,7 +116,8 @@
   letter-spacing: -0.06em;
 }
 
-.supplyCard h3 {
+.supplyCard h3,
+.howCard h3 {
   margin: 0;
   color: var(--qv-plum);
   font-family: var(--font-heading), Georgia, serif;
@@ -100,13 +126,61 @@
   letter-spacing: -0.03em;
 }
 
+.howGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(18px, 2vw, 28px);
+}
+
+.reasonList {
+  display: grid;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.reasonItem {
+  display: grid;
+  gap: 4px;
+}
+
+.reasonItem h3 {
+  margin: 0;
+  color: var(--qv-plum);
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+@media (max-width: 1100px) {
+  .howGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
+  .schoolHeroBlock {
+    gap: 38px;
+  }
+
   .schoolHeroTitle {
-    max-width: 9ch;
+    max-width: 11ch;
+  }
+
+  .schoolHeroLower {
+    grid-template-columns: 1fr;
+  }
+
+  .schoolHeroArtwork {
+    justify-self: start;
   }
 
   .suppliesRail {
     grid-auto-columns: minmax(270px, 78%);
     margin-inline: -4px;
+  }
+
+  .howGrid {
+    grid-template-columns: 1fr;
   }
 }
