@@ -154,7 +154,7 @@ export default function LandingPage() {
           <div className={styles.imageColumn}>
             <div className={styles.imageFrame}>
               <Image
-                src="/j-gios-QMesAlxmi6g-unsplash-chrism.png"
+                src="/jonny-gios-QMesAlxmi6g-unsplash-chrism.png"
                 alt="Large mural text reading you and me"
                 fill
                 className={styles.aboutImage}
