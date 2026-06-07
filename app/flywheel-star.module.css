@@ -1,0 +1,45 @@
+.flywheelWithStar {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.flywheelWithStar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: min(72vw, 920px);
+  aspect-ratio: 1;
+  right: -16vw;
+  top: 4%;
+  background: url('/chrism-star-muted.svg') center / contain no-repeat;
+  opacity: 0.34;
+  animation: flywheelStarSpin 120s linear infinite;
+  pointer-events: none;
+}
+
+.flywheelWithStar > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes flywheelStarSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flywheelWithStar::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .flywheelWithStar::before {
+    width: min(110vw, 760px);
+    right: -42vw;
+    top: 12%;
+    opacity: 0.22;
+  }
+}
