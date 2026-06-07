@@ -93,9 +93,9 @@ export default function SchoolSuppliesSection() {
         <h2>
           Print, apparel, signage,
           <br />
-          and promotional sourcing without
+          and promotional sourcing
           <br />
-          the vendor shuffle.
+          without the vendor shuffle.
         </h2>
         <p>
           {noOrphan(
