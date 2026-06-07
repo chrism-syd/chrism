@@ -146,34 +146,35 @@ export default function SchoolsLandingPage() {
                   'That\'s why we run lean, keep our margins low, and stay flexible. Not as a favour — because it\'s the model.'
                 )}
               </p>
-              <div className={schoolStyles.reasonList}>
-                <div className={schoolStyles.reasonItem}>
-                  <h3>One vendor. Everything your school needs.</h3>
-                  <p>
-                    {noOrphan(
-                      'Print, signage, apparel, and promotional products — sourced and managed in one place. No coordinating between suppliers. No explaining your needs three times to three different reps.'
-                    )}
-                  </p>
-                </div>
-                <div className={schoolStyles.reasonItem}>
-                  <h3>Trade pricing. Not retail markup.</h3>
-                  <p>
-                    {noOrphan(
-                      'Because we source at wholesale and operate with low overhead, we can offer pricing that most schools aren\'t currently getting — and we\'ll show you the comparison if you want to see it.'
-                    )}
-                  </p>
-                </div>
-                <div className={schoolStyles.reasonItem}>
-                  <h3>A real person on every order.</h3>
-                  <p>
-                    {noOrphan(
-                      'Not a ticket system. Not a chatbot. Someone who knows your order, knows your school, and picks up the phone.'
-                    )}
-                  </p>
-                </div>
-              </div>
             </div>
           </section>
+
+          <div className={schoolStyles.reasonList}>
+            <div className={schoolStyles.reasonItem}>
+              <h3>One vendor. Everything your school needs.</h3>
+              <p>
+                {noOrphan(
+                  'Print, signage, apparel, and promotional products — sourced and managed in one place. No coordinating between suppliers. No explaining your needs three times to three different reps.'
+                )}
+              </p>
+            </div>
+            <div className={schoolStyles.reasonItem}>
+              <h3>Trade pricing. Not retail markup.</h3>
+              <p>
+                {noOrphan(
+                  'Because we source at wholesale and operate with low overhead, we can offer pricing that most schools aren\'t currently getting — and we\'ll show you the comparison if you want to see it.'
+                )}
+              </p>
+            </div>
+            <div className={schoolStyles.reasonItem}>
+              <h3>A real person on every order.</h3>
+              <p>
+                {noOrphan(
+                  'Not a ticket system. Not a chatbot. Someone who knows your order, knows your school, and picks up the phone.'
+                )}
+              </p>
+            </div>
+          </div>
         </section>
 
         <section className={`${styles.faqSection} ${faqStyles.faqWithImage} ${schoolStyles.schoolFaqSection}`}>
