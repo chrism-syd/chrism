@@ -1,4 +1,4 @@
-.invoiceCtaNote {
+p.invoiceCtaNote {
   margin: -6px 0 0;
   max-width: 660px;
   color: var(--text-secondary);
