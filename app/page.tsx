@@ -136,10 +136,6 @@ export default function LandingPage() {
               <br />
               for business.
             </h1>
-            <p className={styles.heroLead}>
-              Chrism bridges commercial enterprise and community stewardship so operational capital can stay closer to the
-              ministries, schools, councils, and local organizations doing the work on the ground.
-            </p>
           </div>
 
           <div className={heroStyles.heroArtwork} aria-hidden="true">
