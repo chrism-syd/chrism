@@ -505,7 +505,8 @@
   }
 
   .schoolStoryImage {
-    object-position: center 65%;
+    object-fit: contain;
+    object-position: center center;
   }
 
   .pennantFrame {
