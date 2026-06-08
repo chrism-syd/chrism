@@ -8,6 +8,7 @@ const acceptedFileTypes = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.csv
 const maxFileSizeBytes = 10 * 1024 * 1024
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
+type ActiveFlow = 'invoiceReview' | 'schoolsContact'
 type InvoiceReviewCtaProps = {
   variant?: 'invoiceReview' | 'schoolsContact'
 }
@@ -30,6 +31,8 @@ function validateFile(file: File) {
 
 export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceReviewCtaProps) {
   const isSchoolsContact = variant === 'schoolsContact'
+  const [activeFlow, setActiveFlow] = useState<ActiveFlow>(variant)
+  const isContactFlow = activeFlow === 'schoolsContact'
   const inputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -42,6 +45,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
   }
 
   function openContactModal() {
+    setActiveFlow('schoolsContact')
     setSelectedFile(null)
     setSubmitState('idle')
     setMessage(null)
@@ -58,6 +62,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
       return
     }
 
+    setActiveFlow('invoiceReview')
     setSelectedFile(file)
     setSubmitState('idle')
     setMessage(null)
@@ -82,6 +87,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
     if (submitState === 'submitting') return
 
     setIsModalOpen(false)
+    setActiveFlow(variant)
     setSubmitState('idle')
     setMessage(null)
   }
@@ -89,7 +95,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!isSchoolsContact && !selectedFile) {
+    if (!isContactFlow && !selectedFile) {
       setSubmitState('error')
       setMessage('Please attach an invoice before submitting.')
       return
@@ -97,7 +103,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
 
     const formData = new FormData(event.currentTarget)
 
-    if (isSchoolsContact) {
+    if (isContactFlow) {
       formData.set('submissionType', 'schoolsContact')
     } else {
       formData.set('submissionType', 'invoiceReview')
@@ -170,9 +176,14 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
           />
           <p className={styles.invoiceDropzoneTitle}>Drop an invoice here</p>
           <p className={styles.invoiceDropzoneText}>PDF, image, spreadsheet, or document. Max 10 MB.</p>
-          <button type="button" className="qv-button-primary" onClick={openFilePicker}>
-            Upload invoice
-          </button>
+          <div className={invoiceStyles.invoiceDropzoneActions}>
+            <button type="button" className="qv-button-primary" onClick={openFilePicker}>
+              Upload invoice
+            </button>
+            <button type="button" className="qv-button-secondary" onClick={openContactModal}>
+              Contact us
+            </button>
+          </div>
         </div>
       )}
 
@@ -192,12 +203,12 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
 
             {submitState === 'success' ? (
               <div className={invoiceStyles.invoiceConfirmation}>
-                <p className={styles.eyebrow}>{isSchoolsContact ? 'Contact request' : 'Invoice review'}</p>
+                <p className={styles.eyebrow}>{isContactFlow ? 'Contact request' : 'Invoice review'}</p>
                 <h3 id="invoice-modal-title">
-                  {isSchoolsContact ? 'Thanks. Your request was sent to Chrism.' : 'Thanks. Your invoice was sent to Chrism for review.'}
+                  {isContactFlow ? 'Thanks. Your request was sent to Chrism.' : 'Thanks. Your invoice was sent to Chrism for review.'}
                 </h3>
                 <p>
-                  {isSchoolsContact
+                  {isContactFlow
                     ? 'We\'ll reach out to you at your email address if we have any questions, or with next steps.'
                     : 'We\'ll reach out to you at your email address if we have any questions, or with our review of your invoice.'}
                 </p>
@@ -208,9 +219,9 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
             ) : (
               <>
                 <div className={invoiceStyles.invoiceModalHeader}>
-                  <p className={styles.eyebrow}>{isSchoolsContact ? 'Contact us' : 'Invoice review'}</p>
+                  <p className={styles.eyebrow}>{isContactFlow ? 'Contact us' : 'Invoice review'}</p>
                   <h3 id="invoice-modal-title">Tell us about you</h3>
-                  {!isSchoolsContact && selectedFile ? (
+                  {!isContactFlow && selectedFile ? (
                     <p className={invoiceStyles.invoiceFileSummary}>
                       Attached: <strong>{selectedFile.name}</strong> <span>{formatFileSize(selectedFile.size)}</span>
                     </p>
@@ -230,7 +241,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
                     Org
                     <input name="organization" type="text" autoComplete="organization" required />
                   </label>
-                  {isSchoolsContact ? (
+                  {isContactFlow ? (
                     <label>
                       What do you need?
                       <textarea name="requestDetails" required rows={5} />
@@ -254,7 +265,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
                   {message ? <p className={invoiceStyles.invoiceStatus}>{message}</p> : null}
 
                   <div className={styles.invoiceFormActions}>
-                    {!isSchoolsContact ? (
+                    {!isContactFlow ? (
                       <button type="button" className="qv-button-secondary" onClick={openFilePicker} disabled={submitState === 'submitting'}>
                         Change file
                       </button>
