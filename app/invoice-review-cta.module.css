@@ -94,8 +94,22 @@ p.invoiceCtaNote {
 }
 
 .invoiceForm input,
-.invoiceForm select {
+.invoiceForm select,
+.invoiceForm textarea {
   background: var(--bg-card);
+}
+
+.invoiceForm textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  color: rgb(46, 42, 52);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  padding: 12px 14px;
 }
 
 .invoiceStatus {
@@ -108,26 +122,33 @@ p.invoiceCtaNote {
 .invoiceConfirmation {
   display: grid;
   gap: 18px;
-  justify-items: start;
-  padding: clamp(18px, 4vw, 34px) 0;
+  justify-items: center;
+  width: min(100%, 700px);
+  margin: 0 auto;
+  padding: clamp(54px, 8vw, 92px) 0;
+  text-align: center;
 }
 
 .invoiceConfirmation h3 {
   margin: 0;
-  max-width: 11ch;
+  max-width: 12ch;
   color: rgb(46, 42, 52);
   font-family: var(--font-heading), Georgia, serif;
-  font-size: clamp(42px, 6vw, 72px);
-  line-height: 0.94;
+  font-size: clamp(40px, 5.2vw, 68px);
+  line-height: 0.98;
   letter-spacing: -0.04em;
 }
 
 .invoiceConfirmation p:not(.eyebrow) {
   margin: 0;
-  max-width: 560px;
+  max-width: 620px;
   color: rgb(46, 42, 52);
   font-size: clamp(18px, 2vw, 23px);
   line-height: 1.36;
+}
+
+.invoiceConfirmation button {
+  margin-top: 10px;
 }
 
 @media (max-width: 640px) {
