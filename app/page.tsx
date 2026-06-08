@@ -224,9 +224,11 @@ export default function LandingPage() {
           </section>
         </div>
 
-        <Link href="/schools" className={styles.schoolsLinkCard}>
-          <span>Chrism for Schools</span>
-        </Link>
+        <div className={styles.schoolsLinkCard}>
+          <p>
+            We also work directly with <Link href="/schools">schools</Link>.
+          </p>
+        </div>
 
         <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
           <div className={faqStyles.faqContent}>
