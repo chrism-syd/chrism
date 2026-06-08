@@ -12,34 +12,6 @@ function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
 
-const faqs = [
-  {
-    question: 'What kind of print work can Chrism source?',
-    answer:
-      'Chrism can help source flyers, brochures, booklets, posters, newsletters, presentation folders, forms, certificates, signs, banners, apparel, promotional products, and other school print needs.',
-  },
-  {
-    question: 'Can Chrism work with school boards or procurement procedures?',
-    answer:
-      'Yes. Chrism can work within existing institutional procurement procedures, including purchase orders and formal payment terms.',
-  },
-  {
-    question: 'How quickly can we get a quote?',
-    answer:
-      'Most quotes are turned around within one business day, depending on the complexity of the request and whether files or specifications are ready.',
-  },
-  {
-    question: 'Can you compare against an existing invoice?',
-    answer:
-      'Yes. Send the invoice or project details and Chrism can tell you whether there is a meaningful savings opportunity.',
-  },
-  {
-    question: 'Do you only work with schools?',
-    answer:
-      'No. Chrism also supports school boards, parent councils, faith communities, nonprofits, and local organizations with practical sourcing and production support.',
-  },
-]
-
 export default function SchoolsLandingPage() {
   return (
     <main className="qv-page">
@@ -177,55 +149,8 @@ export default function SchoolsLandingPage() {
           </div>
         </section>
 
-        <section className={`${styles.faqSection} ${faqStyles.faqWithImage} ${schoolStyles.schoolFaqSection}`}>
-          <div className={faqStyles.faqContent}>
-            <div className={styles.sectionIntroWide}>
-              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common questions')}</h2>
-            </div>
-
-            <div className={styles.faqList}>
-              {faqs.map((faq) => (
-                <details key={faq.question} className={styles.faqItem}>
-                  <summary>{faq.question}</summary>
-                  <p>{noOrphan(faq.answer)}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-
-          <div className={faqStyles.faqImageColumn}>
-            <div className={faqStyles.faqImageFrame}>
-              <Image
-                src="/elvira-blumfelde-XzI0bYWdhbY-unsplash.jpg"
-                alt="Person leaning on a white concrete fence"
-                fill
-                className={faqStyles.faqImage}
-                sizes="(max-width: 900px) 100vw, 24vw"
-              />
-              <p className={faqStyles.faqImageCredit}>
-                Photo by{' '}
-                <a
-                  href="https://unsplash.com/@perlamutrs?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Elvira Blumfelde
-                </a>{' '}
-                on{' '}
-                <a
-                  href="https://unsplash.com/photos/person-leaning-on-white-concrete-fence-XzI0bYWdhbY?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Unsplash
-                </a>
-              </p>
-            </div>
-          </div>
-        </section>
-
         <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`}>
-          <InvoiceReviewCta />
+          <InvoiceReviewCta variant="schoolsContact" />
         </section>
       </div>
     </main>
