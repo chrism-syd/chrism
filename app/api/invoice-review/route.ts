@@ -34,6 +34,10 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#39;')
 }
 
+function htmlLines(value: string) {
+  return escapeHtml(value).replaceAll('\n', '<br />')
+}
+
 function isUploadedFile(value: FormDataEntryValue | null): value is File {
   return typeof value === 'object' && value !== null && 'name' in value && 'size' in value && 'arrayBuffer' in value
 }
@@ -56,6 +60,47 @@ function getBrevoConfig() {
   }
 }
 
+async function sendBrevoEmail(args: {
+  replyToEmail: string
+  replyToName: string
+  subject: string
+  htmlContent: string
+  textContent: string
+  attachment?: Array<{ name: string; content: string }>
+}) {
+  const config = getBrevoConfig()
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'api-key': config.apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: config.sender,
+      to: [{ email: recipientEmail, name: 'Syd Fernandez' }],
+      replyTo: { email: args.replyToEmail, name: args.replyToName },
+      subject: args.subject,
+      htmlContent: args.htmlContent,
+      textContent: args.textContent,
+      ...(args.attachment ? { attachment: args.attachment } : {}),
+    }),
+  })
+
+  if (response.ok) return
+
+  let details: BrevoApiError | null = null
+
+  try {
+    details = (await response.json()) as BrevoApiError
+  } catch {
+    details = null
+  }
+
+  throw new Error(details?.message?.trim() || `Brevo email send failed with status ${response.status}`)
+}
+
 async function sendInvoiceReviewEmail(args: {
   name: string
   email: string
@@ -63,7 +108,6 @@ async function sendInvoiceReviewEmail(args: {
   organizationType: string
   file: File
 }) {
-  const config = getBrevoConfig()
   const fileBuffer = Buffer.from(await args.file.arrayBuffer())
   const fileContent = fileBuffer.toString('base64')
 
@@ -91,48 +135,86 @@ async function sendInvoiceReviewEmail(args: {
     </div>
   `.trim()
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      accept: 'application/json',
-      'api-key': config.apiKey,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      sender: config.sender,
-      to: [{ email: recipientEmail, name: 'Syd Fernandez' }],
-      replyTo: { email: args.email, name: args.name },
-      subject,
-      htmlContent,
-      textContent,
-      attachment: [
-        {
-          name: args.file.name,
-          content: fileContent,
-        },
-      ],
-    }),
+  await sendBrevoEmail({
+    replyToEmail: args.email,
+    replyToName: args.name,
+    subject,
+    htmlContent,
+    textContent,
+    attachment: [
+      {
+        name: args.file.name,
+        content: fileContent,
+      },
+    ],
   })
+}
 
-  if (response.ok) return
+async function sendSchoolsContactEmail(args: {
+  name: string
+  email: string
+  organization: string
+  requestDetails: string
+}) {
+  const subject = `Schools contact request from ${args.organization}`
+  const textContent = [
+    'New schools contact request',
+    '',
+    `Name: ${args.name}`,
+    `Email: ${args.email}`,
+    `Org: ${args.organization}`,
+    '',
+    'Request:',
+    args.requestDetails,
+  ].join('\n')
 
-  let details: BrevoApiError | null = null
+  const htmlContent = `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#151515;line-height:1.55;">
+      <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.1;margin:0 0 18px;">New schools contact request</h1>
+      <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:640px;">
+        <tr><td style="padding:8px 0;color:#64748b;width:130px;">Name</td><td style="padding:8px 0;">${escapeHtml(args.name)}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b;">Email</td><td style="padding:8px 0;">${escapeHtml(args.email)}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b;">Org</td><td style="padding:8px 0;">${escapeHtml(args.organization)}</td></tr>
+      </table>
+      <h2 style="font-size:18px;margin:24px 0 8px;">Request</h2>
+      <p style="white-space:normal;margin:0;">${htmlLines(args.requestDetails)}</p>
+    </div>
+  `.trim()
 
-  try {
-    details = (await response.json()) as BrevoApiError
-  } catch {
-    details = null
-  }
-
-  throw new Error(details?.message?.trim() || `Brevo email send failed with status ${response.status}`)
+  await sendBrevoEmail({
+    replyToEmail: args.email,
+    replyToName: args.name,
+    subject,
+    htmlContent,
+    textContent,
+  })
 }
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
+    const submissionType = cleanText(formData.get('submissionType')) || 'invoiceReview'
     const name = cleanText(formData.get('name'))
     const email = cleanText(formData.get('email'))
     const organization = cleanText(formData.get('organization'))
+
+    if (submissionType === 'schoolsContact') {
+      const requestDetails = cleanText(formData.get('requestDetails'))
+
+      if (!name || !email || !organization || !requestDetails) {
+        return NextResponse.json({ error: 'Please complete every field before submitting.' }, { status: 400 })
+      }
+
+      await sendSchoolsContactEmail({
+        name,
+        email,
+        organization,
+        requestDetails,
+      })
+
+      return NextResponse.json({ ok: true })
+    }
+
     const organizationType = cleanText(formData.get('organizationType'))
     const invoice = formData.get('invoice')
 
@@ -165,7 +247,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to submit your invoice right now.'
+    const message = error instanceof Error ? error.message : 'Unable to submit your request right now.'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
