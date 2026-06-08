@@ -10,6 +10,23 @@ p.invoiceCtaNote {
   background: rgba(253, 252, 249, 0.78);
 }
 
+.invoiceDropzoneActions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.invoiceDropzoneActions button {
+  min-width: 210px;
+}
+
+.invoiceDropzoneActions button + button {
+  background: var(--qv-plum);
+  color: #fffaf1;
+  border-color: var(--qv-plum);
+}
+
 .invoiceModalBackdrop {
   position: fixed;
   inset: 0;
