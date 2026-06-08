@@ -95,7 +95,7 @@ export default function SchoolsLandingPage() {
           </div>
 
           <section className={`${styles.contentPlain} ${heroStyles.visionCopyColumn} ${schoolStyles.schoolStoryCopyColumn}`}>
-            <p className={styles.eyebrow}>Why schools would like us</p>
+            <p className={styles.eyebrow}>Why schools like us</p>
             <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
               We know what things cost{' '}
               <span className={heroStyles.noWrap}>
