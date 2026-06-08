@@ -366,6 +366,32 @@
   margin-top: 0;
 }
 
+.schoolsLinkCard {
+  display: grid;
+  place-items: center;
+  min-height: clamp(118px, 13vw, 178px);
+  padding: clamp(28px, 4.8vw, 48px);
+  border-radius: 24px;
+  background: rgb(245, 194, 66);
+  color: rgb(46, 42, 52);
+  text-align: center;
+}
+
+.schoolsLinkCard p {
+  margin: 0;
+  color: rgb(46, 42, 52);
+  font-size: clamp(24px, 2.8vw, 38px);
+  line-height: 1.14;
+  font-weight: 800;
+}
+
+.schoolsLinkCard a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+}
+
 .faqSection {
   box-shadow: none;
 }
