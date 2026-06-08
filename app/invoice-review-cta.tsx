@@ -8,6 +8,9 @@ const acceptedFileTypes = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.csv
 const maxFileSizeBytes = 10 * 1024 * 1024
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
+type InvoiceReviewCtaProps = {
+  variant?: 'invoiceReview' | 'schoolsContact'
+}
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
@@ -25,7 +28,8 @@ function validateFile(file: File) {
   return null
 }
 
-export default function InvoiceReviewCta() {
+export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceReviewCtaProps) {
+  const isSchoolsContact = variant === 'schoolsContact'
   const inputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -35,6 +39,13 @@ export default function InvoiceReviewCta() {
 
   function openFilePicker() {
     inputRef.current?.click()
+  }
+
+  function openContactModal() {
+    setSelectedFile(null)
+    setSubmitState('idle')
+    setMessage(null)
+    setIsModalOpen(true)
   }
 
   function acceptFile(file: File | null | undefined) {
@@ -78,14 +89,20 @@ export default function InvoiceReviewCta() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!selectedFile) {
+    if (!isSchoolsContact && !selectedFile) {
       setSubmitState('error')
       setMessage('Please attach an invoice before submitting.')
       return
     }
 
     const formData = new FormData(event.currentTarget)
-    formData.set('invoice', selectedFile)
+
+    if (isSchoolsContact) {
+      formData.set('submissionType', 'schoolsContact')
+    } else {
+      formData.set('submissionType', 'invoiceReview')
+      formData.set('invoice', selectedFile as File)
+    }
 
     setSubmitState('submitting')
     setMessage(null)
@@ -99,7 +116,7 @@ export default function InvoiceReviewCta() {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Unable to submit your invoice right now.')
+        throw new Error(payload?.error || 'Unable to submit your request right now.')
       }
 
       setSubmitState('success')
@@ -107,41 +124,57 @@ export default function InvoiceReviewCta() {
       formRef.current?.reset()
     } catch (error) {
       setSubmitState('error')
-      setMessage(error instanceof Error ? error.message : 'Unable to submit your invoice right now.')
+      setMessage(error instanceof Error ? error.message : 'Unable to submit your request right now.')
     }
   }
 
   return (
     <div className={styles.invoiceCta}>
       <div className={styles.invoiceCtaIntro}>
-        <h2 className={styles.ctaTitle}>Already working with a vendor?</h2>
-        <p>
-          Send us their invoice. We&apos;ll tell you if we can do better.
-          <br />
-          No obligation.
-        </p>
-        <p className={invoiceStyles.invoiceCtaNote}>(We truly just want to help.)</p>
+        {isSchoolsContact ? (
+          <>
+            <h2 className={styles.ctaTitle}>Tell us what you need.</h2>
+            <p>We&apos;ll tell you what it costs.</p>
+            <p className={invoiceStyles.invoiceCtaNote}>Fair pricing. Real support.</p>
+          </>
+        ) : (
+          <>
+            <h2 className={styles.ctaTitle}>Already working with a vendor?</h2>
+            <p>
+              Send us their invoice. We&apos;ll tell you if we can do better.
+              <br />
+              No obligation.
+            </p>
+            <p className={invoiceStyles.invoiceCtaNote}>(We truly just want to help.)</p>
+          </>
+        )}
       </div>
 
-      <div
-        className={`${styles.invoiceDropzone} ${invoiceStyles.invoiceDropzone}`}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-      >
-        <input
-          ref={inputRef}
-          className={styles.invoiceFileInput}
-          type="file"
-          name="invoice"
-          accept={acceptedFileTypes}
-          onChange={handleFileChange}
-        />
-        <p className={styles.invoiceDropzoneTitle}>Drop an invoice here</p>
-        <p className={styles.invoiceDropzoneText}>PDF, image, spreadsheet, or document. Max 10 MB.</p>
-        <button type="button" className="qv-button-primary" onClick={openFilePicker}>
-          Upload invoice
+      {isSchoolsContact ? (
+        <button type="button" className="qv-button-primary" onClick={openContactModal}>
+          Contact us
         </button>
-      </div>
+      ) : (
+        <div
+          className={`${styles.invoiceDropzone} ${invoiceStyles.invoiceDropzone}`}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <input
+            ref={inputRef}
+            className={styles.invoiceFileInput}
+            type="file"
+            name="invoice"
+            accept={acceptedFileTypes}
+            onChange={handleFileChange}
+          />
+          <p className={styles.invoiceDropzoneTitle}>Drop an invoice here</p>
+          <p className={styles.invoiceDropzoneText}>PDF, image, spreadsheet, or document. Max 10 MB.</p>
+          <button type="button" className="qv-button-primary" onClick={openFilePicker}>
+            Upload invoice
+          </button>
+        </div>
+      )}
 
       {message && !isModalOpen ? <p className={invoiceStyles.invoiceStatus}>{message}</p> : null}
 
@@ -159,10 +192,14 @@ export default function InvoiceReviewCta() {
 
             {submitState === 'success' ? (
               <div className={invoiceStyles.invoiceConfirmation}>
-                <p className={styles.eyebrow}>Invoice review</p>
-                <h3 id="invoice-modal-title">Thanks. Your invoice was sent to Chrism for review.</h3>
+                <p className={styles.eyebrow}>{isSchoolsContact ? 'Contact request' : 'Invoice review'}</p>
+                <h3 id="invoice-modal-title">
+                  {isSchoolsContact ? 'Thanks. Your request was sent to Chrism.' : 'Thanks. Your invoice was sent to Chrism for review.'}
+                </h3>
                 <p>
-                  We&apos;ll reach out to you at your email address if we have any questions, or with our review of your invoice.
+                  {isSchoolsContact
+                    ? 'We\'ll reach out to you at your email address if we have any questions, or with next steps.'
+                    : 'We\'ll reach out to you at your email address if we have any questions, or with our review of your invoice.'}
                 </p>
                 <button type="button" className="qv-button-primary" onClick={closeModal}>
                   Close
@@ -171,9 +208,9 @@ export default function InvoiceReviewCta() {
             ) : (
               <>
                 <div className={invoiceStyles.invoiceModalHeader}>
-                  <p className={styles.eyebrow}>Invoice review</p>
+                  <p className={styles.eyebrow}>{isSchoolsContact ? 'Contact us' : 'Invoice review'}</p>
                   <h3 id="invoice-modal-title">Tell us about you</h3>
-                  {selectedFile ? (
+                  {!isSchoolsContact && selectedFile ? (
                     <p className={invoiceStyles.invoiceFileSummary}>
                       Attached: <strong>{selectedFile.name}</strong> <span>{formatFileSize(selectedFile.size)}</span>
                     </p>
@@ -193,26 +230,35 @@ export default function InvoiceReviewCta() {
                     Org
                     <input name="organization" type="text" autoComplete="organization" required />
                   </label>
-                  <label>
-                    Org Type
-                    <select name="organizationType" required defaultValue="">
-                      <option value="" disabled>
-                        Select one
-                      </option>
-                      <option value="Faith community">Faith community</option>
-                      <option value="Education">Education</option>
-                      <option value="Nonprofit">Nonprofit</option>
-                      <option value="Business">Business</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </label>
+                  {isSchoolsContact ? (
+                    <label>
+                      What do you need?
+                      <textarea name="requestDetails" required rows={5} />
+                    </label>
+                  ) : (
+                    <label>
+                      Org Type
+                      <select name="organizationType" required defaultValue="">
+                        <option value="" disabled>
+                          Select one
+                        </option>
+                        <option value="Faith community">Faith community</option>
+                        <option value="Education">Education</option>
+                        <option value="Nonprofit">Nonprofit</option>
+                        <option value="Business">Business</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </label>
+                  )}
 
                   {message ? <p className={invoiceStyles.invoiceStatus}>{message}</p> : null}
 
                   <div className={styles.invoiceFormActions}>
-                    <button type="button" className="qv-button-secondary" onClick={openFilePicker} disabled={submitState === 'submitting'}>
-                      Change file
-                    </button>
+                    {!isSchoolsContact ? (
+                      <button type="button" className="qv-button-secondary" onClick={openFilePicker} disabled={submitState === 'submitting'}>
+                        Change file
+                      </button>
+                    ) : null}
                     <button type="submit" className="qv-button-primary" disabled={submitState === 'submitting'}>
                       {submitState === 'submitting' ? 'Sending...' : 'Submit'}
                     </button>
