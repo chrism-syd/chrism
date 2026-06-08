@@ -324,6 +324,10 @@
   aspect-ratio: auto;
 }
 
+.schoolStoryImage {
+  object-position: center 65%;
+}
+
 .schoolStoryCopyColumn {
   grid-column: span 4;
   max-width: 820px;
