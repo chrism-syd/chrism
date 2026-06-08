@@ -106,7 +106,8 @@
   position: relative;
   isolation: isolate;
   min-height: clamp(620px, 58vw, 760px);
-  overflow: visible;
+  margin-top: clamp(-150px, -8vw, -84px);
+  padding-top: clamp(168px, 11vw, 210px);
 }
 
 .howSection::before {
@@ -116,7 +117,7 @@
   width: min(61vw, 784px);
   aspect-ratio: 1;
   right: -14vw;
-  top: clamp(-130px, -6vw, -72px);
+  top: clamp(18px, 3vw, 42px);
   background: rgba(92, 74, 114, 0.075);
   mask: url('/chrism-star-muted.svg') center / contain no-repeat;
   -webkit-mask: url('/chrism-star-muted.svg') center / contain no-repeat;
@@ -124,21 +125,9 @@
   pointer-events: none;
 }
 
-.howSection::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  top: -180px;
-  right: calc(-1 * clamp(24px, 4vw, 48px));
-  bottom: -48px;
-  width: clamp(64px, 9vw, 132px);
-  background: linear-gradient(90deg, rgba(250, 246, 242, 0), rgb(250, 246, 242) 72%);
-  pointer-events: none;
-}
-
 .howSection > * {
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
 .suppliesIntro,
@@ -433,10 +422,12 @@
 
   .howSection {
     min-height: clamp(660px, 72vw, 820px);
+    margin-top: clamp(-140px, -10vw, -92px);
+    padding-top: clamp(170px, 14vw, 220px);
   }
 
   .howSection::before {
-    top: clamp(-120px, -6vw, -64px);
+    top: clamp(18px, 3vw, 42px);
   }
 
   .howGrid {
@@ -520,10 +511,12 @@
 
   .howSection {
     min-height: clamp(720px, 112vw, 940px);
+    margin-top: -96px;
+    padding-top: 152px;
   }
 
   .howSection::before {
-    top: -72px;
+    top: 24px;
   }
 
   .howGrid {
