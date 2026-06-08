@@ -308,11 +308,19 @@
   margin-top: clamp(52px, 7vw, 108px);
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: clamp(28px, 4vw, 52px);
+  align-items: stretch;
 }
 
 .schoolStoryImageColumn {
   grid-column: span 2;
+  display: grid;
   max-width: 360px;
+}
+
+.schoolStoryImageColumn [class*='imageFrame'] {
+  height: 100%;
+  min-height: 100%;
+  aspect-ratio: auto;
 }
 
 .schoolStoryCopyColumn {
@@ -482,6 +490,12 @@
   .schoolStoryCopyColumn {
     grid-column: auto;
     max-width: none;
+  }
+
+  .schoolStoryImageColumn [class*='imageFrame'] {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1 / 1.25;
   }
 
   .pennantFrame {
