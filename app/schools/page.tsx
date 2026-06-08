@@ -70,7 +70,7 @@ export default function SchoolsLandingPage() {
                 src="/birmingham-museums-trust-aE0-ZJb2VTQ-unsplash.jpg"
                 alt="Painting of a woman wearing a red beaded necklace"
                 fill
-                className={styles.aboutImage}
+                className={`${styles.aboutImage} ${schoolStyles.schoolStoryImage}`}
                 sizes="(max-width: 900px) 100vw, 26vw"
               />
               <p className={faqStyles.faqImageCredit}>
