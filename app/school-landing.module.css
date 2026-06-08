@@ -106,6 +106,7 @@
   position: relative;
   isolation: isolate;
   min-height: clamp(620px, 58vw, 760px);
+  overflow: visible;
 }
 
 .howSection::before {
