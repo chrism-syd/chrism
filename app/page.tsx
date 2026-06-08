@@ -224,6 +224,10 @@ export default function LandingPage() {
           </section>
         </div>
 
+        <Link href="/schools" className={styles.schoolsLinkCard}>
+          <span>Chrism for Schools</span>
+        </Link>
+
         <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
           <div className={faqStyles.faqContent}>
             <div className={styles.sectionIntroWide}>
