@@ -122,7 +122,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
       const payload = (await response.json().catch(() => null)) as { error?: string } | null
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Unable to submit your request right now.')
+        throw new Error(payload?.error || 'Sorry, unable to submit your request right now. Please email care&commat;chrism.app')
       }
 
       setSubmitState('success')
@@ -130,7 +130,7 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
       formRef.current?.reset()
     } catch (error) {
       setSubmitState('error')
-      setMessage(error instanceof Error ? error.message : 'Unable to submit your request right now.')
+      setMessage(error instanceof Error ? error.message : 'Sorry, unable to submit your request right now. Please email care&commat;chrism.app')
     }
   }
 
@@ -145,9 +145,9 @@ export default function InvoiceReviewCta({ variant = 'invoiceReview' }: InvoiceR
           </>
         ) : (
           <>
-            <h2 className={styles.ctaTitle}>Already working with a vendor?</h2>
+            <h2 className={styles.ctaTitle}>Already working with a&nbsp;vendor?</h2>
             <p>
-              Send us their invoice. We&apos;ll tell you if we can do better.
+              Send us their invoice. We&apos;ll tell you if we can do&nbsp;better.
               <br />
               No obligation.
             </p>
