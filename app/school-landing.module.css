@@ -105,7 +105,7 @@
 .howSection {
   position: relative;
   isolation: isolate;
-  min-height: clamp(620px, 58vw, 760px);
+  min-height: clamp(630px, calc(58vw + 10px), 770px);
   margin-top: clamp(-150px, -8vw, -84px);
   padding-top: clamp(168px, 11vw, 210px);
 }
@@ -421,7 +421,7 @@
   }
 
   .howSection {
-    min-height: clamp(660px, 72vw, 820px);
+    min-height: clamp(670px, calc(72vw + 10px), 830px);
     margin-top: clamp(-140px, -10vw, -92px);
     padding-top: clamp(170px, 14vw, 220px);
   }
@@ -510,7 +510,7 @@
   }
 
   .howSection {
-    min-height: clamp(720px, 112vw, 940px);
+    min-height: clamp(730px, calc(112vw + 10px), 950px);
     margin-top: -96px;
     padding-top: 152px;
   }
