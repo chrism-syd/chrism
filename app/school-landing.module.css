@@ -115,7 +115,7 @@
   width: min(61vw, 784px);
   aspect-ratio: 1;
   right: -14vw;
-  top: clamp(48px, 6vw, 88px);
+  top: clamp(-130px, -6vw, -72px);
   background: rgba(92, 74, 114, 0.075);
   mask: url('/chrism-star-muted.svg') center / contain no-repeat;
   -webkit-mask: url('/chrism-star-muted.svg') center / contain no-repeat;
@@ -423,7 +423,7 @@
   }
 
   .howSection::before {
-    top: 42px;
+    top: clamp(-120px, -6vw, -64px);
   }
 
   .howGrid {
@@ -510,7 +510,7 @@
   }
 
   .howSection::before {
-    top: 32px;
+    top: -72px;
   }
 
   .howGrid {
