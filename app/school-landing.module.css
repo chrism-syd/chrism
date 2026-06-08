@@ -501,7 +501,11 @@
   .schoolStoryImageColumn [class*='imageFrame'] {
     height: auto;
     min-height: 0;
-    aspect-ratio: 1 / 1.25;
+    aspect-ratio: 1 / 1.6;
+  }
+
+  .schoolStoryImage {
+    object-position: center 65%;
   }
 
   .pennantFrame {
