@@ -504,9 +504,9 @@
     aspect-ratio: 1 / 1.6;
   }
 
-  .schoolStoryImage {
-    object-fit: contain;
-    object-position: center center;
+  .schoolStoryImageColumn .schoolStoryImage {
+    object-fit: contain !important;
+    object-position: center center !important;
   }
 
   .pennantFrame {
