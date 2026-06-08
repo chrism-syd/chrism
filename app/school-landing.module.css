@@ -105,6 +105,7 @@
 .howSection {
   position: relative;
   isolation: isolate;
+  min-height: clamp(620px, 58vw, 760px);
 }
 
 .howSection::before {
@@ -417,6 +418,10 @@
     width: min(100%, 240px);
   }
 
+  .howSection {
+    min-height: clamp(660px, 72vw, 820px);
+  }
+
   .howSection::before {
     top: 42px;
   }
@@ -501,7 +506,7 @@
   }
 
   .howSection {
-    min-height: auto;
+    min-height: clamp(720px, 112vw, 940px);
   }
 
   .howSection::before {
