@@ -30,11 +30,6 @@ type OrganizationRow = {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-function formatStatus(invitation: { isExpired: boolean; status_code: string }) {
-  if (invitation.isExpired) return 'Expired'
-  return invitation.status_code.charAt(0).toUpperCase() + invitation.status_code.slice(1)
-}
-
 export default async function AdminInvitePage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const token = typeof resolvedSearchParams.token === 'string' ? resolvedSearchParams.token : null
@@ -68,7 +63,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
   const councilLabel = [invitation.councilName, invitation.councilNumber ? `Council ${invitation.councilNumber}` : null]
     .filter(Boolean)
     .join(' · ')
-  const orgLabel = getEffectiveOrganizationName(organization) ?? invitation.organizationName || 'this organization'
+  const orgLabel = getEffectiveOrganizationName(organization) ?? invitation.organizationName ?? 'this organization'
   const inviteCannotBeAccepted = invitation.status_code !== 'pending' || invitation.isExpired
 
   return (
