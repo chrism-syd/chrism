@@ -25,6 +25,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
   const [verifying, setVerifying] = useState(false)
   const [codeRequested, setCodeRequested] = useState(false)
   const [verificationCode, setVerificationCode] = useState('')
+  const [challengeResponse, setChallengeResponse] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
@@ -38,8 +39,9 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
 
   const resendSecondsRemaining = resendAvailableAt ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)) : 0
   const cleanedCode = verificationCode.replace(/\D/g, '')
+  const cleanedChallenge = challengeResponse.trim()
   const canSendCode = resendSecondsRemaining === 0 && !sending && !verifying
-  const canVerifyCode = codeRequested && cleanedCode.length > 0 && !sending && !verifying
+  const canVerifyCode = codeRequested && cleanedCode.length > 0 && cleanedChallenge.length >= 4 && !sending && !verifying
 
   function startResendCooldown() {
     setNow(Date.now())
@@ -97,6 +99,11 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
       return
     }
 
+    if (cleanedChallenge.length < 4) {
+      setMessage('Enter the shared verification phrase provided by the person who invited you.')
+      return
+    }
+
     setVerifying(true)
     setMessage(null)
 
@@ -113,7 +120,24 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
         return
       }
 
-      router.replace(acceptPath)
+      const formData = new FormData()
+      formData.set('challenge_response', cleanedChallenge)
+
+      const response = await fetch(acceptPath, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'x-admin-invite-accept': 'json',
+        },
+      })
+      const result = await response.json() as { redirectTo?: string; error?: string }
+
+      if (!response.ok || result.error) {
+        setMessage(result.error ?? 'We could not accept that invite right now.')
+        return
+      }
+
+      router.replace(result.redirectTo ?? '/me/council?notice=Admin invite accepted.')
     } catch (error) {
       setMessage(getOtpErrorMessage(error))
     } finally {
@@ -128,7 +152,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
           Verify your email to continue
         </h2>
         <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: 740 }}>
-          To help us ensure that you are the authorized invitee, we&apos;ll send a one-time code to the email address above.
+          To help us ensure that you are the authorized invitee, we&apos;ll send a one-time code to the email address above. You&apos;ll also need the shared verification phrase from the person who invited you.
         </p>
       </div>
 
@@ -148,6 +172,18 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
           value={verificationCode}
           onChange={(event) => setVerificationCode(event.target.value)}
           placeholder={codeRequested ? 'Enter code' : 'Send a code first'}
+          required
+        />
+      </label>
+
+      <label className="qv-field">
+        <span>Shared verification phrase</span>
+        <input
+          name="challenge_response"
+          type="text"
+          value={challengeResponse}
+          onChange={(event) => setChallengeResponse(event.target.value)}
+          placeholder="Phrase from the person who invited you"
           required
         />
       </label>
