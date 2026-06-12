@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { acceptOrganizationAdminInvitation, getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
+import { verifyAdminInviteChallenge } from '@/lib/organizations/admin-invite-challenges'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,36 +17,71 @@ function redirectToInvite(request: NextRequest, rawToken: string, error?: string
   return NextResponse.redirect(url)
 }
 
+function wantsJson(request: NextRequest) {
+  return request.headers.get('x-admin-invite-accept') === 'json'
+}
+
+function jsonResult(request: NextRequest, redirectTo: string, error?: string) {
+  return NextResponse.json({ redirectTo, error }, { status: error ? 400 : 200 })
+}
+
+async function formText(request: NextRequest, key: string) {
+  if (request.method !== 'POST') return null
+
+  const formData = await request.formData()
+  const value = formData.get(key)
+  return typeof value === 'string' ? value : null
+}
+
 async function handleAccept(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const rawToken = searchParams.get('token')?.trim() ?? ''
   const invitationId = searchParams.get('invitation_id')?.trim() ?? ''
+  const challengeResponse = await formText(request, 'challenge_response')
 
   if (!rawToken) {
-    return NextResponse.redirect(buildRedirectUrl(request, '/admin-invite/invalid?reason=missing'))
+    const redirectTo = '/admin-invite/invalid?reason=missing'
+    return wantsJson(request)
+      ? jsonResult(request, redirectTo, 'That admin invite could not be found.')
+      : NextResponse.redirect(buildRedirectUrl(request, redirectTo))
   }
 
   if (!invitationId) {
-    return redirectToInvite(request, rawToken, 'That admin invite could not be verified.')
+    return wantsJson(request)
+      ? jsonResult(request, `/admin-invite?token=${encodeURIComponent(rawToken)}`, 'That admin invite could not be verified.')
+      : redirectToInvite(request, rawToken, 'That admin invite could not be verified.')
   }
 
   const permissions = await getCurrentUserPermissions()
 
   if (!permissions.authUser) {
-    return redirectToInvite(request, rawToken, 'Please verify your invited email address before accepting admin access.')
+    return wantsJson(request)
+      ? jsonResult(request, `/admin-invite?token=${encodeURIComponent(rawToken)}`, 'Please verify your invited email address before accepting admin access.')
+      : redirectToInvite(request, rawToken, 'Please verify your invited email address before accepting admin access.')
   }
 
   const invitation = await getOrganizationAdminInvitationByRawToken(rawToken)
 
   if (!invitation) {
-    return NextResponse.redirect(buildRedirectUrl(request, `/admin-invite/invalid?reason=missing&token=${encodeURIComponent(rawToken)}`))
+    const redirectTo = `/admin-invite/invalid?reason=missing&token=${encodeURIComponent(rawToken)}`
+    return wantsJson(request)
+      ? jsonResult(request, redirectTo, 'That admin invite could not be found.')
+      : NextResponse.redirect(buildRedirectUrl(request, redirectTo))
   }
 
   if (invitation.id !== invitationId) {
-    return redirectToInvite(request, rawToken, 'That admin invite could not be verified.')
+    return wantsJson(request)
+      ? jsonResult(request, `/admin-invite?token=${encodeURIComponent(rawToken)}`, 'That admin invite could not be verified.')
+      : redirectToInvite(request, rawToken, 'That admin invite could not be verified.')
   }
 
   try {
+    await verifyAdminInviteChallenge({
+      invitationId,
+      rawToken,
+      challenge: challengeResponse,
+    })
+
     const acceptance = await acceptOrganizationAdminInvitation({
       invitationId,
       rawToken,
@@ -60,14 +96,16 @@ async function handleAccept(request: NextRequest) {
       revalidatePath(`/me/council/admins/${acceptance.personId}`)
     }
   } catch (error) {
-    return redirectToInvite(
-      request,
-      rawToken,
-      error instanceof Error ? error.message : 'We could not accept that invite right now.'
-    )
+    const message = error instanceof Error ? error.message : 'We could not accept that invite right now.'
+    return wantsJson(request)
+      ? jsonResult(request, `/admin-invite?token=${encodeURIComponent(rawToken)}`, message)
+      : redirectToInvite(request, rawToken, message)
   }
 
-  return NextResponse.redirect(buildRedirectUrl(request, '/me/council?notice=Admin invite accepted.'))
+  const redirectTo = '/me/council?notice=Admin invite accepted.'
+  return wantsJson(request)
+    ? jsonResult(request, redirectTo)
+    : NextResponse.redirect(buildRedirectUrl(request, redirectTo))
 }
 
 export async function GET(request: NextRequest) {
