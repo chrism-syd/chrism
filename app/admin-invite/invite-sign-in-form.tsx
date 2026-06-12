@@ -22,7 +22,7 @@ export default function InviteSignInForm({ inviteeEmail, invitePath }: InviteSig
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
-  const [codeSent, setCodeSent] = useState(false)
+  const [codeSent, setCodeSent] = useState(true)
   const [verificationCode, setVerificationCode] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null)
@@ -36,7 +36,7 @@ export default function InviteSignInForm({ inviteeEmail, invitePath }: InviteSig
   }, [resendAvailableAt])
 
   const resendSecondsRemaining = resendAvailableAt ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)) : 0
-  const canResend = codeSent && resendSecondsRemaining === 0 && !loading && !resending
+  const canResend = resendSecondsRemaining === 0 && !loading && !resending
 
   function startResendCooldown() {
     setNow(Date.now())
@@ -131,11 +131,25 @@ export default function InviteSignInForm({ inviteeEmail, invitePath }: InviteSig
         <div className="qv-auth-success-state">
           <div className="qv-auth-success-icon" aria-hidden="true">#</div>
           <div className="qv-auth-success-copy">
-            <h3 className="qv-section-title" style={{ margin: 0, fontSize: 24 }}>Enter your verification code</h3>
+            <h3 className="qv-section-title" style={{ margin: 0, fontSize: 24 }}>Verify your email address</h3>
             <p className="qv-auth-success-text">
-              We sent a code to <strong>{inviteeEmail}</strong>. Enter it here to continue with this admin invite.
+              To help us confirm this invite belongs to you, please verify the invited email address before continuing.
+            </p>
+            <p className="qv-auth-success-text">
+              Invited email: <strong>{inviteeEmail}</strong>
             </p>
           </div>
+        </div>
+
+        <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+          <button
+            type="button"
+            className="qv-button-secondary"
+            onClick={() => void sendVerificationCode({ isResend: true })}
+            disabled={!canResend}
+          >
+            {resending ? 'Sending...' : resendSecondsRemaining > 0 ? `Resend in ${resendSecondsRemaining}s` : 'Send verification code'}
+          </button>
         </div>
 
         <label className="qv-field">
@@ -155,14 +169,6 @@ export default function InviteSignInForm({ inviteeEmail, invitePath }: InviteSig
         <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
           <button type="submit" className="qv-button-primary" disabled={loading || resending}>
             {loading ? 'Verifying...' : 'Verify and continue'}
-          </button>
-          <button
-            type="button"
-            className="qv-button-secondary"
-            onClick={() => void sendVerificationCode({ isResend: true })}
-            disabled={!canResend}
-          >
-            {resending ? 'Sending...' : resendSecondsRemaining > 0 ? `Resend in ${resendSecondsRemaining}s` : 'Resend code'}
           </button>
         </div>
 
