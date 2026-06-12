@@ -48,6 +48,7 @@ export default function AdminInviteConfirmClient() {
     const raw = searchParams.get('next') ?? searchParams.get('redirect_to')
     return sanitizeNextPath(raw) ?? '/admin-invite/invalid?reason=missing'
   }, [searchParams])
+  const canReturnToInvite = nextPath.startsWith('/admin-invite?')
 
   useEffect(() => {
     let isCancelled = false
@@ -97,12 +98,20 @@ export default function AdminInviteConfirmClient() {
 
         if (!isCancelled) {
           setPhase('failed')
-          setErrorMessage('We could not complete that invite sign-in link. Please request a fresh invite and try again.')
+          setErrorMessage(
+            canReturnToInvite
+              ? 'That sign-in link could not be completed. Return to the invite page and send yourself a fresh verification code.'
+              : 'That sign-in link could not be completed. Please return to sign in and request a fresh code.'
+          )
         }
       } catch {
         if (!isCancelled) {
           setPhase('failed')
-          setErrorMessage('Something went wrong while completing your invite. Please request a fresh invite and try again.')
+          setErrorMessage(
+            canReturnToInvite
+              ? 'Something went wrong while completing sign-in. Return to the invite page and send yourself a fresh verification code.'
+              : 'Something went wrong while completing sign-in. Please return to sign in and request a fresh code.'
+          )
         }
       }
     }
@@ -112,7 +121,7 @@ export default function AdminInviteConfirmClient() {
     return () => {
       isCancelled = true
     }
-  }, [nextPath, router, searchParams])
+  }, [canReturnToInvite, nextPath, router, searchParams])
 
   if (phase === 'verifying') {
     return (
@@ -131,14 +140,14 @@ export default function AdminInviteConfirmClient() {
             Opening your invite
           </h1>
           <p style={{ margin: 0, maxWidth: 560, color: 'var(--text-secondary)', fontSize: 16, fontWeight: 700, lineHeight: 1.45 }}>
-            We are confirming your secure sign-in link and preparing the organization admin screen.
+            We are confirming your sign-in response and preparing the organization admin screen.
           </p>
         </div>
 
         <div className="qv-detail-list" style={{ marginTop: 0 }}>
           <div className="qv-detail-item" style={{ paddingTop: 0 }}>
             <div className="qv-detail-label">Step 1</div>
-            <div className="qv-detail-value">Verify your secure sign-in link</div>
+            <div className="qv-detail-value">Verify your sign-in response</div>
           </div>
           <div className="qv-detail-item">
             <div className="qv-detail-label">Step 2</div>
@@ -165,17 +174,19 @@ export default function AdminInviteConfirmClient() {
           style={{ width: 190, height: 'auto' }}
         />
         <p className="qv-eyebrow" style={{ margin: 0 }}>Secure admin invite</p>
-        <h1 className="qv-section-title" style={{ margin: 0 }}>Admin invite link could not be completed</h1>
+        <h1 className="qv-section-title" style={{ margin: 0 }}>Sign-in could not be completed</h1>
         <p className="qv-inline-message qv-inline-error" style={{ marginTop: 0 }}>
           {errorMessage}
         </p>
         <p className="qv-section-subtitle" style={{ marginTop: 0 }}>
-          Invite links are intentionally short-lived. Ask the person who invited you to send a fresh admin invite, then open the newest email from Chrism.
+          {canReturnToInvite
+            ? 'Your admin invite may still be valid. Return to the invite page and use the verification code flow to continue.'
+            : 'Verification codes are intentionally short-lived. Request a fresh code and try again.'}
         </p>
       </div>
       <div className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 0 }}>
-        <Link href="/login" className="qv-link-button qv-button-primary">
-          Go to sign in
+        <Link href={canReturnToInvite ? nextPath : '/login'} className="qv-link-button qv-button-primary">
+          {canReturnToInvite ? 'Return to invite' : 'Go to sign in'}
         </Link>
       </div>
     </InviteShell>
