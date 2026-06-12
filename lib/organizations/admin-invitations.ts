@@ -215,17 +215,18 @@ function buildAdminInvitationEmailCopy(args: {
                   <p style="margin:0;color:#334155;font-size:16px;line-height:1.65;">Hi ${escapeHtml(greetingName)},</p>
                   <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">${escapeHtml(inviterLine)} <strong>${escapeHtml(organizationLabel)}</strong> in Chrism.</p>
                   <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">Chrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.</p>
+                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">To accept this invite, open the link below. Chrism will ask you to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For security, that phrase is not included in this email.</p>
                   ${notesHtml}
                 </td>
               </tr>
               <tr>
                 <td style="padding:24px 34px 10px;">
-                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#151515;color:#fffaf1;text-decoration:none;padding:15px 24px;border-radius:999px;font-size:15px;font-weight:700;">Accept admin access</a>
+                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#151515;color:#fffaf1;text-decoration:none;padding:15px 24px;border-radius:999px;font-size:15px;font-weight:700;">Review admin invite</a>
                 </td>
               </tr>
               <tr>
                 <td style="padding:12px 34px 30px;">
-                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure link will open a confirmation screen. If needed, Chrism will ask you to sign in before you accept admin access for this organization.</p>
+                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure link opens a verification screen. Admin access is not granted until your invited email and shared verification phrase are confirmed.</p>
                   <p style="margin:14px 0 0;color:#64748b;font-size:13px;line-height:1.6;">Only the invited email address can accept this invite. If the button does not work, paste this link into your browser:</p>
                   <p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.5;word-break:break-all;">${escapeHtml(args.acceptUrl)}</p>
                 </td>
@@ -237,7 +238,7 @@ function buildAdminInvitationEmailCopy(args: {
     </div>
   `.trim()
 
-  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.${notesText}\n\nAccept admin access:\n${args.acceptUrl}\n\nThis secure link will open a confirmation screen. If needed, Chrism will ask you to sign in before you accept admin access for this organization. Only the invited email address can accept this invite.`
+  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.${notesText}\n\nTo accept this invite, open the link below. Chrism will ask you to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For security, that phrase is not included in this email.\n\nReview admin invite:\n${args.acceptUrl}\n\nOnly the invited email address can accept this invite. Admin access is not granted until your invited email and shared verification phrase are confirmed.`
 
   return {
     subject,
