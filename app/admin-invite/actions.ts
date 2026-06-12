@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { acceptOrganizationAdminInvitation, getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
+import { verifyAdminInviteChallenge } from '@/lib/organizations/admin-invite-challenges'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 
 function redirectToInvite(rawToken: string, error?: string | null, notice?: string | null): never {
@@ -16,10 +17,11 @@ function redirectToInvite(rawToken: string, error?: string | null, notice?: stri
 export async function acceptAdminInvitationAction(formData: FormData) {
   const rawToken = String(formData.get('token') ?? '')
   const invitationId = String(formData.get('invitation_id') ?? '')
+  const challengeResponse = String(formData.get('challenge_response') ?? '')
   const permissions = await getCurrentUserPermissions()
 
   if (!permissions.authUser) {
-    redirect(`/login?next=${encodeURIComponent(`/admin-invite?token=${rawToken}`)}`)
+    redirectToInvite(rawToken, 'Please verify your invited email address before accepting admin access.')
   }
 
   const invitation = await getOrganizationAdminInvitationByRawToken(rawToken)
@@ -33,6 +35,12 @@ export async function acceptAdminInvitationAction(formData: FormData) {
   }
 
   try {
+    await verifyAdminInviteChallenge({
+      invitationId,
+      rawToken,
+      challenge: challengeResponse,
+    })
+
     const acceptance = await acceptOrganizationAdminInvitation({
       invitationId,
       rawToken,
