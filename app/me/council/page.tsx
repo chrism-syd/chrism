@@ -9,7 +9,6 @@ import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
 import {
   addOfficerTermAction,
   grantCouncilAdminAction,
-  inviteCouncilAdminByEmailAction,
   removeOfficerTermAction,
   revokeCouncilAdminAction,
   revokeCouncilAdminInvitationAction,
@@ -26,6 +25,7 @@ import {
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import AdminCarousel from './admin-carousel'
 import OfficerCarousel from './officer-carousel'
+import ExternalAdminInviteForm from './external-admin-invite-form'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { loadLocalUnitMemberDirectoryData } from '@/lib/members/directory-data'
 
@@ -714,28 +714,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 </div>
               </form>
 
-              <form action={inviteCouncilAdminByEmailAction} className="qv-form-grid">
-                <div>
-                  <h2 className="qv-section-title" style={{ fontSize: 20 }}>External invite by email</h2>
-                  <p className="qv-section-subtitle">Invite someone who is not already in the directory.</p>
-                </div>
-                <label className="qv-control">
-                  <span className="qv-label">Invitee name</span>
-                  <input name="invitee_name" placeholder="e.g. John Smith" />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">Invitee email</span>
-                  <input name="grantee_email" type="email" placeholder="future-admin@example.org" required />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">Notes</span>
-                  <textarea name="grant_notes" placeholder="Optional handoff or takeover notes." rows={5} />
-                </label>
-                <div className="qv-form-actions">
-                  <button type="submit" className="qv-button-primary">Send invite</button>
-                  <Link href="/me/council" className="qv-link-button">Cancel</Link>
-                </div>
-              </form>
+              <ExternalAdminInviteForm />
             </div>
 
             {pendingInvitations.length > 0 ? (
