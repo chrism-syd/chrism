@@ -1,13 +1,30 @@
-import Image from 'next/image'
-import { redirect } from 'next/navigation'
+import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { redirect } from 'next/navigation'
 import { acceptAdminInvitationAction } from './actions'
 import InviteSignInForm from './invite-sign-in-form'
 import SwitchAccountButton from './switch-account-button'
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+type OrganizationRow = {
+  id: string
+  display_name: string | null
+  preferred_name: string | null
+  logo_storage_path: string | null
+  logo_alt_text: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 export const dynamic = 'force-dynamic'
@@ -33,105 +50,118 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
   if (!invitation) {
     redirect(`/admin-invite/invalid?reason=missing&token=${encodeURIComponent(token)}`)
   }
-  const permissions = await getCurrentUserPermissions()
+
+  const [permissions, organizationResult] = await Promise.all([
+    getCurrentUserPermissions(),
+    createAdminClient()
+      .from('organizations')
+      .select('id, display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
+      .eq('id', invitation.organization_id)
+      .maybeSingle(),
+  ])
+
+  const organization = (organizationResult.data as OrganizationRow | null) ?? null
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const signedInEmail = permissions.email?.trim().toLowerCase() ?? null
-  const invitePath = `/admin-invite?token=${token}`
+  const invitePath = `/admin-invite?token=${encodeURIComponent(token)}`
+  const acceptPath = `/admin-invite/accept?token=${encodeURIComponent(token)}&invitation_id=${encodeURIComponent(invitation.id)}`
   const councilLabel = [invitation.councilName, invitation.councilNumber ? `Council ${invitation.councilNumber}` : null]
     .filter(Boolean)
     .join(' · ')
-  const orgLabel = invitation.organizationName || 'this organization'
+  const orgLabel = getEffectiveOrganizationName(organization) ?? invitation.organizationName || 'this organization'
+  const inviteCannotBeAccepted = invitation.status_code !== 'pending' || invitation.isExpired
 
   return (
     <main className="qv-page">
-      <div className="qv-shell">
-        <section style={{ display: 'grid', gap: 14, paddingTop: 28, marginBottom: 18 }}>
-          <Image
-            src="/Chrism-ops.svg"
-            alt="Chrism"
-            width={220}
-            height={74}
-            priority
-            style={{ width: 220, height: 'auto' }}
-          />
-          <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 72px)', lineHeight: 0.94 }}>
-            Accept admin access
-          </h1>
-          <p style={{ margin: 0, maxWidth: '52ch', fontSize: 15, fontWeight: 700, lineHeight: 1.4, color: 'var(--text-secondary)' }}>
-            This invite grants admin access to an existing local organization in Chrism. Review the details before continuing.
-          </p>
+      <div className="qv-shell" style={{ maxWidth: 1120 }}>
+        <section style={{ display: 'grid', gap: 18, paddingTop: 28, marginBottom: 32 }}>
+          <div
+            style={{
+              alignItems: 'center',
+              background: 'color-mix(in srgb, #6ea84f 22%, var(--bg-card))',
+              border: '1px solid color-mix(in srgb, #6ea84f 34%, var(--divider))',
+              borderRadius: 999,
+              color: '#477a2f',
+              display: 'inline-flex',
+              fontSize: 16,
+              fontWeight: 800,
+              gap: 8,
+              letterSpacing: '-0.01em',
+              padding: '9px 18px',
+              width: 'fit-content',
+            }}
+          >
+            <span aria-hidden="true">✉</span>
+            <span>Admin invite</span>
+          </div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <h1 className="qv-directory-name" style={{ margin: 0, maxWidth: 940, fontSize: 'clamp(48px, 7vw, 86px)', lineHeight: 0.94 }}>
+              You&apos;ve been invited to manage an organization
+            </h1>
+            <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: 860, fontSize: 'clamp(18px, 2.2vw, 26px)', lineHeight: 1.25 }}>
+              Review the details below, then verify your email to accept admin access.
+            </p>
+          </div>
         </section>
 
         {errorMessage ? <p className="qv-inline-message qv-inline-error">{errorMessage}</p> : null}
         {noticeMessage ? <p className="qv-inline-message qv-inline-success">{noticeMessage}</p> : null}
 
-        <section className="qv-hero-card">
-          <div className="qv-hero-top">
-            <div style={{ display: 'grid', gap: 10 }}>
-              <p className="qv-eyebrow" style={{ margin: 0 }}>You were invited to manage</p>
-              <h2 className="qv-section-title" style={{ margin: 0 }}>{orgLabel}</h2>
-              {councilLabel ? (
-                <p className="qv-section-subtitle" style={{ margin: 0 }}>{councilLabel}</p>
-              ) : null}
+        <section className="qv-hero-card" style={{ display: 'grid', gap: 26 }}>
+          <div className="qv-card" style={{ alignItems: 'center', display: 'flex', gap: 22, margin: 0, padding: '24px 28px' }}>
+            <OrganizationAvatar
+              displayName={orgLabel}
+              logoStoragePath={effectiveBranding.logo_storage_path}
+              logoAltText={effectiveBranding.logo_alt_text ?? orgLabel}
+              size={76}
+            />
+            <div style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+              <h2 className="qv-section-title" style={{ margin: 0, fontSize: 'clamp(24px, 3.4vw, 34px)' }}>{orgLabel}</h2>
+              {councilLabel ? <p className="qv-section-subtitle" style={{ margin: 0 }}>{councilLabel}</p> : null}
             </div>
+            <span
+              style={{
+                background: 'color-mix(in srgb, var(--interactive) 14%, var(--bg-card))',
+                borderRadius: 999,
+                color: 'var(--interactive)',
+                fontWeight: 800,
+                marginLeft: 'auto',
+                padding: '8px 16px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Admin
+            </span>
           </div>
 
-          <div className="qv-detail-grid" style={{ marginTop: 18 }}>
+          <div className="qv-detail-grid">
             <div className="qv-card" style={{ margin: 0 }}>
-              <h3 className="qv-section-title" style={{ fontSize: 24 }}>Invite details</h3>
-              <div className="qv-detail-list" style={{ marginTop: 12 }}>
-                <div className="qv-detail-item" style={{ paddingTop: 0 }}>
-                  <div className="qv-detail-label">Invited email</div>
-                  <div className="qv-detail-value">{invitation.invitee_email}</div>
-                </div>
-                {invitation.invitee_name ? (
-                  <div className="qv-detail-item">
-                    <div className="qv-detail-label">Invited name</div>
-                    <div className="qv-detail-value">{invitation.invitee_name}</div>
-                  </div>
-                ) : null}
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Invite status</div>
-                  <div className="qv-detail-value">{formatStatus(invitation)}</div>
-                </div>
-                {permissions.email ? (
-                  <div className="qv-detail-item">
-                    <div className="qv-detail-label">Signed in as</div>
-                    <div className="qv-detail-value">{permissions.email}</div>
-                  </div>
-                ) : null}
-              </div>
+              <div className="qv-detail-label">Invited email</div>
+              <div className="qv-detail-value" style={{ marginTop: 8 }}>{invitation.invitee_email}</div>
             </div>
-
             <div className="qv-card" style={{ margin: 0 }}>
-              <h3 className="qv-section-title" style={{ fontSize: 24 }}>What happens next</h3>
-              <div className="qv-detail-list" style={{ marginTop: 12 }}>
-                <div className="qv-detail-item" style={{ paddingTop: 0 }}>
-                  <div className="qv-detail-label">Access</div>
-                  <div className="qv-detail-value">You will be added as an organization admin for this local org.</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Dashboard</div>
-                  <div className="qv-detail-value">After accepting, Chrism will take you to the organization settings area.</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Security</div>
-                  <div className="qv-detail-value">This invite only works for the invited email address.</div>
-                </div>
-              </div>
+              <div className="qv-detail-label">Invited name</div>
+              <div className="qv-detail-value" style={{ marginTop: 8 }}>{invitation.invitee_name || 'Not provided'}</div>
             </div>
           </div>
 
           {invitation.notes ? (
-            <div className="qv-card" style={{ marginTop: 18 }}>
+            <div className="qv-card" style={{ margin: 0 }}>
               <div className="qv-detail-label">Onboarding notes</div>
-              <div className="qv-detail-value" style={{ marginTop: 6 }}>{invitation.notes}</div>
+              <div className="qv-detail-value" style={{ marginTop: 8 }}>{invitation.notes}</div>
             </div>
           ) : null}
 
-          <div style={{ marginTop: 22 }}>
+          <div style={{ borderTop: '1px solid var(--divider)', paddingTop: 26 }}>
             {!permissions.authUser ? (
-              <InviteSignInForm inviteeEmail={invitation.invitee_email} invitePath={invitePath} />
-            ) : invitation.status_code !== 'pending' || invitation.isExpired ? (
+              inviteCannotBeAccepted ? (
+                <p className="qv-inline-message">
+                  This invite can no longer be accepted. Ask a current admin to send a fresh one.
+                </p>
+              ) : (
+                <InviteSignInForm acceptPath={acceptPath} inviteeEmail={invitation.invitee_email} invitePath={invitePath} />
+              )
+            ) : inviteCannotBeAccepted ? (
               <p className="qv-inline-message">
                 This invite can no longer be accepted. Ask a current admin to send a fresh one.
               </p>
@@ -144,15 +174,30 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
                 <SwitchAccountButton inviteeEmail={invitation.invitee_email} invitePath={invitePath} />
               </div>
             ) : (
-              <form action={acceptAdminInvitationAction} className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+              <form action={acceptAdminInvitationAction} className="qv-form-grid" style={{ maxWidth: 680 }}>
                 <input type="hidden" name="token" value={token} />
                 <input type="hidden" name="invitation_id" value={invitation.id} />
-                <button type="submit" className="qv-button-primary">
-                  Accept admin access
-                </button>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <h2 className="qv-section-title" style={{ margin: 0, fontSize: 'clamp(26px, 3.2vw, 36px)' }}>
+                    Ready to accept access
+                  </h2>
+                  <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                    You are signed in as the invited email address. Continue to activate admin access.
+                  </p>
+                </div>
+                <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                  <button type="submit" className="qv-button-primary">
+                    Accept admin access
+                  </button>
+                </div>
               </form>
             )}
           </div>
+
+          <p className="qv-section-subtitle" style={{ alignItems: 'center', display: 'flex', gap: 8, margin: 0 }}>
+            <span aria-hidden="true">🔒</span>
+            <span>This invite is only valid for the email address above and can only be used once.</span>
+          </p>
         </section>
       </div>
     </main>
