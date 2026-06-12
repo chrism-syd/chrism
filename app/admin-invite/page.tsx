@@ -1,3 +1,5 @@
+import Image from 'next/image'
+import Link from 'next/link'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
@@ -29,6 +31,22 @@ type OrganizationRow = {
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+const adminInvitePillStyle = {
+  alignItems: 'center',
+  background: 'color-mix(in srgb, #6ea84f 22%, var(--bg-card))',
+  border: '1px solid color-mix(in srgb, #6ea84f 34%, var(--divider))',
+  borderRadius: 999,
+  color: '#477a2f',
+  display: 'inline-flex',
+  fontSize: 16,
+  fontWeight: 800,
+  gap: 8,
+  letterSpacing: '-0.01em',
+  padding: '9px 18px',
+  whiteSpace: 'nowrap',
+  width: 'fit-content',
+} as const
 
 export default async function AdminInvitePage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
@@ -65,38 +83,33 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
     .join(' · ')
   const orgLabel = getEffectiveOrganizationName(organization) ?? invitation.organizationName ?? 'this organization'
   const inviteCannotBeAccepted = invitation.status_code !== 'pending' || invitation.isExpired
+  const inviteeName = invitation.invitee_name?.trim() || 'Invited admin'
 
   return (
     <main className="qv-page">
       <div className="qv-shell" style={{ maxWidth: 1120 }}>
-        <section style={{ display: 'grid', gap: 18, paddingTop: 28, marginBottom: 32 }}>
-          <div
-            style={{
-              alignItems: 'center',
-              background: 'color-mix(in srgb, #6ea84f 22%, var(--bg-card))',
-              border: '1px solid color-mix(in srgb, #6ea84f 34%, var(--divider))',
-              borderRadius: 999,
-              color: '#477a2f',
-              display: 'inline-flex',
-              fontSize: 16,
-              fontWeight: 800,
-              gap: 8,
-              letterSpacing: '-0.01em',
-              padding: '9px 18px',
-              width: 'fit-content',
-            }}
-          >
-            <span aria-hidden="true">✉</span>
-            <span>Admin invite</span>
+        <header className="qv-app-header" style={{ paddingTop: 0, paddingBottom: 8 }}>
+          <div className="qv-app-header-left">
+            <Link href="/" className="qv-brand" aria-label="Chrism home">
+              <Image
+                src="/Chrism_horiz.svg"
+                alt="Chrism"
+                width={280}
+                height={94}
+                className="qv-brand-logo"
+                priority
+              />
+            </Link>
           </div>
-          <div style={{ display: 'grid', gap: 10 }}>
-            <h1 className="qv-directory-name" style={{ margin: 0, maxWidth: 940, fontSize: 'clamp(48px, 7vw, 86px)', lineHeight: 0.94 }}>
-              You&apos;ve been invited to manage an organization
-            </h1>
-            <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: 860, fontSize: 'clamp(18px, 2.2vw, 26px)', lineHeight: 1.25 }}>
-              Review the details below, then verify your email to accept admin access.
-            </p>
-          </div>
+        </header>
+
+        <section style={{ display: 'grid', gap: 10, marginBottom: 32 }}>
+          <h1 className="qv-directory-name" style={{ margin: 0, maxWidth: 940, fontSize: 'clamp(48px, 7vw, 86px)', lineHeight: 0.94 }}>
+            You&apos;ve been invited to manage an organization
+          </h1>
+          <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: 860, fontSize: 'clamp(18px, 2.2vw, 26px)', lineHeight: 1.25 }}>
+            Review the details below, then verify your email to accept admin access.
+          </p>
         </section>
 
         {errorMessage ? <p className="qv-inline-message qv-inline-error">{errorMessage}</p> : null}
@@ -114,30 +127,44 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
               <h2 className="qv-section-title" style={{ margin: 0, fontSize: 'clamp(24px, 3.4vw, 34px)' }}>{orgLabel}</h2>
               {councilLabel ? <p className="qv-section-subtitle" style={{ margin: 0 }}>{councilLabel}</p> : null}
             </div>
-            <span
-              style={{
-                background: 'color-mix(in srgb, var(--interactive) 14%, var(--bg-card))',
-                borderRadius: 999,
-                color: 'var(--interactive)',
-                fontWeight: 800,
-                marginLeft: 'auto',
-                padding: '8px 16px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Admin
+            <span style={{ ...adminInvitePillStyle, marginLeft: 'auto' }}>
+              <span aria-hidden="true">✉</span>
+              <span>Admin invite</span>
             </span>
           </div>
 
-          <div className="qv-detail-grid">
-            <div className="qv-card" style={{ margin: 0 }}>
-              <div className="qv-detail-label">Invited email</div>
-              <div className="qv-detail-value" style={{ marginTop: 8 }}>{invitation.invitee_email}</div>
+          <div className="qv-card" style={{ display: 'grid', gap: 10, margin: 0 }}>
+            <div
+              style={{
+                color: 'var(--text-primary)',
+                fontSize: 'clamp(20px, 2.4vw, 26px)',
+                fontWeight: 800,
+                lineHeight: 1.16,
+              }}
+            >
+              {inviteeName}
             </div>
-            <div className="qv-card" style={{ margin: 0 }}>
-              <div className="qv-detail-label">Invited name</div>
-              <div className="qv-detail-value" style={{ marginTop: 8 }}>{invitation.invitee_name || 'Not provided'}</div>
+            <div style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 650 }}>
+              {invitation.invitee_email}
             </div>
+            <p className="qv-section-subtitle" style={{ alignItems: 'center', display: 'flex', gap: 8, margin: '6px 0 0' }}>
+              <span aria-hidden="true">🔒</span>
+              <span>This invite is only valid for the email address above and can only be used once.</span>
+            </p>
+            <Link
+              href="/"
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: 14,
+                fontWeight: 700,
+                marginTop: 4,
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+                width: 'fit-content',
+              }}
+            >
+              This is not me or my email address
+            </Link>
           </div>
 
           {invitation.notes ? (
@@ -172,14 +199,6 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
               <form action={acceptAdminInvitationAction} className="qv-form-grid" style={{ maxWidth: 680 }}>
                 <input type="hidden" name="token" value={token} />
                 <input type="hidden" name="invitation_id" value={invitation.id} />
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <h2 className="qv-section-title" style={{ margin: 0, fontSize: 'clamp(26px, 3.2vw, 36px)' }}>
-                    Ready to accept access
-                  </h2>
-                  <p className="qv-section-subtitle" style={{ margin: 0 }}>
-                    You are signed in as the invited email address. Continue to activate admin access.
-                  </p>
-                </div>
                 <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
                   <button type="submit" className="qv-button-primary">
                     Accept admin access
@@ -188,11 +207,6 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
               </form>
             )}
           </div>
-
-          <p className="qv-section-subtitle" style={{ alignItems: 'center', display: 'flex', gap: 8, margin: 0 }}>
-            <span aria-hidden="true">🔒</span>
-            <span>This invite is only valid for the email address above and can only be used once.</span>
-          </p>
         </section>
       </div>
     </main>
