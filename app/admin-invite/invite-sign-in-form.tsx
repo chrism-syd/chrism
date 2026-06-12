@@ -73,8 +73,8 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
       setVerificationCode('')
       setMessage(
         codeRequested
-          ? `We sent a fresh verification code to ${inviteeEmail}.`
-          : `We sent a verification code to ${inviteeEmail}. Enter it below to continue.`
+          ? 'We sent a fresh verification code.'
+          : 'We sent a verification code. Enter it below to continue.'
       )
       startResendCooldown()
     } catch (error) {
@@ -128,13 +128,8 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
           Verify your email to continue
         </h2>
         <p className="qv-section-subtitle" style={{ margin: 0, maxWidth: 740 }}>
-          To help us ensure that you are the authorized invitee, please verify the invited email address before accepting admin access.
+          To help us ensure that you are the authorized invitee, we&apos;ll send a one-time code to the email address above.
         </p>
-      </div>
-
-      <div className="qv-card" style={{ margin: 0, padding: '16px 18px' }}>
-        <div className="qv-detail-label">Invited email</div>
-        <div className="qv-detail-value" style={{ marginTop: 4 }}>{inviteeEmail}</div>
       </div>
 
       <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
