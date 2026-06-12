@@ -39,7 +39,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
   const resendSecondsRemaining = resendAvailableAt ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000)) : 0
   const cleanedCode = verificationCode.replace(/\D/g, '')
   const canSendCode = resendSecondsRemaining === 0 && !sending && !verifying
-  const canVerifyCode = cleanedCode.length > 0 && !sending && !verifying
+  const canVerifyCode = codeRequested && cleanedCode.length > 0 && !sending && !verifying
 
   function startResendCooldown() {
     setNow(Date.now())
@@ -92,6 +92,11 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
       return
     }
 
+    if (!codeRequested) {
+      setMessage('Send yourself a verification code first, then enter it here.')
+      return
+    }
+
     setVerifying(true)
     setMessage(null)
 
@@ -109,7 +114,6 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
       }
 
       router.replace(acceptPath)
-      router.refresh()
     } catch (error) {
       setMessage(getOtpErrorMessage(error))
     } finally {
