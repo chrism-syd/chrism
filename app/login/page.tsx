@@ -83,7 +83,7 @@ function LoginPageContent() {
     setEmail(normalizedEmail)
     setEmailSentTo(normalizedEmail)
     setVerificationCode('')
-    setMessage('Check your email for your Chrism verification code.')
+    setMessage('We sent a verification code. Keep this window open and enter the code below.')
     setLoading(false)
   }
 
@@ -207,7 +207,7 @@ function LoginPageContent() {
                   <div className="qv-auth-success-copy">
                     <h2 className="qv-section-title">Enter your verification code</h2>
                     <p className="qv-auth-success-text">
-                      We sent a verification code to <strong>{emailSentTo}</strong>.
+                      We sent a verification code to <strong>{emailSentTo}</strong>. Keep this window open and enter it here.
                     </p>
                   </div>
                 </div>
