@@ -167,13 +167,6 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
             </Link>
           </div>
 
-          {invitation.notes ? (
-            <div className="qv-card" style={{ margin: 0 }}>
-              <div className="qv-detail-label">Onboarding notes</div>
-              <div className="qv-detail-value" style={{ marginTop: 8 }}>{invitation.notes}</div>
-            </div>
-          ) : null}
-
           <div style={{ borderTop: '1px solid var(--divider)', paddingTop: 26 }}>
             {!permissions.authUser ? (
               inviteCannotBeAccepted ? (
@@ -199,9 +192,26 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
               <form action={acceptAdminInvitationAction} className="qv-form-grid" style={{ maxWidth: 680 }}>
                 <input type="hidden" name="token" value={token} />
                 <input type="hidden" name="invitation_id" value={invitation.id} />
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <h2 className="qv-section-title" style={{ margin: 0, fontSize: 'clamp(26px, 3.2vw, 36px)' }}>
+                    Enter the shared verification phrase
+                  </h2>
+                  <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                    This is the phrase provided separately by the person who invited you.
+                  </p>
+                </div>
+                <label className="qv-field">
+                  <span>Shared verification phrase</span>
+                  <input
+                    name="challenge_response"
+                    type="text"
+                    placeholder="Phrase from the person who invited you"
+                    required
+                  />
+                </label>
                 <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
                   <button type="submit" className="qv-button-primary">
-                    Accept admin access
+                    Verify phrase and accept access
                   </button>
                 </div>
               </form>
