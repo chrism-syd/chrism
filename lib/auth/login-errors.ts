@@ -23,7 +23,7 @@ export function getLoginMessage(error: unknown): string {
   }
 
   if (message.includes('rate limit') || message.includes('security purposes')) {
-    return 'You have tried a few times in a row. Please wait a moment, then try again.'
+    return 'You have tried a few times in a row. Please try again in a moment.'
   }
 
   if (message.includes('network') || message.includes('fetch')) {
