@@ -58,5 +58,5 @@ export async function acceptAdminInvitationAction(formData: FormData) {
     redirectToInvite(rawToken, error instanceof Error ? error.message : 'We could not accept that invite right now.')
   }
 
-  redirect('/me/council?notice=Admin invite accepted.')
+  redirect('/me/council')
 }
