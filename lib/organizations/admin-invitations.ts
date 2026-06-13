@@ -183,9 +183,11 @@ function buildAdminInvitationEmailCopy(args: {
   const councilBits = [args.councilName?.trim(), args.councilNumber ? `Council ${args.councilNumber}` : null].filter(Boolean)
   const councilLabel = councilBits.length > 0 ? councilBits.join(' · ') : null
   const greetingName = args.inviteeName?.trim() || 'there'
-  const inviterLine = args.inviterName?.trim()
-    ? `${args.inviterName.trim()} invited you to become an admin for`
-    : 'You have been invited to become an admin for'
+  const candidateInviterName = args.inviterName?.trim() ?? ''
+  const inviterDisplayName = candidateInviterName && !candidateInviterName.includes('@') ? candidateInviterName : null
+  const inviterLine = inviterDisplayName
+    ? `${inviterDisplayName} invited you to become an admin for`
+    : 'A Chrism admin invited you to become an admin for'
   const subject = `Admin invite for ${organizationLabel}`
   const notesHtml = args.notes?.trim()
     ? `<div style="margin-top:18px;padding:16px 18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0;"><p style="margin:0 0 6px;color:#64748b;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;">Onboarding note</p><p style="margin:0;color:#334155;font-size:15px;line-height:1.6;">${escapeHtml(args.notes.trim())}</p></div>`
@@ -214,9 +216,9 @@ function buildAdminInvitationEmailCopy(args: {
                 <td style="padding:0 34px 8px;">
                   <p style="margin:0;color:#334155;font-size:16px;line-height:1.65;">Hi ${escapeHtml(greetingName)},</p>
                   <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">${escapeHtml(inviterLine)} <strong>${escapeHtml(organizationLabel)}</strong> in Chrism.</p>
-                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">Chrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.</p>
-                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">To accept this invite, open the link below. Chrism will ask you to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For security, that phrase is not included in this email.</p>
                   ${notesHtml}
+                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">Chrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.</p>
+                  <p style="margin:16px 0 0;color:#334155;font-size:16px;line-height:1.65;">To accept this invite, open the link below. Chrism will ask you to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For privacy and security, that phrase is not included in this email.</p>
                 </td>
               </tr>
               <tr>
@@ -226,7 +228,7 @@ function buildAdminInvitationEmailCopy(args: {
               </tr>
               <tr>
                 <td style="padding:12px 34px 30px;">
-                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This secure link opens a verification screen. Admin access is not granted until your invited email and shared verification phrase are confirmed.</p>
+                  <p style="margin:0;color:#475569;font-size:14px;line-height:1.65;">This link opens a verification screen. Admin access is not granted until your invited email and shared verification phrase are confirmed.</p>
                   <p style="margin:14px 0 0;color:#64748b;font-size:13px;line-height:1.6;">Only the invited email address can accept this invite. If the button does not work, paste this link into your browser:</p>
                   <p style="margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.5;word-break:break-all;">${escapeHtml(args.acceptUrl)}</p>
                 </td>
@@ -238,7 +240,7 @@ function buildAdminInvitationEmailCopy(args: {
     </div>
   `.trim()
 
-  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.${notesText}\n\nTo accept this invite, open the link below. Chrism will ask you to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For security, that phrase is not included in this email.\n\nReview admin invite:\n${args.acceptUrl}\n\nOnly the invited email address can accept this invite. Admin access is not granted until your invited email and shared verification phrase are confirmed.`
+  const textContent = `Hi ${greetingName},\n\n${inviterLine} ${organizationLabel} in Chrism.${councilText}${notesText}\n\nChrism helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.\n\nTo accept this invite, open the link below. Chrism will ask you to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For privacy and security, that phrase is not included in this email.\n\nReview admin invite:\n${args.acceptUrl}\n\nOnly the invited email address can accept this invite. Admin access is not granted until your invited email and shared verification phrase are confirmed.`
 
   return {
     subject,
