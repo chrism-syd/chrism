@@ -169,6 +169,52 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#39;')
 }
 
+function formatPersonDisplayName(row: { first_name: string | null; last_name: string | null; nickname: string | null } | null) {
+  if (!row) return null
+
+  const first = row.nickname?.trim() || row.first_name?.trim() || ''
+  const last = row.last_name?.trim() || ''
+  const name = [first, last].filter(Boolean).join(' ').trim()
+
+  return name || null
+}
+
+async function resolveAdminInviteSenderName(invitePath: string) {
+  try {
+    const rawToken = new URL(invitePath, 'https://chrism.app').searchParams.get('token')?.trim()
+    if (!rawToken) return null
+
+    const admin = createAdminClient()
+    const { data: invitation, error: invitationError } = await admin
+      .from('organization_admin_invitations')
+      .select('invited_by_auth_user_id')
+      .eq('token_hash', hashToken(rawToken))
+      .maybeSingle<{ invited_by_auth_user_id: string | null }>()
+
+    if (invitationError || !invitation?.invited_by_auth_user_id) return null
+
+    const { data: appUser, error: appUserError } = await admin
+      .from('users')
+      .select('person_id')
+      .eq('id', invitation.invited_by_auth_user_id)
+      .maybeSingle<{ person_id: string | null }>()
+
+    if (appUserError || !appUser?.person_id) return null
+
+    const { data: person, error: personError } = await admin
+      .from('people')
+      .select('first_name, last_name, nickname')
+      .eq('id', appUser.person_id)
+      .maybeSingle<{ first_name: string | null; last_name: string | null; nickname: string | null }>()
+
+    if (personError) return null
+
+    return formatPersonDisplayName(person)
+  } catch {
+    return null
+  }
+}
+
 function buildAdminInvitationEmailCopy(args: {
   organizationName: string
   councilName?: string | null
@@ -260,13 +306,14 @@ export async function sendOrganizationAdminInvitationEmail(args: {
 }) {
   const baseUrl = args.origin || getBaseUrl()
   const acceptUrl = new URL(args.invitePath, baseUrl).toString()
+  const resolvedInviterName = args.inviterName ?? await resolveAdminInviteSenderName(args.invitePath)
 
   const emailCopy = buildAdminInvitationEmailCopy({
     organizationName: args.organizationName,
     councilName: args.councilName,
     councilNumber: args.councilNumber,
     inviteeName: args.inviteeName,
-    inviterName: args.inviterName,
+    inviterName: resolvedInviterName,
     notes: args.notes,
     acceptUrl,
     logoUrl: `${baseUrl}/Chrism.png`,
