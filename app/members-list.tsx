@@ -165,6 +165,21 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
   useEffect(() => { setPageInput(String(safeCurrentPage)) }, [safeCurrentPage])
   useEffect(() => { const fn = (event: MouseEvent) => { const target = event.target as Node; if (!actionMenuRef.current?.contains(target)) actionMenuRef.current?.removeAttribute('open') }; document.addEventListener('mousedown', fn); return () => document.removeEventListener('mousedown', fn) }, [])
   useEffect(() => { setSelectedMemberIds((current) => current.filter((memberId) => members.some((member) => member.id === memberId))) }, [members])
+  useEffect(() => {
+    if (!notice) return
+
+    const dismissNotice = () => setNotice(null)
+    const timeoutId = window.setTimeout(dismissNotice, 6000)
+    const listenerTimeoutId = window.setTimeout(() => {
+      document.addEventListener('pointerdown', dismissNotice, { once: true })
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearTimeout(listenerTimeoutId)
+      document.removeEventListener('pointerdown', dismissNotice)
+    }
+  }, [notice])
   const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedMembers : filteredAndSortedMembers.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedMembers, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
   const selectedMembers = useMemo(() => selectedMemberIds.map((memberId) => membersById.get(memberId)).filter((member): member is Member => Boolean(member)), [membersById, selectedMemberIds])
