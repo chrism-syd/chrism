@@ -102,7 +102,7 @@ async function handleAccept(request: NextRequest) {
       : redirectToInvite(request, rawToken, message)
   }
 
-  const redirectTo = '/me/council?notice=Admin invite accepted.'
+  const redirectTo = '/me/council'
   return wantsJson(request)
     ? jsonResult(request, redirectTo)
     : NextResponse.redirect(buildRedirectUrl(request, redirectTo))
