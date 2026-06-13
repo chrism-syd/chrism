@@ -2,7 +2,7 @@ Your verification code
 
 We received a sign-in attempt.
 
-To complete the process, please enter the 6-digit code in the original window:
+To complete the process, please enter the 8-digit code in the original window:
 
 {{ .Token }}
 
@@ -10,4 +10,4 @@ To complete the process, please enter the 6-digit code in the original window:
 
 If you didn't attempt to sign in but received this email, you can ignore it. The sign-in attempt will not complete without this code.
 
-Don't share the code or forward it to anyone. Our customer service will never ask for it. Be cautious of phishing attempts and always verify the sender and domain (chrism.app) before acting.
+Do not share the code or forward it to anyone. Our customer service will never ask for it. Be cautious of phishing attempts and always verify the sender and domain (chrism.app) before acting.
