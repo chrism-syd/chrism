@@ -25,24 +25,34 @@ export default function AutoDismissingQueryMessage({
 
   const nextUrl = useMemo(() => {
     const params = new URLSearchParams(searchParams.toString())
-    params.delete(kind)
+    params.delete('notice')
+    params.delete('error')
     const query = params.toString()
     return query ? `${pathname}?${query}` : pathname
-  }, [kind, pathname, searchParams])
+  }, [pathname, searchParams])
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setIsVisible(false)
-      router.replace(nextUrl, { scroll: false })
-    }, dismissAfterMs)
+    router.replace(nextUrl, { scroll: false })
+  }, [nextUrl, router, message])
 
-    return () => window.clearTimeout(timeoutId)
-  }, [dismissAfterMs, nextUrl, router, message])
+  useEffect(() => {
+    const dismiss = () => setIsVisible(false)
+    const timeoutId = window.setTimeout(dismiss, dismissAfterMs)
+    const listenerTimeoutId = window.setTimeout(() => {
+      document.addEventListener('pointerdown', dismiss, { once: true })
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearTimeout(listenerTimeoutId)
+      document.removeEventListener('pointerdown', dismiss)
+    }
+  }, [dismissAfterMs, message])
 
   if (!isVisible) return null
 
   return (
-    <section className={className} style={style} aria-live="polite">
+    <section className={className} style={style} aria-live={kind === 'error' ? 'assertive' : 'polite'}>
       <p style={{ margin: 0 }}>{message}</p>
     </section>
   )
