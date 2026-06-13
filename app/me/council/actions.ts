@@ -1,6 +1,5 @@
 'use server'
 
-import { randomBytes } from 'node:crypto'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -50,8 +49,19 @@ function redirectToCouncilPage(args: { error?: string | null; notice?: string | 
   redirect(params.size > 0 ? `/me/council?${params.toString()}` : '/me/council')
 }
 
-function buildFallbackAdminInvitePhrase() {
-  return `chrism-${randomBytes(3).toString('hex')}`
+function metadataString(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function getInviteSenderNameFromMetadata(userMetadata: Record<string, unknown> | undefined) {
+  if (!userMetadata) return null
+
+  return (
+    metadataString(userMetadata.full_name) ??
+    metadataString(userMetadata.name) ??
+    metadataString(userMetadata.display_name) ??
+    metadataString(userMetadata.given_name)
+  )
 }
 
 async function requireOrganizationSettingsAccess() {
@@ -407,15 +417,19 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
   const inviteeName = normalizeAdminInviteText(textValue(formData, 'invitee_name'))
   const inviteEmail = normalizeAdminInviteEmail(textValue(formData, 'grantee_email'))
   const grantNotes = normalizeAdminInviteText(textValue(formData, 'grant_notes'))
-  const enteredSharedPhrase = normalizeAdminInviteChallenge(textValue(formData, 'shared_verification_phrase'))
-  const sharedPhrase = enteredSharedPhrase ?? buildFallbackAdminInvitePhrase()
+  const sharedPhrase = normalizeAdminInviteChallenge(textValue(formData, 'shared_verification_phrase'))
   const confirmedSensitiveAccess = formData.get('confirm_sensitive_admin_invite') === 'true'
+  const inviterName = getInviteSenderNameFromMetadata(context.permissions.authUser?.user_metadata)
 
   if (!inviteEmail) {
     redirectToCouncilPage({ error: 'Enter an email address before sending the admin invite.' })
   }
 
-  if (enteredSharedPhrase && !confirmedSensitiveAccess) {
+  if (!sharedPhrase) {
+    redirectToCouncilPage({ error: 'Enter a shared verification phrase with at least 4 characters.' })
+  }
+
+  if (!confirmedSensitiveAccess) {
     redirectToCouncilPage({ error: 'Confirm that the invitee name and email are correct before sending admin access.' })
   }
 
@@ -449,7 +463,7 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
         organizationName: context.council.name ?? context.permissions.organizationName ?? 'this organization',
         councilName: context.council.name,
         councilNumber: context.council.council_number,
-        inviterName: context.permissions.email,
+        inviterName,
         notes: grantNotes,
         origin,
       })
@@ -468,8 +482,8 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
       redirectToCouncilPage({
         notice:
           `Admin invite record created for ${inviteEmail}, but the email send failed: ${message}. ` +
-          `Use this one-time secure invite link to test or deliver manually right now: ${manualLink}. ` +
-          `Share this verification phrase separately: ${sharedPhrase}`,
+          `Use this secure invite link to test or deliver manually right now: ${manualLink}. ` +
+          'Share the verification phrase with the invitee separately.',
       })
     }
   } catch (error) {
@@ -481,7 +495,7 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: `Admin invite sent to ${inviteEmail}. Share this verification phrase separately: ${sharedPhrase}` })
+  redirectToCouncilPage({ notice: `Admin invite sent to ${inviteEmail}. Share the verification phrase with the invitee separately.` })
 }
 
 export async function revokeCouncilAdminInvitationAction(formData: FormData) {
