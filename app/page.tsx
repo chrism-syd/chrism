@@ -173,7 +173,7 @@ function MarketingLandingPage() {
             />
           </Link>
 
-          <Link href="https://operations.chrism.app" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
+          <Link href="https://www.chrism.app" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
             Launch Operations
           </Link>
         </header>
