@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
@@ -112,8 +113,8 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
           </p>
         </section>
 
-        {errorMessage ? <p className="qv-inline-message qv-inline-error">{errorMessage}</p> : null}
-        {noticeMessage ? <p className="qv-inline-message qv-inline-success">{noticeMessage}</p> : null}
+        {errorMessage ? <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" /> : null}
+        {noticeMessage ? <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" /> : null}
 
         <section className="qv-hero-card" style={{ display: 'grid', gap: 26 }}>
           <div className="qv-card" style={{ alignItems: 'center', display: 'flex', gap: 22, margin: 0, padding: '24px 28px' }}>
