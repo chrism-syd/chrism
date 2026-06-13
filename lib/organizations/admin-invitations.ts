@@ -24,6 +24,12 @@ type InvitationRow = {
   accepted_at: string | null
 }
 
+type SenderPersonRow = {
+  first_name: string | null
+  last_name: string | null
+  nickname: string | null
+}
+
 function hashToken(value: string) {
   return createHash('sha256').update(value).digest('hex')
 }
@@ -169,7 +175,7 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#39;')
 }
 
-function formatPersonDisplayName(row: { first_name: string | null; last_name: string | null; nickname: string | null } | null) {
+function formatPersonDisplayName(row: SenderPersonRow | null) {
   if (!row) return null
 
   const first = row.nickname?.trim() || row.first_name?.trim() || ''
@@ -177,6 +183,58 @@ function formatPersonDisplayName(row: { first_name: string | null; last_name: st
   const name = [first, last].filter(Boolean).join(' ').trim()
 
   return name || null
+}
+
+async function resolveSenderNameByPersonId(admin: ReturnType<typeof createAdminClient>, personId: string | null | undefined) {
+  if (!personId) return null
+
+  const { data, error } = await admin
+    .from('people')
+    .select('first_name, last_name, nickname')
+    .eq('id', personId)
+    .maybeSingle<SenderPersonRow>()
+
+  if (error) return null
+
+  return formatPersonDisplayName(data)
+}
+
+async function resolveSenderPersonIdFromAssignments(admin: ReturnType<typeof createAdminClient>, senderUserId: string) {
+  const { data: organizationAssignments } = await admin
+    .from('organization_admin_assignments')
+    .select('person_id')
+    .eq('user_id', senderUserId)
+    .eq('is_active', true)
+    .limit(10)
+
+  const organizationPersonId = ((organizationAssignments as Array<{ person_id: string | null }> | null) ?? [])
+    .find((row) => Boolean(row.person_id))?.person_id
+
+  if (organizationPersonId) return organizationPersonId
+
+  const { data: councilAssignments } = await admin
+    .from('council_admin_assignments')
+    .select('person_id')
+    .eq('user_id', senderUserId)
+    .eq('is_active', true)
+    .limit(10)
+
+  const councilPersonId = ((councilAssignments as Array<{ person_id: string | null }> | null) ?? [])
+    .find((row) => Boolean(row.person_id))?.person_id
+
+  if (councilPersonId) return councilPersonId
+
+  const { data: linkedRelationships } = await admin
+    .from('user_unit_relationships')
+    .select('member_record:member_record_id(legacy_people_id)')
+    .eq('user_id', senderUserId)
+    .eq('status', 'active')
+    .limit(10)
+
+  const linkedPersonId = ((linkedRelationships as Array<{ member_record?: { legacy_people_id: string | null } | null }> | null) ?? [])
+    .find((row) => Boolean(row.member_record?.legacy_people_id))?.member_record?.legacy_people_id
+
+  return linkedPersonId ?? null
 }
 
 async function resolveAdminInviteSenderName(invitePath: string) {
@@ -191,25 +249,20 @@ async function resolveAdminInviteSenderName(invitePath: string) {
       .eq('token_hash', hashToken(rawToken))
       .maybeSingle<{ invited_by_auth_user_id: string | null }>()
 
-    if (invitationError || !invitation?.invited_by_auth_user_id) return null
+    const senderUserId = invitation?.invited_by_auth_user_id ?? null
+    if (invitationError || !senderUserId) return null
 
-    const { data: appUser, error: appUserError } = await admin
+    const { data: appUser } = await admin
       .from('users')
       .select('person_id')
-      .eq('id', invitation.invited_by_auth_user_id)
+      .eq('id', senderUserId)
       .maybeSingle<{ person_id: string | null }>()
 
-    if (appUserError || !appUser?.person_id) return null
+    const directName = await resolveSenderNameByPersonId(admin, appUser?.person_id)
+    if (directName) return directName
 
-    const { data: person, error: personError } = await admin
-      .from('people')
-      .select('first_name, last_name, nickname')
-      .eq('id', appUser.person_id)
-      .maybeSingle<{ first_name: string | null; last_name: string | null; nickname: string | null }>()
-
-    if (personError) return null
-
-    return formatPersonDisplayName(person)
+    const assignmentPersonId = await resolveSenderPersonIdFromAssignments(admin, senderUserId)
+    return resolveSenderNameByPersonId(admin, assignmentPersonId)
   } catch {
     return null
   }
