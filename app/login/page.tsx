@@ -14,6 +14,8 @@ type LoginSlide = {
   body: string
 }
 
+type MessageTone = 'neutral' | 'error'
+
 const LOGIN_SLIDES: LoginSlide[] = [
   {
     eyebrow: 'BUILT FOR MINISTRY',
@@ -38,6 +40,7 @@ function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
   const [message, setMessage] = useState('')
+  const [messageTone, setMessageTone] = useState<MessageTone>('neutral')
   const [loading, setLoading] = useState(false)
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
@@ -54,11 +57,13 @@ function LoginPageContent() {
     () => LOGIN_SLIDES[activeSlideIndex] ?? LOGIN_SLIDES[0],
     [activeSlideIndex]
   )
+  const messageClassName = `qv-inline-message qv-auth-message${messageTone === 'error' ? ' qv-inline-error' : ''}`
 
   async function handleSendLoginCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
     setMessage('')
+    setMessageTone('neutral')
 
     const supabase = createClient()
     const nextPath = searchParams.get('next')
@@ -75,6 +80,7 @@ function LoginPageContent() {
 
     if (error) {
       setMessage(getLoginMessage(error))
+      setMessageTone('error')
       setEmailSentTo(null)
       setLoading(false)
       return
@@ -84,6 +90,7 @@ function LoginPageContent() {
     setEmailSentTo(normalizedEmail)
     setVerificationCode('')
     setMessage('We sent a verification code. Keep this window open and enter the code below.')
+    setMessageTone('neutral')
     setLoading(false)
   }
 
@@ -93,6 +100,7 @@ function LoginPageContent() {
 
     setLoading(true)
     setMessage('')
+    setMessageTone('neutral')
 
     const cleanedCode = verificationCode.replace(/\D/g, '')
     const supabase = createClient()
@@ -104,6 +112,7 @@ function LoginPageContent() {
 
     if (error) {
       setMessage(error.message)
+      setMessageTone('error')
       setLoading(false)
       return
     }
@@ -118,6 +127,7 @@ function LoginPageContent() {
     setVerificationCode('')
     setEmailSentTo(null)
     setMessage('')
+    setMessageTone('neutral')
   }
 
   return (
@@ -160,24 +170,7 @@ function LoginPageContent() {
                 })}
               </div>
 
-              <p className="qv-login-photo-credit">
-                Photo by{' '}
-                <a
-                  href="https://unsplash.com/@joephotography?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Akira Hojo
-                </a>{' '}
-                on{' '}
-                <a
-                  href="https://unsplash.com/photos/photo-of-brown-church-_86u_Y0oAaM?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Unsplash
-                </a>
-              </p>
+              <p className="qv-login-photo-credit">Photo by Akira Hojo on Unsplash</p>
             </div>
           </section>
 
@@ -235,7 +228,7 @@ function LoginPageContent() {
                   </button>
                 </div>
 
-                {message ? <p className="qv-inline-message qv-auth-message">{message}</p> : null}
+                {message ? <p className={messageClassName}>{message}</p> : null}
               </form>
             ) : (
               <>
@@ -257,7 +250,7 @@ function LoginPageContent() {
                   </button>
                 </form>
 
-                {message ? <p className="qv-inline-message qv-auth-message">{message}</p> : null}
+                {message ? <p className={messageClassName}>{message}</p> : null}
               </>
             )}
 
