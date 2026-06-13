@@ -58,6 +58,9 @@ function LoginPageContent() {
     [activeSlideIndex]
   )
   const messageClassName = `qv-inline-message qv-auth-message${messageTone === 'error' ? ' qv-inline-error' : ''}`
+  const messageStyle = messageTone === 'error'
+    ? { color: 'var(--danger-soft)', fontWeight: 650 }
+    : undefined
 
   async function handleSendLoginCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -228,7 +231,7 @@ function LoginPageContent() {
                   </button>
                 </div>
 
-                {message ? <p className={messageClassName}>{message}</p> : null}
+                {message ? <p className={messageClassName} style={messageStyle}>{message}</p> : null}
               </form>
             ) : (
               <>
@@ -250,7 +253,7 @@ function LoginPageContent() {
                   </button>
                 </form>
 
-                {message ? <p className={messageClassName}>{message}</p> : null}
+                {message ? <p className={messageClassName} style={messageStyle}>{message}</p> : null}
               </>
             )}
 
