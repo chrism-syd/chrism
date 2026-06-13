@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions, type CurrentUserPermissions } from '@/lib/auth/permissions'
@@ -12,6 +13,14 @@ import heroStyles from './landing-hero.module.css'
 
 function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
+}
+
+function getRequestHost(value: string | null) {
+  return (value ?? '').split(':')[0]?.trim().toLowerCase() ?? ''
+}
+
+function isMarketingHost(host: string) {
+  return host === 'chrismworks.com' || host === 'www.chrismworks.com' || host === 'chrismworks.ca' || host === 'www.chrismworks.ca'
 }
 
 const flywheelSteps = [
@@ -371,6 +380,9 @@ function MarketingLandingPage() {
 
 export default async function LandingPage() {
   const permissions = await getCurrentUserPermissions()
+  const headerStore = await headers()
+  const host = getRequestHost(headerStore.get('x-forwarded-host') ?? headerStore.get('host'))
+  const isMarketingDomain = isMarketingHost(host)
 
   if (permissions.isSignedIn && permissions.hasStaffAccess) {
     return <OperationsHomePage permissions={permissions} />
@@ -378,6 +390,10 @@ export default async function LandingPage() {
 
   if (permissions.isSignedIn) {
     redirect('/me')
+  }
+
+  if (!isMarketingDomain) {
+    redirect('/login')
   }
 
   return <MarketingLandingPage />
