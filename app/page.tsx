@@ -1,5 +1,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import AppHeader from '@/app/app-header'
+import { getCurrentUserPermissions, type CurrentUserPermissions } from '@/lib/auth/permissions'
 import styles from './about/about.module.css'
 import faqStyles from './faq-image.module.css'
 import flywheelStyles from './flywheel-star.module.css'
@@ -64,7 +67,88 @@ const faqs = [
   },
 ]
 
-export default function LandingPage() {
+function OperationsHomePage({ permissions }: { permissions: CurrentUserPermissions }) {
+  const organizationLabel = permissions.organizationName ?? 'Your local organization'
+  const cards = [
+    ...(permissions.canAccessMemberData
+      ? [{
+          title: 'Members',
+          href: '/members',
+          eyebrow: 'Directory',
+          copy: 'Search records, review member details, export lists, and keep contact information usable.',
+          cta: 'Open members',
+        }]
+      : []),
+    ...(permissions.canManageEvents
+      ? [{
+          title: 'Events',
+          href: '/events',
+          eyebrow: 'Planning',
+          copy: 'Create events, manage RSVPs, coordinate volunteers, and track participation.',
+          cta: 'Open events',
+        }]
+      : []),
+  ]
+  const secondaryLinks = [
+    ...(permissions.canManageCustomLists ? [{ href: '/custom-lists', label: 'Custom lists' }] : []),
+    ...(permissions.canAccessOrganizationSettings || permissions.canManageAdmins ? [{ href: '/me/council', label: 'Organization settings' }] : []),
+    ...(permissions.canAccessOfficerDirectory ? [{ href: '/members/officers', label: 'Officers' }] : []),
+  ]
+
+  return (
+    <main className="qv-page">
+      <div className="qv-shell">
+        <AppHeader permissions={permissions} />
+
+        <section className="qv-hero-card">
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
+              <p className="qv-eyebrow">Operations</p>
+              <div className="qv-directory-title-row">
+                <h1 className="qv-directory-name">{organizationLabel}</h1>
+              </div>
+              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
+                Choose where you want to work today.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          style={{
+            display: 'grid',
+            gap: 18,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            marginTop: 22,
+          }}
+        >
+          {cards.map((card) => (
+            <Link key={card.href} href={card.href} className="qv-card" style={{ color: 'inherit', display: 'grid', gap: 18, minHeight: 240, textDecoration: 'none' }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <p className="qv-eyebrow" style={{ margin: 0 }}>{card.eyebrow}</p>
+                <h2 className="qv-section-title" style={{ fontSize: 'clamp(34px, 5vw, 56px)', margin: 0 }}>{card.title}</h2>
+                <p className="qv-section-subtitle" style={{ margin: 0 }}>{card.copy}</p>
+              </div>
+              <span className="qv-button-secondary qv-link-button" style={{ alignSelf: 'end', width: 'fit-content' }}>{card.cta}</span>
+            </Link>
+          ))}
+        </section>
+
+        {secondaryLinks.length > 0 ? (
+          <section className="qv-card" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
+            {secondaryLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="qv-button-secondary qv-link-button">
+                {link.label}
+              </Link>
+            ))}
+          </section>
+        ) : null}
+      </div>
+    </main>
+  )
+}
+
+function MarketingLandingPage() {
   return (
     <main className="qv-page">
       <div className={`qv-shell ${styles.aboutShell}`}>
@@ -283,4 +367,18 @@ export default function LandingPage() {
       </div>
     </main>
   )
+}
+
+export default async function LandingPage() {
+  const permissions = await getCurrentUserPermissions()
+
+  if (permissions.isSignedIn && permissions.hasStaffAccess) {
+    return <OperationsHomePage permissions={permissions} />
+  }
+
+  if (permissions.isSignedIn) {
+    redirect('/me')
+  }
+
+  return <MarketingLandingPage />
 }
