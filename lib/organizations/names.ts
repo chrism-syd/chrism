@@ -1,3 +1,5 @@
+import { applyNonBreakingTextRules } from '@/lib/text/non-breaking';
+
 export type OrganizationNameRecord = {
   preferred_name?: string | null;
   display_name?: string | null;
@@ -21,7 +23,7 @@ export type OrganizationBrandingRecord = OrganizationNameRecord & {
 
 function normalizeText(value?: string | null) {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  return trimmed ? applyNonBreakingTextRules(trimmed) : null;
 }
 
 export function getEffectiveOrganizationName(organization?: OrganizationNameRecord | null) {
