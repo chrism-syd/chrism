@@ -6,6 +6,7 @@ import {
 } from '@/lib/organizations/admin-assignments'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { protectPeoplePayload } from '@/lib/security/pii'
+import { applyNonBreakingTextRules } from '@/lib/text/non-breaking'
 
 export type OrganizationAdminInvitationStatusCode = 'pending' | 'accepted' | 'revoked' | 'expired'
 
@@ -53,7 +54,7 @@ function getBaseUrl() {
 
 export function normalizeAdminInviteText(value: string | null | undefined) {
   const trimmed = value?.trim() ?? ''
-  return trimmed.length > 0 ? trimmed : null
+  return trimmed.length > 0 ? applyNonBreakingTextRules(trimmed) : null
 }
 
 export function normalizeAdminInviteEmail(value: string | null | undefined) {
@@ -182,7 +183,7 @@ function formatPersonDisplayName(row: SenderPersonRow | null) {
   const last = row.last_name?.trim() || ''
   const name = [first, last].filter(Boolean).join(' ').trim()
 
-  return name || null
+  return name ? applyNonBreakingTextRules(name) : null
 }
 
 async function resolveSenderNameByPersonId(admin: ReturnType<typeof createAdminClient>, personId: string | null | undefined) {
@@ -278,19 +279,20 @@ function buildAdminInvitationEmailCopy(args: {
   acceptUrl: string
   logoUrl?: string | null
 }) {
-  const organizationLabel = args.organizationName.trim() || 'this organization'
-  const councilBits = [args.councilName?.trim(), args.councilNumber ? `Council ${args.councilNumber}` : null].filter(Boolean)
+  const organizationLabel = applyNonBreakingTextRules(args.organizationName.trim() || 'this organization')
+  const normalizedCouncilName = args.councilName?.trim() ? applyNonBreakingTextRules(args.councilName.trim()) : null
+  const councilBits = [normalizedCouncilName, args.councilNumber ? `Council ${args.councilNumber}` : null].filter(Boolean)
   const councilLabel = councilBits.length > 0 ? councilBits.join(' · ') : null
-  const greetingName = args.inviteeName?.trim() || 'there'
-  const candidateInviterName = args.inviterName?.trim() ?? ''
+  const greetingName = applyNonBreakingTextRules(args.inviteeName?.trim() || 'there')
+  const candidateInviterName = applyNonBreakingTextRules(args.inviterName?.trim() ?? '')
   const inviterDisplayName = candidateInviterName && !candidateInviterName.includes('@') ? candidateInviterName : null
   const inviterText = inviterDisplayName ? `, ${inviterDisplayName},` : ''
   const inviterLine = `An admin of ${organizationLabel} on Chrism.app${inviterText} has invited you to join them as an admin.`
   const subject = `Admin invite for ${organizationLabel}`
   const notesHtml = args.notes?.trim()
-    ? `<div style="margin-top:18px;padding:16px 18px;border-radius:18px;background:#ede9e1;border:1px solid rgba(92,74,114,0.15);"><p style="margin:0 0 6px;color:#9a917e;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;">Onboarding note</p><p style="margin:0;color:#2e2a34;font-size:15px;line-height:1.6;">${escapeHtml(args.notes.trim())}</p></div>`
+    ? `<div style="margin-top:18px;padding:16px 18px;border-radius:18px;background:#ede9e1;border:1px solid rgba(92,74,114,0.15);"><p style="margin:0 0 6px;color:#9a917e;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;">Onboarding note</p><p style="margin:0;color:#2e2a34;font-size:15px;line-height:1.6;">${escapeHtml(applyNonBreakingTextRules(args.notes.trim()))}</p></div>`
     : ''
-  const notesText = args.notes?.trim() ? `\n\nOnboarding note:\n${args.notes.trim()}` : ''
+  const notesText = args.notes?.trim() ? `\n\nOnboarding note:\n${applyNonBreakingTextRules(args.notes.trim())}` : ''
   const councilHtml = councilLabel
     ? `<p style="margin:8px 0 0;color:#6f8594;font-size:15px;line-height:1.5;font-weight:650;">${escapeHtml(councilLabel)}</p>`
     : ''
