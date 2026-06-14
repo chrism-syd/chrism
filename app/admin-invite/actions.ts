@@ -7,8 +7,27 @@ import { setFlashMessage } from '@/lib/flash-messages'
 import { acceptOrganizationAdminInvitation, getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
 import { verifyAdminInviteChallenge } from '@/lib/organizations/admin-invite-challenges'
 
+const SIGNED_IN_INVITE_PHRASE_ERROR = 'Incorrect shared verification phrase. Please enter the phrase exactly as provided by the person who invited you.'
+
 function invitePath(rawToken: string) {
   return `/admin-invite?token=${encodeURIComponent(rawToken)}`
+}
+
+function getSignedInInviteErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) {
+    return 'We could not accept that invite right now.'
+  }
+
+  const normalizedMessage = error.message.trim().toLowerCase()
+  if (
+    normalizedMessage.includes('incorrect or expired code')
+    || normalizedMessage.includes('shared verification phrase')
+    || normalizedMessage.includes('challenge')
+  ) {
+    return SIGNED_IN_INVITE_PHRASE_ERROR
+  }
+
+  return error.message
 }
 
 async function redirectToInvite(rawToken: string, error?: string | null, notice?: string | null): Promise<never> {
@@ -64,7 +83,7 @@ export async function acceptAdminInvitationAction(formData: FormData) {
       revalidatePath(`/me/council/admins/${acceptance.personId}`)
     }
   } catch (error) {
-    return await redirectToInvite(rawToken, error instanceof Error ? error.message : 'We could not accept that invite right now.')
+    return await redirectToInvite(rawToken, getSignedInInviteErrorMessage(error))
   }
 
   redirect('/me/council')
