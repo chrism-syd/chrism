@@ -62,6 +62,6 @@ export async function verifyAdminInviteChallenge(args: {
 
   const providedHash = buildAdminInviteChallengeHash(args.rawToken, args.challenge)
   if (!providedHash || providedHash !== expectedHash) {
-    throw new Error('Enter the shared verification phrase exactly as provided by the person who invited you.')
+    throw new Error('Incorrect or expired code. Please resend a verification code and use the shared verification phrase exactly as provided by the person who invited you.')
   }
 }
