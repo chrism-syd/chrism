@@ -1,13 +1,18 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie'
 import MemberOfficerServiceSection from '@/app/members/member-officer-service-section'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listValidDirectoryPersonIdsForLocalUnit } from '@/lib/custom-lists'
+import { consumeFlashMessage } from '@/lib/flash-messages'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 import type { OfficerTermRow } from '@/lib/members/officer-roles'
 
-type PageProps = { params: Promise<{ id: string }> }
+type PageProps = {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
 
 type PersonRow = {
   id: string
@@ -15,8 +20,17 @@ type PersonRow = {
   last_name: string
 }
 
-export default async function MemberOfficerTermsPage({ params }: PageProps) {
+export default async function MemberOfficerTermsPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const routePath = `/members/${id}/officers`
+  const queryErrorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
+  const queryNoticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const flashMessage = await consumeFlashMessage(routePath)
+  const errorMessage = flashMessage?.kind === 'error' ? flashMessage.message : queryErrorMessage
+  const noticeMessage = flashMessage?.kind === 'notice' ? flashMessage.message : queryNoticeMessage
+  const shouldClearFlashMessage = Boolean(flashMessage)
+
   const { admin: supabase, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
@@ -69,6 +83,7 @@ export default async function MemberOfficerTermsPage({ params }: PageProps) {
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader />
+        {shouldClearFlashMessage ? <ClearFlashMessageCookie /> : null}
 
         <section className="qv-hero-card">
           <div className="qv-hero-top">
@@ -90,7 +105,9 @@ export default async function MemberOfficerTermsPage({ params }: PageProps) {
         <MemberOfficerServiceSection
           person={person}
           terms={officerTerms ?? []}
-          returnTo={`/members/${person.id}/officers`}
+          returnTo={routePath}
+          noticeMessage={noticeMessage}
+          errorMessage={errorMessage}
         />
       </div>
     </main>
