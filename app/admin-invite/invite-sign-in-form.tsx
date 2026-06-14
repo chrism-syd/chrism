@@ -11,12 +11,32 @@ type InviteSignInFormProps = {
   invitePath: string
 }
 
+type MessageTone = 'neutral' | 'error'
+
 const RESEND_COOLDOWN_SECONDS = 45
+const ADMIN_INVITE_VERIFICATION_ERROR = 'Incorrect or expired code. Please resend a verification code and use the shared verification phrase exactly as provided by the person who invited you.'
 
 function buildInviteConfirmRedirectUrl(origin: string, invitePath: string) {
   const url = new URL('/admin-invite/confirm', origin)
   url.searchParams.set('next', invitePath)
   return url.toString()
+}
+
+function getAdminInviteOtpErrorMessage(error: unknown) {
+  const message = getOtpErrorMessage(error)
+  const normalizedMessage = message.trim().toLowerCase()
+
+  if (
+    normalizedMessage.includes('expired')
+    || normalizedMessage.includes('invalid')
+    || normalizedMessage.includes('already used')
+    || normalizedMessage.includes('incorrect')
+    || normalizedMessage.includes('otp')
+  ) {
+    return ADMIN_INVITE_VERIFICATION_ERROR
+  }
+
+  return message
 }
 
 export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath }: InviteSignInFormProps) {
@@ -27,6 +47,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
   const [verificationCode, setVerificationCode] = useState('')
   const [challengeResponse, setChallengeResponse] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const [messageTone, setMessageTone] = useState<MessageTone>('neutral')
   const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
@@ -42,6 +63,10 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
   const cleanedChallenge = challengeResponse.trim()
   const canSendCode = resendSecondsRemaining === 0 && !sending && !verifying
   const canVerifyCode = codeRequested && cleanedCode.length > 0 && cleanedChallenge.length >= 4 && !sending && !verifying
+  const messageClassName = `qv-inline-message qv-auth-message${messageTone === 'error' ? ' qv-inline-error' : ''}`
+  const messageStyle = messageTone === 'error'
+    ? { color: 'var(--danger-soft)', fontWeight: 650 }
+    : undefined
 
   function startResendCooldown() {
     setNow(Date.now())
@@ -53,6 +78,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
 
     setSending(true)
     setMessage(null)
+    setMessageTone('neutral')
 
     try {
       const supabase = createClient()
@@ -68,6 +94,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
 
       if (error) {
         setMessage(getOtpSendErrorMessage(error))
+        setMessageTone('error')
         return
       }
 
@@ -78,9 +105,11 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
           ? 'We sent a fresh verification code.'
           : 'We sent a verification code. Enter it below to continue.'
       )
+      setMessageTone('neutral')
       startResendCooldown()
     } catch (error) {
       setMessage(getOtpSendErrorMessage(error))
+      setMessageTone('error')
     } finally {
       setSending(false)
     }
@@ -91,21 +120,25 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
 
     if (!cleanedCode) {
       setMessage('Enter the verification code from your email to continue.')
+      setMessageTone('error')
       return
     }
 
     if (!codeRequested) {
       setMessage('Send yourself a verification code first, then enter it here.')
+      setMessageTone('error')
       return
     }
 
     if (cleanedChallenge.length < 4) {
-      setMessage('Enter the shared verification phrase provided by the person who invited you.')
+      setMessage(ADMIN_INVITE_VERIFICATION_ERROR)
+      setMessageTone('error')
       return
     }
 
     setVerifying(true)
     setMessage(null)
+    setMessageTone('neutral')
 
     try {
       const supabase = createClient()
@@ -116,7 +149,8 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
       })
 
       if (error) {
-        setMessage(getOtpErrorMessage(error))
+        setMessage(getAdminInviteOtpErrorMessage(error))
+        setMessageTone('error')
         return
       }
 
@@ -134,12 +168,14 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
 
       if (!response.ok || result.error) {
         setMessage(result.error ?? 'We could not accept that invite right now.')
+        setMessageTone('error')
         return
       }
 
       router.replace(result.redirectTo ?? '/me/council?notice=Admin invite accepted.')
     } catch (error) {
       setMessage(getOtpErrorMessage(error))
+      setMessageTone('error')
     } finally {
       setVerifying(false)
     }
@@ -194,7 +230,7 @@ export default function InviteSignInForm({ acceptPath, inviteeEmail, invitePath 
         </button>
       </div>
 
-      {message ? <p className="qv-inline-message qv-auth-message">{message}</p> : null}
+      {message ? <p className={messageClassName} style={messageStyle}>{message}</p> : null}
     </form>
   )
 }
