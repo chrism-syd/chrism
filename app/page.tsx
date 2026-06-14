@@ -425,7 +425,7 @@ async function OperationsHomePage({ permissions }: { permissions: CurrentUserPer
             <article className={homeStyles.areaCard}>
               <div className={homeStyles.cardInner}>
                 <h2 className={homeStyles.cardTitle}>Members</h2>
-                <p className={homeStyles.cardIntro}>
+                <p className={`${homeStyles.cardIntro} ${homeStyles.membersCardIntro}`}>
                   Your members are your strength. Keep their information close and make follow-up work easier.
                 </p>
 
@@ -519,207 +519,145 @@ function MarketingLandingPage() {
             </h1>
           </div>
 
-          <div className={heroStyles.heroArtwork} aria-hidden="true">
+          <div className={`${styles.heroBadge} ${heroStyles.heroBadge}`}>
             <Image
-              src="/black_chair.png"
-              alt=""
-              width={780}
-              height={780}
+              src="/Chrism_horiz.svg"
+              alt="Chrism"
+              width={419}
+              height={98}
+              className={styles.heroBadgeLogo}
               priority
-              className={heroStyles.heroChairImage}
             />
           </div>
         </section>
 
-        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix}`}>
-          <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn}`}>
-            <div className={styles.imageFrame}>
-              <Image
-                src="/jonny-gios-QMesAlxmi6g-unsplash-chrism.png"
-                alt="Large mural text reading you and me"
-                fill
-                className={styles.aboutImage}
-                sizes="(max-width: 900px) 100vw, 32vw"
-              />
-              <p className={faqStyles.faqImageCredit}>
-                Photo by{' '}
-                <a
-                  href="https://unsplash.com/@supergios?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Jonny Gios
-                </a>{' '}
-                on{' '}
-                <a
-                  href="https://unsplash.com/photos/a-black-and-white-sign-that-says-you-and-me-and-you-and-me-QMesAlxmi6g?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Unsplash
-                </a>
-              </p>
-            </div>
+        <section className={`${styles.splitSection} ${styles.whatIsChrismSection}`}>
+          <div className={styles.imageCard}>
+            <Image
+              src="/landing/chrism-main-screenshot.jpg"
+              alt="Chrism member management interface"
+              width={1200}
+              height={800}
+              className={styles.featureImage}
+            />
           </div>
 
-          <section className={`${styles.contentPlain} ${heroStyles.visionCopyColumn}`}>
-            <p className={styles.eyebrow}>Why Chrism exists</p>
-            <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-              The people holding communities together{' '}
-              <span className={heroStyles.noWrap}>
-                deserve <span className={heroStyles.accentWord}>better.</span>
-              </span>
-            </h2>
-            <div className={styles.copyStack}>
-              <p>
-                {noOrphan(
-                  'Educators, ministry leaders, and the people who quietly keep local institutions running are doing some of the most important work in any community. Most never planned to run an organization — they wanted to serve people. Yet here they are, juggling a patchwork of tools, bootstrapping on free tiers, and watching the person they set out to be get kicked in the shins by everything that has nothing to do with why they showed up.'
-                )}
-              </p>
-              <p>
-                {noOrphan(
-                  'The infrastructure available to them was designed for businesses — not communities. The software assumes enterprise budgets. The pricing assumes high-volume buyers. And the gap between what\'s available and what\'s actually needed keeps falling on the people least positioned to absorb it.'
-                )}
-              </p>
-              <p>
-                {noOrphan(
-                  'Chrism exists to close that gap. Operations software, fundraising goods, and institutional print sourcing — connected in one place, so more value stays with the organizations doing the work.'
-                )}
-              </p>
-            </div>
-          </section>
+          <div className={styles.copyBlock}>
+            <p className={styles.eyebrow}>What is Chrism?</p>
+            <h2 className={`${styles.sectionTitle} ${styles.whatIsChrismTitle}`}>The parish-friendly operations layer.</h2>
+            <p className={styles.bodyText}>
+              Chrism helps Catholic organizations manage members, plan events, coordinate volunteers, and keep admin work from becoming a second apostolate.
+            </p>
+          </div>
         </section>
 
-        <div className={flywheelStyles.modelGroup}>
-          <section className={styles.flywheelSection}>
-            <div className={styles.sectionIntroWide}>
-              <p className={styles.eyebrow}>The Flywheel</p>
-              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>
-                Why the model <span className={heroStyles.accentWord}>works</span>
-              </h2>
-              <p>
-                {noOrphan(
-                  'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism.'
-                )}
-              </p>
-              <p>{noOrphan('The difference is what we do with it.')}</p>
-            </div>
-
-            <div className={styles.flowGrid}>
-              {flywheelSteps.map((step, index) => (
-                <article key={step.title} className={styles.flowItem}>
-                  <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
-                  <h3>
-                    <span className={heroStyles.accentWord}>{step.title}</span>
-                  </h3>
-                  <p>{noOrphan(step.copy)}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className={stewardshipStyles.plainTrust}>
-            <div className={styles.trustIntro}>
-              <h2 className={`${styles.trustTitle} ${heroStyles.visionTitle}`}>Responsible stewardship</h2>
-            </div>
-            <div className={styles.copyStack}>
-              <p>
-                {noOrphan(
-                  'Chrism is a registered business in Ontario, Canada — built lean, operated responsibly, and designed to be a vendor you can actually rely on.'
-                )}
-              </p>
-              <p>
-                {noOrphan(
-                  'The platform uses secure HTTPS, passwordless authentication, and organization-based permissions. Your data stays with your organization — it\'s never shared, sold, or used outside the context you set.'
-                )}
-              </p>
-              <p>
-                {noOrphan(
-                  'We\'re not a faceless platform. If something isn\'t working, there\'s a real person behind it.'
-                )}
-              </p>
-            </div>
-          </section>
-        </div>
-
-        <div className={styles.schoolsLinkCard}>
-          <p>
-            We also work directly with <Link href="/schools">schools</Link>.
-          </p>
-        </div>
-
-        <section className={`${styles.faqSection} ${faqStyles.faqWithImage}`}>
-          <div className={faqStyles.faqContent}>
-            <div className={styles.sectionIntroWide}>
-              <h2 className={`${styles.sectionTitle} ${heroStyles.visionTitle}`}>{noOrphan('Common questions')}</h2>
-            </div>
-
-            <div className={styles.faqList}>
-              {faqs.map((faq) => (
-                <details key={faq.question} className={styles.faqItem}>
-                  <summary>{faq.question}</summary>
-                  <p>{noOrphan(faq.answer)}</p>
-                </details>
-              ))}
-            </div>
+        <section className={`${styles.splitSection} ${styles.whoSection}`}>
+          <div className={styles.copyBlock}>
+            <p className={styles.eyebrow}>Who it is for</p>
+            <h2 className={styles.sectionTitle}>Built for councils, conferences, ministries, and parish teams.</h2>
+            <p className={styles.bodyText}>
+              From Knights of Columbus councils to parish ministries and charitable groups, Chrism keeps people, roles, meetings, and outreach in one calm place.
+            </p>
           </div>
 
-          <div className={faqStyles.faqImageColumn}>
-            <div className={faqStyles.faqImageFrame}>
-              <Image
-                src="/elvira-blumfelde-XzI0bYWdhbY-unsplash.jpg"
-                alt="Person leaning on a white concrete fence"
-                fill
-                className={faqStyles.faqImage}
-                sizes="(max-width: 900px) 100vw, 24vw"
-              />
-              <p className={faqStyles.faqImageCredit}>
-                Photo by{' '}
-                <a
-                  href="https://unsplash.com/@perlamutrs?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Elvira Blumfelde
-                </a>{' '}
-                on{' '}
-                <a
-                  href="https://unsplash.com/photos/person-leaning-on-white-concrete-fence-XzI0bYWdhbY?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Unsplash
-                </a>
-              </p>
+          <div className={`${styles.imageCard} ${styles.imageCardPadless} ${faqStyles.imagePanel}`}
+            aria-hidden="true"
+          >
+            <div className={faqStyles.imageStack}>
+              <span className={`${faqStyles.imageTile} ${faqStyles.tileCalendar}`}>Public meeting calendar</span>
+              <span className={`${faqStyles.imageTile} ${faqStyles.tileMembers}`}>Member directory</span>
+              <span className={`${faqStyles.imageTile} ${faqStyles.tileRsvp}`}>RSVP flow</span>
+              <span className={`${faqStyles.imageTile} ${faqStyles.tileVolunteer}`}>Volunteer tracking</span>
             </div>
           </div>
         </section>
 
-        <section className={styles.ctaSection}>
-          <InvoiceReviewCta />
+        <section className={`${styles.splitSection} ${styles.productsSection}`}>
+          <div className={styles.copyBlock}>
+            <p className={styles.eyebrow}>Why products are here</p>
+            <h2 className={styles.sectionTitle}>Tools funded by the work communities already buy.</h2>
+            <p className={styles.bodyText}>
+              Chrism also helps source print, fundraising goods, and institutional products. That commercial margin helps keep the operations platform sustainable for the groups that need it most.
+            </p>
+          </div>
+
+          <div className={styles.productCardGrid}>
+            <div className={styles.productCard}>Christmas cards</div>
+            <div className={styles.productCard}>Certificates</div>
+            <div className={styles.productCard}>Fundraising products</div>
+            <div className={styles.productCard}>Signs &amp; banners</div>
+          </div>
+        </section>
+
+        <section className={`${styles.flywheelSection} ${flywheelStyles.flywheelSection}`}>
+          <div>
+            <p className={styles.eyebrow}>The flywheel</p>
+            <h2 className={`${styles.sectionTitle} ${flywheelStyles.flywheelTitle}`}>Commerce that keeps community tools accessible.</h2>
+          </div>
+
+          <div className={flywheelStyles.flywheelGrid}>
+            {flywheelSteps.map((step, index) => (
+              <div key={step.title} className={flywheelStyles.flywheelStep}>
+                <span className={flywheelStyles.stepNumber}>{String(index + 1).padStart(2, '0')}</span>
+                <h3>{step.title}</h3>
+                <p>{step.copy}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <InvoiceReviewCta />
+
+        <section className={`${styles.splitSection} ${stewardshipStyles.section}`}>
+          <div className={styles.copyBlock}>
+            <p className={styles.eyebrow}>Stewardship</p>
+            <h2 className={styles.sectionTitle}>{noOrphan('A practical way to make local work lighter.')}</h2>
+            <p className={styles.bodyText}>
+              Start with member, event, and volunteer coordination. Use Chrism where it removes friction, and leave the rest of your systems intact.
+            </p>
+          </div>
+
+          <div className={stewardshipStyles.card}>
+            <h3>Built to be useful before it is big.</h3>
+            <p>
+              The platform focuses on everyday work first: people, meetings, events, RSVPs, and follow-up. Commercial services help it stay available without turning every feature into another invoice.
+            </p>
+          </div>
+        </section>
+
+        <section className={styles.faqSection}>
+          <div>
+            <p className={styles.eyebrow}>FAQ</p>
+            <h2 className={styles.sectionTitle}>A few practical answers.</h2>
+          </div>
+
+          <div className={styles.faqList}>
+            {faqs.map((faq) => (
+              <details key={faq.question} className={styles.faqItem}>
+                <summary>{faq.question}</summary>
+                <p>{faq.answer}</p>
+              </details>
+            ))}
+          </div>
         </section>
       </div>
     </main>
   )
 }
 
-export default async function LandingPage() {
-  const permissions = await getCurrentUserPermissions()
+export default async function HomePage() {
   const headerStore = await headers()
   const host = getRequestHost(headerStore.get('x-forwarded-host') ?? headerStore.get('host'))
-  const isMarketingDomain = isMarketingHost(host)
 
-  if (permissions.isSignedIn && permissions.hasStaffAccess) {
-    return <OperationsHomePage permissions={permissions} />
+  if (isMarketingHost(host)) {
+    return <MarketingLandingPage />
   }
 
-  if (permissions.isSignedIn) {
-    redirect('/me')
+  const permissions = await getCurrentUserPermissions()
+
+  if (!permissions.authUser) {
+    return <MarketingLandingPage />
   }
 
-  if (!isMarketingDomain) {
-    redirect('/login')
-  }
-
-  return <MarketingLandingPage />
+  return <OperationsHomePage permissions={permissions} />
 }
