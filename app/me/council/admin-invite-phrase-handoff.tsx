@@ -52,8 +52,10 @@ export default function AdminInvitePhraseHandoff() {
     const form = anchor?.closest('form')
     if (!form) return
 
+    const inviteForm = form
+
     function rememberPhrase() {
-      const formData = new FormData(form)
+      const formData = new FormData(inviteForm)
       const email = String(formData.get('grantee_email') ?? '').trim()
       const phrase = String(formData.get('shared_verification_phrase') ?? '').trim()
       if (!email || !phrase) return
@@ -65,8 +67,8 @@ export default function AdminInvitePhraseHandoff() {
       } satisfies StoredInvitePhrase))
     }
 
-    form.addEventListener('submit', rememberPhrase)
-    return () => form.removeEventListener('submit', rememberPhrase)
+    inviteForm.addEventListener('submit', rememberPhrase)
+    return () => inviteForm.removeEventListener('submit', rememberPhrase)
   }, [])
 
   useEffect(() => {
