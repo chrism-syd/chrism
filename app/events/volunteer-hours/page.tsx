@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listValidDirectoryPeopleForLocalUnit } from '@/lib/custom-lists'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { addVolunteerHourAdjustment, voidVolunteerHourAdjustment } from './actions'
 
 type PersonRow = {
@@ -15,7 +17,18 @@ type PersonRow = {
 }
 
 type OrganizationRow = {
+  display_name: string | null
+  preferred_name: string | null
   org_type_code: string | null
+  logo_storage_path: string | null
+  logo_alt_text: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type ReportingYearSettingsRow = {
@@ -151,7 +164,7 @@ export default async function VolunteerHoursPage() {
     council.organization_id
       ? supabase
           .from('organizations')
-          .select('org_type_code')
+          .select('display_name, preferred_name, org_type_code, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', council.organization_id)
           .maybeSingle<OrganizationRow>()
       : Promise.resolve({ data: null, error: null }),
@@ -253,33 +266,47 @@ export default async function VolunteerHoursPage() {
   const totalPeople = summaries.length
   const peopleWithHours = summaries.filter((summary) => summary.currentTotalHours !== 0).length
   const totalCurrentHours = summaries.reduce((total, summary) => total + summary.currentTotalHours, 0)
-  const totalCurrentEvents = summaries.reduce((total, summary) => total + summary.currentEventCount, 0)
+  const totalCurrentEvents = summaries.reduce((total, summary) => summary.currentEventCount + total, 0)
   const completedEvents = eventsResult.data ?? []
+  const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
+  const effectiveBranding = getEffectiveOrganizationBranding(organization)
+  const currentCouncilLabel = `${organizationName}${council.council_number ? ` (${council.council_number})` : ''}`
 
   return (
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader permissions={permissions} />
 
-        <section style={{ display: 'grid', gap: 14, paddingTop: 28, marginBottom: 18 }}>
-          <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em' }}>
-            Volunteer hours
-          </h1>
-          <p style={{ margin: 0, maxWidth: '46ch', fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
-            Audit completed-event volunteer hours and manual adjustments for people in this local organization.
-          </p>
-        </section>
-
-        <SectionMenuBar items={[{ label: 'Events', href: '/events' }, { label: 'Add event', href: '/events/new' }, { label: 'Archived events', href: '/events/archive' }]} />
-
         <section className="qv-hero-card">
-          <div className="qv-hero-top">
-            <div>
-              <p className="qv-eyebrow">{council.name ?? 'Local organization'}{council.council_number ? ` (${council.council_number})` : ''}</p>
-              <h2 className="qv-section-title" style={{ margin: 0 }}>{reportingYear.label}</h2>
-              <p className="qv-section-subtitle" style={{ marginTop: 8 }}>
-                {formatDate(reportingYear.startDate)} through {formatDate(reportingYear.endDate)}. Completed events only.
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
+              <p className="qv-eyebrow">{currentCouncilLabel}</p>
+              <div className="qv-directory-title-row">
+                <h1 className="qv-directory-name">Volunteer hours</h1>
+              </div>
+              <p className="qv-section-subtitle" style={{ marginTop: 10, maxWidth: 680 }}>
+                Audit completed-event volunteer hours and manual adjustments for people in this local organization.
               </p>
+            </div>
+
+            <div className="qv-org-avatar-wrap">
+              <OrganizationAvatar
+                displayName={organizationName}
+                logoStoragePath={effectiveBranding.logo_storage_path}
+                logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
+                size={72}
+              />
+            </div>
+          </div>
+
+          <div className="qv-section-menu-shell" style={{ marginTop: 24 }}>
+            <div className="qv-section-menu-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <p className="qv-section-menu-label">{reportingYear.label}</p>
+                <p className="qv-section-menu-value">
+                  {formatDate(reportingYear.startDate)} through {formatDate(reportingYear.endDate)} · Completed events only
+                </p>
+              </div>
             </div>
           </div>
 
@@ -290,6 +317,8 @@ export default async function VolunteerHoursPage() {
             <div className="qv-stat-card"><div className="qv-stat-number">{totalPeople}</div><div className="qv-stat-label">People audited</div></div>
           </div>
         </section>
+
+        <SectionMenuBar items={[{ label: 'Events', href: '/events' }, { label: 'Add event', href: '/events/new' }, { label: 'Archived events', href: '/events/archive' }]} />
 
         <div className="qv-detail-grid">
           <section className="qv-card">
