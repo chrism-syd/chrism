@@ -9,6 +9,7 @@ type Props = {
   dismissAfterMs?: number
   className?: string
   style?: CSSProperties
+  cookieNameToClear?: string
 }
 
 export default function AutoDismissingQueryMessage({
@@ -17,6 +18,7 @@ export default function AutoDismissingQueryMessage({
   dismissAfterMs = 4000,
   className,
   style,
+  cookieNameToClear,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -34,6 +36,12 @@ export default function AutoDismissingQueryMessage({
   useEffect(() => {
     router.replace(nextUrl, { scroll: false })
   }, [nextUrl, router, message])
+
+  useEffect(() => {
+    if (!cookieNameToClear) return
+
+    document.cookie = `${cookieNameToClear}=; Max-Age=0; path=/me/council; SameSite=Lax`
+  }, [cookieNameToClear, message])
 
   useEffect(() => {
     const dismiss = () => setIsVisible(false)
