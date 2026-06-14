@@ -153,6 +153,9 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
           <UserMenu
             links={[
               { href: '/me', label: 'Profile' },
+              ...(permissions.isSuperAdmin
+                ? [{ href: '/super-admin/organizations', label: 'Platform controls' }]
+                : []),
               ...(permissions.hasStaffAccess && permissions.canManageCustomLists && !memberNavChildren.some((item) => item.href === '/custom-lists')
                 ? [{ href: '/custom-lists', label: 'Custom lists' }]
                 : []),
