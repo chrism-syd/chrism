@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 const COUNCIL_SETTINGS_FLASH_COOKIE = 'chrism_council_settings_flash'
 
@@ -49,36 +48,43 @@ function clearFlashCookie() {
   document.cookie = `${COUNCIL_SETTINGS_FLASH_COOKIE}=; Max-Age=0; path=/me/council; SameSite=Lax`
 }
 
+function readQueryFlash(currentUrl: URL): FlashMessage | null {
+  const notice = currentUrl.searchParams.get('notice')?.trim()
+  if (notice) {
+    return { kind: 'notice', message: notice }
+  }
+
+  const error = currentUrl.searchParams.get('error')?.trim()
+  if (error) {
+    return { kind: 'error', message: error }
+  }
+
+  return null
+}
+
+function cleanMessageQueryParams(currentUrl: URL) {
+  const nextUrl = new URL(currentUrl)
+  nextUrl.searchParams.delete('notice')
+  nextUrl.searchParams.delete('error')
+
+  const nextSearch = nextUrl.searchParams.toString()
+  return `${nextUrl.pathname}${nextSearch ? `?${nextSearch}` : ''}${nextUrl.hash}`
+}
+
 export default function CouncilSettingsFlashMessage() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
   const [flash, setFlash] = useState<FlashMessage | null>(null)
   const [isVisible, setIsVisible] = useState(false)
 
-  const cleanUrl = useMemo(() => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete('notice')
-    params.delete('error')
-    const query = params.toString()
-    return query ? `${pathname}?${query}` : pathname
-  }, [pathname, searchParams])
-
   useEffect(() => {
-    if (pathname !== '/me/council') return
+    const currentUrl = new URL(window.location.href)
+    if (currentUrl.pathname !== '/me/council') return
 
-    const notice = searchParams.get('notice')?.trim()
-    const error = searchParams.get('error')?.trim()
-    const queryFlash: FlashMessage | null = notice
-      ? { kind: 'notice', message: notice }
-      : error
-        ? { kind: 'error', message: error }
-        : null
+    const queryFlash = readQueryFlash(currentUrl)
     const cookieFlash = readFlashCookie()
     const nextFlash = cookieFlash ?? queryFlash
 
-    if (searchParams.has('notice') || searchParams.has('error')) {
-      router.replace(cleanUrl, { scroll: false })
+    if (currentUrl.searchParams.has('notice') || currentUrl.searchParams.has('error')) {
+      window.history.replaceState(window.history.state, '', cleanMessageQueryParams(currentUrl))
     }
 
     clearFlashCookie()
@@ -87,7 +93,7 @@ export default function CouncilSettingsFlashMessage() {
       setFlash(nextFlash)
       setIsVisible(true)
     }
-  }, [cleanUrl, pathname, router, searchParams])
+  }, [])
 
   useEffect(() => {
     if (!isVisible) return
@@ -105,7 +111,7 @@ export default function CouncilSettingsFlashMessage() {
     }
   }, [isVisible, flash?.message])
 
-  if (pathname !== '/me/council' || !isVisible || !flash) return null
+  if (!isVisible || !flash) return null
 
   if (flash.kind === 'error') {
     return (
