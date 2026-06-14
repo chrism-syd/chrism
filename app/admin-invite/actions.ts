@@ -1,11 +1,17 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import {
+  OPERATIONS_SCOPE_COOKIE,
+  setSelectedOperationsLocalUnitId,
+} from '@/lib/auth/operations-scope-selection'
 import { setFlashMessage } from '@/lib/flash-messages'
 import { acceptOrganizationAdminInvitation, getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
 import { verifyAdminInviteChallenge } from '@/lib/organizations/admin-invite-challenges'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const SIGNED_IN_INVITE_PHRASE_ERROR = 'Incorrect shared verification phrase. Please enter the phrase exactly as provided by the person who invited you.'
 
@@ -42,6 +48,60 @@ async function redirectToInvite(rawToken: string, error?: string | null, notice?
   redirect(path)
 }
 
+async function resolveInviteLocalUnitId(args: {
+  councilId?: string | null
+  organizationId?: string | null
+}) {
+  const admin = createAdminClient()
+
+  if (args.councilId) {
+    const { data } = await admin
+      .from('local_units')
+      .select('id')
+      .eq('legacy_council_id', args.councilId)
+      .limit(1)
+      .maybeSingle<{ id: string }>()
+
+    if (data?.id) return data.id
+  }
+
+  if (args.organizationId) {
+    const { data } = await admin
+      .from('local_units')
+      .select('id, local_unit_kind')
+      .eq('legacy_organization_id', args.organizationId)
+      .order('local_unit_kind', { ascending: true })
+      .limit(1)
+
+    const localUnit = (data as Array<{ id: string; local_unit_kind?: string | null }> | null)?.[0] ?? null
+    if (localUnit?.id) return localUnit.id
+  }
+
+  return null
+}
+
+async function setAcceptedInviteLocalUnitScope(args: {
+  councilId?: string | null
+  organizationId?: string | null
+}) {
+  const localUnitId = await resolveInviteLocalUnitId(args)
+  if (!localUnitId) return
+
+  const cookieStore = await cookies()
+  cookieStore.set(
+    OPERATIONS_SCOPE_COOKIE,
+    setSelectedOperationsLocalUnitId({
+      rawCookieValue: cookieStore.get(OPERATIONS_SCOPE_COOKIE)?.value ?? null,
+      localUnitId,
+    }),
+    {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+    }
+  )
+}
+
 export async function acceptAdminInvitationAction(formData: FormData) {
   const rawToken = String(formData.get('token') ?? '')
   const invitationId = String(formData.get('invitation_id') ?? '')
@@ -75,6 +135,11 @@ export async function acceptAdminInvitationAction(formData: FormData) {
       acceptedByAuthUserId: permissions.authUser.id,
       acceptedByPersonId: permissions.personId,
       acceptedByEmail: permissions.email ?? '',
+    })
+
+    await setAcceptedInviteLocalUnitScope({
+      councilId: invitation.council_id,
+      organizationId: invitation.organization_id,
     })
 
     revalidatePath('/me')
