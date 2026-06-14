@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
@@ -77,14 +76,12 @@ export default async function InvalidAdminInvitePage({ searchParams }: PageProps
   const token = typeof resolvedSearchParams.token === 'string' ? resolvedSearchParams.token : null
   const reason = typeof resolvedSearchParams.reason === 'string' ? resolvedSearchParams.reason : null
 
-  if (!token) {
-    redirect('/me?error=Missing admin invite token.')
-  }
-
   const permissions = await getCurrentUserPermissions()
-  const invitation = await getOrganizationAdminInvitationByRawToken(token)
+  const invitation = token ? await getOrganizationAdminInvitationByRawToken(token) : null
   const inviteState = getInviteState({ reason, invitation })
-  const loginHref = `/login?next=${encodeURIComponent(`/admin-invite?token=${token}`)}`
+  const loginHref = token
+    ? `/login?next=${encodeURIComponent(`/admin-invite?token=${token}`)}`
+    : '/login'
 
   return (
     <main className="qv-page">
