@@ -4,6 +4,7 @@ import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
+import styles from './welcome.module.css'
 
 type WelcomePageVariant = 'admin' | 'member'
 
@@ -150,80 +151,43 @@ export default async function WelcomePage({ variant }: WelcomePageProps) {
 
   return (
     <main className="qv-page">
-      <div className="qv-shell">
+      <div className={`qv-shell ${styles.shell}`}>
         <AppHeader permissions={permissions} />
 
-        <section className="qv-hero-card">
-          <div className="qv-directory-hero">
-            <div className="qv-directory-text">
-              <p className="qv-eyebrow">{content.eyebrow}</p>
-              <div className="qv-directory-title-row">
-                <h1 className="qv-directory-name">{content.title}</h1>
-              </div>
-              <p className="qv-section-subtitle" style={{ marginTop: 10, maxWidth: 720 }}>
-                {content.intro}
-              </p>
-              <div style={{ display: 'grid', gap: 6, marginTop: 22, maxWidth: 820 }}>
-                <p className="qv-detail-label" style={{ margin: 0 }}>{councilLabel}</p>
-                <p className="qv-section-subtitle" style={{ margin: 0 }}>{content.noteBody}</p>
-              </div>
-            </div>
+        <section className={styles.hero}>
+          <div className={styles.heroCopy}>
+            <p className="qv-eyebrow">{content.eyebrow}</p>
+            <h1 className={styles.heroTitle}>{content.title}</h1>
+            <p className={styles.heroIntro}>{content.intro}</p>
+          </div>
 
-            <div className="qv-org-avatar-wrap">
-              <OrganizationAvatar
-                displayName={organizationName}
-                logoStoragePath={effectiveBranding.logo_storage_path}
-                logoAltText={effectiveBranding.logo_alt_text ?? `${organizationName} logo`}
-                size={88}
-              />
-            </div>
+          <div className={styles.heroLogo}>
+            <OrganizationAvatar
+              displayName={organizationName}
+              logoStoragePath={effectiveBranding.logo_storage_path}
+              logoAltText={effectiveBranding.logo_alt_text ?? `${organizationName} logo`}
+              size={96}
+              title={councilLabel}
+            />
           </div>
         </section>
 
-        <div className="qv-section-menu-shell">
-          <nav className="qv-section-menu-desktop" aria-label="Welcome actions">
-            <Link href={content.primaryHref} className="qv-section-menu-link">
-              {content.primaryLabel}
-            </Link>
-          </nav>
-          <div className="qv-section-menu-mobile">
-            <Link href={content.primaryHref} className="qv-section-menu-trigger">
-              {content.primaryLabel}
-            </Link>
-          </div>
-        </div>
-
-        <div className="qv-detail-grid">
-          <section className="qv-card">
-            <div className="qv-directory-section-head">
-              <div>
-                <h2 className="qv-section-title">{content.noteTitle}</h2>
-                <p className="qv-section-subtitle">Choose a starting point. You can always come back to the home page later.</p>
-              </div>
+        <section className={styles.cardGrid} aria-label="Welcome next steps">
+          <article className={styles.areaCard}>
+            <div className={styles.cardInner}>
+              <p className="qv-detail-label" style={{ margin: 0 }}>{councilLabel}</p>
+              <h2 className={styles.cardTitle}>{content.noteTitle}</h2>
+              <p className={styles.cardIntro}>{content.noteBody}</p>
+              <Link href={content.primaryHref} className={`qv-button-secondary qv-link-button ${styles.primaryAction}`}>
+                {content.primaryLabel}
+              </Link>
             </div>
+            <div className={styles.cardBanner} aria-hidden="true" />
+          </article>
 
-            <div className="qv-member-list">
-              {content.actions.map((action) => (
-                <Link key={action.href} href={action.href} className="qv-member-link">
-                  <article className="qv-member-row">
-                    <div className="qv-member-main">
-                      <div className="qv-member-text">
-                        <div className="qv-member-name">{action.label}</div>
-                        <div className="qv-member-meta">{action.body}</div>
-                      </div>
-                    </div>
-                    <div className="qv-member-row-right">
-                      <span className="qv-chevron">›</span>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          <aside className="qv-detail-stack">
-            <section className="qv-card">
-              <h2 className="qv-section-title">What Chrism helps with</h2>
+          <aside className={styles.areaCard}>
+            <div className={`${styles.cardInner} ${styles.sideCardInner}`}>
+              <h2 className={styles.cardTitle}>What Chrism helps with</h2>
               <div className="qv-detail-list">
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">People</div>
@@ -238,9 +202,37 @@ export default async function WelcomePage({ variant }: WelcomePageProps) {
                   <div className="qv-detail-value">Make the next pastoral or practical step easier to see.</div>
                 </div>
               </div>
-            </section>
+            </div>
+            <div className={styles.cardBanner} aria-hidden="true" />
           </aside>
-        </div>
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <h2 className="qv-section-title">Choose your next step</h2>
+              <p className="qv-section-subtitle">You can always come back to the home page later.</p>
+            </div>
+          </div>
+
+          <div className={`qv-member-list ${styles.actionList}`}>
+            {content.actions.map((action) => (
+              <Link key={action.href} href={action.href} className={`qv-member-link ${styles.actionLink}`}>
+                <article className="qv-member-row">
+                  <div className="qv-member-main">
+                    <div className="qv-member-text">
+                      <div className="qv-member-name">{action.label}</div>
+                      <div className="qv-member-meta">{action.body}</div>
+                    </div>
+                  </div>
+                  <div className="qv-member-row-right">
+                    <span className="qv-chevron">›</span>
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
     </main>
   )
