@@ -10,6 +10,7 @@ type WelcomePageVariant = 'admin' | 'member'
 
 type WelcomePageProps = {
   variant: WelcomePageVariant
+  smokeTestLocalUnitId?: string | null
 }
 
 type CouncilRow = {
@@ -205,12 +206,15 @@ function MemberOrganizationLookupPlaceholder() {
   )
 }
 
-export default async function WelcomePage({ variant }: WelcomePageProps) {
+export default async function WelcomePage({ variant, smokeTestLocalUnitId = null }: WelcomePageProps) {
   const permissions = await getCurrentUserPermissions()
   const admin = createAdminClient()
+  const scopedLocalUnitId = permissions.isSuperAdmin && smokeTestLocalUnitId
+    ? smokeTestLocalUnitId
+    : permissions.activeLocalUnitId
   const { localUnit, council, organization } = await loadCouncilAndOrganization({
     admin,
-    localUnitId: permissions.activeLocalUnitId,
+    localUnitId: scopedLocalUnitId,
     councilId: permissions.councilId,
   })
   const content = getContent(variant)
