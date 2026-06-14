@@ -79,6 +79,7 @@ export async function acceptAdminInvitationAction(formData: FormData) {
 
     revalidatePath('/me')
     revalidatePath('/me/council')
+    revalidatePath('/welcome/admin')
     if (acceptance.personId) {
       revalidatePath(`/me/council/admins/${acceptance.personId}`)
     }
@@ -86,5 +87,5 @@ export async function acceptAdminInvitationAction(formData: FormData) {
     return await redirectToInvite(rawToken, getSignedInInviteErrorMessage(error))
   }
 
-  redirect('/me/council')
+  redirect('/welcome/admin')
 }
