@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import FormSubmitButton from '@/app/components/form-submit-button'
+import AdminInvitePhraseHandoff from './admin-invite-phrase-handoff'
 import { inviteCouncilAdminByEmailAction } from './actions'
 
 export default function ExternalAdminInviteForm() {
   return (
     <form action={inviteCouncilAdminByEmailAction} className="qv-form-grid">
+      <AdminInvitePhraseHandoff />
       <div>
         <h2 className="qv-section-title" style={{ fontSize: 20 }}>External invite by email</h2>
         <p className="qv-section-subtitle">
