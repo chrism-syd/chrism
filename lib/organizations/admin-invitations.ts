@@ -299,16 +299,15 @@ function buildAdminInvitationEmailCopy(args: {
   const councilText = councilLabel ? `\n${councilLabel}` : ''
 
   const htmlContent = `
-    <div style="margin:0;padding:0;background:#f4f1eb;font-family:Arial,Helvetica,sans-serif;color:#2e2a34;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f1eb;margin:0;padding:32px 16px;">
+    <div style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#2e2a34;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;margin:0;padding:32px 16px;">
         <tr>
           <td align="center">
-            ${args.logoUrl ? `<div style="max-width:680px;margin:0 auto 18px;text-align:left;"><img src="${escapeHtml(args.logoUrl)}" alt="Chrism Operations" width="210" style="display:block;width:210px;height:auto;border:0;" /></div>` : ''}
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fdfcf9;border:1px solid rgba(92,74,114,0.15);border-radius:20px;overflow:hidden;">
               <tr>
-                <td style="padding:34px 34px 22px;">
-                  <p style="margin:0 0 18px;color:#9a917e;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;">Chrism admin invite</p>
-                  <h1 style="margin:0;color:#2e2a34;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.08;letter-spacing:-.03em;">You have been invited to manage ${escapeHtml(organizationLabel)}</h1>
+                <td style="padding:34px 34px 18px;">
+                  ${args.logoUrl ? `<img src="${escapeHtml(args.logoUrl)}" alt="Chrism" width="210" style="display:block;width:210px;height:auto;border:0;margin:0 0 34px;" />` : ''}
+                  <h1 style="margin:0;color:#2e2a34;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:1.12;letter-spacing:-.03em;font-weight:800;">You have been invited to manage ${escapeHtml(organizationLabel)}</h1>
                   ${councilHtml}
                 </td>
               </tr>
@@ -318,18 +317,25 @@ function buildAdminInvitationEmailCopy(args: {
                   <p style="margin:16px 0 0;color:#2e2a34;font-size:16px;line-height:1.65;">${escapeHtml(inviterLine)}</p>
                   ${notesHtml}
                   <p style="margin:16px 0 0;color:#2e2a34;font-size:16px;line-height:1.65;">Chrism.app helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.</p>
-                  <p style="margin:16px 0 0;color:#2e2a34;font-size:16px;line-height:1.65;">Click the button below to accept this invite. You will be asked to verify your email with a one-time code and <strong>enter the shared verification phrase</strong> provided by the person who invited you. For security, that phrase is not included in this email.</p>
+                  <p style="margin:16px 0 0;color:#2e2a34;font-size:16px;line-height:1.65;">To accept this invite, review the details in Chrism. You will be asked to verify your email with a one-time code and <strong>enter the shared verification phrase</strong> provided by the person who invited you. For security, that phrase is not included in this email.</p>
                 </td>
               </tr>
               <tr>
-                <td style="padding:24px 34px 10px;">
-                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#5c4a72;color:#e8e0f0;text-decoration:none;padding:14px 18px;border-radius:12px;font-size:15px;font-weight:800;">Review admin invite</a>
+                <td align="left" style="padding:18px 34px 22px;">
+                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#5c4a72;color:#ffffff;text-decoration:none;padding:16px 22px;border-radius:14px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1;font-weight:800;">Review admin invite</a>
                 </td>
               </tr>
               <tr>
-                <td style="padding:12px 34px 30px;">
-                  <p style="margin:0;color:#6f8594;font-size:13px;line-height:1.6;">Only the invited email address can accept this invite. If the button does not work, paste this link into your browser:</p>
+                <td style="padding:8px 34px 0;">
+                  <div style="height:1px;background:rgba(92,74,114,0.16);line-height:1px;font-size:1px;">&nbsp;</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px 34px 34px;">
+                  <p style="margin:0;color:#6f8594;font-size:14px;line-height:1.65;">Only the invited email address can accept this invite. The shared verification phrase should come directly from the person who invited you, not from this email.</p>
+                  <p style="margin:16px 0 0;color:#6f8594;font-size:14px;line-height:1.65;">If the button does not work, paste this link into your browser:</p>
                   <p style="margin:8px 0 0;color:#6f8594;font-size:12px;line-height:1.5;word-break:break-all;"><a href="${escapeHtml(args.acceptUrl)}" style="color:#5c4a72;text-decoration:underline;">${escapeHtml(args.acceptUrl)}</a></p>
+                  <p style="margin:16px 0 0;color:#6f8594;font-size:14px;line-height:1.65;">If you were not expecting this invite, you can ignore this email. Be cautious of phishing attempts and always verify the sender and domain (<a href="https://chrism.app" style="color:#5c4a72;text-decoration:underline;">chrism.app</a>) before acting.</p>
                 </td>
               </tr>
             </table>
