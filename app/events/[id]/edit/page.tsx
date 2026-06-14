@@ -193,17 +193,16 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
               />
             </div>
           </div>
-
-          <div className="qv-section-menu-shell" style={{ marginTop: 24 }}>
-            <div className="qv-section-menu-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-              <div style={{ display: 'grid', gap: 8 }}>
-                <p className="qv-section-menu-label">Editing</p>
-                <p className="qv-section-menu-value">{event.title}</p>
-              </div>
-              <DeleteEventButton action={deleteEventAction} />
-            </div>
-          </div>
         </section>
+
+        <div className="qv-section-menu-shell">
+          <nav className="qv-section-menu-desktop" aria-label="Event actions">
+            <DeleteEventButton action={deleteEventAction} />
+          </nav>
+          <div className="qv-section-menu-mobile">
+            <DeleteEventButton action={deleteEventAction} />
+          </div>
+        </div>
 
         <EventForm
           mode="edit"
