@@ -34,6 +34,21 @@ function serviceYearsLabel(term: OfficerTermRow) {
     : `${term.service_start_year} to ${term.service_end_year}`;
 }
 
+function compareOfficerTermsNewestFirst(left: OfficerTermRow, right: OfficerTermRow) {
+  const leftEnd = left.service_end_year ?? Number.MAX_SAFE_INTEGER;
+  const rightEnd = right.service_end_year ?? Number.MAX_SAFE_INTEGER;
+
+  if (leftEnd !== rightEnd) {
+    return rightEnd - leftEnd;
+  }
+
+  if (left.service_start_year !== right.service_start_year) {
+    return right.service_start_year - left.service_start_year;
+  }
+
+  return buildOfficerDisplayLabel(left).localeCompare(buildOfficerDisplayLabel(right));
+}
+
 export default function MemberOfficerServiceSection({
   person,
   terms,
@@ -45,6 +60,7 @@ export default function MemberOfficerServiceSection({
   const yearNow = currentYear();
   const honorificLabels = summarizeLastingHonorifics(terms);
   const honorificSuffixes = summarizeHonorificSuffixes(terms);
+  const sortedTerms = [...terms].sort(compareOfficerTermsNewestFirst);
 
   return (
     <section className="qv-card">
@@ -136,7 +152,7 @@ export default function MemberOfficerServiceSection({
         </div>
       </form>
 
-      {terms.length === 0 ? (
+      {sortedTerms.length === 0 ? (
         <div className="qv-empty" style={{ marginTop: 18 }}>
           <p className="qv-empty-title">No officer terms yet</p>
           <p className="qv-empty-text">
@@ -145,7 +161,7 @@ export default function MemberOfficerServiceSection({
         </div>
       ) : (
         <div className="qv-member-list" style={{ marginTop: 18 }}>
-          {terms.map((term) => (
+          {sortedTerms.map((term) => (
             <article key={term.id} className="qv-member-row">
               <div className="qv-member-text">
                 <div className="qv-member-name">{buildOfficerDisplayLabel(term)}</div>
