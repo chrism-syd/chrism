@@ -163,6 +163,10 @@ export default async function WelcomePage({ variant }: WelcomePageProps) {
               <p className="qv-section-subtitle" style={{ marginTop: 10, maxWidth: 720 }}>
                 {content.intro}
               </p>
+              <div style={{ display: 'grid', gap: 6, marginTop: 22, maxWidth: 820 }}>
+                <p className="qv-detail-label" style={{ margin: 0 }}>{councilLabel}</p>
+                <p className="qv-section-subtitle" style={{ margin: 0 }}>{content.noteBody}</p>
+              </div>
             </div>
 
             <div className="qv-org-avatar-wrap">
@@ -174,19 +178,20 @@ export default async function WelcomePage({ variant }: WelcomePageProps) {
               />
             </div>
           </div>
-
-          <div className="qv-section-menu-shell" style={{ marginTop: 24 }}>
-            <div className="qv-section-menu-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-              <div style={{ display: 'grid', gap: 8 }}>
-                <p className="qv-section-menu-label">{councilLabel}</p>
-                <p className="qv-section-menu-value">{content.noteBody}</p>
-              </div>
-              <Link href={content.primaryHref} className="qv-section-menu-link">
-                {content.primaryLabel}
-              </Link>
-            </div>
-          </div>
         </section>
+
+        <div className="qv-section-menu-shell">
+          <nav className="qv-section-menu-desktop" aria-label="Welcome actions">
+            <Link href={content.primaryHref} className="qv-section-menu-link">
+              {content.primaryLabel}
+            </Link>
+          </nav>
+          <div className="qv-section-menu-mobile">
+            <Link href={content.primaryHref} className="qv-section-menu-trigger">
+              {content.primaryLabel}
+            </Link>
+          </div>
+        </div>
 
         <div className="qv-detail-grid">
           <section className="qv-card">
