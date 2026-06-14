@@ -135,6 +135,49 @@ function getContent(variant: WelcomePageVariant) {
   }
 }
 
+function MemberOrganizationLookupPlaceholder() {
+  return (
+    <section className="qv-card">
+      <div className="qv-directory-section-head">
+        <div>
+          <h2 className="qv-section-title">Find your organization</h2>
+          <p className="qv-section-subtitle">
+            Soon you will be able to search for your local organization, parish, council, conference, or ministry and request to join it on Chrism.
+          </p>
+        </div>
+      </div>
+
+      <div className="qv-form-grid">
+        <label className="qv-control">
+          <span className="qv-label">Organization lookup</span>
+          <input type="search" placeholder="Search by name, parish, ministry, city, or council number" disabled />
+        </label>
+
+        <div className="qv-detail-list">
+          <div className="qv-detail-item">
+            <div className="qv-detail-label">When your organization is found</div>
+            <div className="qv-detail-value">You will be able to request to join and send that request to the local admins for review.</div>
+          </div>
+          <div className="qv-detail-item">
+            <div className="qv-detail-label">Admin review</div>
+            <div className="qv-detail-value">An admin can connect your signed-in account to an existing member record or create one for you.</div>
+          </div>
+          <div className="qv-detail-item">
+            <div className="qv-detail-label">Not listed yet</div>
+            <div className="qv-detail-value">If your organization is not on Chrism yet, this flow can help start a setup request later.</div>
+          </div>
+        </div>
+
+        <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+          <button type="button" className="qv-button-secondary" disabled>
+            Coming soon
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default async function WelcomePage({ variant }: WelcomePageProps) {
   const permissions = await getCurrentUserPermissions()
   const admin = createAdminClient()
@@ -206,6 +249,8 @@ export default async function WelcomePage({ variant }: WelcomePageProps) {
             <div className={styles.cardBanner} aria-hidden="true" />
           </aside>
         </section>
+
+        {variant === 'member' ? <MemberOrganizationLookupPlaceholder /> : null}
 
         <section className="qv-card">
           <div className="qv-directory-section-head">
