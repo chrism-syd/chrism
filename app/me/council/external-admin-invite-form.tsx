@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import FormSubmitButton from '@/app/components/form-submit-button'
 import { inviteCouncilAdminByEmailAction } from './actions'
 
 export default function ExternalAdminInviteForm() {
@@ -55,7 +56,11 @@ export default function ExternalAdminInviteForm() {
         </span>
       </label>
       <div className="qv-form-actions">
-        <button type="submit" className="qv-button-primary">Send invite</button>
+        <FormSubmitButton
+          idleLabel="Send invite"
+          pendingLabel="Sending invite..."
+          className="qv-button-primary"
+        />
         <Link href="/me/council" className="qv-link-button">Cancel</Link>
       </div>
     </form>
