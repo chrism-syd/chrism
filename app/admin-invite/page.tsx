@@ -1,8 +1,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import AutoDismissingQueryMessage from '@/app/components/auto-dismissing-query-message'
+import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
+import { consumeFlashMessage } from '@/lib/flash-messages'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { getOrganizationAdminInvitationByRawToken } from '@/lib/organizations/admin-invitations'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -52,8 +53,12 @@ const adminInvitePillStyle = {
 export default async function AdminInvitePage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const token = typeof resolvedSearchParams.token === 'string' ? resolvedSearchParams.token : null
-  const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
-  const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const queryErrorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
+  const queryNoticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const flashMessage = await consumeFlashMessage('/admin-invite')
+  const errorMessage = flashMessage?.kind === 'error' ? flashMessage.message : queryErrorMessage
+  const noticeMessage = flashMessage?.kind === 'notice' ? flashMessage.message : queryNoticeMessage
+  const shouldClearFlashMessage = Boolean(flashMessage)
 
   if (!token) {
     redirect('/admin-invite/invalid?reason=missing')
@@ -103,6 +108,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
             </Link>
           </div>
         </header>
+        {shouldClearFlashMessage ? <ClearFlashMessageCookie /> : null}
 
         <section style={{ display: 'grid', gap: 10, marginBottom: 32 }}>
           <h1 className="qv-directory-name" style={{ margin: 0, maxWidth: 940, fontSize: 'clamp(48px, 7vw, 86px)', lineHeight: 0.94 }}>
@@ -113,8 +119,16 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
           </p>
         </section>
 
-        {errorMessage ? <AutoDismissingQueryMessage kind="error" message={errorMessage} className="qv-inline-message qv-inline-error" /> : null}
-        {noticeMessage ? <AutoDismissingQueryMessage kind="notice" message={noticeMessage} className="qv-inline-message qv-inline-success" /> : null}
+        {errorMessage ? (
+          <section className="qv-inline-message qv-inline-error" aria-live="assertive">
+            <p style={{ margin: 0 }}>{errorMessage}</p>
+          </section>
+        ) : null}
+        {noticeMessage ? (
+          <section className="qv-inline-message qv-inline-success" aria-live="polite">
+            <p style={{ margin: 0 }}>{noticeMessage}</p>
+          </section>
+        ) : null}
 
         <section className="qv-hero-card" style={{ display: 'grid', gap: 26 }}>
           <div className="qv-card" style={{ alignItems: 'center', display: 'flex', gap: 22, margin: 0, padding: '24px 28px' }}>
