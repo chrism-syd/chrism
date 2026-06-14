@@ -25,6 +25,28 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'chrismworks.ca',
+          },
+        ],
+        destination: 'https://chrismworks.com/:path*',
+        permanent: true,
+      },
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.chrismworks.ca',
+          },
+        ],
+        destination: 'https://chrismworks.com/:path*',
+        permanent: true,
+      },
+      {
         source: '/school',
         destination: '/schools',
         permanent: true,
