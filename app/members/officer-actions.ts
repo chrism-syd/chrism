@@ -2,13 +2,24 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { getCurrentActingCouncilContext, type ActingCouncilRow } from '@/lib/auth/acting-context';
 import { setFlashMessage } from '@/lib/flash-messages';
 import {
   formatOfficerLabel,
   getOfficerRoleOption,
   type OfficerScopeCode,
 } from '@/lib/members/officer-roles';
+import {
+  buildReportingYearTermRange,
+  getDefaultReportingYearSettings,
+  reportingYearTermRangesOverlap,
+  type ReportingYearSettings,
+} from '@/lib/reporting-years';
+import type { createAdminClient } from '@/lib/supabase/admin';
+
+type OrganizationRow = {
+  org_type_code: string | null;
+};
 
 function textEntry(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -42,7 +53,7 @@ async function redirectToPath(path: string, args: { error?: string | null; notic
 }
 
 async function requireCouncilAdmin() {
-  const { permissions, council, admin } = await getCurrentActingCouncilContext({
+  const { permissions, council, admin, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
@@ -51,17 +62,36 @@ async function requireCouncilAdmin() {
 
   return {
     permissions: { ...permissions, councilId: council.id },
+    council,
     admin,
+    localUnitId,
   };
 }
 
-function rangesOverlap(
-  first: { start: number; end: number | null },
-  second: { start: number; end: number | null }
-) {
-  const firstEnd = first.end ?? Number.MAX_SAFE_INTEGER;
-  const secondEnd = second.end ?? Number.MAX_SAFE_INTEGER;
-  return first.start <= secondEnd && second.start <= firstEnd;
+async function loadReportingYearSettings(args: {
+  admin: ReturnType<typeof createAdminClient>;
+  council: ActingCouncilRow;
+  localUnitId: string | null;
+}): Promise<ReportingYearSettings> {
+  const [organizationResult, settingsResult] = await Promise.all([
+    args.council.organization_id
+      ? args.admin
+          .from('organizations')
+          .select('org_type_code')
+          .eq('id', args.council.organization_id)
+          .maybeSingle<OrganizationRow>()
+      : Promise.resolve({ data: null, error: null }),
+    args.localUnitId
+      ? args.admin
+          .from('local_unit_reporting_year_settings')
+          .select('year_label, year_start_month, year_start_day')
+          .eq('local_unit_id', args.localUnitId)
+          .maybeSingle<ReportingYearSettings>()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  const defaultSettings = getDefaultReportingYearSettings(organizationResult.data?.org_type_code ?? null);
+  return settingsResult.data ?? defaultSettings;
 }
 
 function formatYearRange(startYear: number, endYear: number | null) {
@@ -99,7 +129,7 @@ function buildCouncilOfficerActionFormData(formData: FormData) {
 }
 
 export async function addOfficerTermAction(formData: FormData) {
-  const { permissions, admin } = await requireCouncilAdmin();
+  const { permissions, council, admin, localUnitId } = await requireCouncilAdmin();
   const nextFormData = buildCouncilOfficerActionFormData(formData);
   const personId = textEntry(nextFormData, 'person_id');
   const officeScopeCode = textEntry(nextFormData, 'office_scope_code') as OfficerScopeCode | null;
@@ -128,10 +158,21 @@ export async function addOfficerTermAction(formData: FormData) {
     return await redirectToPath(returnTo, { error: existingTermsError.message });
   }
 
+  const reportingYearSettings = await loadReportingYearSettings({ admin, council, localUnitId });
+  const proposedRange = buildReportingYearTermRange({
+    settings: reportingYearSettings,
+    startYear,
+    endYear,
+  });
+
   const overlappingTerm = (existingTerms ?? []).find((term) =>
-    rangesOverlap(
-      { start: startYear, end: endYear },
-      { start: term.service_start_year, end: term.service_end_year }
+    reportingYearTermRangesOverlap(
+      proposedRange,
+      buildReportingYearTermRange({
+        settings: reportingYearSettings,
+        startYear: term.service_start_year,
+        endYear: term.service_end_year,
+      })
     )
   );
 
