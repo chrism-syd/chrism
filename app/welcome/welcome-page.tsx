@@ -19,6 +19,13 @@ type CouncilRow = {
   organization_id: string | null
 }
 
+type LocalUnitRow = {
+  id: string
+  name: string | null
+  legacy_council_id: string | null
+  legacy_organization_id: string | null
+}
+
 type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
@@ -77,30 +84,50 @@ const memberActions: WelcomeAction[] = [
 
 async function loadCouncilAndOrganization(args: {
   admin: ReturnType<typeof createAdminClient>
+  localUnitId: string | null
   councilId: string | null
 }) {
-  if (!args.councilId) {
-    return { council: null, organization: null }
+  let localUnit: LocalUnitRow | null = null
+
+  if (args.localUnitId) {
+    const { data } = await args.admin
+      .from('local_units')
+      .select('id, name, legacy_council_id, legacy_organization_id')
+      .eq('id', args.localUnitId)
+      .maybeSingle<LocalUnitRow>()
+
+    localUnit = data ?? null
   }
 
-  const { data: council } = await args.admin
-    .from('councils')
-    .select('id, name, council_number, organization_id')
-    .eq('id', args.councilId)
-    .maybeSingle<CouncilRow>()
+  const councilId = localUnit?.legacy_council_id ?? args.councilId
+  const organizationIdFromLocalUnit = localUnit?.legacy_organization_id ?? null
+  let council: CouncilRow | null = null
 
-  if (!council?.organization_id) {
-    return { council: council ?? null, organization: null }
+  if (councilId) {
+    const { data } = await args.admin
+      .from('councils')
+      .select('id, name, council_number, organization_id')
+      .eq('id', councilId)
+      .maybeSingle<CouncilRow>()
+
+    council = data ?? null
+  }
+
+  const organizationId = organizationIdFromLocalUnit ?? council?.organization_id ?? null
+
+  if (!organizationId) {
+    return { localUnit, council, organization: null }
   }
 
   const { data: organization } = await args.admin
     .from('organizations')
     .select('display_name, preferred_name, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
-    .eq('id', council.organization_id)
+    .eq('id', organizationId)
     .maybeSingle()
 
   return {
-    council: council ?? null,
+    localUnit,
+    council,
     organization: (organization as OrganizationRow) ?? null,
   }
 }
@@ -181,16 +208,17 @@ function MemberOrganizationLookupPlaceholder() {
 export default async function WelcomePage({ variant }: WelcomePageProps) {
   const permissions = await getCurrentUserPermissions()
   const admin = createAdminClient()
-  const { council, organization } = await loadCouncilAndOrganization({
+  const { localUnit, council, organization } = await loadCouncilAndOrganization({
     admin,
+    localUnitId: permissions.activeLocalUnitId,
     councilId: permissions.councilId,
   })
   const content = getContent(variant)
-  const organizationName = getEffectiveOrganizationName(organization) ?? council?.name ?? 'Chrism'
+  const organizationName = getEffectiveOrganizationName(organization) ?? localUnit?.name ?? council?.name ?? 'Chrism'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const councilLabel = council?.name
     ? `${council.name}${council.council_number ? ` (${council.council_number})` : ''}`
-    : organizationName
+    : localUnit?.name ?? organizationName
 
   return (
     <main className="qv-page">
