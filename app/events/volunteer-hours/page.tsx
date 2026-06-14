@@ -287,6 +287,12 @@ export default async function VolunteerHoursPage() {
               <p className="qv-section-subtitle" style={{ marginTop: 10, maxWidth: 680 }}>
                 Audit completed-event volunteer hours and manual adjustments for people in this local organization.
               </p>
+              <div style={{ display: 'grid', gap: 6, marginTop: 22 }}>
+                <p className="qv-detail-label" style={{ margin: 0 }}>{reportingYear.label}</p>
+                <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                  {formatDate(reportingYear.startDate)} through {formatDate(reportingYear.endDate)} · Completed events only
+                </p>
+              </div>
             </div>
 
             <div className="qv-org-avatar-wrap">
@@ -296,17 +302,6 @@ export default async function VolunteerHoursPage() {
                 logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
                 size={72}
               />
-            </div>
-          </div>
-
-          <div className="qv-section-menu-shell" style={{ marginTop: 24 }}>
-            <div className="qv-section-menu-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-              <div style={{ display: 'grid', gap: 8 }}>
-                <p className="qv-section-menu-label">{reportingYear.label}</p>
-                <p className="qv-section-menu-value">
-                  {formatDate(reportingYear.startDate)} through {formatDate(reportingYear.endDate)} · Completed events only
-                </p>
-              </div>
             </div>
           </div>
 
