@@ -31,6 +31,8 @@ type SenderPersonRow = {
   nickname: string | null
 }
 
+const EMAIL_SANS_FONT_STACK = "'Atkinson Hyperlegible Next','Atkinson Hyperlegible',Arial,Helvetica,sans-serif"
+
 function hashToken(value: string) {
   return createHash('sha256').update(value).digest('hex')
 }
@@ -299,7 +301,7 @@ function buildAdminInvitationEmailCopy(args: {
   const councilText = councilLabel ? `\n${councilLabel}` : ''
 
   const htmlContent = `
-    <div style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#2e2a34;">
+    <div style="margin:0;padding:0;background:#ffffff;font-family:${EMAIL_SANS_FONT_STACK};color:#2e2a34;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;margin:0;padding:32px 16px;">
         <tr>
           <td align="center">
@@ -307,7 +309,7 @@ function buildAdminInvitationEmailCopy(args: {
               <tr>
                 <td style="padding:34px 34px 18px;">
                   ${args.logoUrl ? `<img src="${escapeHtml(args.logoUrl)}" alt="Chrism" width="210" style="display:block;width:210px;height:auto;border:0;margin:0 0 34px;" />` : ''}
-                  <h1 style="margin:0;color:#2e2a34;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:1.12;letter-spacing:-.03em;font-weight:800;">You have been invited to manage ${escapeHtml(organizationLabel)}</h1>
+                  <h1 style="margin:0;color:#2e2a34;font-family:${EMAIL_SANS_FONT_STACK};font-size:34px;line-height:1.12;letter-spacing:-.03em;font-weight:800;">You have been invited to manage ${escapeHtml(organizationLabel)}</h1>
                   ${councilHtml}
                 </td>
               </tr>
@@ -322,7 +324,7 @@ function buildAdminInvitationEmailCopy(args: {
               </tr>
               <tr>
                 <td align="left" style="padding:18px 34px 22px;">
-                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#5c4a72;color:#ffffff;text-decoration:none;padding:16px 22px;border-radius:14px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1;font-weight:800;">Review admin invite</a>
+                  <a href="${escapeHtml(args.acceptUrl)}" style="display:inline-block;background:#5c4a72;color:#ffffff;text-decoration:none;padding:16px 22px;border-radius:14px;font-family:${EMAIL_SANS_FONT_STACK};font-size:16px;line-height:1;font-weight:800;">Review admin invite</a>
                 </td>
               </tr>
               <tr>
@@ -463,7 +465,8 @@ async function ensureAcceptedInvitePerson(args: {
     throw new Error(matchingPersonError.message)
   }
 
-  const personId = matchingPerson?.id
+  const personId = matchingPerson?.id ?? null
+
   if (personId) {
     const { error: linkMatchedError } = await admin
       .from('users')
@@ -480,176 +483,114 @@ async function ensureAcceptedInvitePerson(args: {
     return personId
   }
 
-  const names = inferNameParts(normalizeAdminInviteText(args.inviteeName ?? null), normalizedEmail)
-
-  const payload = protectPeoplePayload({
-    council_id: args.councilId ?? null,
-    first_name: names.firstName,
-    last_name: names.lastName,
-    email: normalizedEmail,
-    primary_relationship_code: 'volunteer_only',
-    volunteer_context_code: 'other',
-    created_source_code: 'supreme_import',
-    council_activity_level_code: 'active',
-    is_provisional_member: true,
-    created_by_auth_user_id: args.authUserId,
-    updated_by_auth_user_id: args.authUserId,
-  })
-
-  const { data: insertedPerson, error: insertError } = await admin
+  const { data: newPerson, error: createPersonError } = await admin
     .from('people')
-    .insert(payload)
+    .insert(protectPeoplePayload({
+      ...inferNameParts(args.inviteeName ?? null, normalizedEmail),
+      email: normalizedEmail,
+      primary_relationship_code: 'non_member',
+      local_unit_id: args.councilId ?? null,
+      council_id: args.councilId ?? null,
+      source_code: 'admin_invite',
+    }))
     .select('id')
     .maybeSingle<{ id: string }>()
 
-  if (insertError || !insertedPerson?.id) {
-    throw new Error(insertError?.message ?? 'Could not create the invited admin profile.')
+  if (createPersonError || !newPerson?.id) {
+    throw new Error(createPersonError?.message ?? 'We could not create the person record for this accepted invite.')
   }
 
-  const { error: linkCreatedError } = await admin
+  const { error: linkNewError } = await admin
     .from('users')
     .update({
-      person_id: insertedPerson.id,
+      person_id: newPerson.id,
       updated_at: new Date().toISOString(),
     })
     .eq('id', args.authUserId)
 
-  if (linkCreatedError) {
-    throw new Error(linkCreatedError.message)
+  if (linkNewError) {
+    throw new Error(linkNewError.message)
   }
 
-  return insertedPerson.id
-}
-
-export async function getOrganizationAdminInvitationByRawToken(rawToken: string) {
-  const admin = createAdminClient()
-  const tokenHash = hashToken(rawToken)
-  const { data, error } = await admin
-    .from('organization_admin_invitations')
-    .select(
-      'id, organization_id, council_id, invitee_email, invitee_name, status_code, notes, expires_at, accepted_assignment_id, accepted_at, organizations(display_name, preferred_name), councils(name, council_number)'
-    )
-    .eq('token_hash', tokenHash)
-    .maybeSingle()
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  const row = data as
-    | (InvitationRow & {
-        organizations:
-          | { display_name: string | null; preferred_name: string | null }
-          | Array<{ display_name: string | null; preferred_name: string | null }>
-          | null
-        councils:
-          | { name: string | null; council_number: string | null }
-          | Array<{ name: string | null; council_number: string | null }>
-          | null
-      })
-    | null
-
-  const organization = Array.isArray(row?.organizations) ? row?.organizations[0] : row?.organizations
-  const council = Array.isArray(row?.councils) ? row?.councils[0] : row?.councils
-
-  return row
-    ? {
-        ...row,
-        organizationName: organization?.preferred_name ?? organization?.display_name ?? 'this organization',
-        councilName: council?.name ?? null,
-        councilNumber: council?.council_number ?? null,
-        isExpired: new Date(row.expires_at).getTime() < Date.now(),
-      }
-    : null
+  return newPerson.id
 }
 
 export async function acceptOrganizationAdminInvitation(args: {
-  invitationId: string
   rawToken: string
   acceptedByAuthUserId: string
-  acceptedByPersonId?: string | null
   acceptedByEmail: string
+  acceptedByPersonId?: string | null
 }) {
-  const invitation = await getOrganizationAdminInvitationByRawToken(args.rawToken)
+  const admin = createAdminClient()
+  const tokenHash = hashToken(args.rawToken)
 
-  if (!invitation || invitation.id !== args.invitationId) {
-    throw new Error('That admin invite could not be found.')
+  const { data: invitation, error: invitationError } = await admin
+    .from('organization_admin_invitations')
+    .select('id, organization_id, council_id, invitee_email, invitee_name, status_code, notes, selector, token_hash, expires_at, accepted_assignment_id, accepted_at')
+    .eq('token_hash', tokenHash)
+    .maybeSingle<InvitationRow>()
+
+  if (invitationError) {
+    throw new Error(invitationError.message)
   }
 
-  if (invitation.status_code !== 'pending') {
-    throw new Error('That admin invite is no longer pending.')
+  if (!invitation) {
+    throw new Error('Incorrect or expired code. Please resend a verification code and use the shared verification phrase exactly as provided by the person who invited you.')
   }
 
-  if (invitation.isExpired) {
-    throw new Error('That admin invite has expired. Ask a current admin to send a new one.')
+  const normalizedAcceptedEmail = normalizeAdminInviteEmail(args.acceptedByEmail)
+  if (!normalizedAcceptedEmail || normalizedAcceptedEmail !== invitation.invitee_email.toLowerCase()) {
+    throw new Error('Only the invited email address can accept this admin invite.')
   }
 
-  const acceptedByEmail = normalizeAdminInviteEmail(args.acceptedByEmail)
-  if (!acceptedByEmail || acceptedByEmail !== invitation.invitee_email) {
-    throw new Error(`This invite is for ${invitation.invitee_email}. Sign in with that email to accept it.`)
+  if (invitation.status_code === 'accepted' && invitation.accepted_assignment_id) {
+    return {
+      assignmentId: invitation.accepted_assignment_id,
+      organizationId: invitation.organization_id,
+      councilId: invitation.council_id,
+      statusCode: invitation.status_code,
+    }
   }
 
-  const ensuredPersonId = await ensureAcceptedInvitePerson({
+  if (invitation.status_code !== 'pending' || new Date(invitation.expires_at).getTime() < Date.now()) {
+    throw new Error('Incorrect or expired code. Please resend a verification code and use the shared verification phrase exactly as provided by the person who invited you.')
+  }
+
+  const acceptedByPersonId = await ensureAcceptedInvitePerson({
     authUserId: args.acceptedByAuthUserId,
     acceptedByPersonId: args.acceptedByPersonId,
-    acceptedByEmail,
+    acceptedByEmail: normalizedAcceptedEmail,
     inviteeName: invitation.invitee_name,
     councilId: invitation.council_id,
   })
 
-  const savedAssignment = await saveOrganizationAdminAssignment({
+  const assignment = await saveOrganizationAdminAssignment({
+    personId: acceptedByPersonId,
     organizationId: invitation.organization_id,
     actorUserId: args.acceptedByAuthUserId,
-    personId: ensuredPersonId,
-    userId: args.acceptedByAuthUserId,
-    granteeEmail: acceptedByEmail,
-    sourceCode: 'admin_invitation',
+    sourceCode: 'admin_invite',
     grantNotes: invitation.notes,
   })
 
-  const admin = createAdminClient()
-  const { error } = await admin
+  const { error: updateError } = await admin
     .from('organization_admin_invitations')
     .update({
       status_code: 'accepted',
-      accepted_at: new Date().toISOString(),
       accepted_by_auth_user_id: args.acceptedByAuthUserId,
-      accepted_assignment_id: savedAssignment.id,
+      accepted_assignment_id: assignment.assignmentId,
+      accepted_at: new Date().toISOString(),
       updated_by_auth_user_id: args.acceptedByAuthUserId,
     })
     .eq('id', invitation.id)
-    .eq('status_code', 'pending')
 
-  if (error) {
-    throw new Error(error.message)
+  if (updateError) {
+    throw new Error(updateError.message)
   }
 
   return {
-    assignmentId: savedAssignment.id,
-    personId: ensuredPersonId,
-  }
-}
-
-export async function revokeOrganizationAdminInvitation(args: {
-  invitationId: string
-  organizationId: string
-  revokedByAuthUserId: string
-  revokeNotes?: string | null
-}) {
-  const admin = createAdminClient()
-  const { error } = await admin
-    .from('organization_admin_invitations')
-    .update({
-      status_code: 'revoked',
-      revoked_at: new Date().toISOString(),
-      revoked_by_auth_user_id: args.revokedByAuthUserId,
-      revoked_notes: normalizeAdminInviteText(args.revokeNotes ?? null),
-      updated_by_auth_user_id: args.revokedByAuthUserId,
-    })
-    .eq('id', args.invitationId)
-    .eq('organization_id', args.organizationId)
-
-  if (error) {
-    throw new Error(error.message)
+    assignmentId: assignment.assignmentId,
+    organizationId: invitation.organization_id,
+    councilId: invitation.council_id,
+    statusCode: 'accepted' as const,
   }
 }
