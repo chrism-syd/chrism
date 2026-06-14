@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect } from 'react'
+import { FLASH_MESSAGE_COOKIE } from '@/lib/flash-message-constants'
 
-const FLASH_MESSAGE_COOKIE = 'chrism_flash_message'
+function clearFlashCookie() {
+  const expires = 'Thu, 01 Jan 1970 00:00:00 GMT'
+  document.cookie = FLASH_MESSAGE_COOKIE + '=; expires=' + expires + '; path=/; SameSite=Lax'
+}
 
 export default function ClearFlashMessageCookie() {
   useEffect(() => {
-    document.cookie = FLASH_MESSAGE_COOKIE + '=; Max-Age=0; path=/; SameSite=Lax'
+    clearFlashCookie()
   }, [])
 
   return null
