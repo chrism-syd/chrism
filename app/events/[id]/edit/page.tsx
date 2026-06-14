@@ -176,9 +176,11 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           <div className="qv-directory-hero">
             <div className="qv-directory-text">
               <p className="qv-eyebrow">{heroName}{council.council_number ? ` (${council.council_number})` : ''}</p>
-              <h1 className="qv-directory-name">Events</h1>
-              <p className="qv-section-subtitle" style={{ maxWidth: 620 }}>
-                Update event details, RSVP settings, invitees, and automated email reminders.
+              <div className="qv-directory-title-row">
+                <h1 className="qv-directory-name">Edit event</h1>
+              </div>
+              <p className="qv-section-subtitle" style={{ marginTop: 10, maxWidth: 620 }}>
+                Update {event.title} details, RSVP settings, invitees, and automated email reminders.
               </p>
             </div>
 
@@ -195,8 +197,8 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           <div className="qv-section-menu-shell" style={{ marginTop: 24 }}>
             <div className="qv-section-menu-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
               <div style={{ display: 'grid', gap: 8 }}>
-                <p className="qv-section-menu-label">Edit event</p>
-                <p className="qv-section-menu-value">Refine timing, participation settings, and messaging before members see changes.</p>
+                <p className="qv-section-menu-label">Editing</p>
+                <p className="qv-section-menu-value">{event.title}</p>
               </div>
               <DeleteEventButton action={deleteEventAction} />
             </div>
