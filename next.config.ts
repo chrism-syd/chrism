@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
             value: 'chrismworks.ca',
           },
         ],
-        destination: 'https://chrismworks.com/:path*',
+        destination: 'https://www.chrismworks.com/:path*',
         permanent: true,
       },
       {
@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
             value: 'www.chrismworks.ca',
           },
         ],
-        destination: 'https://chrismworks.com/:path*',
+        destination: 'https://www.chrismworks.com/:path*',
         permanent: true,
       },
       {
