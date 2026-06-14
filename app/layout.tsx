@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
 import CleanQueryMessageParams from '@/app/components/clean-query-message-params'
-import CouncilSettingsFlashMessage from '@/app/components/council-settings-flash-message'
 import './globals.css'
 import './auth-polish.css'
 
@@ -50,7 +49,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${bodyFont.variable} ${headingFont.variable}`}>
         {children}
-        <CouncilSettingsFlashMessage />
         <CleanQueryMessageParams />
         <Analytics />
       </body>
