@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie'
+import { getFlashMessage } from '@/lib/flash-messages'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
@@ -195,8 +197,12 @@ export const revalidate = 0
 
 export default async function CouncilDetailsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
-  const errorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
-  const noticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const queryErrorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
+  const queryNoticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
+  const flashMessage = await getFlashMessage()
+  const errorMessage = flashMessage?.kind === 'error' ? flashMessage.message : queryErrorMessage
+  const noticeMessage = flashMessage?.kind === 'notice' ? flashMessage.message : queryNoticeMessage
+  const shouldClearFlashMessage = Boolean(flashMessage)
 
   const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
@@ -616,6 +622,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader />
+        {shouldClearFlashMessage ? <ClearFlashMessageCookie /> : null}
 
         <section className="qv-hero-card">
           <div className="qv-directory-hero">

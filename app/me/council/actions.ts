@@ -1,6 +1,7 @@
 'use server'
 
 import { headers } from 'next/headers'
+import { setFlashMessage } from '@/lib/flash-messages'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
@@ -35,18 +36,14 @@ function textValue(formData: FormData, key: string) {
   return trimmed === '' ? null : trimmed
 }
 
-function redirectToCouncilPage(args: { error?: string | null; notice?: string | null }): never {
-  const params = new URLSearchParams()
-
+async function redirectToCouncilPage(args: { error?: string | null; notice?: string | null }): Promise<never> {
   if (args.error) {
-    params.set('error', args.error)
+    await setFlashMessage('error', args.error)
+  } else if (args.notice) {
+    await setFlashMessage('notice', args.notice)
   }
 
-  if (args.notice) {
-    params.set('notice', args.notice)
-  }
-
-  redirect(params.size > 0 ? `/me/council?${params.toString()}` : '/me/council')
+  redirect('/me/council')
 }
 
 function metadataString(value: unknown) {
@@ -89,7 +86,7 @@ async function requireOrganizationAdminManager() {
     })
 
     if (!adminContext.permissions.organizationId || !adminContext.permissions.canManageAdmins) {
-      redirectToCouncilPage({
+      return await redirectToCouncilPage({
         error: 'Only the current Grand Knight, Financial Secretary, or super admin can manage manual admin access.',
       })
     }
@@ -100,7 +97,7 @@ async function requireOrganizationAdminManager() {
   const context = await requireOrganizationSettingsAccess()
 
   if (!context.permissions.canManageAdmins) {
-    redirectToCouncilPage({
+    return await redirectToCouncilPage({
       error: 'Only the current Grand Knight, Financial Secretary, or super admin can manage manual admin access.',
     })
   }
@@ -115,7 +112,7 @@ async function requireActiveLocalUnitMemberSelection(args: {
   errorMessage: string
 }) {
   if (!args.localUnitId) {
-    redirectToCouncilPage({
+    return await redirectToCouncilPage({
       error: 'This view is missing its active local organization context. Refresh and try again.',
     })
   }
@@ -127,7 +124,7 @@ async function requireActiveLocalUnitMemberSelection(args: {
   })
 
   if (!validPersonIds.includes(args.personId)) {
-    redirectToCouncilPage({ error: args.errorMessage })
+    return await redirectToCouncilPage({ error: args.errorMessage })
   }
 }
 
@@ -297,7 +294,7 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
   const email = normalizeAdminGrantEmail(textValue(formData, 'official_email'))
 
   if (!termId) {
-    redirectToCouncilPage({ error: 'We could not tell which officer email to save.' })
+    return await redirectToCouncilPage({ error: 'We could not tell which officer email to save.' })
   }
 
   const admin = createAdminClient()
@@ -309,11 +306,11 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
     .maybeSingle()
 
   if (termError) {
-    redirectToCouncilPage({ error: termError.message })
+    return await redirectToCouncilPage({ error: termError.message })
   }
 
   if (!term) {
-    redirectToCouncilPage({ error: 'That officer term could not be found.' })
+    return await redirectToCouncilPage({ error: 'That officer term could not be found.' })
   }
 
   try {
@@ -330,11 +327,11 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
       throw error
     }
     const message = error instanceof Error ? error.message : 'We could not save the officer email.'
-    redirectToCouncilPage({ error: message })
+    return await redirectToCouncilPage({ error: message })
   }
 
   revalidateOfficerSurfaces(term.person_id)
-  redirectToCouncilPage({ notice: email ? 'Officer email saved.' : 'Officer email cleared.' })
+  return await redirectToCouncilPage({ notice: email ? 'Officer email saved.' : 'Officer email cleared.' })
 }
 
 export async function updateCouncilDetailsAction(formData: FormData) {
@@ -343,7 +340,7 @@ export async function updateCouncilDetailsAction(formData: FormData) {
   const preferredName = textValue(formData, 'preferred_name')
 
   if (!displayName) {
-    redirectToCouncilPage({ error: 'Please enter the formal organization name before saving.' })
+    return await redirectToCouncilPage({ error: 'Please enter the formal organization name before saving.' })
   }
 
   const admin = createAdminClient()
@@ -356,7 +353,7 @@ export async function updateCouncilDetailsAction(formData: FormData) {
     .eq('id', context.permissions.organizationId!)
 
   if (organizationError) {
-    redirectToCouncilPage({ error: organizationError.message })
+    return await redirectToCouncilPage({ error: organizationError.message })
   }
 
   const councilName = preferredName ?? displayName
@@ -367,11 +364,11 @@ export async function updateCouncilDetailsAction(formData: FormData) {
     .eq('id', context.council.id)
 
   if (councilUpdateError) {
-    redirectToCouncilPage({ error: councilUpdateError.message })
+    return await redirectToCouncilPage({ error: councilUpdateError.message })
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: 'Organization details saved.' })
+  return await redirectToCouncilPage({ notice: 'Organization details saved.' })
 }
 
 export async function grantCouncilAdminAction(formData: FormData) {
@@ -380,7 +377,7 @@ export async function grantCouncilAdminAction(formData: FormData) {
   const grantNotes = textValue(formData, 'grant_notes')
 
   if (!personId) {
-    redirectToCouncilPage({ error: 'Choose a member before granting admin access.' })
+    return await redirectToCouncilPage({ error: 'Choose a member before granting admin access.' })
   }
 
   const admin = createAdminClient()
@@ -405,11 +402,11 @@ export async function grantCouncilAdminAction(formData: FormData) {
       throw error
     }
     const message = error instanceof Error ? error.message : 'We could not grant admin access right now.'
-    redirectToCouncilPage({ error: message })
+    return await redirectToCouncilPage({ error: message })
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: 'Manual admin access saved.' })
+  return await redirectToCouncilPage({ notice: 'Manual admin access saved.' })
 }
 
 export async function inviteCouncilAdminByEmailAction(formData: FormData) {
@@ -422,15 +419,15 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
   const inviterName = getInviteSenderNameFromMetadata(context.permissions.authUser?.user_metadata)
 
   if (!inviteEmail) {
-    redirectToCouncilPage({ error: 'Enter an email address before sending the admin invite.' })
+    return await redirectToCouncilPage({ error: 'Enter an email address before sending the admin invite.' })
   }
 
   if (!sharedPhrase) {
-    redirectToCouncilPage({ error: 'Enter a shared verification phrase with at least 4 characters.' })
+    return await redirectToCouncilPage({ error: 'Enter a shared verification phrase with at least 4 characters.' })
   }
 
   if (!confirmedSensitiveAccess) {
-    redirectToCouncilPage({ error: 'Confirm that the invitee name and email are correct before sending admin access.' })
+    return await redirectToCouncilPage({ error: 'Confirm that the invitee name and email are correct before sending admin access.' })
   }
 
   const headerStore = await headers()
@@ -479,7 +476,7 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
       })
 
       revalidateCouncilSurfaces()
-      redirectToCouncilPage({
+      return await redirectToCouncilPage({
         notice:
           `Admin invite record created for ${inviteEmail}, but the email send failed: ${message}. ` +
           `Use this secure invite link to test or deliver manually right now: ${manualLink}. ` +
@@ -491,11 +488,11 @@ export async function inviteCouncilAdminByEmailAction(formData: FormData) {
       throw error
     }
     const message = error instanceof Error ? error.message : 'We could not send that admin invite right now.'
-    redirectToCouncilPage({ error: message })
+    return await redirectToCouncilPage({ error: message })
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: `Admin invite sent to ${inviteEmail}. Share the verification phrase with the invitee separately.` })
+  return await redirectToCouncilPage({ notice: `Admin invite sent to ${inviteEmail}. Share the verification phrase with the invitee separately.` })
 }
 
 export async function revokeCouncilAdminInvitationAction(formData: FormData) {
@@ -503,7 +500,7 @@ export async function revokeCouncilAdminInvitationAction(formData: FormData) {
   const invitationId = textValue(formData, 'invitation_id')
 
   if (!invitationId) {
-    redirectToCouncilPage({ error: 'We could not tell which invite to revoke.' })
+    return await redirectToCouncilPage({ error: 'We could not tell which invite to revoke.' })
   }
 
   try {
@@ -517,11 +514,11 @@ export async function revokeCouncilAdminInvitationAction(formData: FormData) {
       throw error
     }
     const message = error instanceof Error ? error.message : 'We could not revoke that invite right now.'
-    redirectToCouncilPage({ error: message })
+    return await redirectToCouncilPage({ error: message })
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: 'Admin invite revoked.' })
+  return await redirectToCouncilPage({ notice: 'Admin invite revoked.' })
 }
 
 export async function revokeCouncilAdminAction(formData: FormData) {
@@ -531,7 +528,7 @@ export async function revokeCouncilAdminAction(formData: FormData) {
   const personId = textValue(formData, 'person_id')
 
   if (!assignmentId) {
-    redirectToCouncilPage({ error: 'We could not tell which admin assignment to remove.' })
+    return await redirectToCouncilPage({ error: 'We could not tell which admin assignment to remove.' })
   }
 
   let revokeNotice = 'Manual admin access removed.'
@@ -610,11 +607,11 @@ export async function revokeCouncilAdminAction(formData: FormData) {
       throw error
     }
     const message = error instanceof Error ? error.message : 'We could not remove that admin access right now.'
-    redirectToCouncilPage({ error: message })
+    return await redirectToCouncilPage({ error: message })
   }
 
   revalidateCouncilSurfaces()
-  redirectToCouncilPage({ notice: revokeNotice })
+  return await redirectToCouncilPage({ notice: revokeNotice })
 }
 
 export async function addOfficerTermAction(formData: FormData) {
@@ -636,7 +633,7 @@ export async function addOfficerTermAction(formData: FormData) {
   }
 
   if (!personId || !officeScopeCode || !officeCode || !startYearValue) {
-    redirectToCouncilPage({ error: 'Please choose the member, office, and start year before saving this officer term.' })
+    return await redirectToCouncilPage({ error: 'Please choose the member, office, and start year before saving this officer term.' })
   }
 
   const resolvedPersonId = personId as string
@@ -651,11 +648,11 @@ export async function addOfficerTermAction(formData: FormData) {
   const option = getOfficerRoleOption(resolvedOfficeScopeCode, resolvedOfficeCode)
 
   if (!Number.isFinite(startYear)) {
-    redirectToCouncilPage({ error: 'Enter a valid start year before saving this officer term.' })
+    return await redirectToCouncilPage({ error: 'Enter a valid start year before saving this officer term.' })
   }
 
   if (!option) {
-    redirectToCouncilPage({ error: 'Choose a valid officer role before saving.' })
+    return await redirectToCouncilPage({ error: 'Choose a valid officer role before saving.' })
   }
 
   const label = formatOfficerLabel({
@@ -710,7 +707,7 @@ export async function addOfficerTermAction(formData: FormData) {
   })
 
   if (conflictingTerm) {
-    redirectToCouncilPage({ error: 'This member already has that officer role for an overlapping service year.' })
+    return await redirectToCouncilPage({ error: 'This member already has that officer role for an overlapping service year.' })
   }
 
   const { data: insertedTerm, error } = await admin
@@ -720,7 +717,7 @@ export async function addOfficerTermAction(formData: FormData) {
     .maybeSingle<{ id: string }>()
 
   if (error) {
-    redirectToCouncilPage({ error: error.message })
+    return await redirectToCouncilPage({ error: error.message })
   }
 
   if (grantAdmin) {
@@ -736,7 +733,7 @@ export async function addOfficerTermAction(formData: FormData) {
       if (isRedirectError(error)) {
         throw error
       }
-      redirectToCouncilPage({
+      return await redirectToCouncilPage({
         error: error instanceof Error
           ? `Officer role saved, but admin access could not be granted: ${error.message}`
           : 'Officer role saved, but admin access could not be granted.',
@@ -745,7 +742,7 @@ export async function addOfficerTermAction(formData: FormData) {
   }
 
   revalidateOfficerSurfaces(resolvedPersonId)
-  redirectToCouncilPage({ notice: `${label} role added.` })
+  return await redirectToCouncilPage({ notice: `${label} role added.` })
 }
 
 export async function removeOfficerTermAction(formData: FormData) {
@@ -753,7 +750,7 @@ export async function removeOfficerTermAction(formData: FormData) {
   const termId = textValue(formData, 'term_id')
 
   if (!termId) {
-    redirectToCouncilPage({ error: 'We could not tell which officer role to remove.' })
+    return await redirectToCouncilPage({ error: 'We could not tell which officer role to remove.' })
   }
 
   const admin = createAdminClient()
@@ -766,11 +763,11 @@ export async function removeOfficerTermAction(formData: FormData) {
     .maybeSingle()
 
   if (termError) {
-    redirectToCouncilPage({ error: termError.message })
+    return await redirectToCouncilPage({ error: termError.message })
   }
 
   if (!term) {
-    redirectToCouncilPage({ error: 'That officer role could not be found.' })
+    return await redirectToCouncilPage({ error: 'That officer role could not be found.' })
   }
 
   const roleLabel = formatOfficerLabel({
@@ -787,7 +784,7 @@ export async function removeOfficerTermAction(formData: FormData) {
     .eq('council_id', context.council.id)
 
   if (error) {
-    redirectToCouncilPage({ error: error.message })
+    return await redirectToCouncilPage({ error: error.message })
   }
 
   const stillAutomatic = await personStillHasAutomaticAdmin({
@@ -798,7 +795,7 @@ export async function removeOfficerTermAction(formData: FormData) {
   })
 
   revalidateOfficerSurfaces(term.person_id)
-  redirectToCouncilPage({
+  return await redirectToCouncilPage({
     notice: stillAutomatic
       ? `${roleLabel} role removed. Officer-derived admin access remains active because this member still has another qualifying officer role.`
       : `${roleLabel} role removed.`,
