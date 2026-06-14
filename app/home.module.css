@@ -82,6 +82,10 @@
   color: var(--text-secondary);
 }
 
+.membersCardIntro {
+  max-width: 46ch;
+}
+
 .cardSection {
   display: grid;
   gap: 10px;
