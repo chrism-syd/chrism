@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
+import { setFlashMessage } from '@/lib/flash-messages';
 import {
   formatOfficerLabel,
   getOfficerRoleOption,
@@ -19,18 +20,25 @@ function textEntry(formData: FormData, key: string) {
   return trimmed === '' ? null : trimmed;
 }
 
-function redirectToPath(path: string, args: { error?: string | null; notice?: string | null }): never {
-  const params = new URLSearchParams();
+function normalizeInternalRedirectPath(path: string | null | undefined) {
+  const trimmed = path?.trim() ?? '';
+  if (!trimmed || !trimmed.startsWith('/') || trimmed.startsWith('//')) {
+    return '/members';
+  }
+
+  return trimmed;
+}
+
+async function redirectToPath(path: string, args: { error?: string | null; notice?: string | null }): Promise<never> {
+  const redirectPath = normalizeInternalRedirectPath(path);
 
   if (args.error) {
-    params.set('error', args.error);
+    await setFlashMessage('error', args.error, redirectPath);
+  } else if (args.notice) {
+    await setFlashMessage('notice', args.notice, redirectPath);
   }
 
-  if (args.notice) {
-    params.set('notice', args.notice);
-  }
-
-  redirect(params.size > 0 ? `${path}?${params.toString()}` : path);
+  redirect(redirectPath);
 }
 
 async function requireCouncilAdmin() {
@@ -102,7 +110,7 @@ export async function addOfficerTermAction(formData: FormData) {
   const returnTo = textEntry(nextFormData, 'return_to') ?? '/me/council';
 
   if (!personId || !officeScopeCode || !officeCode || !startYearValue) {
-    redirectToPath(returnTo, { error: 'Please choose the member, office, and start year before saving.' });
+    return await redirectToPath(returnTo, { error: 'Please choose the member, office, and start year before saving.' });
   }
 
   const startYear = Number(startYearValue);
@@ -117,7 +125,7 @@ export async function addOfficerTermAction(formData: FormData) {
     .eq('person_id', personId as string);
 
   if (existingTermsError) {
-    redirectToPath(returnTo, { error: existingTermsError.message });
+    return await redirectToPath(returnTo, { error: existingTermsError.message });
   }
 
   const overlappingTerm = (existingTerms ?? []).find((term) =>
@@ -134,7 +142,7 @@ export async function addOfficerTermAction(formData: FormData) {
       overlappingTerm.service_end_year
     );
 
-    redirectToPath(returnTo, {
+    return await redirectToPath(returnTo, {
       error:
         `This member already has an officer term during ${overlappingYears} (${overlappingLabel}). A member can only hold one officer role at a time.`,
     });
@@ -157,11 +165,11 @@ export async function addOfficerTermAction(formData: FormData) {
   const { error } = await admin.from('person_officer_terms').insert(payload);
 
   if (error) {
-    redirectToPath(returnTo, { error: error.message });
+    return await redirectToPath(returnTo, { error: error.message });
   }
 
   revalidateOfficerSurfaces(personId as string);
-  redirectToPath(returnTo, { notice: 'Officer term saved.' });
+  return await redirectToPath(returnTo, { notice: 'Officer term saved.' });
 }
 
 export async function deleteOfficerTermAction(formData: FormData) {
@@ -171,7 +179,7 @@ export async function deleteOfficerTermAction(formData: FormData) {
   const returnTo = textEntry(formData, 'return_to') ?? (personId ? `/members/${personId}/edit` : '/members');
 
   if (!termId || !personId) {
-    redirectToPath(returnTo, { error: 'We could not tell which officer term to remove.' });
+    return await redirectToPath(returnTo, { error: 'We could not tell which officer term to remove.' });
   }
 
   const { error } = await admin
@@ -182,9 +190,9 @@ export async function deleteOfficerTermAction(formData: FormData) {
     .eq('council_id', permissions.councilId!);
 
   if (error) {
-    redirectToPath(returnTo, { error: error.message });
+    return await redirectToPath(returnTo, { error: error.message });
   }
 
   revalidateOfficerSurfaces(personId as string);
-  redirectToPath(returnTo, { notice: 'Officer term removed.' });
+  return await redirectToPath(returnTo, { notice: 'Officer term removed.' });
 }
