@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie'
+import FormSubmitButton from '@/app/components/form-submit-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { consumeFlashMessage } from '@/lib/flash-messages'
@@ -90,6 +91,7 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
   const orgLabel = getEffectiveOrganizationName(organization) ?? invitation.organizationName ?? 'this organization'
   const inviteCannotBeAccepted = invitation.status_code !== 'pending' || invitation.isExpired
   const inviteeName = invitation.invitee_name?.trim() || 'Invited admin'
+  const showPageLevelMessage = !permissions.authUser
 
   return (
     <main className="qv-page">
@@ -119,12 +121,12 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
           </p>
         </section>
 
-        {errorMessage ? (
+        {showPageLevelMessage && errorMessage ? (
           <section className="qv-inline-message qv-inline-error" aria-live="assertive">
             <p style={{ margin: 0 }}>{errorMessage}</p>
           </section>
         ) : null}
-        {noticeMessage ? (
+        {showPageLevelMessage && noticeMessage ? (
           <section className="qv-inline-message qv-inline-success" aria-live="polite">
             <p style={{ margin: 0 }}>{noticeMessage}</p>
           </section>
@@ -185,14 +187,14 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
           <div style={{ borderTop: '1px solid var(--divider)', paddingTop: 26 }}>
             {!permissions.authUser ? (
               inviteCannotBeAccepted ? (
-                <p className="qv-inline-message">
+                <p className="qv-inline-message qv-inline-error">
                   This invite can no longer be accepted. Ask a current admin to send a fresh one.
                 </p>
               ) : (
                 <InviteSignInForm acceptPath={acceptPath} inviteeEmail={invitation.invitee_email} invitePath={invitePath} />
               )
             ) : inviteCannotBeAccepted ? (
-              <p className="qv-inline-message">
+              <p className="qv-inline-message qv-inline-error">
                 This invite can no longer be accepted. Ask a current admin to send a fresh one.
               </p>
             ) : signedInEmail !== invitation.invitee_email ? (
@@ -224,10 +226,22 @@ export default async function AdminInvitePage({ searchParams }: PageProps) {
                     required
                   />
                 </label>
+                {errorMessage ? (
+                  <p className="qv-inline-message qv-inline-error" style={{ margin: 0 }} aria-live="assertive">
+                    {errorMessage}
+                  </p>
+                ) : null}
+                {noticeMessage ? (
+                  <p className="qv-inline-message qv-inline-success" style={{ margin: 0 }} aria-live="polite">
+                    {noticeMessage}
+                  </p>
+                ) : null}
                 <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                  <button type="submit" className="qv-button-primary">
-                    Verify phrase and accept access
-                  </button>
+                  <FormSubmitButton
+                    idleLabel="Verify phrase and accept access"
+                    pendingLabel="Accepting access..."
+                    className="qv-button-primary"
+                  />
                 </div>
               </form>
             )}
