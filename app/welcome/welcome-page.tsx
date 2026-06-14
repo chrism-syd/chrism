@@ -43,17 +43,17 @@ const adminActions: WelcomeAction[] = [
   {
     href: '/members',
     label: 'Review member directory',
-    body: 'Make sure the people entrusted to your council are easy to find and follow up with.',
+    body: 'Start here. Review the people entrusted to your council and keep contact details close at hand.',
   },
   {
     href: '/events',
-    label: 'Plan events',
-    body: 'Create events, collect RSVPs, and organize volunteers from one calm place.',
+    label: 'View events',
+    body: 'Events are available for planning meetings, RSVPs, and volunteers when you are ready for that layer.',
   },
   {
     href: '/me/council',
     label: 'Open council settings',
-    body: 'Review organization details, admin access, and operational settings.',
+    body: 'Review organization details, admin access, and operational settings after the member directory feels right.',
   },
 ]
 
@@ -111,10 +111,10 @@ function getContent(variant: WelcomePageVariant) {
       eyebrow: 'Admin access accepted',
       title: 'Welcome, shepherd.',
       intro:
-        'You have been given admin access so you can help care for your council’s members, events, and local operations.',
-      noteTitle: 'A practical first step',
+        'You have admin access so you can help care for your council’s members, events, and local operations. The best first step is the member directory.',
+      noteTitle: 'Start with the people entrusted to you',
       noteBody:
-        'Start by reviewing the member directory and upcoming events. Chrism is here to make the ordinary work lighter, not to add another pile to your desk.',
+        'Review the member directory first. Events and volunteer hours are here when you need them, but good member information is the foundation everything else rests on.',
       actions: adminActions,
       primaryHref: '/members',
       primaryLabel: 'Start with members',
