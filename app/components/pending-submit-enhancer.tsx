@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 
 const STAR_SRC = '/chrism_star.png'
-const RESTORE_DELAY_MS = 30000
+const RESTORE_DELAY_MS = 12000
 
 function getPendingLabel(button: HTMLButtonElement) {
   const explicitLabel = button.dataset.pendingLabel?.trim()
@@ -93,7 +93,7 @@ export default function PendingSubmitEnhancer() {
       }
 
       window.queueMicrotask(() => {
-        if (event.defaultPrevented || !document.contains(button)) {
+        if (!document.contains(button)) {
           return
         }
 
