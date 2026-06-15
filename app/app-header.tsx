@@ -154,7 +154,10 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
             links={[
               { href: '/me', label: 'Profile' },
               ...(permissions.isSuperAdmin
-                ? [{ href: '/super-admin/organizations', label: 'Platform controls' }]
+                ? [
+                    { href: '/super-admin/organizations', label: 'Platform controls' },
+                    { href: '/super-admin/local-pages', label: 'Local pages' },
+                  ]
                 : []),
               ...(permissions.hasStaffAccess && permissions.canManageCustomLists && !memberNavChildren.some((item) => item.href === '/custom-lists')
                 ? [{ href: '/custom-lists', label: 'Custom lists' }]
