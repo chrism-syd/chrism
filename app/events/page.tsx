@@ -107,9 +107,7 @@ async function loadOrganizationProfile(args: {
 }) {
   const { admin, council } = args
 
-  if (!council.organization_id) {
-    return null
-  }
+  if (!council.organization_id) return null
 
   const { data } = await admin
     .from('organizations')
@@ -138,17 +136,13 @@ function renderInvitedEventList(events: MemberInvitedEvent[]) {
                   <div className="qv-member-name">{event.event_title}</div>
                   <div className="qv-member-meta">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
                   {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
-
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                     <span className="qv-mini-pill">{event.source_label}</span>
                     <span className="qv-mini-pill">Public event page</span>
                   </div>
                 </div>
               </div>
-
-              <div className="qv-member-row-right">
-                <span className="qv-chevron">›</span>
-              </div>
+              <div className="qv-member-row-right"><span className="qv-chevron">›</span></div>
             </article>
           </Link>
         ) : (
@@ -158,14 +152,10 @@ function renderInvitedEventList(events: MemberInvitedEvent[]) {
                 <div className="qv-member-name">{event.event_title}</div>
                 <div className="qv-member-meta">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
                 {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
-
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   <span className="qv-mini-pill">{event.source_label}</span>
                 </div>
-
-                <div className="qv-member-meta" style={{ marginTop: 10 }}>
-                  This invite is missing its public link.
-                </div>
+                <div className="qv-member-meta" style={{ marginTop: 10 }}>This invite is missing its public link.</div>
               </div>
             </div>
           </article>
@@ -191,12 +181,10 @@ function renderCouncilInboxEventList(events: CouncilInboxEvent[]) {
                   <div className="qv-member-name">{event.event_title}</div>
                   <div className="qv-member-meta">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
                   {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
-
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                     <span className="qv-mini-pill">Council invite</span>
                     <span className="qv-mini-pill">Public event page</span>
                   </div>
-
                   {event.invite_contact_name || event.invite_email ? (
                     <div className="qv-member-meta" style={{ marginTop: 10 }}>
                       {event.invite_contact_name ? `Contact: ${event.invite_contact_name}` : null}
@@ -206,10 +194,7 @@ function renderCouncilInboxEventList(events: CouncilInboxEvent[]) {
                   ) : null}
                 </div>
               </div>
-
-              <div className="qv-member-row-right">
-                <span className="qv-chevron">›</span>
-              </div>
+              <div className="qv-member-row-right"><span className="qv-chevron">›</span></div>
             </article>
           </Link>
         ) : (
@@ -239,11 +224,7 @@ async function MemberEventsPage() {
     listMemberInvitedEvents({ admin, permissions, limit: 50 }),
     getPublicMeetingsHref({ admin, councilId: permissions.councilId }),
     permissions.councilId
-      ? admin
-          .from('councils')
-          .select('id, name, council_number, organization_id')
-          .eq('id', permissions.councilId)
-          .maybeSingle<CouncilContextRow>()
+      ? admin.from('councils').select('id, name, council_number, organization_id').eq('id', permissions.councilId).maybeSingle<CouncilContextRow>()
       : Promise.resolve({ data: null }),
   ])
 
@@ -256,29 +237,15 @@ async function MemberEventsPage() {
     <main className="qv-page">
       <div className="qv-shell">
         <AppHeader permissions={permissions} />
-
         <section className="qv-hero-card">
           <div className="qv-directory-hero">
             <div className="qv-directory-text">
-              <p className="qv-eyebrow">
-                {organizationName}
-                {council?.council_number ? ` (${council.council_number})` : ''}
-              </p>
-              <div className="qv-directory-title-row">
-                <h1 className="qv-directory-name">Events</h1>
-              </div>
-              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                View the public page for events you are invited to. RSVP names stay private.
-              </p>
+              <p className="qv-eyebrow">{organizationName}{council?.council_number ? ` (${council.council_number})` : ''}</p>
+              <div className="qv-directory-title-row"><h1 className="qv-directory-name">Events</h1></div>
+              <p className="qv-section-subtitle" style={{ marginTop: 10 }}>View the public page for events you are invited to. RSVP names stay private.</p>
             </div>
-
             <div className="qv-org-avatar-wrap">
-              <OrganizationAvatar
-                displayName={organizationName}
-                logoStoragePath={effectiveBranding.logo_storage_path}
-                logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
-                size={72}
-              />
+              <OrganizationAvatar displayName={organizationName} logoStoragePath={effectiveBranding.logo_storage_path} logoAltText={effectiveBranding.logo_alt_text ?? organizationName} size={72} />
             </div>
           </div>
         </section>
@@ -294,14 +261,8 @@ async function MemberEventsPage() {
                   <p className="qv-section-subtitle">Open the public event page to view details or continue to your RSVP.</p>
                 </div>
               </div>
-
-              {memberInvitedEvents.length > 0 ? (
-                renderInvitedEventList(memberInvitedEvents)
-              ) : (
-                <EmptyState
-                  title="No invited events yet"
-                  body="When an event invitation matches your email or member record, it will appear here."
-                />
+              {memberInvitedEvents.length > 0 ? renderInvitedEventList(memberInvitedEvents) : (
+                <EmptyState title="No invited events yet" body="When an event invitation matches your email or member record, it will appear here." />
               )}
             </section>
           </div>
@@ -314,20 +275,10 @@ async function MemberEventsPage() {
                   <p className="qv-section-subtitle">Members can see event details and their own RSVP path, not respondent rosters.</p>
                 </div>
               </div>
-
               <div className="qv-detail-list">
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Public event page</div>
-                  <div className="qv-detail-value">Visible to invited members.</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Your RSVP</div>
-                  <div className="qv-detail-value">Accessible through your invite flow.</div>
-                </div>
-                <div className="qv-detail-item">
-                  <div className="qv-detail-label">Other respondents</div>
-                  <div className="qv-detail-value">Hidden from members.</div>
-                </div>
+                <div className="qv-detail-item"><div className="qv-detail-label">Public event page</div><div className="qv-detail-value">Visible to invited members.</div></div>
+                <div className="qv-detail-item"><div className="qv-detail-label">Your RSVP</div><div className="qv-detail-value">Accessible through your invite flow.</div></div>
+                <div className="qv-detail-item"><div className="qv-detail-label">Other respondents</div><div className="qv-detail-value">Hidden from members.</div></div>
               </div>
             </section>
           </div>
@@ -343,14 +294,8 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
 
   const [organization, councilInboxEvents, memberInvitedEvents] = await Promise.all([
     loadOrganizationProfile({ admin: supabase, council }),
-    listCouncilInboxEvents({
-      admin: supabase,
-      permissions: isPreviewAdminMode ? { ...permissions, email: null } : permissions,
-      limit: 12,
-    }),
-    isPreviewAdminMode
-      ? Promise.resolve([] as MemberInvitedEvent[])
-      : listMemberInvitedEvents({ admin: supabase, permissions, limit: 12 }),
+    listCouncilInboxEvents({ admin: supabase, permissions: isPreviewAdminMode ? { ...permissions, email: null } : permissions, limit: 12 }),
+    isPreviewAdminMode ? Promise.resolve([] as MemberInvitedEvent[]) : listMemberInvitedEvents({ admin: supabase, permissions, limit: 12 }),
   ])
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
@@ -360,14 +305,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   const meetingsFeedHref = council.council_number ? `/councils/${council.council_number}/meetings.ics` : null
 
   const switchableLocalUnits = permissions.authUser
-    ? (
-        await listAccessibleLocalUnitsForArea({
-          admin: supabase,
-          userId: permissions.authUser.id,
-          areaCode: 'events',
-          minimumAccessLevel: 'manage',
-        })
-      )
+    ? (await listAccessibleLocalUnitsForArea({ admin: supabase, userId: permissions.authUser.id, areaCode: 'events', minimumAccessLevel: 'manage' }))
         .filter((unit) => unit.local_unit_id !== localUnitId)
         .sort((left, right) => left.local_unit_name.localeCompare(right.local_unit_name))
     : []
@@ -405,21 +343,14 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   const standardEvents = events.filter((event) => event.event_kind_code === 'standard')
   const nowIso = new Date().toISOString()
   const meetingEvents = events.filter(
-    (event) =>
-      event.event_kind_code !== 'standard' &&
-      !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
-      (event.ends_at ?? event.starts_at) >= nowIso
+    (event) => event.event_kind_code !== 'standard' && !['draft', 'completed', 'cancelled'].includes(event.status_code) && (event.ends_at ?? event.starts_at) >= nowIso
   )
   const draftEvents = standardEvents.filter((event) => event.status_code === 'draft')
   const scheduledEvents = standardEvents.filter(
-    (event) =>
-      !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
-      (event.ends_at ?? event.starts_at) >= nowIso
+    (event) => !['draft', 'completed', 'cancelled'].includes(event.status_code) && (event.ends_at ?? event.starts_at) >= nowIso
   )
   const pastEvents = standardEvents.filter(
-    (event) =>
-      !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
-      (event.ends_at ?? event.starts_at) < nowIso
+    (event) => !['draft', 'completed', 'cancelled'].includes(event.status_code) && (event.ends_at ?? event.starts_at) < nowIso
   )
 
   const standardIds = standardEvents.map((event) => event.id)
@@ -431,20 +362,12 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
   let externalInviteeCountMap = new Map<string, number>()
 
   if (multiIds.length) {
-    const { data } = await supabase
-      .from('event_host_summary')
-      .select('event_id, invited_council_count, responded_council_count, total_volunteer_count')
-      .in('event_id', multiIds)
-      .returns<EventSummaryRow[]>()
+    const { data } = await supabase.from('event_host_summary').select('event_id, invited_council_count, responded_council_count, total_volunteer_count').in('event_id', multiIds).returns<EventSummaryRow[]>()
     councilSummaries = data ?? []
   }
 
   if (singleIds.length) {
-    const { data } = await supabase
-      .from('event_person_rsvp_summary')
-      .select('event_id, active_submission_count, total_volunteer_count, last_responded_at')
-      .in('event_id', singleIds)
-      .returns<EventPersonSummaryRow[]>()
+    const { data } = await supabase.from('event_person_rsvp_summary').select('event_id, active_submission_count, total_volunteer_count, last_responded_at').in('event_id', singleIds).returns<EventPersonSummaryRow[]>()
     personSummaries = data ?? []
   }
 
@@ -483,13 +406,11 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                     <div className="qv-member-name">{event.title}</div>
                     <div className="qv-member-meta">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
                     {event.location_name ? <div className="qv-member-meta">{event.location_name}</div> : null}
-
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                       <span className="qv-mini-pill">{getScopeLabel(event.scope_code, organization?.org_type_code)}</span>
                       {event.requires_rsvp ? <span className="qv-mini-pill">RSVP On</span> : null}
                       {event.needs_volunteers ? <span className="qv-mini-pill">Volunteers On</span> : null}
                     </div>
-
                     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
                       {!isSingle ? <span className="qv-member-meta">Invited: {invitedCount ?? 0}</span> : null}
                       <span className="qv-member-meta">RSVPs: {respondedCount}</span>
@@ -498,10 +419,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                     </div>
                   </div>
                 </div>
-
-                <div className="qv-member-row-right">
-                  <span className="qv-chevron">›</span>
-                </div>
+                <div className="qv-member-row-right"><span className="qv-chevron">›</span></div>
               </article>
             </Link>
           )
@@ -515,64 +433,19 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
       <div className="qv-shell">
         <AppHeader permissions={permissions} />
 
-        <section
-          style={{
-            display: 'grid',
-            gap: 14,
-            paddingTop: 28,
-            marginBottom: 18,
-          }}
-        >
-          <h1
-            className="qv-directory-name"
-            style={{
-              margin: 0,
-              fontSize: 'clamp(42px, 6.4vw, 68px)',
-              lineHeight: 0.96,
-              letterSpacing: '-0.04em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Events
-          </h1>
-          <p
-            style={{
-              margin: 0,
-              maxWidth: '34ch',
-              fontSize: 15,
-              fontWeight: 700,
-              lineHeight: 1.35,
-              color: 'var(--text-secondary)',
-            }}
-          >
-            Manage events, meetings, RSVPs, and volunteer responses.
-          </p>
+        <section style={{ display: 'grid', gap: 14, paddingTop: 28, marginBottom: 18 }}>
+          <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em', whiteSpace: 'nowrap' }}>Events</h1>
+          <p style={{ margin: 0, maxWidth: '34ch', fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>Manage events, meetings, RSVPs, and volunteer responses.</p>
         </section>
 
         <section className="qv-hero-card">
           <div style={{ display: 'grid', gap: 16 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: 18,
-                flexWrap: 'wrap',
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 18, flexWrap: 'wrap' }}>
               <div style={{ display: 'grid', gap: 12 }}>
-                <h2 className="qv-section-title" style={{ margin: 0 }}>
-                  {currentCouncilLabel}
-                </h2>
-
+                <h2 className="qv-section-title" style={{ margin: 0 }}>{currentCouncilLabel}</h2>
                 {switchableLocalUnits.length > 0 && !permissions.isDevMode ? (
                   <details className="qv-view-menu">
-                    <summary>
-                      <span>Change local organization</span>
-                      <span aria-hidden="true" className="qv-view-menu-chevron">
-                        ▾
-                      </span>
-                    </summary>
+                    <summary><span>Change local organization</span><span aria-hidden="true" className="qv-view-menu-chevron">▾</span></summary>
                     <div className="qv-view-menu-panel">
                       {switchableLocalUnits.map((unit) => (
                         <form key={unit.local_unit_id} method="post" action="/account/parallel-area-context">
@@ -580,27 +453,15 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                           <input type="hidden" name="minimumAccessLevel" value="manage" />
                           <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
                           <input type="hidden" name="next" value="/events" />
-                          <button
-                            type="submit"
-                            className="qv-view-menu-item"
-                            style={{ width: '100%', justifyContent: 'flex-start' }}
-                          >
-                            {unit.local_unit_name}
-                          </button>
+                          <button type="submit" className="qv-view-menu-item" style={{ width: '100%', justifyContent: 'flex-start' }}>{unit.local_unit_name}</button>
                         </form>
                       ))}
                     </div>
                   </details>
                 ) : null}
               </div>
-
               <div className="qv-org-avatar-wrap">
-                <OrganizationAvatar
-                  displayName={organizationName}
-                  logoStoragePath={effectiveBranding.logo_storage_path}
-                  logoAltText={effectiveBranding.logo_alt_text ?? organizationName}
-                  size={72}
-                />
+                <OrganizationAvatar displayName={organizationName} logoStoragePath={effectiveBranding.logo_storage_path} logoAltText={effectiveBranding.logo_alt_text ?? organizationName} size={72} />
               </div>
             </div>
           </div>
@@ -611,87 +472,25 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
         <div className="qv-detail-grid">
           <div className="qv-detail-stack">
             <section className="qv-card">
-              <div className="qv-directory-section-head">
-                <div>
-                  <h2 className="qv-section-title">Council event invites</h2>
-                  <p className="qv-section-subtitle">Multi-council events explicitly sent to this council.</p>
-                </div>
-              </div>
-
-              {councilInboxEvents.length > 0 ? (
-                renderCouncilInboxEventList(councilInboxEvents)
-              ) : (
-                <EmptyState
-                  title="No council invites yet"
-                  body="When another council invites this council to a multi-council event, it will appear here."
-                />
+              <div className="qv-directory-section-head"><div><h2 className="qv-section-title">Council event invites</h2><p className="qv-section-subtitle">Multi-council events explicitly sent to this council.</p></div></div>
+              {councilInboxEvents.length > 0 ? renderCouncilInboxEventList(councilInboxEvents) : (
+                <EmptyState title="No council invites yet" body="When another council invites this council to a multi-council event, it will appear here." />
               )}
             </section>
 
             {!isPreviewAdminMode ? (
               <section className="qv-card">
-                <div className="qv-directory-section-head">
-                  <div>
-                    <h2 className="qv-section-title">Your invited events</h2>
-                    <p className="qv-section-subtitle">Personal RSVP or guest-invite matches tied to your own identity.</p>
-                  </div>
-                </div>
-
-                {memberInvitedEvents.length > 0 ? (
-                  renderInvitedEventList(memberInvitedEvents)
-                ) : (
-                  <EmptyState
-                    title="No personal event matches yet"
-                    body="When an event RSVP or guest invite matches your email or member record, it will appear here."
-                  />
+                <div className="qv-directory-section-head"><div><h2 className="qv-section-title">Your invited events</h2><p className="qv-section-subtitle">Personal RSVP or guest-invite matches tied to your own identity.</p></div></div>
+                {memberInvitedEvents.length > 0 ? renderInvitedEventList(memberInvitedEvents) : (
+                  <EmptyState title="No personal event matches yet" body="When an event RSVP or guest invite matches your email or member record, it will appear here." />
                 )}
               </section>
             ) : null}
 
-            {scheduledEvents.length > 0 ? (
-              <section className="qv-card">
-                <div className="qv-directory-section-head">
-                  <div>
-                    <h2 className="qv-section-title">Scheduled events</h2>
-                    <p className="qv-section-subtitle">{scheduledEvents.length} upcoming or in progress</p>
-                  </div>
-                </div>
-                {renderStandardEventList(scheduledEvents)}
-              </section>
-            ) : null}
-
-            {pastEvents.length > 0 ? (
-              <section className="qv-card">
-                <div className="qv-directory-section-head">
-                  <div>
-                    <h2 className="qv-section-title">Past events</h2>
-                    <p className="qv-section-subtitle">{pastEvents.length} ended but not archived</p>
-                  </div>
-                </div>
-                {renderStandardEventList(pastEvents)}
-              </section>
-            ) : null}
-
-            {draftEvents.length > 0 ? (
-              <section className="qv-card">
-                <div className="qv-directory-section-head">
-                  <div>
-                    <h2 className="qv-section-title">Drafts</h2>
-                    <p className="qv-section-subtitle">{draftEvents.length} saved</p>
-                  </div>
-                </div>
-                {renderStandardEventList(draftEvents)}
-              </section>
-            ) : null}
-
-            {scheduledEvents.length === 0 && pastEvents.length === 0 && draftEvents.length === 0 ? (
-              <section className="qv-card">
-                <EmptyState
-                  title="No events yet"
-                  body="Create your first event to start tracking participation and RSVP responses."
-                />
-              </section>
-            ) : null}
+            {scheduledEvents.length > 0 ? <section className="qv-card"><div className="qv-directory-section-head"><div><h2 className="qv-section-title">Scheduled events</h2><p className="qv-section-subtitle">{scheduledEvents.length} upcoming or in progress</p></div></div>{renderStandardEventList(scheduledEvents)}</section> : null}
+            {pastEvents.length > 0 ? <section className="qv-card"><div className="qv-directory-section-head"><div><h2 className="qv-section-title">Past events</h2><p className="qv-section-subtitle">{pastEvents.length} ended but not archived</p></div></div>{renderStandardEventList(pastEvents)}</section> : null}
+            {draftEvents.length > 0 ? <section className="qv-card"><div className="qv-directory-section-head"><div><h2 className="qv-section-title">Drafts</h2><p className="qv-section-subtitle">{draftEvents.length} saved</p></div></div>{renderStandardEventList(draftEvents)}</section> : null}
+            {scheduledEvents.length === 0 && pastEvents.length === 0 && draftEvents.length === 0 ? <section className="qv-card"><EmptyState title="No events yet" body="Create your first event to start tracking participation and RSVP responses." /></section> : null}
           </div>
 
           <div className="qv-detail-stack">
@@ -701,21 +500,9 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                   <h2 className="qv-section-title">Meetings</h2>
                   <p className="qv-section-subtitle">Upcoming council meetings only. Completed meetings move to the archive.</p>
                 </div>
-
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <Link href="/events/new" className="qv-link-button qv-button-primary">
-                    Add Event
-                  </Link>
-                  {publicMeetingsHref ? (
-                    <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">
-                      Public Meetings Page
-                    </Link>
-                  ) : null}
-                  {meetingsFeedHref ? (
-                    <Link href={meetingsFeedHref} className="qv-link-button qv-button-secondary">
-                      ICS Feed
-                    </Link>
-                  ) : null}
+                  {publicMeetingsHref ? <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">Public Meetings Page</Link> : null}
+                  {meetingsFeedHref ? <Link href={meetingsFeedHref} className="qv-link-button qv-button-secondary">ICS Feed</Link> : null}
                 </div>
               </div>
 
@@ -724,25 +511,20 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                   {meetingEvents.map((event) => (
                     <div key={event.id} className="qv-detail-item">
                       <div className="qv-detail-label">{formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
-                      <div className="qv-detail-value">
-                        <Link href={`/events/${event.id}`} className="qv-inline-link">
-                          {event.title}
-                        </Link>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                        <span className="qv-mini-pill">{getMeetingLabel(event.event_kind_code)}</span>
-                      </div>
-                      {event.location_name ? (
-                        <div style={{ marginTop: 4, fontSize: 14, color: 'var(--text-secondary)' }}>{event.location_name}</div>
-                      ) : null}
+                      <div className="qv-detail-value"><Link href={`/events/${event.id}`} className="qv-inline-link">{event.title}</Link></div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}><span className="qv-mini-pill">{getMeetingLabel(event.event_kind_code)}</span></div>
+                      {event.location_name ? <div style={{ marginTop: 4, fontSize: 14, color: 'var(--text-secondary)' }}>{event.location_name}</div> : null}
                     </div>
                   ))}
                 </div>
               ) : (
-                <EmptyState
-                  title="No meeting events yet"
-                  body="Add a calendar event for your next council meeting so members can find the public meetings page and subscribe to the calendar feed."
-                />
+                <div className="qv-empty">
+                  <h3 className="qv-empty-title">No meeting events yet</h3>
+                  <p className="qv-empty-text">Add a calendar event for your next council meeting so members can find the public meetings page and subscribe to the calendar feed.</p>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+                    <Link href="/events/new" className="qv-link-button qv-button-primary">Add Event</Link>
+                  </div>
+                </div>
               )}
             </section>
           </div>
@@ -753,14 +535,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
 }
 
 export default async function EventsPage() {
-  const manageContext = await findCurrentActingCouncilContextForArea({
-    areaCode: 'events',
-    minimumAccessLevel: 'manage',
-  })
-
-  if (manageContext) {
-    return <AdminEventsPage context={manageContext} />
-  }
-
+  const manageContext = await findCurrentActingCouncilContextForArea({ areaCode: 'events', minimumAccessLevel: 'manage' })
+  if (manageContext) return <AdminEventsPage context={manageContext} />
   return <MemberEventsPage />
 }
