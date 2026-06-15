@@ -91,6 +91,13 @@
   line-height: 1.35;
 }
 
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .primaryAction {
   justify-self: start;
 }
