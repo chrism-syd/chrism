@@ -47,24 +47,6 @@ type WelcomeAction = {
   body: string
 }
 
-const adminActions: WelcomeAction[] = [
-  {
-    href: '/members',
-    label: 'Review member directory',
-    body: 'Start here. Review the people entrusted to your council and keep contact details close at hand.',
-  },
-  {
-    href: '/events',
-    label: 'View events',
-    body: 'Events are available for planning meetings, RSVPs, and volunteers when you are ready for that layer.',
-  },
-  {
-    href: '/me/council',
-    label: 'Open council settings',
-    body: 'Review organization details, admin access, and operational settings after the member directory feels right.',
-  },
-]
-
 const memberActions: WelcomeAction[] = [
   {
     href: '/me',
@@ -137,15 +119,17 @@ function getContent(variant: WelcomePageVariant) {
   if (variant === 'admin') {
     return {
       eyebrow: 'Admin access accepted',
-      title: 'Welcome, shepherd.',
+      title: 'Welcome.',
       intro:
         'You have admin access so you can help care for your council’s members, events, and local operations. The best first step is the member directory.',
       noteTitle: 'Start with the people entrusted to you',
       noteBody:
         'Review the member directory first. Events and volunteer hours are here when you need them, but good member information is the foundation everything else rests on.',
-      actions: adminActions,
+      actions: [],
       primaryHref: '/members',
       primaryLabel: 'Start with members',
+      secondaryHref: '/me/council',
+      secondaryLabel: 'Organization settings',
     }
   }
 
@@ -160,6 +144,8 @@ function getContent(variant: WelcomePageVariant) {
     actions: memberActions,
     primaryHref: '/me',
     primaryLabel: 'Review my profile',
+    secondaryHref: null,
+    secondaryLabel: null,
   }
 }
 
@@ -254,9 +240,16 @@ export default async function WelcomePage({ variant, smokeTestLocalUnitId = null
               <p className="qv-detail-label" style={{ margin: 0 }}>{councilLabel}</p>
               <h2 className={styles.cardTitle}>{content.noteTitle}</h2>
               <p className={styles.cardIntro}>{content.noteBody}</p>
-              <Link href={content.primaryHref} className={`qv-button-secondary qv-link-button ${styles.primaryAction}`}>
-                {content.primaryLabel}
-              </Link>
+              <div className={styles.cardActions}>
+                <Link href={content.primaryHref} className={`qv-button-secondary qv-link-button ${styles.primaryAction}`}>
+                  {content.primaryLabel}
+                </Link>
+                {content.secondaryHref && content.secondaryLabel ? (
+                  <Link href={content.secondaryHref} className="qv-button-secondary qv-link-button">
+                    {content.secondaryLabel}
+                  </Link>
+                ) : null}
+              </div>
             </div>
             <div className={styles.cardBanner} aria-hidden="true" />
           </article>
@@ -267,11 +260,11 @@ export default async function WelcomePage({ variant, smokeTestLocalUnitId = null
               <div className="qv-detail-list">
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">People</div>
-                  <div className="qv-detail-value">Keep member and contact information close.</div>
+                  <div className="qv-detail-value">Keep member and volunteer contact information close.</div>
                 </div>
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">Events</div>
-                  <div className="qv-detail-value">Plan meetings, events, RSVPs, and volunteer responses.</div>
+                  <div className="qv-detail-value">Schedule meetings, plan events, and collect RSVPs and volunteer responses.</div>
                 </div>
                 <div className="qv-detail-item">
                   <div className="qv-detail-label">Follow-up</div>
@@ -285,32 +278,34 @@ export default async function WelcomePage({ variant, smokeTestLocalUnitId = null
 
         {variant === 'member' ? <MemberOrganizationLookupPlaceholder /> : null}
 
-        <section className="qv-card">
-          <div className="qv-directory-section-head">
-            <div>
-              <h2 className="qv-section-title">Choose your next step</h2>
-              <p className="qv-section-subtitle">You can always come back to the home page later.</p>
+        {variant === 'member' ? (
+          <section className="qv-card">
+            <div className="qv-directory-section-head">
+              <div>
+                <h2 className="qv-section-title">Choose your next step</h2>
+                <p className="qv-section-subtitle">You can always come back to the home page later.</p>
+              </div>
             </div>
-          </div>
 
-          <div className={`qv-member-list ${styles.actionList}`}>
-            {content.actions.map((action) => (
-              <Link key={action.href} href={action.href} className={`qv-member-link ${styles.actionLink}`}>
-                <article className="qv-member-row">
-                  <div className="qv-member-main">
-                    <div className="qv-member-text">
-                      <div className="qv-member-name">{action.label}</div>
-                      <div className="qv-member-meta">{action.body}</div>
+            <div className={`qv-member-list ${styles.actionList}`}>
+              {content.actions.map((action) => (
+                <Link key={action.href} href={action.href} className={`qv-member-link ${styles.actionLink}`}>
+                  <article className="qv-member-row">
+                    <div className="qv-member-main">
+                      <div className="qv-member-text">
+                        <div className="qv-member-name">{action.label}</div>
+                        <div className="qv-member-meta">{action.body}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="qv-member-row-right">
-                    <span className="qv-chevron">›</span>
-                  </div>
-                </article>
-              </Link>
-            ))}
-          </div>
-        </section>
+                    <div className="qv-member-row-right">
+                      <span className="qv-chevron">›</span>
+                    </div>
+                  </article>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </main>
   )
