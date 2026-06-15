@@ -9,6 +9,22 @@ type FormSubmitButtonProps = {
   className?: string
   style?: CSSProperties
   disabled?: boolean
+  name?: string
+  value?: string
+}
+
+function PendingLabel({ label }: { label: ReactNode }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <img
+        src="/chrism_star.png"
+        alt=""
+        aria-hidden="true"
+        style={{ width: 16, height: 16, objectFit: 'contain', flexShrink: 0 }}
+      />
+      <span>{label}</span>
+    </span>
+  )
 }
 
 export default function FormSubmitButton({
@@ -17,12 +33,22 @@ export default function FormSubmitButton({
   className = 'qv-button-secondary',
   style,
   disabled = false,
+  name,
+  value,
 }: FormSubmitButtonProps) {
   const { pending } = useFormStatus()
 
   return (
-    <button type="submit" className={className} style={style} disabled={disabled || pending} aria-busy={pending}>
-      {pending ? pendingLabel : idleLabel}
+    <button
+      type="submit"
+      className={className}
+      style={style}
+      disabled={disabled || pending}
+      aria-busy={pending}
+      name={name}
+      value={value}
+    >
+      {pending ? <PendingLabel label={pendingLabel} /> : idleLabel}
     </button>
   )
 }
