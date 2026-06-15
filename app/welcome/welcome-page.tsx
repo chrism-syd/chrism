@@ -22,7 +22,7 @@ type CouncilRow = {
 
 type LocalUnitRow = {
   id: string
-  name: string | null
+  name?: string | null
   legacy_council_id: string | null
   legacy_organization_id: string | null
 }
@@ -93,7 +93,7 @@ async function loadCouncilAndOrganization(args: {
   if (args.localUnitId) {
     const { data } = await args.admin
       .from('local_units')
-      .select('id, name, legacy_council_id, legacy_organization_id')
+      .select('id, legacy_council_id, legacy_organization_id')
       .eq('id', args.localUnitId)
       .maybeSingle<LocalUnitRow>()
 
@@ -209,13 +209,14 @@ function MemberOrganizationLookupPlaceholder() {
 export default async function WelcomePage({ variant, smokeTestLocalUnitId = null }: WelcomePageProps) {
   const permissions = await getCurrentUserPermissions()
   const admin = createAdminClient()
-  const scopedLocalUnitId = permissions.isSuperAdmin && smokeTestLocalUnitId
+  const canUseSmokeTestScope = permissions.isSignedIn && Boolean(smokeTestLocalUnitId)
+  const scopedLocalUnitId = canUseSmokeTestScope
     ? smokeTestLocalUnitId
     : permissions.activeLocalUnitId
   const { localUnit, council, organization } = await loadCouncilAndOrganization({
     admin,
     localUnitId: scopedLocalUnitId,
-    councilId: permissions.councilId,
+    councilId: canUseSmokeTestScope ? null : permissions.councilId,
   })
   const content = getContent(variant)
   const organizationName = getEffectiveOrganizationName(organization) ?? localUnit?.name ?? council?.name ?? 'Chrism'
