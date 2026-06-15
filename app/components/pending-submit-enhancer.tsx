@@ -140,7 +140,7 @@ function applyLinkPendingState(link: HTMLAnchorElement) {
 }
 
 function shouldEnhanceLink(event: MouseEvent, link: HTMLAnchorElement) {
-  if (event.defaultPrevented || link.dataset.pendingLinkEnhancer === 'off') {
+  if (link.dataset.pendingLinkEnhancer === 'off') {
     return false
   }
 
@@ -162,8 +162,12 @@ function shouldEnhanceLink(event: MouseEvent, link: HTMLAnchorElement) {
   }
 
   const url = new URL(href, window.location.href)
+  const currentUrl = new URL(window.location.href)
 
-  return url.origin === window.location.origin && url.pathname !== window.location.pathname + window.location.hash
+  return (
+    url.origin === currentUrl.origin &&
+    (url.pathname !== currentUrl.pathname || url.search !== currentUrl.search)
+  )
 }
 
 export default function PendingSubmitEnhancer() {
@@ -197,11 +201,11 @@ export default function PendingSubmitEnhancer() {
     }
 
     document.addEventListener('submit', handleSubmit)
-    document.addEventListener('click', handleClick)
+    document.addEventListener('click', handleClick, { capture: true })
 
     return () => {
       document.removeEventListener('submit', handleSubmit)
-      document.removeEventListener('click', handleClick)
+      document.removeEventListener('click', handleClick, { capture: true })
     }
   }, [])
 
