@@ -70,26 +70,14 @@ type CouncilContextRow = {
 function getEventScopeLabels(orgTypeCode: string | null | undefined) {
   switch (orgTypeCode) {
     case 'parish':
-      return {
-        home: 'Parish event',
-        multi: 'Community event',
-      }
+      return { home: 'Parish event', multi: 'Community event' }
     case 'ssvp':
-      return {
-        home: 'Home conference only',
-        multi: 'Multi-conference event',
-      }
+      return { home: 'Home conference only', multi: 'Multi-conference event' }
     case 'cwl':
-      return {
-        home: 'Home council only',
-        multi: 'Multi-council event',
-      }
+      return { home: 'Home council only', multi: 'Multi-council event' }
     case 'knights_of_columbus':
     default:
-      return {
-        home: 'Home council only',
-        multi: 'Multi-council event',
-      }
+      return { home: 'Home council only', multi: 'Multi-council event' }
   }
 }
 
@@ -420,7 +408,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
     (event) =>
       event.event_kind_code !== 'standard' &&
       !['draft', 'completed', 'cancelled'].includes(event.status_code) &&
-      (event.ends_at ?? event.starts_at) >= nowIso,
+      (event.ends_at ?? event.starts_at) >= nowIso
   )
   const draftEvents = standardEvents.filter((event) => event.status_code === 'draft')
   const scheduledEvents = standardEvents.filter(
@@ -626,9 +614,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
               <div className="qv-directory-section-head">
                 <div>
                   <h2 className="qv-section-title">Council event invites</h2>
-                  <p className="qv-section-subtitle">
-                    Multi-council events explicitly sent to this council.
-                  </p>
+                  <p className="qv-section-subtitle">Multi-council events explicitly sent to this council.</p>
                 </div>
               </div>
 
@@ -647,9 +633,7 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                 <div className="qv-directory-section-head">
                   <div>
                     <h2 className="qv-section-title">Your invited events</h2>
-                    <p className="qv-section-subtitle">
-                      Personal RSVP or guest-invite matches tied to your own identity.
-                    </p>
+                    <p className="qv-section-subtitle">Personal RSVP or guest-invite matches tied to your own identity.</p>
                   </div>
                 </div>
 
@@ -711,30 +695,31 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
           </div>
 
           <div className="qv-detail-stack">
-            {meetingEvents.length > 0 ? (
-              <section className="qv-card">
-                <div className="qv-directory-section-head" style={{ alignItems: 'flex-start', gap: 12 }}>
-                  <div>
-                    <h2 className="qv-section-title">Meetings</h2>
-                    <p className="qv-section-subtitle">Upcoming council meetings only. Completed meetings move to the archive.</p>
-                  </div>
-
-                  {publicMeetingsHref || meetingsFeedHref ? (
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      {publicMeetingsHref ? (
-                        <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">
-                          Public meetings page
-                        </Link>
-                      ) : null}
-                      {meetingsFeedHref ? (
-                        <Link href={meetingsFeedHref} className="qv-link-button qv-button-secondary">
-                          ICS feed
-                        </Link>
-                      ) : null}
-                    </div>
-                  ) : null}
+            <section className="qv-card">
+              <div className="qv-directory-section-head" style={{ alignItems: 'flex-start', gap: 12 }}>
+                <div>
+                  <h2 className="qv-section-title">Meetings</h2>
+                  <p className="qv-section-subtitle">Upcoming council meetings only. Completed meetings move to the archive.</p>
                 </div>
 
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <Link href="/events/new" className="qv-link-button qv-button-primary">
+                    Add Event
+                  </Link>
+                  {publicMeetingsHref ? (
+                    <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">
+                      Public Meetings Page
+                    </Link>
+                  ) : null}
+                  {meetingsFeedHref ? (
+                    <Link href={meetingsFeedHref} className="qv-link-button qv-button-secondary">
+                      ICS Feed
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              {meetingEvents.length > 0 ? (
                 <div className="qv-detail-list">
                   {meetingEvents.map((event) => (
                     <div key={event.id} className="qv-detail-item">
@@ -753,8 +738,13 @@ async function AdminEventsPage({ context }: { context: ActingCouncilContext }) {
                     </div>
                   ))}
                 </div>
-              </section>
-            ) : null}
+              ) : (
+                <EmptyState
+                  title="No meeting events yet"
+                  body="Add a calendar event for your next council meeting so members can find the public meetings page and subscribe to the calendar feed."
+                />
+              )}
+            </section>
           </div>
         </div>
       </div>
