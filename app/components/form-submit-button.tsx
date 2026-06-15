@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { CSSProperties, ReactNode } from 'react'
 
@@ -14,9 +15,25 @@ type FormSubmitButtonProps = {
 }
 
 function PendingLabel({ label }: { label: ReactNode }) {
+  const starRef = useRef<HTMLImageElement | null>(null)
+
+  useEffect(() => {
+    if (!starRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    const animation = starRef.current.animate(
+      [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+      { duration: 900, iterations: Infinity }
+    )
+
+    return () => animation.cancel()
+  }, [])
+
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
       <img
+        ref={starRef}
         src="/chrism_star.png"
         alt=""
         aria-hidden="true"
