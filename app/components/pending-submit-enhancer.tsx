@@ -5,6 +5,10 @@ import { useEffect } from 'react'
 const STAR_SRC = '/chrism_star.png'
 const RESTORE_DELAY_MS = 12000
 
+function shouldReduceMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 function getPendingLabel(button: HTMLButtonElement) {
   const explicitLabel = button.dataset.pendingLabel?.trim()
 
@@ -41,6 +45,13 @@ function buildPendingContents(label: string) {
   star.style.height = '16px'
   star.style.objectFit = 'contain'
   star.style.flexShrink = '0'
+
+  if (!shouldReduceMotion()) {
+    star.animate(
+      [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+      { duration: 900, iterations: Infinity }
+    )
+  }
 
   const text = document.createElement('span')
   text.textContent = label
