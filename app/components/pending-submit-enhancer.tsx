@@ -9,25 +9,42 @@ function shouldReduceMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function getPendingLabel(button: HTMLButtonElement) {
+function getPendingLabelText(label: string) {
+  const normalizedLabel = label.trim().toLowerCase()
+
+  if (normalizedLabel.includes('archive')) return 'Archiving…'
+  if (normalizedLabel.includes('delete')) return 'Deleting…'
+  if (normalizedLabel.includes('duplicate')) return 'Duplicating…'
+  if (normalizedLabel.includes('remove')) return 'Removing…'
+  if (normalizedLabel.includes('send')) return 'Sending…'
+  if (normalizedLabel.includes('add')) return 'Adding…'
+  if (normalizedLabel.includes('create')) return 'Creating…'
+  if (normalizedLabel.includes('save')) return 'Saving…'
+  if (normalizedLabel.includes('edit')) return 'Opening…'
+  if (normalizedLabel.includes('view')) return 'Opening…'
+  if (normalizedLabel.includes('open')) return 'Opening…'
+
+  return 'Working…'
+}
+
+function getButtonPendingLabel(button: HTMLButtonElement) {
   const explicitLabel = button.dataset.pendingLabel?.trim()
 
   if (explicitLabel) {
     return explicitLabel
   }
 
-  const label = button.textContent?.trim().toLowerCase() ?? ''
+  return getPendingLabelText(button.textContent ?? '')
+}
 
-  if (label.includes('archive')) return 'Archiving…'
-  if (label.includes('delete')) return 'Deleting…'
-  if (label.includes('duplicate')) return 'Duplicating…'
-  if (label.includes('remove')) return 'Removing…'
-  if (label.includes('send')) return 'Sending…'
-  if (label.includes('add')) return 'Adding…'
-  if (label.includes('create')) return 'Creating…'
-  if (label.includes('save')) return 'Saving…'
+function getLinkPendingLabel(link: HTMLAnchorElement) {
+  const explicitLabel = link.dataset.pendingLabel?.trim()
 
-  return 'Working…'
+  if (explicitLabel) {
+    return explicitLabel
+  }
+
+  return getPendingLabelText(link.textContent ?? '')
 }
 
 function buildPendingContents(label: string) {
@@ -75,7 +92,19 @@ function restoreButton(button: HTMLButtonElement) {
   delete button.dataset.pendingOriginalDisabled
 }
 
-function applyPendingState(button: HTMLButtonElement) {
+function restoreLink(link: HTMLAnchorElement) {
+  const originalHtml = link.dataset.pendingOriginalHtml
+
+  if (originalHtml !== undefined) {
+    link.innerHTML = originalHtml
+  }
+
+  link.removeAttribute('aria-busy')
+  link.removeAttribute('aria-disabled')
+  delete link.dataset.pendingOriginalHtml
+}
+
+function applyButtonPendingState(button: HTMLButtonElement) {
   if (button.dataset.pendingOriginalHtml !== undefined) {
     return
   }
@@ -84,13 +113,57 @@ function applyPendingState(button: HTMLButtonElement) {
   button.dataset.pendingOriginalDisabled = String(button.disabled)
   button.disabled = true
   button.setAttribute('aria-busy', 'true')
-  button.replaceChildren(buildPendingContents(getPendingLabel(button)))
+  button.replaceChildren(buildPendingContents(getButtonPendingLabel(button)))
 
   window.setTimeout(() => {
     if (document.contains(button)) {
       restoreButton(button)
     }
   }, RESTORE_DELAY_MS)
+}
+
+function applyLinkPendingState(link: HTMLAnchorElement) {
+  if (link.dataset.pendingOriginalHtml !== undefined) {
+    return
+  }
+
+  link.dataset.pendingOriginalHtml = link.innerHTML
+  link.setAttribute('aria-busy', 'true')
+  link.setAttribute('aria-disabled', 'true')
+  link.replaceChildren(buildPendingContents(getLinkPendingLabel(link)))
+
+  window.setTimeout(() => {
+    if (document.contains(link)) {
+      restoreLink(link)
+    }
+  }, RESTORE_DELAY_MS)
+}
+
+function shouldEnhanceLink(event: MouseEvent, link: HTMLAnchorElement) {
+  if (event.defaultPrevented || link.dataset.pendingLinkEnhancer === 'off') {
+    return false
+  }
+
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+    return false
+  }
+
+  if (link.target && link.target !== '_self') {
+    return false
+  }
+
+  if (link.hasAttribute('download')) {
+    return false
+  }
+
+  const href = link.getAttribute('href')
+  if (!href || href.startsWith('#')) {
+    return false
+  }
+
+  const url = new URL(href, window.location.href)
+
+  return url.origin === window.location.origin && url.pathname !== window.location.pathname + window.location.hash
 }
 
 export default function PendingSubmitEnhancer() {
@@ -108,13 +181,28 @@ export default function PendingSubmitEnhancer() {
           return
         }
 
-        applyPendingState(button)
+        applyButtonPendingState(button)
       })
     }
 
-    document.addEventListener('submit', handleSubmit)
+    function handleClick(event: MouseEvent) {
+      const target = event.target instanceof Element ? event.target : null
+      const link = target?.closest('a.qv-link-button')
 
-    return () => document.removeEventListener('submit', handleSubmit)
+      if (!(link instanceof HTMLAnchorElement) || !shouldEnhanceLink(event, link)) {
+        return
+      }
+
+      applyLinkPendingState(link)
+    }
+
+    document.addEventListener('submit', handleSubmit)
+    document.addEventListener('click', handleClick)
+
+    return () => {
+      document.removeEventListener('submit', handleSubmit)
+      document.removeEventListener('click', handleClick)
+    }
   }, [])
 
   return null
