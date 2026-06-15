@@ -36,7 +36,9 @@ export default function FormSubmitButton({
   name,
   value,
 }: FormSubmitButtonProps) {
-  const { pending } = useFormStatus()
+  const { pending, data } = useFormStatus()
+  const isActiveSubmitter = !name || data?.get(name) === value
+  const showPending = pending && isActiveSubmitter
 
   return (
     <button
@@ -44,11 +46,11 @@ export default function FormSubmitButton({
       className={className}
       style={style}
       disabled={disabled || pending}
-      aria-busy={pending}
+      aria-busy={showPending}
       name={name}
       value={value}
     >
-      {pending ? <PendingLabel label={pendingLabel} /> : idleLabel}
+      {showPending ? <PendingLabel label={pendingLabel} /> : idleLabel}
     </button>
   )
 }
