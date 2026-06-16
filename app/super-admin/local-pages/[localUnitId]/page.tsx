@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { formatEventDateTimeRange } from '@/lib/events/display'
+import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
 import { getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -52,7 +53,7 @@ function orgTypePhrase(code?: string | null) {
   if (code === 'parish') return 'a parish community'
   if (code === 'ssvp') return 'a local conference serving neighbours in need'
   if (code === 'cwl') return 'a Catholic women\'s council serving faith, family, and community'
-  if (code === 'knights_of_columbus') return 'a Catholic fraternal council serving parish and community life'
+  if (code === 'knights_of_columbus') return 'a registered non-profit Catholic fraternal organization'
   return 'a local community organization'
 }
 
@@ -70,10 +71,26 @@ function missionCopy(code?: string | null) {
   }
 
   if (code === 'knights_of_columbus') {
-    return 'We help Catholic men grow in faith, serve their neighbours, support families, and strengthen parish life.'
+    return 'Faith in action through Charity, Unity, Fraternity, and Patriotism, with brothers committed to serving parish, family, and community.'
   }
 
   return 'We bring people together around shared service, local relationships, and meaningful community work.'
+}
+
+function heroSubtitle(displayName: string, code?: string | null) {
+  if (code === 'knights_of_columbus') {
+    return `${displayName} is ${orgTypePhrase(code)} dedicated to serving its parish and the surrounding community.`
+  }
+
+  return `${displayName} is ${orgTypePhrase(code)}, helping people stay connected to service, events, and local community life.`
+}
+
+function involvementCopy(code?: string | null) {
+  if (code === 'knights_of_columbus') {
+    return 'We share a desire to be better husbands, fathers, sons, neighbours, and role models, putting charity and community first. Attend an event, subscribe to meeting updates, or reach out to local leaders.'
+  }
+
+  return 'Attend an event, subscribe to meeting updates, or reach out to local leaders. Future versions of this page can support contact forms, join requests, sponsors, and custom sections.'
 }
 
 function formatShortDate(value: string) {
@@ -87,6 +104,14 @@ function eventKindLabel(kind: EventRow['event_kind_code']) {
   if (kind === 'executive_meeting') return 'Executive meeting'
   if (kind === 'general_meeting') return 'General meeting'
   return 'Event'
+}
+
+function paragraph(text: string) {
+  return preventParagraphOrphans(text)
+}
+
+function displayText(text: string | null | undefined) {
+  return bindSaintNames(text ?? '')
 }
 
 export const dynamic = 'force-dynamic'
@@ -137,7 +162,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const organization = (organizationResponse.data as OrganizationRow | null) ?? null
   const council = (councilResponse.data as CouncilRow | null) ?? null
   const organizationName = organization ? getEffectiveOrganizationName(organization) ?? null : null
-  const displayName = localUnitLabel(localUnit, council)
+  const displayName = displayText(localUnitLabel(localUnit, council))
   const councilNumber = council?.council_number ?? null
   const orgTypeCode = organization?.organization_type_code ?? null
   const nowIso = new Date().toISOString()
@@ -149,6 +174,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const meetingEvents = events.filter((event) => event.event_kind_code !== 'standard').slice(0, 3)
   const publicMeetingsHref = councilNumber ? `/councils/${councilNumber}/meetings` : null
   const meetingsFeedHref = councilNumber ? `/councils/${councilNumber}/meetings.ics` : null
+  const displayTitle = `${displayName}${councilNumber ? ` ${councilNumber}` : ''}`
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -185,12 +211,12 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
       <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 18 }}>
-          <p className="qv-eyebrow">{organizationName ?? 'Chrism local page'}</p>
+          <p className="qv-eyebrow">{displayText(organizationName) || 'Chrism local page'}</p>
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
-            Welcome to {displayName}{councilNumber ? ` ${councilNumber}` : ''}
+            Welcome to {displayTitle}
           </h1>
           <p style={{ margin: 0, maxWidth: 620, color: 'var(--text-secondary)', fontSize: 22, lineHeight: 1.35 }}>
-            {displayName} is {orgTypePhrase(orgTypeCode)}, helping people stay connected to service, events, and local community life.
+            {paragraph(heroSubtitle(displayName, orgTypeCode))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
             <a href="#events" className="qv-link-button qv-button-primary">View Events</a>
@@ -201,9 +227,11 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         <div style={{ display: 'grid', gap: 18 }}>
           <div style={{ minHeight: 210, borderRadius: 28, background: 'linear-gradient(135deg, var(--qv-plum), #8563a0)', boxShadow: '0 20px 60px rgba(46, 42, 52, 0.16)' }} />
           <div id="about" style={{ marginTop: -82, marginLeft: 'clamp(18px, 8vw, 86px)', padding: '42px clamp(28px, 5vw, 58px)', background: 'var(--qv-plum)', color: 'white', borderRadius: 8, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
-            <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>Our mission</p>
+            <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>
+              {orgTypeCode === 'knights_of_columbus' ? 'Faith in Action' : 'Our mission'}
+            </p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
-              {missionCopy(orgTypeCode)}
+              {paragraph(missionCopy(orgTypeCode))}
             </p>
           </div>
         </div>
@@ -213,7 +241,9 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 14 }}>
           <div>
             <h2 className="qv-section-title" style={{ margin: 0, color: 'var(--qv-plum)' }}>Events</h2>
-            <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>Upcoming public events from this local organization.</p>
+            <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>
+              {paragraph('Upcoming public events from this local organization.')}
+            </p>
           </div>
           <Link href="/events" className="qv-link-button qv-button-secondary">See More</Link>
         </div>
@@ -224,8 +254,8 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
               <div key={event.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) auto', gap: 18, alignItems: 'center', padding: '24px 0', borderBottom: '1px solid var(--divider)' }}>
                 <div style={{ color: 'var(--text-secondary)', fontWeight: 800 }}>{formatShortDate(event.starts_at)}</div>
                 <div>
-                  <Link href={`/events/${event.id}`} style={{ color: 'var(--text-primary)', fontSize: 26, fontWeight: 800 }}>{event.title}</Link>
-                  <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>/ {event.location_name || event.location_address || 'Location to be confirmed'}</span>
+                  <Link href={`/events/${event.id}`} style={{ color: 'var(--text-primary)', fontSize: 26, fontWeight: 800 }}>{displayText(event.title)}</Link>
+                  <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>/ {displayText(event.location_name || event.location_address || 'Location to be confirmed')}</span>
                 </div>
                 <Link href={`/events/${event.id}`} className="qv-link-button qv-button-primary">{event.requires_rsvp ? 'RSVP' : 'View'}</Link>
               </div>
@@ -234,7 +264,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         ) : (
           <div className="qv-empty" style={{ marginTop: 22 }}>
             <h3 className="qv-empty-title">No public events yet</h3>
-            <p className="qv-empty-text">Public events will appear here once this local organization publishes them in Chrism.</p>
+            <p className="qv-empty-text">{paragraph('Public events will appear here once this local organization publishes them in Chrism.')}</p>
           </div>
         )}
       </section>
@@ -245,7 +275,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>Meetings</p>
           <h2 style={{ margin: 0, fontSize: 'clamp(30px, 4vw, 52px)', lineHeight: 1.08 }}>Stay connected to regular council life.</h2>
           <p style={{ fontSize: 18, lineHeight: 1.5, opacity: 0.88 }}>
-            Public meeting information and calendar subscription links help members keep upcoming gatherings on their own calendars.
+            {paragraph('Public meeting information and calendar subscription links help members keep upcoming gatherings on their own calendars.')}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
             {publicMeetingsHref ? <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">Public Meetings Page</Link> : null}
@@ -255,7 +285,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             <div style={{ display: 'grid', gap: 12, marginTop: 28 }}>
               {meetingEvents.map((event) => (
                 <div key={event.id} style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.25)' }}>
-                  <strong>{event.title}</strong>
+                  <strong>{displayText(event.title)}</strong>
                   <div style={{ opacity: 0.82 }}>{eventKindLabel(event.event_kind_code)} • {formatEventDateTimeRange(event.starts_at, event.ends_at)}</div>
                 </div>
               ))}
@@ -269,7 +299,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <p className="qv-eyebrow">Get involved</p>
           <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
           <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
-            Attend an event, subscribe to meeting updates, or reach out to local leaders. Future versions of this page can support contact forms, join requests, sponsors, and custom sections.
+            {paragraph(involvementCopy(orgTypeCode))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <a href="#events" className="qv-link-button qv-button-primary">Find an Event</a>
@@ -279,8 +309,8 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       </section>
 
       <footer style={{ display: 'grid', gap: 18, padding: '34px clamp(20px, 6vw, 80px)', background: 'var(--qv-plum)', color: 'white' }}>
-        <strong>{displayName}{councilNumber ? ` ${councilNumber}` : ''}</strong>
-        <span style={{ opacity: 0.8 }}>Powered by Chrism. This is a generated local organization page preview.</span>
+        <strong>{displayTitle}</strong>
+        <span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism. This is a generated local organization page preview.')}</span>
       </footer>
     </main>
   )
