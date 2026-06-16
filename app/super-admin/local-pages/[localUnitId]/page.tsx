@@ -45,6 +45,8 @@ type EventRow = {
   requires_rsvp: boolean
 }
 
+const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
+
 function localUnitLabel(unit: LocalUnitRow, council?: CouncilRow | null) {
   return unit.display_name?.trim() || unit.official_name?.trim() || council?.name?.trim() || 'Local organization'
 }
@@ -209,7 +211,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         <strong>Super-admin preview only.</strong> This page is not publicly linked yet. Future URL treatment: <code>/o/[slug]</code>.
       </div>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(280px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(320px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 18 }}>
           <p className="qv-eyebrow">{displayText(organizationName) || 'Chrism local page'}</p>
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
@@ -224,12 +226,21 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gap: 18 }}>
-          <div style={{ minHeight: 210, borderRadius: 28, background: 'linear-gradient(135deg, var(--qv-plum), #8563a0)', boxShadow: '0 20px 60px rgba(46, 42, 52, 0.16)' }} />
-          <div id="about" style={{ marginTop: -82, marginLeft: 'clamp(18px, 8vw, 86px)', padding: '42px clamp(28px, 5vw, 58px)', background: 'var(--qv-plum)', color: 'white', borderRadius: 8, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
-            <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>
-              {orgTypeCode === 'knights_of_columbus' ? 'Faith in Action' : 'Our mission'}
-            </p>
+        <div style={{ position: 'relative', minHeight: 'clamp(420px, 44vw, 620px)' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, width: '70%', aspectRatio: '1 / 1', overflow: 'hidden', background: 'var(--bg-sunken)' }}>
+            <video
+              src={HERO_VIDEO_SRC}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              aria-label="Community service video"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+          <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: 'var(--qv-plum)', color: 'white', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
+            <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>Our mission</p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
               {paragraph(missionCopy(orgTypeCode))}
             </p>
