@@ -1,10 +1,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { formatEventDateTimeRange } from '@/lib/events/display'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
-import { getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 type PageProps = {
@@ -25,6 +26,15 @@ type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
   organization_type_code: string | null
+  logo_storage_path: string | null
+  logo_alt_text: string | null
+  brand_profile?: {
+    code: string | null
+    display_name: string | null
+    logo_storage_bucket: string | null
+    logo_storage_path: string | null
+    logo_alt_text: string | null
+  } | null
 }
 
 type CouncilRow = {
@@ -51,40 +61,12 @@ function localUnitLabel(unit: LocalUnitRow, council?: CouncilRow | null) {
   return unit.display_name?.trim() || unit.official_name?.trim() || council?.name?.trim() || 'Local organization'
 }
 
-function orgTypePhrase(code?: string | null) {
-  if (code === 'parish') return 'a parish community'
-  if (code === 'ssvp') return 'a local conference serving neighbours in need'
-  if (code === 'cwl') return 'a Catholic women\'s council serving faith, family, and community'
-  if (code === 'knights_of_columbus') return 'a registered non-profit Catholic fraternal organization'
-  return 'a local community organization'
+function missionCopy() {
+  return 'Empowering Catholic men to live out their faith through charity, unity, and fraternity.'
 }
 
-function missionCopy(code?: string | null) {
-  if (code === 'parish') {
-    return 'We gather people for worship, service, formation, and community life, helping neighbours stay connected to the mission of the parish.'
-  }
-
-  if (code === 'ssvp') {
-    return 'We help neighbours through practical service, quiet dignity, and steady local relationships rooted in charity.'
-  }
-
-  if (code === 'cwl') {
-    return 'We bring members together for faith, service, leadership, and friendship in support of parish and community life.'
-  }
-
-  if (code === 'knights_of_columbus') {
-    return 'Faith in action through Charity, Unity, Fraternity, and Patriotism, with brothers committed to serving parish, family, and community.'
-  }
-
-  return 'We bring people together around shared service, local relationships, and meaningful community work.'
-}
-
-function heroSubtitle(displayName: string, code?: string | null) {
-  if (code === 'knights_of_columbus') {
-    return `${displayName} is ${orgTypePhrase(code)} dedicated to serving its parish and the surrounding community.`
-  }
-
-  return `${displayName} is ${orgTypePhrase(code)}, helping people stay connected to service, events, and local community life.`
+function heroSubtitle(displayName: string) {
+  return `${displayName} is a registered not-for-profit local community organization, helping people stay connected through shared service and meaningful community work.`
 }
 
 function involvementCopy(code?: string | null) {
@@ -142,7 +124,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
     localUnit.legacy_organization_id
       ? admin
           .from('organizations')
-          .select('id, display_name, preferred_name, organization_type_code')
+          .select('id, display_name, preferred_name, organization_type_code, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', localUnit.legacy_organization_id)
           .maybeSingle<OrganizationRow>()
       : Promise.resolve({ data: null }),
@@ -164,6 +146,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const organization = (organizationResponse.data as OrganizationRow | null) ?? null
   const council = (councilResponse.data as CouncilRow | null) ?? null
   const organizationName = organization ? getEffectiveOrganizationName(organization) ?? null : null
+  const organizationBranding = organization ? getEffectiveOrganizationBranding(organization) : null
   const displayName = displayText(localUnitLabel(localUnit, council))
   const councilNumber = council?.council_number ?? null
   const orgTypeCode = organization?.organization_type_code ?? null
@@ -189,14 +172,23 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 18,
-          padding: '16px clamp(20px, 5vw, 54px)',
+          padding: '14px clamp(20px, 5vw, 54px)',
           background: 'rgba(253, 252, 249, 0.94)',
           borderBottom: '1px solid var(--divider)',
           backdropFilter: 'blur(12px)',
         }}
       >
-        <Link href="/super-admin/local-pages" style={{ display: 'inline-flex', alignItems: 'center' }}>
-          <Image src="/Chrism_horiz.svg" alt="Chrism" width={160} height={54} priority />
+        <Link href="/super-admin/local-pages" style={{ display: 'inline-flex', alignItems: 'center', gap: 14, color: 'var(--text-primary)', textDecoration: 'none' }}>
+          <OrganizationAvatar
+            displayName={displayName}
+            logoStoragePath={organizationBranding?.logo_storage_path ?? null}
+            logoAltText={organizationBranding?.logo_alt_text ?? displayTitle}
+            size={68}
+          />
+          <span style={{ display: 'grid', gap: 2 }}>
+            <strong style={{ fontSize: 18, lineHeight: 1.1 }}>{displayTitle}</strong>
+            {organizationName ? <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 800 }}>{displayText(organizationName)}</span> : null}
+          </span>
         </Link>
         <nav style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', fontSize: 14, fontWeight: 700 }}>
           <a href="#about" style={{ color: 'var(--text-primary)' }}>About</a>
@@ -205,6 +197,9 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <a href="#contact" style={{ color: 'var(--text-primary)' }}>Get involved</a>
           <Link href="/super-admin/local-pages" className="qv-link-button qv-button-secondary">Back to previews</Link>
         </nav>
+        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.72 }} aria-label="Powered by Chrism">
+          <Image src="/Chrism_horiz.svg" alt="Chrism" width={96} height={32} priority />
+        </Link>
       </header>
 
       <div style={{ padding: '18px clamp(20px, 5vw, 54px)', background: 'var(--bg-sunken)', borderBottom: '1px solid var(--divider)' }}>
@@ -213,12 +208,20 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
       <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(320px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 18 }}>
-          <p className="qv-eyebrow">{displayText(organizationName) || 'Chrism local page'}</p>
+          <div style={{ display: 'inline-flex', width: 'fit-content', alignItems: 'center', gap: 12, padding: 12, border: '1px solid var(--divider)', background: 'white' }}>
+            <OrganizationAvatar
+              displayName={displayName}
+              logoStoragePath={organizationBranding?.logo_storage_path ?? null}
+              logoAltText={organizationBranding?.logo_alt_text ?? displayTitle}
+              size={88}
+            />
+            <p className="qv-eyebrow" style={{ margin: 0 }}>{displayText(organizationName) || 'Chrism local page'}</p>
+          </div>
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
             Welcome to {displayTitle}
           </h1>
           <p style={{ margin: 0, maxWidth: 620, color: 'var(--text-secondary)', fontSize: 22, lineHeight: 1.35 }}>
-            {paragraph(heroSubtitle(displayName, orgTypeCode))}
+            {paragraph(heroSubtitle(displayName))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
             <a href="#events" className="qv-link-button qv-button-primary">View Events</a>
@@ -242,7 +245,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: 'var(--qv-plum)', color: 'white', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
             <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>Our mission</p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
-              {paragraph(missionCopy(orgTypeCode))}
+              {paragraph(missionCopy())}
             </p>
           </div>
         </div>
