@@ -56,6 +56,7 @@ type EventRow = {
 }
 
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
+const CHRISM_YELLOW = '#f5c84b'
 
 function localUnitLabel(unit: LocalUnitRow, council?: CouncilRow | null) {
   return unit.display_name?.trim() || unit.official_name?.trim() || council?.name?.trim() || 'Local organization'
@@ -160,9 +161,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const publicMeetingsHref = councilNumber ? `/councils/${councilNumber}/meetings` : null
   const meetingsFeedHref = councilNumber ? `/councils/${councilNumber}/meetings.ics` : null
   const displayTitle = `${displayName}${councilNumber ? ` ${councilNumber}` : ''}`
-  const parentBrandName = orgTypeCode === 'knights_of_columbus'
-    ? 'Knights of Columbus'
-    : displayText(organizationName) || 'Local organization'
+  const parentBrandName = councilNumber ? 'Knights of Columbus' : displayText(organizationName) || 'Local organization'
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -198,7 +197,6 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <a href="#events" style={{ color: 'var(--text-primary)' }}>Events</a>
           <a href="#meetings" style={{ color: 'var(--text-primary)' }}>Meetings</a>
           <a href="#contact" style={{ color: 'var(--text-primary)' }}>Get involved</a>
-          <Link href="/super-admin/local-pages" className="qv-link-button qv-button-secondary">Back to previews</Link>
         </nav>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.58, filter: 'grayscale(1) saturate(0)' }} aria-label="Powered by Chrism">
           <Image src="/Chrism_horiz.svg" alt="Chrism" width={92} height={31} priority />
@@ -211,7 +209,6 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
       <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(320px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 18 }}>
-          <p className="qv-eyebrow" style={{ margin: 0 }}>{parentBrandName}</p>
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
             Welcome to {displayTitle}
           </h1>
@@ -219,8 +216,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             {paragraph(heroSubtitle(displayName))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
-            <a href="#events" className="qv-link-button qv-button-primary">View Events</a>
-            <a href="#contact" className="qv-link-button qv-button-secondary">Get Involved</a>
+            <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
           </div>
         </div>
 
@@ -237,8 +233,8 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </div>
-          <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: 'var(--qv-plum)', color: 'white', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
-            <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>Our mission</p>
+          <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: CHRISM_YELLOW, color: 'var(--text-primary)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
+            <p style={{ margin: '0 0 10px', opacity: 0.78, fontWeight: 800 }}>Our mission</p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
               {paragraph(missionCopy())}
             </p>
@@ -317,9 +313,12 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         </div>
       </section>
 
-      <footer style={{ display: 'grid', gap: 18, padding: '34px clamp(20px, 6vw, 80px)', background: 'var(--qv-plum)', color: 'white' }}>
-        <strong>{displayTitle}</strong>
-        <span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism. This is a generated local organization page preview.')}</span>
+      <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', padding: '34px clamp(20px, 6vw, 80px)', background: 'var(--qv-plum)', color: 'white' }}>
+        <div style={{ display: 'grid', gap: 8 }}>
+          <strong>{displayTitle}</strong>
+          <span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism. This is a generated local organization page preview.')}</span>
+        </div>
+        <Link href="/super-admin/local-pages" className="qv-link-button qv-button-secondary">Back to previews</Link>
       </footer>
     </main>
   )
