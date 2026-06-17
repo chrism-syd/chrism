@@ -7,6 +7,7 @@ import { formatEventDateTimeRange } from '@/lib/events/display'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { createAdminClient } from '@/lib/supabase/admin'
+import LocalPageModalButton from './local-page-modal-button'
 
 type PageProps = {
   params: Promise<{ localUnitId: string }>
@@ -165,6 +166,20 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
+      <style>{`
+        .local-page-chrism-powered {
+          opacity: 0.48;
+          filter: grayscale(1) saturate(0);
+          transition: opacity 160ms ease, filter 160ms ease;
+        }
+
+        .local-page-chrism-powered:hover,
+        .local-page-chrism-powered:focus-visible {
+          opacity: 1;
+          filter: none;
+        }
+      `}</style>
+
       <header
         style={{
           position: 'sticky',
@@ -198,7 +213,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <a href="#meetings" style={{ color: 'var(--text-primary)' }}>Meetings</a>
           <a href="#contact" style={{ color: 'var(--text-primary)' }}>Get involved</a>
         </nav>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.58, filter: 'grayscale(1) saturate(0)' }} aria-label="Powered by Chrism">
+        <Link href="/" className="local-page-chrism-powered" style={{ display: 'inline-flex', alignItems: 'center' }} aria-label="Powered by Chrism">
           <Image src="/Chrism_horiz.svg" alt="Chrism" width={92} height={31} priority />
         </Link>
       </header>
@@ -216,7 +231,16 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             {paragraph(heroSubtitle(displayName))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
-            <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
+            <LocalPageModalButton label="Get Involved" title="Get involved" className="qv-link-button qv-button-primary">
+              <div style={{ display: 'grid', gap: 14 }}>
+                <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                  {paragraph('A contact form will live here in a future pass. For now, this preview confirms the modal interaction and placement.')}
+                </p>
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                  {paragraph(`Visitors will eventually be able to contact ${displayName}, request more information, or express interest in getting involved.`)}
+                </p>
+              </div>
+            </LocalPageModalButton>
           </div>
         </div>
 
@@ -247,22 +271,23 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <div>
             <h2 className="qv-section-title" style={{ margin: 0, color: 'var(--qv-plum)' }}>Events</h2>
             <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>
-              {paragraph('Upcoming public events from this local organization.')}
+              {paragraph('Upcoming events')}
             </p>
           </div>
-          <Link href="/events" className="qv-link-button qv-button-secondary">See More</Link>
+          {publicMeetingsHref ? (
+            <LocalPageModalButton label="See More" title="Upcoming events" iframeSrc={publicMeetingsHref} />
+          ) : null}
         </div>
 
         {publicEvents.length > 0 ? (
           <div style={{ display: 'grid' }}>
             {publicEvents.map((event) => (
-              <div key={event.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) auto', gap: 18, alignItems: 'center', padding: '24px 0', borderBottom: '1px solid var(--divider)' }}>
+              <div key={event.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr)', gap: 18, alignItems: 'center', padding: '24px 0', borderBottom: '1px solid var(--divider)' }}>
                 <div style={{ color: 'var(--text-secondary)', fontWeight: 800 }}>{formatShortDate(event.starts_at)}</div>
                 <div>
-                  <Link href={`/events/${event.id}`} style={{ color: 'var(--text-primary)', fontSize: 26, fontWeight: 800 }}>{displayText(event.title)}</Link>
-                  <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>/ {displayText(event.location_name || event.location_address || 'Location to be confirmed')}</span>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 26, fontWeight: 800 }}>{displayText(event.title)}</div>
+                  <span style={{ color: 'var(--text-secondary)' }}>/ {displayText(event.location_name || event.location_address || 'Location to be confirmed')}</span>
                 </div>
-                <Link href={`/events/${event.id}`} className="qv-link-button qv-button-primary">{event.requires_rsvp ? 'RSVP' : 'View'}</Link>
               </div>
             ))}
           </div>
@@ -307,7 +332,16 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             {paragraph(involvementCopy(orgTypeCode))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <a href="#events" className="qv-link-button qv-button-primary">Find an Event</a>
+            <LocalPageModalButton label="Get Involved" title="Get involved" className="qv-link-button qv-button-primary">
+              <div style={{ display: 'grid', gap: 14 }}>
+                <p className="qv-section-subtitle" style={{ margin: 0 }}>
+                  {paragraph('A contact form will live here in a future pass. For now, this preview confirms the modal interaction and placement.')}
+                </p>
+                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                  {paragraph(`Visitors will eventually be able to contact ${displayName}, request more information, or express interest in getting involved.`)}
+                </p>
+              </div>
+            </LocalPageModalButton>
             {publicMeetingsHref ? <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">View Meetings</Link> : null}
           </div>
         </div>
