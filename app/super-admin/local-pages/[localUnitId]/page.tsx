@@ -160,6 +160,9 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const publicMeetingsHref = councilNumber ? `/councils/${councilNumber}/meetings` : null
   const meetingsFeedHref = councilNumber ? `/councils/${councilNumber}/meetings.ics` : null
   const displayTitle = `${displayName}${councilNumber ? ` ${councilNumber}` : ''}`
+  const parentBrandName = orgTypeCode === 'knights_of_columbus'
+    ? 'Knights of Columbus'
+    : displayText(organizationName) || 'Local organization'
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -172,7 +175,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 18,
-          padding: '14px clamp(20px, 5vw, 54px)',
+          padding: '14px clamp(20px, 6vw, 80px)',
           background: 'rgba(253, 252, 249, 0.94)',
           borderBottom: '1px solid var(--divider)',
           backdropFilter: 'blur(12px)',
@@ -186,8 +189,8 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             size={68}
           />
           <span style={{ display: 'grid', gap: 2 }}>
-            <strong style={{ fontSize: 18, lineHeight: 1.1 }}>{displayTitle}</strong>
-            {organizationName ? <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 800 }}>{displayText(organizationName)}</span> : null}
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 900, letterSpacing: '0.01em' }}>{parentBrandName}</span>
+            <strong style={{ fontSize: 22, lineHeight: 1.08 }}>{displayName}</strong>
           </span>
         </Link>
         <nav style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', fontSize: 14, fontWeight: 700 }}>
@@ -197,26 +200,18 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <a href="#contact" style={{ color: 'var(--text-primary)' }}>Get involved</a>
           <Link href="/super-admin/local-pages" className="qv-link-button qv-button-secondary">Back to previews</Link>
         </nav>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.72 }} aria-label="Powered by Chrism">
-          <Image src="/Chrism_horiz.svg" alt="Chrism" width={96} height={32} priority />
+        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.58, filter: 'grayscale(1) saturate(0)' }} aria-label="Powered by Chrism">
+          <Image src="/Chrism_horiz.svg" alt="Chrism" width={92} height={31} priority />
         </Link>
       </header>
 
-      <div style={{ padding: '18px clamp(20px, 5vw, 54px)', background: 'var(--bg-sunken)', borderBottom: '1px solid var(--divider)' }}>
+      <div style={{ padding: '18px clamp(20px, 6vw, 80px)', background: 'var(--bg-sunken)', borderBottom: '1px solid var(--divider)' }}>
         <strong>Super-admin preview only.</strong> This page is not publicly linked yet. Future URL treatment: <code>/o/[slug]</code>.
       </div>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(320px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 18 }}>
-          <div style={{ display: 'inline-flex', width: 'fit-content', alignItems: 'center', gap: 12, padding: 12, border: '1px solid var(--divider)', background: 'white' }}>
-            <OrganizationAvatar
-              displayName={displayName}
-              logoStoragePath={organizationBranding?.logo_storage_path ?? null}
-              logoAltText={organizationBranding?.logo_alt_text ?? displayTitle}
-              size={88}
-            />
-            <p className="qv-eyebrow" style={{ margin: 0 }}>{displayText(organizationName) || 'Chrism local page'}</p>
-          </div>
+          <p className="qv-eyebrow" style={{ margin: 0 }}>{parentBrandName}</p>
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
             Welcome to {displayTitle}
           </h1>
