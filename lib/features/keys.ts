@@ -1,4 +1,9 @@
 export const FEATURE_KEYS = {
+  MEMBERS_DIRECTORY: 'members.directory',
+  MEMBERS_DETAILS: 'members.details',
+  CLAIMS_MANAGEMENT: 'claims.management',
+  ADMINS_MANAGEMENT: 'admins.management',
+  LOCAL_UNIT_SETTINGS: 'local_unit.settings',
   AUTOMATION_EMAIL_FOLLOWUPS: 'automation.email_followups',
   AUTOMATION_EVENT_REMINDERS: 'automation.event_reminders',
   AUTOMATION_RSVP_NUDGES: 'automation.rsvp_nudges',
