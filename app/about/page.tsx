@@ -20,7 +20,7 @@ export default async function AboutPage() {
   }
 
   return (
-    <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
+    <main className="qv-page" style={{ color: 'var(--text-primary)', minHeight: '100vh' }}>
       <header
         style={{
           position: 'sticky',
@@ -31,7 +31,7 @@ export default async function AboutPage() {
           justifyContent: 'space-between',
           gap: 18,
           padding: '14px clamp(20px, 6vw, 80px)',
-          background: 'rgba(253, 252, 249, 0.94)',
+          background: 'rgba(250, 246, 242, 0.82)',
           borderBottom: '1px solid var(--divider)',
           backdropFilter: 'blur(12px)',
         }}
