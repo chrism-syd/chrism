@@ -198,6 +198,7 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const councilName = displayText(council.name || organizationName || 'Council')
   const feedHref = `/councils/${council.council_number}/meetings.ics`
+  const localOrgHref = `/councils/${council.council_number}/meetings`
   const emptyUnitTerm = council.council_number ? 'council' : 'organization'
   const monthGroups = groupByMonth(meetings ?? [])
   const parentBrandName = council.council_number ? 'Knights of Columbus' : displayText(organizationName)
@@ -233,7 +234,7 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
           backdropFilter: 'blur(12px)',
         }}
       >
-        <Link href={`/councils/${council.council_number}/meetings`} style={{ display: 'inline-flex', alignItems: 'center', gap: 14, color: 'var(--text-primary)', textDecoration: 'none' }}>
+        <Link href={localOrgHref} style={{ display: 'inline-flex', alignItems: 'center', gap: 14, color: 'var(--text-primary)', textDecoration: 'none' }}>
           <OrganizationAvatar
             displayName={councilName}
             logoStoragePath={effectiveBranding.logo_storage_path}
@@ -246,13 +247,7 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
           </span>
         </Link>
 
-        <nav style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', fontSize: 14, fontWeight: 700 }}>
-          <a href="#events" style={{ color: 'var(--text-primary)' }}>Events</a>
-          <a href="#calendar" style={{ color: 'var(--text-primary)' }}>Calendar</a>
-          <Link href={feedHref} style={{ color: 'var(--text-primary)' }}>Subscribe</Link>
-        </nav>
-
-        <Link href="/" className="public-meetings-chrism-powered" style={{ display: 'inline-flex', alignItems: 'center' }} aria-label="Powered by Chrism">
+        <Link href="/about" className="public-meetings-chrism-powered" style={{ display: 'inline-flex', alignItems: 'center' }} aria-label="About Chrism">
           <Image src="/Chrism_horiz.svg" alt="Chrism" width={92} height={31} priority />
         </Link>
       </header>
@@ -260,24 +255,16 @@ export default async function PublicCouncilMeetingsPage({ params, searchParams }
       <section
         id="events"
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 24,
-          alignItems: 'end',
+          display: 'grid',
+          gap: 22,
           padding: '56px clamp(20px, 6vw, 80px) 18px',
         }}
       >
-        <div>
-          <p className="qv-eyebrow" style={{ margin: '0 0 8px' }}>{parentBrandName}</p>
-          <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
-            Upcoming events
-          </h1>
-          <p className="qv-section-subtitle" style={{ margin: '14px 0 0', maxWidth: 620 }}>
-            Public meetings and community events for {councilName}.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Link href={feedHref} className="qv-link-button qv-button-secondary">ICS Feed</Link>
+        <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
+          Upcoming events
+        </h1>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <Link href={feedHref} className="qv-link-button qv-button-secondary">Subscribe to this calendar</Link>
           <MeetingKindFilter value={selectedKind} />
         </div>
       </section>
