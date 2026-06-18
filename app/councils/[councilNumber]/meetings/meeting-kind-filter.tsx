@@ -11,7 +11,7 @@ type MeetingKindFilterProps = {
 }
 
 const OPTIONS = [
-  { value: 'all', label: 'All events' },
+  { value: 'all', label: 'Showing all events' },
   { value: 'general', label: 'General meetings' },
   { value: 'executive', label: 'Executive meetings' },
   { value: 'community', label: 'Community events' },
