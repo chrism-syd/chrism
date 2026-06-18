@@ -502,20 +502,23 @@ function MarketingLandingPage() {
 
         <section className={`${styles.heroBlock} ${heroStyles.heroBlock}`}>
           <div className={heroStyles.heroCopy}>
-            <h1 className={styles.heroTitle}>
-              Built for
-              <br />
-              community.
-              <br />
-              <span className={heroStyles.heroAccent}>Optimized</span>
-              <br />
-              for business.
+            <h1 className={`${styles.heroTitle} ${heroStyles.animatedHeroTitle}`}>
+              <span className={heroStyles.heroSentencePrimary}>
+                Built for
+                <br />
+                community.
+              </span>
+              <span className={heroStyles.heroSentenceSecondary}>
+                <span className={heroStyles.heroAccent}>Optimized</span>
+                <br />
+                for business.
+              </span>
             </h1>
           </div>
 
           <div className={heroStyles.heroArtwork} aria-hidden="true">
             <Image
-              src="/chair.png"
+              src="/black_chair.png"
               alt=""
               width={780}
               height={780}
@@ -624,6 +627,12 @@ function MarketingLandingPage() {
             </p>
           </div>
         </section>
+
+        <div className={styles.schoolsLinkCard}>
+          <p>
+            We also work directly with <Link href="/schools">schools</Link>.
+          </p>
+        </div>
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
