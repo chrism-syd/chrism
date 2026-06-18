@@ -1,4 +1,5 @@
-import { canLocalUnitUseCustomLists } from '@/lib/features/custom-lists'
+import { getFeatureKeyForManagedArea } from '@/lib/features/areas'
+import { canLocalUnitUseFeature } from '@/lib/features/entitlements'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export type ManagedAreaCode = 'members' | 'events' | 'custom_lists' | 'claims' | 'admins' | 'local_unit_settings'
@@ -15,11 +16,15 @@ async function areaEntitlementAllows(args: {
   areaCode: ManagedAreaCode
   localUnitId: string | null | undefined
 }) {
-  if (args.areaCode !== 'custom_lists') {
+  const featureKey = getFeatureKeyForManagedArea(args.areaCode)
+  if (!featureKey) {
     return true
   }
 
-  const access = await canLocalUnitUseCustomLists(args.localUnitId)
+  const access = await canLocalUnitUseFeature({
+    localUnitId: args.localUnitId,
+    featureKey,
+  })
   return access.allowed
 }
 
@@ -41,8 +46,9 @@ export async function listAccessibleLocalUnitsForArea(args: {
   }
 
   const rows = ((data ?? []) as AccessibleLocalUnitRow[]).filter((row) => Boolean(row.local_unit_id))
+  const featureKey = getFeatureKeyForManagedArea(args.areaCode)
 
-  if (args.areaCode !== 'custom_lists') {
+  if (!featureKey) {
     return rows
   }
 
