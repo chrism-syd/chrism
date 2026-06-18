@@ -14,7 +14,7 @@ type MeetingRow = {
   location_name: string | null
   location_address: string | null
   starts_at: string
-  ends_at: string
+  ends_at: string | null
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting'
   updated_at: string
 }
@@ -52,7 +52,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
     .select('id, title, description, location_name, location_address, starts_at, ends_at, event_kind_code, updated_at')
     .eq('council_id', council.id)
     .in('event_kind_code', ['standard', 'general_meeting', 'executive_meeting'])
-    .gte('ends_at', new Date(Date.now() - 1000 * 60 * 60 * 24 * 180).toISOString())
+    .gte('starts_at', new Date(Date.now() - 1000 * 60 * 60 * 24 * 180).toISOString())
     .order('starts_at', { ascending: true })
     .returns<MeetingRow[]>()
 
@@ -60,6 +60,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
   const publicPageUrl = `${baseUrl.replace(/\/+$/, '')}/o/${encodeURIComponent(canonicalSlug)}/events`
   const nowStamp = toIcsUtc(new Date().toISOString())
   const events = (meetings ?? []).map((meeting) => {
+    const endsAt = meeting.ends_at || meeting.starts_at
     const description = [
       getEventKindLabel(meeting.event_kind_code),
       meeting.description,
@@ -75,7 +76,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
       `UID:event-${meeting.id}@chrism`,
       `DTSTAMP:${toIcsUtc(meeting.updated_at || new Date().toISOString())}`,
       `DTSTART:${toIcsUtc(meeting.starts_at)}`,
-      `DTEND:${toIcsUtc(meeting.ends_at)}`,
+      `DTEND:${toIcsUtc(endsAt)}`,
       `SUMMARY:${escapeIcsText(meeting.title)}`,
       `DESCRIPTION:${escapeIcsText(description)}`,
       `LOCATION:${escapeIcsText(location)}`,
