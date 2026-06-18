@@ -1,3 +1,4 @@
+import { canLocalUnitUseCustomLists } from '@/lib/features/custom-lists'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export type ManagedAreaCode = 'members' | 'events' | 'custom_lists' | 'claims' | 'admins' | 'local_unit_settings'
@@ -8,6 +9,18 @@ export type AccessibleLocalUnitRow = {
   local_unit_name: string
   area_code: ManagedAreaCode
   access_level: ManagedAreaAccessLevel
+}
+
+async function areaEntitlementAllows(args: {
+  areaCode: ManagedAreaCode
+  localUnitId: string | null | undefined
+}) {
+  if (args.areaCode !== 'custom_lists') {
+    return true
+  }
+
+  const access = await canLocalUnitUseCustomLists(args.localUnitId)
+  return access.allowed
 }
 
 export async function listAccessibleLocalUnitsForArea(args: {
@@ -27,7 +40,22 @@ export async function listAccessibleLocalUnitsForArea(args: {
     throw new Error(`Could not list accessible local units for ${args.areaCode}: ${error.message}`)
   }
 
-  return ((data ?? []) as AccessibleLocalUnitRow[]).filter((row) => Boolean(row.local_unit_id))
+  const rows = ((data ?? []) as AccessibleLocalUnitRow[]).filter((row) => Boolean(row.local_unit_id))
+
+  if (args.areaCode !== 'custom_lists') {
+    return rows
+  }
+
+  const rowsWithEntitlement = await Promise.all(
+    rows.map(async (row) => ({
+      row,
+      allowed: await areaEntitlementAllows({ areaCode: args.areaCode, localUnitId: row.local_unit_id }),
+    }))
+  )
+
+  return rowsWithEntitlement
+    .filter((entry) => entry.allowed)
+    .map((entry) => entry.row)
 }
 
 export async function hasAreaAccess(args: {
@@ -49,7 +77,11 @@ export async function hasAreaAccess(args: {
     throw new Error(`Could not evaluate ${args.areaCode} access: ${error.message}`)
   }
 
-  return Boolean(data)
+  if (!data) {
+    return false
+  }
+
+  return areaEntitlementAllows({ areaCode: args.areaCode, localUnitId: args.localUnitId })
 }
 
 export async function findLocalUnitByLegacyCouncilId(args: {
