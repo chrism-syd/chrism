@@ -29,6 +29,8 @@ export const PAID_FEATURE_KEYS = [
   FEATURE_KEYS.REPORTS_ADVANCED,
 ] as const satisfies readonly FeatureKey[]
 
+const PAID_FEATURE_KEY_SET: ReadonlySet<FeatureKey> = new Set(PAID_FEATURE_KEYS)
+
 export function isPaidFeatureKey(featureKey: FeatureKey) {
-  return PAID_FEATURE_KEYS.includes(featureKey)
+  return PAID_FEATURE_KEY_SET.has(featureKey)
 }
