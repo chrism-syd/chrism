@@ -23,6 +23,17 @@ type EventRow = {
   event_kind_code: 'standard' | 'general_meeting' | 'executive_meeting'
 }
 
+type LocalUnitRow = {
+  id: string
+}
+
+type ExternalLinkRow = {
+  id: string
+  label: string
+  url: string
+  sort_order: number
+}
+
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
 const CHRISM_YELLOW = '#f5c84b'
 
@@ -50,7 +61,7 @@ function involvementCopy(code?: string | null) {
     return 'We share a desire to be better husbands, fathers, sons, neighbours, and role models, putting charity and community first. Attend an event, subscribe to updates, or reach out to local leaders.'
   }
 
-  return 'Attend an event, subscribe to updates, or reach out to local leaders. Future versions of this page can support contact forms, join requests, sponsors, and custom sections.'
+  return 'Attend an event, subscribe to updates, or reach out to local leaders.'
 }
 
 function formatShortDate(value: string) {
@@ -87,11 +98,11 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
     redirect(`/o/${canonicalSlug}`)
   }
 
-  const [organizationResponse, eventsResponse] = await Promise.all([
+  const [organizationResponse, eventsResponse, localUnitResponse] = await Promise.all([
     council.organization_id
       ? admin
           .from('organizations')
-          .select('display_name, preferred_name, organization_type_code, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
+          .select('display_name, preferred_name, organization_type_code, public_page_enabled, public_description, public_contact_form_enabled, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', council.organization_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -105,12 +116,20 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
       .order('starts_at', { ascending: true })
       .limit(4)
       .returns<EventRow[]>(),
+    admin
+      .from('local_units')
+      .select('id')
+      .eq('legacy_council_id', council.id)
+      .maybeSingle<LocalUnitRow>(),
   ])
 
   const organization = organizationResponse.data as {
     display_name: string | null
     preferred_name: string | null
     organization_type_code: string | null
+    public_page_enabled?: boolean | null
+    public_description?: string | null
+    public_contact_form_enabled?: boolean | null
     logo_storage_path: string | null
     logo_alt_text: string | null
     brand_profile?: {
@@ -122,6 +141,21 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
     } | null
   } | null
 
+  if (organization?.public_page_enabled === false) notFound()
+
+  const localUnit = (localUnitResponse.data as LocalUnitRow | null) ?? null
+  const externalLinksResponse = localUnit?.id
+    ? await admin
+        .from('local_unit_external_links')
+        .select('id, label, url, sort_order')
+        .eq('local_unit_id', localUnit.id)
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(3)
+        .returns<ExternalLinkRow[]>()
+    : { data: [] as ExternalLinkRow[] }
+
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
   const organizationBranding = getEffectiveOrganizationBranding(organization)
   const displayName = displayText(council.name || organizationName)
@@ -130,6 +164,10 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
   const eventsHref = `/o/${canonicalSlug}/events`
   const feedHref = `/o/${canonicalSlug}/calendar.ics`
   const upcomingEvents = eventsResponse.data ?? []
+  const externalLinks = (externalLinksResponse.data ?? []) as ExternalLinkRow[]
+  const publicDescription = displayText(organization?.public_description)
+  const aboutCopy = publicDescription || missionCopy()
+  const aboutLabel = publicDescription ? 'About us' : 'Our mission'
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -212,9 +250,9 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
             />
           </div>
           <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: CHRISM_YELLOW, color: 'var(--text-primary)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
-            <p style={{ margin: '0 0 10px', opacity: 0.78, fontWeight: 800 }}>Our mission</p>
+            <p style={{ margin: '0 0 10px', opacity: 0.78, fontWeight: 800 }}>{aboutLabel}</p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
-              {paragraph(missionCopy())}
+              {paragraph(aboutCopy)}
             </p>
           </div>
         </div>
@@ -258,6 +296,17 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {upcomingEvents.length > 0 ? <Link href={eventsHref} className="qv-link-button qv-button-secondary">View all events</Link> : null}
             <Link href={feedHref} className="qv-link-button qv-button-secondary">Subscribe to calendar</Link>
+            {externalLinks.map((externalLink) => (
+              <a
+                key={externalLink.id}
+                href={externalLink.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="qv-link-button qv-button-secondary"
+              >
+                {displayText(externalLink.label)}
+              </a>
+            ))}
           </div>
         </div>
       </section>
