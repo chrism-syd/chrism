@@ -82,6 +82,37 @@ function normalizeExternalUrl(rawValue: string | null) {
   }
 }
 
+function buildExternalLinksPayload(args: {
+  formData: FormData
+  localUnitId: string
+  authUserId: string
+}) {
+  return [1, 2, 3].flatMap((index) => {
+    const label = textValue(args.formData, `external_link_${index}_label`)
+    const rawUrl = textValue(args.formData, `external_link_${index}_url`)
+
+    if (!label && !rawUrl) return []
+    if (!label || !rawUrl) {
+      throw new Error(`Enter both a label and URL for external link ${index}, or leave both blank.`)
+    }
+
+    const url = normalizeExternalUrl(rawUrl)
+    if (!url) {
+      throw new Error(`External link ${index} needs a valid http or https URL.`)
+    }
+
+    return [{
+      local_unit_id: args.localUnitId,
+      label,
+      url,
+      sort_order: index,
+      is_active: true,
+      created_by_auth_user_id: args.authUserId,
+      updated_by_auth_user_id: args.authUserId,
+    }]
+  })
+}
+
 export async function updatePublicPageSettingsAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
   const publicDescription = textValue(formData, 'public_description')
@@ -110,33 +141,10 @@ export async function savePublicExternalLinksAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
   const admin = createAdminClient()
   const localUnitId = context.localUnitId!
-
-  const links = [1, 2, 3].flatMap((index) => {
-    const label = textValue(formData, `external_link_${index}_label`)
-    const rawUrl = textValue(formData, `external_link_${index}_url`)
-
-    if (!label && !rawUrl) return []
-    if (!label || !rawUrl) {
-      throw new Error(`Enter both a label and URL for external link ${index}, or leave both blank.`)
-    }
-
-    const url = normalizeExternalUrl(rawUrl)
-    if (!url) {
-      throw new Error(`External link ${index} needs a valid http or https URL.`)
-    }
-
-    return [{
-      local_unit_id: localUnitId,
-      label,
-      url,
-      sort_order: index,
-      is_active: true,
-      created_by_auth_user_id: context.permissions.authUser!.id,
-      updated_by_auth_user_id: context.permissions.authUser!.id,
-    }]
-  })
+  const authUserId = context.permissions.authUser!.id
 
   try {
+    const links = buildExternalLinksPayload({ formData, localUnitId, authUserId })
     const { error: deleteError } = await admin
       .from('local_unit_external_links')
       .delete()
