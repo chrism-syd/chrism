@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 
 function getRequestHost(value: string | null) {
   return (value ?? '').split(':')[0]?.trim().toLowerCase() ?? ''
@@ -16,7 +16,7 @@ export default async function AboutPage() {
   const host = getRequestHost(headerStore.get('x-forwarded-host') ?? headerStore.get('host'))
 
   if (isMarketingHost(host)) {
-    redirect('/')
+    notFound()
   }
 
   return (
