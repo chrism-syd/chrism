@@ -77,6 +77,7 @@ async function loadPublicContext(args: { slug: string }) {
   if (!councilNumber) return null
 
   const admin = createAdminClient()
+  const untypedAdmin = admin as any
   const { data: councilData } = await admin
     .from('councils')
     .select('id, name, council_number, organization_id')
@@ -91,7 +92,7 @@ async function loadPublicContext(args: { slug: string }) {
 
   const [{ data: organizationData }, { data: localUnitData }] = await Promise.all([
     council.organization_id
-      ? admin
+      ? untypedAdmin
           .from('organizations')
           .select('display_name, preferred_name, public_page_enabled, public_contact_form_enabled')
           .eq('id', council.organization_id)
@@ -111,7 +112,7 @@ async function loadPublicContext(args: { slug: string }) {
   if (organization?.public_contact_form_enabled === false) return null
   if (!localUnit?.id) return null
 
-  const { data: routeData } = await admin
+  const { data: routeData } = await untypedAdmin
     .from('local_unit_message_routes')
     .select('recipient_email, recipient_label')
     .eq('local_unit_id', localUnit.id)
@@ -137,6 +138,7 @@ async function findOrCreateDirectoryPerson(args: {
 }) {
   if (args.inquiryType !== 'volunteer' && args.inquiryType !== 'membership') return null
 
+  const untypedAdmin = args.admin as any
   const emailHash = buildHashForField('email', args.submitterEmail)
   let existingPerson: PersonRow | null = null
 
@@ -164,7 +166,7 @@ async function findOrCreateDirectoryPerson(args: {
     .maybeSingle()
 
   if (!existingLocalUnitPerson?.id) {
-    const { error } = await args.admin
+    const { error } = await untypedAdmin
       .from('local_unit_people')
       .insert({
         local_unit_id: args.localUnitId,
@@ -278,7 +280,7 @@ export async function submitPublicContactFormAction(formData: FormData) {
       message,
     })
 
-    const { error: jobError } = await context.admin
+    const { error: jobError } = await (context.admin as any)
       .from('local_unit_public_contact_message_jobs')
       .insert({
         local_unit_id: context.localUnit.id,
