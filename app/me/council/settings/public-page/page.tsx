@@ -56,20 +56,21 @@ export default async function PublicPageSettingsPage() {
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
   if (!localUnitId) redirect('/me/council')
 
+  const untypedAdmin = admin as any
   const [{ data: organizationData }, { data: externalLinksData }, { data: messageRouteData }] = await Promise.all([
-    admin
+    untypedAdmin
       .from('organizations')
       .select('id, display_name, preferred_name, public_page_enabled, public_description, public_contact_form_enabled')
       .eq('id', permissions.organizationId)
       .maybeSingle(),
-    admin
+    untypedAdmin
       .from('local_unit_external_links')
       .select('id, label, url, sort_order, is_active')
       .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
-    admin
+    untypedAdmin
       .from('local_unit_message_routes')
       .select('id, recipient_email, recipient_label')
       .eq('local_unit_id', localUnitId)
