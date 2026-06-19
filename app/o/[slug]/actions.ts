@@ -155,16 +155,28 @@ async function findOrCreateDirectoryPerson(args: {
 
   const personId = existingPerson?.id ?? await createDirectoryPerson(args)
 
-  await args.admin
+  const { data: existingLocalUnitPerson } = await args.admin
     .from('local_unit_people')
-    .insert({
-      local_unit_id: args.localUnitId,
-      person_id: personId,
-      source_code: 'public_landing_page',
-      linked_at: new Date().toISOString(),
-    })
     .select('id')
+    .eq('local_unit_id', args.localUnitId)
+    .eq('person_id', personId)
+    .is('ended_at', null)
     .maybeSingle()
+
+  if (!existingLocalUnitPerson?.id) {
+    const { error } = await args.admin
+      .from('local_unit_people')
+      .insert({
+        local_unit_id: args.localUnitId,
+        person_id: personId,
+        source_code: 'public_landing_page',
+        linked_at: new Date().toISOString(),
+      })
+
+    if (error && error.code !== '23505') {
+      throw new Error(error.message)
+    }
+  }
 
   return personId
 }
