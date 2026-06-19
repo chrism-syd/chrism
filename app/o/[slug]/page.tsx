@@ -167,7 +167,6 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
   const externalLinks = (externalLinksResponse.data ?? []) as ExternalLinkRow[]
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
-  const aboutLabel = publicDescription ? 'About us' : 'Our mission'
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -250,7 +249,6 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
             />
           </div>
           <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: CHRISM_YELLOW, color: 'var(--text-primary)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
-            <p style={{ margin: '0 0 10px', opacity: 0.78, fontWeight: 800 }}>{aboutLabel}</p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
               {paragraph(aboutCopy)}
             </p>
