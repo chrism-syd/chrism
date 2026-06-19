@@ -105,6 +105,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   if (!councilNumber) notFound()
 
   const admin = createAdminClient()
+  const untypedAdmin = admin as any
 
   const { data: council } = await admin
     .from('councils')
@@ -121,7 +122,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
 
   const [organizationResponse, eventsResponse, localUnitResponse] = await Promise.all([
     council.organization_id
-      ? admin
+      ? untypedAdmin
           .from('organizations')
           .select('display_name, preferred_name, organization_type_code, public_page_enabled, public_description, public_contact_form_enabled, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', council.organization_id)
@@ -165,28 +166,37 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   if (organization?.public_page_enabled === false) notFound()
 
   const localUnit = (localUnitResponse.data as LocalUnitRow | null) ?? null
-  const [externalLinksResponse, contactRouteResponse] = localUnit?.id
+  const [externalLinksResponse, contactRouteResponse, adminRecipientResponse] = localUnit?.id
     ? await Promise.all([
-        admin
+        untypedAdmin
           .from('local_unit_external_links')
           .select('id, label, url, sort_order')
           .eq('local_unit_id', localUnit.id)
           .eq('is_active', true)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true })
-          .limit(3)
-          .returns<ExternalLinkRow[]>(),
-        admin
+          .limit(3),
+        untypedAdmin
           .from('local_unit_message_routes')
           .select('recipient_email, recipient_label')
           .eq('local_unit_id', localUnit.id)
           .eq('route_key', 'public_contact')
           .eq('is_active', true)
-          .maybeSingle(),
+          .order('updated_at', { ascending: false })
+          .limit(1),
+        council.organization_id
+          ? admin
+              .from('organization_admin_assignments')
+              .select('id')
+              .eq('organization_id', council.organization_id)
+              .eq('is_active', true)
+              .limit(1)
+          : Promise.resolve({ data: [] }),
       ])
     : [
         { data: [] as ExternalLinkRow[] },
-        { data: null },
+        { data: [] as MessageRouteRow[] },
+        { data: [] as { id: string }[] },
       ]
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
@@ -198,8 +208,10 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const feedHref = `/o/${canonicalSlug}/calendar.ics`
   const upcomingEvents = eventsResponse.data ?? []
   const externalLinks = (externalLinksResponse.data ?? []) as ExternalLinkRow[]
-  const contactRoute = contactRouteResponse.data as MessageRouteRow | null
-  const showContactForm = Boolean(organization?.public_contact_form_enabled !== false && contactRoute?.recipient_email)
+  const contactRoute = ((contactRouteResponse.data as MessageRouteRow[] | null) ?? [])[0] ?? null
+  const hasCustomContactRecipient = Boolean(contactRoute?.recipient_email)
+  const hasDefaultAdminRecipient = ((adminRecipientResponse.data as { id: string }[] | null) ?? []).length > 0
+  const showContactForm = Boolean(organization?.public_contact_form_enabled !== false && (hasCustomContactRecipient || hasDefaultAdminRecipient))
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
 
