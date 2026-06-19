@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { buildHashForField, protectPeoplePayload } from '@/lib/security/pii'
+import { buildHashForField, decryptPeopleRecord, protectPeoplePayload } from '@/lib/security/pii'
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -35,6 +35,25 @@ type PersonRow = {
   primary_relationship_code: string
 }
 
+type AdminAssignmentRow = {
+  id: string
+  grantee_email: string | null
+  person_id: string | null
+}
+
+type PersonEmailRow = {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+}
+
+type PublicContactRecipient = {
+  email: string
+  name: string | null
+  source: 'custom_route' | 'admin_default'
+}
+
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -42,7 +61,7 @@ function textValue(formData: FormData, key: string) {
   return trimmed === '' ? null : trimmed
 }
 
-function normalizeEmail(value: string | null) {
+function normalizeEmail(value: string | null | undefined) {
   if (!value) return null
   const normalized = value.trim().toLowerCase()
   return normalized.includes('@') ? normalized : null
@@ -70,6 +89,103 @@ function splitName(fullName: string) {
   const lastName = parts.slice(1).join(' ') || 'Unknown'
 
   return { firstName, lastName }
+}
+
+function displayNameForPerson(person: PersonEmailRow) {
+  return [person.first_name, person.last_name].filter(Boolean).join(' ').trim() || null
+}
+
+function dedupeRecipients(recipients: PublicContactRecipient[]) {
+  const seen = new Set<string>()
+  return recipients.flatMap((recipient) => {
+    const email = normalizeEmail(recipient.email)
+    if (!email || seen.has(email)) return []
+    seen.add(email)
+    return [{ ...recipient, email }]
+  })
+}
+
+async function loadCustomContactRecipient(args: {
+  admin: ReturnType<typeof createAdminClient>
+  localUnitId: string
+}): Promise<PublicContactRecipient | null> {
+  const { data, error } = await (args.admin as any)
+    .from('local_unit_message_routes')
+    .select('recipient_email, recipient_label')
+    .eq('local_unit_id', args.localUnitId)
+    .eq('route_key', 'public_contact')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+
+  if (error) return null
+
+  const route = ((data as MessageRouteRow[] | null) ?? [])[0] ?? null
+  const email = normalizeEmail(route?.recipient_email ?? null)
+  if (!email) return null
+
+  return {
+    email,
+    name: route?.recipient_label ?? null,
+    source: 'custom_route',
+  }
+}
+
+async function loadDefaultAdminContactRecipients(args: {
+  admin: ReturnType<typeof createAdminClient>
+  organizationId: string | null | undefined
+}): Promise<PublicContactRecipient[]> {
+  if (!args.organizationId) return []
+
+  const { data, error } = await args.admin
+    .from('organization_admin_assignments')
+    .select('id, grantee_email, person_id')
+    .eq('organization_id', args.organizationId)
+    .eq('is_active', true)
+
+  if (error) throw new Error(error.message)
+
+  const assignments = (data as AdminAssignmentRow[] | null) ?? []
+  const directRecipients: PublicContactRecipient[] = assignments.flatMap((assignment) => {
+    const email = normalizeEmail(assignment.grantee_email)
+    return email ? [{ email, name: null, source: 'admin_default' as const }] : []
+  })
+
+  const personIds = assignments.flatMap((assignment) => assignment.person_id ? [assignment.person_id] : [])
+  if (personIds.length === 0) return dedupeRecipients(directRecipients)
+
+  const { data: peopleData, error: peopleError } = await args.admin
+    .from('people')
+    .select('id, first_name, last_name, email')
+    .in('id', personIds)
+
+  if (peopleError) throw new Error(peopleError.message)
+
+  const personRecipients: PublicContactRecipient[] = ((peopleData as PersonEmailRow[] | null) ?? []).flatMap((person) => {
+    const decrypted = decryptPeopleRecord(person)
+    const email = normalizeEmail(decrypted.email)
+    return email ? [{ email, name: displayNameForPerson(decrypted), source: 'admin_default' as const }] : []
+  })
+
+  return dedupeRecipients([...directRecipients, ...personRecipients])
+}
+
+async function loadContactRecipients(args: {
+  admin: ReturnType<typeof createAdminClient>
+  localUnitId: string
+  organizationId: string | null | undefined
+}) {
+  const customRecipient = await loadCustomContactRecipient({
+    admin: args.admin,
+    localUnitId: args.localUnitId,
+  })
+
+  if (customRecipient) return [customRecipient]
+
+  return loadDefaultAdminContactRecipients({
+    admin: args.admin,
+    organizationId: args.organizationId,
+  })
 }
 
 async function loadPublicContext(args: { slug: string }) {
@@ -112,19 +228,15 @@ async function loadPublicContext(args: { slug: string }) {
   if (organization?.public_contact_form_enabled === false) return null
   if (!localUnit?.id) return null
 
-  const { data: routeData } = await untypedAdmin
-    .from('local_unit_message_routes')
-    .select('recipient_email, recipient_label')
-    .eq('local_unit_id', localUnit.id)
-    .eq('route_key', 'public_contact')
-    .eq('is_active', true)
-    .maybeSingle()
+  const recipients = await loadContactRecipients({
+    admin,
+    localUnitId: localUnit.id,
+    organizationId: council.organization_id,
+  })
 
-  const route = routeData as MessageRouteRow | null
-  const recipientEmail = normalizeEmail(route?.recipient_email ?? null)
-  if (!recipientEmail) return null
+  if (recipients.length === 0) return null
 
-  return { admin, council, organization, localUnit, route: { ...route, recipient_email: recipientEmail }, canonicalSlug }
+  return { admin, council, organization, localUnit, recipients, canonicalSlug }
 }
 
 async function findOrCreateDirectoryPerson(args: {
@@ -226,6 +338,7 @@ function buildMessageBody(args: {
   submitterEmail: string
   submitterPhone: string | null
   message: string
+  recipientSource: PublicContactRecipient['source']
 }) {
   return [
     `New public page inquiry for ${args.orgName}`,
@@ -236,6 +349,10 @@ function buildMessageBody(args: {
     args.submitterPhone ? `Phone: ${args.submitterPhone}` : null,
     '',
     args.message,
+    '',
+    args.recipientSource === 'admin_default'
+      ? 'Note: Public page inquiries are sent to active admins by default. You can change the recipient in Chrism under Council settings > Public Page.'
+      : null,
   ].filter(Boolean).join('\n')
 }
 
@@ -271,43 +388,43 @@ export async function submitPublicContactFormAction(formData: FormData) {
 
     const orgName = context.organization?.preferred_name ?? context.organization?.display_name ?? context.council.name ?? 'your organization'
     const subject = `${inquiryTypeLabel(inquiryType)} - ${submitterName}`
-    const bodyText = buildMessageBody({
-      orgName,
-      inquiryType,
-      submitterName,
-      submitterEmail,
-      submitterPhone,
-      message,
-    })
+    const jobs = context.recipients.map((recipient) => ({
+      local_unit_id: context.localUnit.id,
+      route_key: 'public_contact',
+      inquiry_type_code: inquiryType,
+      status_code: 'pending',
+      recipient_email: recipient.email,
+      recipient_label: recipient.name,
+      reply_to_email: submitterEmail,
+      submitter_name: submitterName,
+      submitter_phone: submitterPhone,
+      subject,
+      body_text: buildMessageBody({
+        orgName,
+        inquiryType,
+        submitterName,
+        submitterEmail,
+        submitterPhone,
+        message,
+        recipientSource: recipient.source,
+      }),
+      payload_snapshot: {
+        inquiry_type: inquiryType,
+        submitter_name: submitterName,
+        submitter_email: submitterEmail,
+        submitter_phone: submitterPhone,
+        message,
+        captured_person_id: capturedPersonId,
+        recipient_source: recipient.source,
+      },
+      scheduled_for: new Date().toISOString(),
+    }))
 
     const { error: jobError } = await (context.admin as any)
       .from('local_unit_public_contact_message_jobs')
-      .insert({
-        local_unit_id: context.localUnit.id,
-        route_key: 'public_contact',
-        inquiry_type_code: inquiryType,
-        status_code: 'pending',
-        recipient_email: context.route.recipient_email,
-        recipient_label: context.route.recipient_label,
-        reply_to_email: submitterEmail,
-        submitter_name: submitterName,
-        submitter_phone: submitterPhone,
-        subject,
-        body_text: bodyText,
-        payload_snapshot: {
-          inquiry_type: inquiryType,
-          submitter_name: submitterName,
-          submitter_email: submitterEmail,
-          submitter_phone: submitterPhone,
-          message,
-          captured_person_id: capturedPersonId,
-        },
-        scheduled_for: new Date().toISOString(),
-      })
+      .insert(jobs)
 
-    if (jobError) {
-      throw new Error(jobError.message)
-    }
+    if (jobError) throw new Error(jobError.message)
   } catch {
     redirect(`/o/${context.canonicalSlug}?contact=error#contact`)
   }
