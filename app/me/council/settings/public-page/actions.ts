@@ -126,7 +126,7 @@ export async function updatePublicPageSettingsAction(formData: FormData) {
   const publicPageEnabled = formData.get('public_page_enabled') === 'true'
   const publicContactFormEnabled = formData.get('public_contact_form_enabled') === 'true'
 
-  const admin = createAdminClient()
+  const admin = createAdminClient() as any
   const { error } = await admin
     .from('organizations')
     .update({
@@ -146,7 +146,7 @@ export async function updatePublicPageSettingsAction(formData: FormData) {
 
 export async function savePublicContactRouteAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient()
+  const admin = createAdminClient() as any
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
   const recipientEmailValue = textValue(formData, 'public_contact_recipient_email')
@@ -204,7 +204,7 @@ export async function savePublicContactRouteAction(formData: FormData) {
 
 export async function savePublicExternalLinksAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient()
+  const admin = createAdminClient() as any
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
 
