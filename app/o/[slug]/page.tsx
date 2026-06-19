@@ -2,14 +2,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import OrganizationAvatar from '@/app/components/organization-avatar'
-import { formatEventDateTimeRange } from '@/lib/events/display'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { submitPublicContactFormAction } from './actions'
 
 type PageProps = {
   params: Promise<{ slug: string }>
+  searchParams?: Promise<{ contact?: string }>
 }
 
 type EventRow = {
@@ -32,6 +33,11 @@ type ExternalLinkRow = {
   label: string
   url: string
   sort_order: number
+}
+
+type MessageRouteRow = {
+  recipient_email: string | null
+  recipient_label: string | null
 }
 
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
@@ -77,8 +83,23 @@ function eventKindLabel(kind: EventRow['event_kind_code']) {
   return 'Event'
 }
 
-export default async function PublicLocalOrganizationPage({ params }: PageProps) {
+function contactStatusMessage(status: string | undefined) {
+  if (status === 'sent') {
+    return 'Thanks. Your message has been sent to the local organization.'
+  }
+  if (status === 'missing') {
+    return 'Please include your name, email, and message before sending.'
+  }
+  if (status === 'error') {
+    return 'Sorry, we could not send that message. Please try again later.'
+  }
+  return null
+}
+
+export default async function PublicLocalOrganizationPage({ params, searchParams }: PageProps) {
   const { slug } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const contactMessage = contactStatusMessage(resolvedSearchParams.contact)
   const councilNumber = extractTrailingCouncilNumber(slug)
 
   if (!councilNumber) notFound()
@@ -144,17 +165,29 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
   if (organization?.public_page_enabled === false) notFound()
 
   const localUnit = (localUnitResponse.data as LocalUnitRow | null) ?? null
-  const externalLinksResponse = localUnit?.id
-    ? await admin
-        .from('local_unit_external_links')
-        .select('id, label, url, sort_order')
-        .eq('local_unit_id', localUnit.id)
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: true })
-        .limit(3)
-        .returns<ExternalLinkRow[]>()
-    : { data: [] as ExternalLinkRow[] }
+  const [externalLinksResponse, contactRouteResponse] = localUnit?.id
+    ? await Promise.all([
+        admin
+          .from('local_unit_external_links')
+          .select('id, label, url, sort_order')
+          .eq('local_unit_id', localUnit.id)
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true })
+          .limit(3)
+          .returns<ExternalLinkRow[]>(),
+        admin
+          .from('local_unit_message_routes')
+          .select('recipient_email, recipient_label')
+          .eq('local_unit_id', localUnit.id)
+          .eq('route_key', 'public_contact')
+          .eq('is_active', true)
+          .maybeSingle(),
+      ])
+    : [
+        { data: [] as ExternalLinkRow[] },
+        { data: null },
+      ]
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
   const organizationBranding = getEffectiveOrganizationBranding(organization)
@@ -165,6 +198,8 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
   const feedHref = `/o/${canonicalSlug}/calendar.ics`
   const upcomingEvents = eventsResponse.data ?? []
   const externalLinks = (externalLinksResponse.data ?? []) as ExternalLinkRow[]
+  const contactRoute = contactRouteResponse.data as MessageRouteRow | null
+  const showContactForm = Boolean(organization?.public_contact_form_enabled !== false && contactRoute?.recipient_email)
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
 
@@ -306,6 +341,49 @@ export default async function PublicLocalOrganizationPage({ params }: PageProps)
               </a>
             ))}
           </div>
+
+          {showContactForm ? (
+            <form action={submitPublicContactFormAction} className="qv-form-grid" style={{ marginTop: 8 }}>
+              <input type="hidden" name="slug" value={canonicalSlug} />
+              {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
+              <div className="qv-form-row qv-form-row-2">
+                <label className="qv-control">
+                  <span className="qv-label">Name</span>
+                  <input name="name" autoComplete="name" required />
+                </label>
+                <label className="qv-control">
+                  <span className="qv-label">Email</span>
+                  <input name="email" type="email" autoComplete="email" required />
+                </label>
+              </div>
+              <div className="qv-form-row qv-form-row-2">
+                <label className="qv-control">
+                  <span className="qv-label">Phone optional</span>
+                  <input name="phone" autoComplete="tel" />
+                </label>
+                <label className="qv-control">
+                  <span className="qv-label">Inquiry type</span>
+                  <select name="inquiry_type" defaultValue="general_question">
+                    <option value="volunteer">I want to volunteer</option>
+                    <option value="membership">I&apos;m interested in joining</option>
+                    <option value="general_question">I have a general question</option>
+                    <option value="help_request">I need help with something</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+              </div>
+              <label className="qv-control">
+                <span className="qv-label">Message</span>
+                <textarea name="message" rows={4} required />
+              </label>
+              <p className="qv-inline-message">
+                By submitting this form, you agree that this organization may contact you about your inquiry.
+              </p>
+              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                <button type="submit" className="qv-button-primary">Send message</button>
+              </div>
+            </form>
+          ) : null}
         </div>
       </section>
 
