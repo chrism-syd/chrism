@@ -75,111 +75,124 @@ export default async function PublicPageSettingsPage() {
     <>
       {shouldClearFlashMessage ? <ClearFlashMessageCookie /> : null}
       <AppHeader />
-      <main className="qv-page-shell">
-        <div className="qv-page-container" style={{ display: 'grid', gap: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-            <div>
+      <main className="qv-page">
+        <div className="qv-shell">
+          <div className="qv-directory-hero">
+            <div className="qv-directory-text">
               <p className="qv-eyebrow">Council settings</p>
-              <h1 className="qv-page-title" style={{ marginBottom: 8 }}>Public page</h1>
-              <p className="qv-page-subtitle" style={{ maxWidth: 760 }}>
+              <div className="qv-directory-title-row">
+                <h1 className="qv-directory-name">Public page</h1>
+              </div>
+              <p className="qv-subtitle" style={{ marginTop: 10 }}>
                 Configure the public-facing front door for {displayName}. This is what people see when they visit the shared Chrism page.
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div className="qv-directory-actions">
               <Link href="/me/council" className="qv-link-button qv-button-secondary">Back to council</Link>
               {publicPageHref ? <Link href={publicPageHref} className="qv-link-button qv-button-primary">View public page</Link> : null}
             </div>
           </div>
 
-          {errorMessage ? <div className="qv-alert qv-alert-error">{errorMessage}</div> : null}
-          {noticeMessage ? <div className="qv-alert qv-alert-success">{noticeMessage}</div> : null}
+          {errorMessage ? <div className="qv-form-alert">{errorMessage}</div> : null}
+          {noticeMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{noticeMessage}</div> : null}
 
-          <section className="qv-card" style={{ display: 'grid', gap: 18 }}>
-            <div>
-              <p className="qv-eyebrow">Landing page</p>
-              <h2 className="qv-section-title" style={{ margin: 0 }}>Page visibility and intro</h2>
-              <p className="qv-section-subtitle" style={{ marginTop: 6 }}>
-                Keep this short. The strongest landing page is powered by real org details, upcoming events, and a clear way to get in touch.
-              </p>
+          <section className="qv-card">
+            <div className="qv-directory-section-head">
+              <div>
+                <p className="qv-eyebrow">Landing page</p>
+                <h2 className="qv-section-title">Page visibility and intro</h2>
+                <p className="qv-section-subtitle">
+                  Keep this short. The strongest landing page is powered by real org details, upcoming events, and a clear way to get in touch.
+                </p>
+              </div>
             </div>
 
-            <form action={updatePublicPageSettingsAction} style={{ display: 'grid', gap: 18 }}>
-              <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontWeight: 800 }}>
-                <input
-                  type="checkbox"
-                  name="public_page_enabled"
-                  value="true"
-                  defaultChecked={organization?.public_page_enabled ?? true}
-                />
-                Public page enabled
-              </label>
+            <form action={updatePublicPageSettingsAction} className="qv-form-grid">
+              <div className="qv-form-row qv-form-row-2">
+                <label className="qv-toggle-card">
+                  <input
+                    type="checkbox"
+                    name="public_page_enabled"
+                    value="true"
+                    defaultChecked={organization?.public_page_enabled ?? true}
+                    className="qv-toggle-checkbox"
+                  />
+                  <span className="qv-toggle-copy">
+                    <span className="qv-toggle-title">Public page enabled</span>
+                    <span className="qv-toggle-text">Let people visit this organization’s public Chrism page.</span>
+                  </span>
+                </label>
 
-              <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontWeight: 800 }}>
-                <input
-                  type="checkbox"
-                  name="public_contact_form_enabled"
-                  value="true"
-                  defaultChecked={organization?.public_contact_form_enabled ?? true}
-                />
-                Show contact/get-involved form when message routing is configured
-              </label>
+                <label className="qv-toggle-card">
+                  <input
+                    type="checkbox"
+                    name="public_contact_form_enabled"
+                    value="true"
+                    defaultChecked={organization?.public_contact_form_enabled ?? true}
+                    className="qv-toggle-checkbox"
+                  />
+                  <span className="qv-toggle-copy">
+                    <span className="qv-toggle-title">Contact form enabled</span>
+                    <span className="qv-toggle-text">Show the get-involved form once message routing is configured.</span>
+                  </span>
+                </label>
+              </div>
 
-              <label style={{ display: 'grid', gap: 8 }}>
-                <span style={{ fontWeight: 800 }}>Public intro</span>
+              <label className="qv-control">
+                <span className="qv-label">Public intro</span>
                 <textarea
                   name="public_description"
                   rows={5}
                   defaultValue={organization?.public_description ?? ''}
                   placeholder="A short welcome or description for people visiting your public page."
-                  className="qv-input"
                 />
               </label>
 
-              <div>
-                <button type="submit" className="qv-button qv-button-primary">Save public page settings</button>
+              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                <button type="submit" className="qv-button-primary">Save public page settings</button>
               </div>
             </form>
           </section>
 
-          <section className="qv-card" style={{ display: 'grid', gap: 18 }}>
-            <div>
-              <p className="qv-eyebrow">Helpful links</p>
-              <h2 className="qv-section-title" style={{ margin: 0 }}>External links</h2>
-              <p className="qv-section-subtitle" style={{ marginTop: 6 }}>
-                Add up to three links. Use them for donations, a Facebook page, a Google Form, a parish site, or anything else worth sending visitors to.
-              </p>
+          <section className="qv-card">
+            <div className="qv-directory-section-head">
+              <div>
+                <p className="qv-eyebrow">Helpful links</p>
+                <h2 className="qv-section-title">External links</h2>
+                <p className="qv-section-subtitle">
+                  Add up to three links. Use them for donations, a Facebook page, a Google Form, a parish site, or anything else worth sending visitors to.
+                </p>
+              </div>
             </div>
 
-            <form action={savePublicExternalLinksAction} style={{ display: 'grid', gap: 18 }}>
+            <form action={savePublicExternalLinksAction} className="qv-form-grid">
               {[0, 1, 2].map((index) => {
                 const link = externalLinkAt(externalLinks, index)
                 const fieldIndex = index + 1
                 return (
-                  <div key={fieldIndex} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 0.4fr) minmax(260px, 1fr)', gap: 12 }}>
-                    <label style={{ display: 'grid', gap: 8 }}>
-                      <span style={{ fontWeight: 800 }}>Link {fieldIndex} label</span>
+                  <div key={fieldIndex} className="qv-form-row qv-form-row-public-links">
+                    <label className="qv-control">
+                      <span className="qv-label">Link {fieldIndex} label</span>
                       <input
                         name={`external_link_${fieldIndex}_label`}
                         defaultValue={link?.label ?? ''}
                         placeholder={fieldIndex === 1 ? 'Donate' : 'Label'}
-                        className="qv-input"
                       />
                     </label>
-                    <label style={{ display: 'grid', gap: 8 }}>
-                      <span style={{ fontWeight: 800 }}>Link {fieldIndex} URL</span>
+                    <label className="qv-control">
+                      <span className="qv-label">Link {fieldIndex} URL</span>
                       <input
                         name={`external_link_${fieldIndex}_url`}
                         defaultValue={link?.url ?? ''}
                         placeholder="https://example.org"
-                        className="qv-input"
                       />
                     </label>
                   </div>
                 )
               })}
 
-              <div>
-                <button type="submit" className="qv-button qv-button-primary">Save external links</button>
+              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                <button type="submit" className="qv-button-primary">Save external links</button>
               </div>
             </form>
           </section>
