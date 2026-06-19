@@ -5,7 +5,7 @@ import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { getFlashMessage } from '@/lib/flash-messages'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
-import { savePublicExternalLinksAction, updatePublicPageSettingsAction } from './actions'
+import { savePublicContactRouteAction, savePublicExternalLinksAction, updatePublicPageSettingsAction } from './actions'
 
 type OrganizationPublicSettingsRow = {
   id: string
@@ -22,6 +22,12 @@ type ExternalLinkRow = {
   url: string
   sort_order: number
   is_active: boolean
+}
+
+type MessageRouteRow = {
+  id: string
+  recipient_email: string | null
+  recipient_label: string | null
 }
 
 const DEFAULT_PUBLIC_INTRO = 'Empowering Catholic men to live out their faith through charity, unity, and fraternity.'
@@ -50,7 +56,7 @@ export default async function PublicPageSettingsPage() {
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
   if (!localUnitId) redirect('/me/council')
 
-  const [{ data: organizationData }, { data: externalLinksData }] = await Promise.all([
+  const [{ data: organizationData }, { data: externalLinksData }, { data: messageRouteData }] = await Promise.all([
     admin
       .from('organizations')
       .select('id, display_name, preferred_name, public_page_enabled, public_description, public_contact_form_enabled')
@@ -63,10 +69,18 @@ export default async function PublicPageSettingsPage() {
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
+    admin
+      .from('local_unit_message_routes')
+      .select('id, recipient_email, recipient_label')
+      .eq('local_unit_id', localUnitId)
+      .eq('route_key', 'public_contact')
+      .eq('is_active', true)
+      .maybeSingle(),
   ])
 
   const organization = organizationData as OrganizationPublicSettingsRow | null
   const externalLinks = ((externalLinksData as ExternalLinkRow[] | null) ?? []).slice(0, 3)
+  const messageRoute = messageRouteData as MessageRouteRow | null
   const publicSlug = council.council_number
     ? buildCouncilPublicOrgSlug({ name: council.name, councilNumber: council.council_number })
     : null
@@ -178,6 +192,43 @@ export default async function PublicPageSettingsPage() {
 
             <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
               <button type="submit" className="qv-button-primary">Save public page settings</button>
+            </div>
+          </form>
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <p className="qv-eyebrow">Contact routing</p>
+              <h2 className="qv-section-title">Public form recipient</h2>
+              <p className="qv-section-subtitle">
+                Submissions from the public get-involved form will be sent to this inbox. Volunteer and joining inquiries will also feed the People directory.
+              </p>
+            </div>
+          </div>
+
+          <form action={savePublicContactRouteAction} className="qv-form-grid">
+            <div className="qv-form-row qv-form-row-public-links">
+              <label className="qv-control">
+                <span className="qv-label">Recipient label</span>
+                <input
+                  name="public_contact_recipient_label"
+                  defaultValue={messageRoute?.recipient_label ?? ''}
+                  placeholder="Membership inbox"
+                />
+              </label>
+              <label className="qv-control">
+                <span className="qv-label">Recipient email</span>
+                <input
+                  name="public_contact_recipient_email"
+                  type="email"
+                  defaultValue={messageRoute?.recipient_email ?? ''}
+                  placeholder="hello@example.org"
+                />
+              </label>
+            </div>
+            <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+              <button type="submit" className="qv-button-primary">Save contact recipient</button>
             </div>
           </form>
         </section>
