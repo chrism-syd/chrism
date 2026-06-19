@@ -154,21 +154,36 @@ export async function savePublicContactRouteAction(formData: FormData) {
   const recipientEmail = normalizeEmail(recipientEmailValue)
 
   try {
-    const { error: deactivateError } = await admin
+    const { data: existingRoutes, error: existingError } = await admin
       .from('local_unit_message_routes')
-      .update({
-        is_active: false,
-        updated_by_auth_user_id: authUserId,
-      })
+      .select('id, is_active, updated_at')
       .eq('local_unit_id', localUnitId)
       .eq('route_key', PUBLIC_CONTACT_ROUTE_KEY)
-      .eq('is_active', true)
+      .order('is_active', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(1)
 
-    if (deactivateError) {
-      throw new Error(deactivateError.message)
+    if (existingError) {
+      throw new Error(existingError.message)
     }
 
+    const existingRouteId = existingRoutes?.[0]?.id as string | undefined
+
     if (!recipientEmailValue) {
+      const { error: clearError } = await admin
+        .from('local_unit_message_routes')
+        .update({
+          is_active: false,
+          updated_by_auth_user_id: authUserId,
+        })
+        .eq('local_unit_id', localUnitId)
+        .eq('route_key', PUBLIC_CONTACT_ROUTE_KEY)
+        .eq('is_active', true)
+
+      if (clearError) {
+        throw new Error(clearError.message)
+      }
+
       revalidatePublicPageSurfaces(context)
       return await redirectToPublicPageSettings({ notice: 'Public contact recipient cleared.' })
     }
@@ -177,21 +192,48 @@ export async function savePublicContactRouteAction(formData: FormData) {
       throw new Error('Enter a valid email address for public contact submissions.')
     }
 
-    const { error: insertError } = await admin
-      .from('local_unit_message_routes')
-      .insert({
-        local_unit_id: localUnitId,
-        route_key: PUBLIC_CONTACT_ROUTE_KEY,
-        recipient_person_id: null,
-        recipient_email: recipientEmail,
-        recipient_label: recipientLabel,
-        is_active: true,
-        created_by_auth_user_id: authUserId,
-        updated_by_auth_user_id: authUserId,
-      })
+    if (existingRouteId) {
+      await admin
+        .from('local_unit_message_routes')
+        .update({
+          is_active: false,
+          updated_by_auth_user_id: authUserId,
+        })
+        .eq('local_unit_id', localUnitId)
+        .eq('route_key', PUBLIC_CONTACT_ROUTE_KEY)
+        .neq('id', existingRouteId)
 
-    if (insertError) {
-      throw new Error(insertError.message)
+      const { error: updateError } = await admin
+        .from('local_unit_message_routes')
+        .update({
+          recipient_person_id: null,
+          recipient_email: recipientEmail,
+          recipient_label: recipientLabel,
+          is_active: true,
+          updated_by_auth_user_id: authUserId,
+        })
+        .eq('id', existingRouteId)
+
+      if (updateError) {
+        throw new Error(updateError.message)
+      }
+    } else {
+      const { error: insertError } = await admin
+        .from('local_unit_message_routes')
+        .insert({
+          local_unit_id: localUnitId,
+          route_key: PUBLIC_CONTACT_ROUTE_KEY,
+          recipient_person_id: null,
+          recipient_email: recipientEmail,
+          recipient_label: recipientLabel,
+          is_active: true,
+          created_by_auth_user_id: authUserId,
+          updated_by_auth_user_id: authUserId,
+        })
+
+      if (insertError) {
+        throw new Error(insertError.message)
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'We could not save the public contact recipient.'
