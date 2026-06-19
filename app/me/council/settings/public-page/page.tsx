@@ -76,12 +76,13 @@ export default async function PublicPageSettingsPage() {
       .eq('local_unit_id', localUnitId)
       .eq('route_key', 'public_contact')
       .eq('is_active', true)
-      .maybeSingle(),
+      .order('updated_at', { ascending: false })
+      .limit(1),
   ])
 
   const organization = organizationData as OrganizationPublicSettingsRow | null
   const externalLinks = ((externalLinksData as ExternalLinkRow[] | null) ?? []).slice(0, 3)
-  const messageRoute = messageRouteData as MessageRouteRow | null
+  const messageRoute = ((messageRouteData as MessageRouteRow[] | null) ?? [])[0] ?? null
   const publicSlug = council.council_number
     ? buildCouncilPublicOrgSlug({ name: council.name, councilNumber: council.council_number })
     : null
