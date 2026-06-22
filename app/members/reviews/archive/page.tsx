@@ -31,6 +31,14 @@ function statusClassName(statusCode: string) {
   return statusCode === 'approved' ? 'qv-mini-pill' : 'qv-mini-pill qv-mini-pill-draft'
 }
 
+function publicInquiryTypeLabel(code: string | null) {
+  if (code === 'volunteer') return 'Volunteer interest'
+  if (code === 'membership') return 'Membership interest'
+  if (code === 'help_request') return 'Help request'
+  if (code === 'other') return 'Other inquiry'
+  return 'General question'
+}
+
 type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
@@ -45,15 +53,36 @@ type OrganizationRow = {
   } | null
 } | null
 
+type PublicContactPayloadSnapshot = {
+  captured_person_id?: string | null
+}
+
+type ArchivedPublicInquiryRow = {
+  id: string
+  inquiry_type_code: string | null
+  submitter_name: string | null
+  reply_to_email: string | null
+  submitter_phone: string | null
+  subject: string | null
+  created_at: string | null
+  cleared_at: string | null
+  payload_snapshot: PublicContactPayloadSnapshot | null
+}
+
+function capturedPersonIdForInquiry(inquiry: ArchivedPublicInquiryRow) {
+  const value = inquiry.payload_snapshot?.captured_person_id
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
 export default async function ReviewDecisionArchivePage() {
-  const { admin, council } = await getCurrentActingCouncilContext({
+  const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
 
-  const [archivedDecisions, organizationData] = await Promise.all([
+  const [archivedDecisions, organizationData, archivedPublicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
       admin,
       councilId: council.id,
@@ -69,11 +98,21 @@ export default async function ReviewDecisionArchivePage() {
           .eq('id', council.organization_id)
           .maybeSingle<Exclude<OrganizationRow, null>>()
       : Promise.resolve({ data: null as OrganizationRow }),
+    localUnitId
+      ? (admin as any)
+          .from('local_unit_public_contact_message_jobs')
+          .select('id, inquiry_type_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, cleared_at, payload_snapshot')
+          .eq('local_unit_id', localUnitId)
+          .not('cleared_at', 'is', null)
+          .order('cleared_at', { ascending: false })
+          .limit(200)
+      : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[] }),
   ])
 
   const organization = organizationData.data ?? null
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
+  const archivedPublicInquiries = ((archivedPublicInquiryData.data ?? []) as ArchivedPublicInquiryRow[])
 
   return (
     <main className="qv-page">
@@ -88,10 +127,10 @@ export default async function ReviewDecisionArchivePage() {
                 {council.council_number ? ` (${council.council_number})` : ''}
               </p>
               <div className="qv-directory-title-row">
-                <h1 className="qv-directory-name">Review decisions archive</h1>
+                <h1 className="qv-directory-name">Review archive</h1>
               </div>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Full history of approved and rejected contact change decisions.
+                Full history of profile review decisions and dismissed public form submissions.
               </p>
             </div>
             <div className="qv-org-avatar-wrap">
@@ -118,7 +157,7 @@ export default async function ReviewDecisionArchivePage() {
           {archivedDecisions.length === 0 ? (
             <div className="qv-empty">
               <h3 className="qv-empty-title">No review decisions yet</h3>
-              <p className="qv-empty-text">Approved and rejected contact changes will appear here.</p>
+              <p className="qv-empty-text">Approved and rejected profile changes will appear here.</p>
             </div>
           ) : (
             <div>
@@ -140,6 +179,64 @@ export default async function ReviewDecisionArchivePage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <h2 className="qv-section-title">Archived public form submissions</h2>
+              <p className="qv-section-subtitle">Dismissed submissions from the public page form stay here for reference.</p>
+            </div>
+          </div>
+
+          {archivedPublicInquiries.length === 0 ? (
+            <div className="qv-empty">
+              <h3 className="qv-empty-title">No archived public submissions yet</h3>
+              <p className="qv-empty-text">Dismissed public form submissions will appear here.</p>
+            </div>
+          ) : (
+            <div>
+              {archivedPublicInquiries.map((inquiry, index) => {
+                const capturedPersonId = capturedPersonIdForInquiry(inquiry)
+
+                return (
+                  <div
+                    key={inquiry.id}
+                    className="qv-list-row-card"
+                    style={{
+                      borderTop: index === 0 ? 'none' : '1px solid rgba(92, 74, 114, 0.16)',
+                      borderRadius: index === 0 ? undefined : 0,
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <div className="qv-list-row-head">
+                      <div>
+                        <div className="qv-list-row-title">{inquiry.submitter_name ?? 'Unnamed submitter'}</div>
+                        <div className="qv-review-row-meta">
+                          {publicInquiryTypeLabel(inquiry.inquiry_type_code)} • Submitted {formatDateTime(inquiry.created_at)} • Dismissed {formatDateTime(inquiry.cleared_at)}
+                        </div>
+                        <div className="qv-inline-message" style={{ marginTop: 6 }}>
+                          {[inquiry.reply_to_email, inquiry.submitter_phone].filter(Boolean).join(' • ') || 'No contact details recorded'}
+                        </div>
+                        {inquiry.subject ? (
+                          <div className="qv-inline-message" style={{ marginTop: 4, color: 'var(--text-primary)' }}>
+                            {inquiry.subject}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="qv-list-row-actions">
+                        {capturedPersonId ? (
+                          <Link href={`/members/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
+                            View person
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </section>
