@@ -82,6 +82,16 @@ export default async function ReviewDecisionArchivePage() {
     minimumAccessLevel: 'edit_manage',
   })
 
+  const archivedPublicInquiryPromise = localUnitId
+    ? (admin as any)
+        .from('local_unit_public_contact_message_jobs')
+        .select('id, inquiry_type_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, cleared_at, payload_snapshot')
+        .eq('local_unit_id', localUnitId)
+        .filter('cleared_at', 'not.is', 'null')
+        .order('cleared_at', { ascending: false })
+        .limit(200)
+    : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[] })
+
   const [archivedDecisions, organizationData, archivedPublicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
       admin,
@@ -98,20 +108,13 @@ export default async function ReviewDecisionArchivePage() {
           .eq('id', council.organization_id)
           .maybeSingle<Exclude<OrganizationRow, null>>()
       : Promise.resolve({ data: null as OrganizationRow }),
-    localUnitId
-      ? (admin as any)
-          .from('local_unit_public_contact_message_jobs')
-          .select('id, inquiry_type_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, cleared_at, payload_snapshot')
-          .eq('local_unit_id', localUnitId)
-          .not('cleared_at', 'is', null)
-          .order('cleared_at', { ascending: false })
-          .limit(200)
-      : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[] }),
+    archivedPublicInquiryPromise,
   ])
 
   const organization = organizationData.data ?? null
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
+  const archivedPublicInquiryError = archivedPublicInquiryData.error?.message ?? null
   const archivedPublicInquiries = ((archivedPublicInquiryData.data ?? []) as ArchivedPublicInquiryRow[])
 
   return (
@@ -191,7 +194,12 @@ export default async function ReviewDecisionArchivePage() {
             </div>
           </div>
 
-          {archivedPublicInquiries.length === 0 ? (
+          {archivedPublicInquiryError ? (
+            <div className="qv-error">
+              <strong>Could not load archived public submissions.</strong>
+              <p>{archivedPublicInquiryError}</p>
+            </div>
+          ) : archivedPublicInquiries.length === 0 ? (
             <div className="qv-empty">
               <h3 className="qv-empty-title">No archived public submissions yet</h3>
               <p className="qv-empty-text">Dismissed public form submissions will appear here.</p>
