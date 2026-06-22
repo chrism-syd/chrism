@@ -75,8 +75,8 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
     }
   }
 
-  const memberNavChildren = [
-    ...(permissions.canAccessMemberData ? [{ label: 'Member directory', href: '/members' }] : []),
+  const peopleNavChildren = [
+    ...(permissions.canAccessMemberData ? [{ label: 'People directory', href: '/members' }] : []),
     ...(permissions.canManageCustomLists ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
     ...(permissions.canReviewMemberChanges ? [{ label: 'Reviews', href: '/members/reviews' }] : []),
     ...(permissions.canImportMembers ? [{ label: 'Imports', href: '/imports/supreme' }] : []),
@@ -89,11 +89,11 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
 
   const navItems = permissions.hasStaffAccess
     ? [
-        ...(memberNavChildren.length > 0
+        ...(peopleNavChildren.length > 0
           ? [{
-              label: 'Members',
-              href: memberNavChildren[0]?.href ?? '/members',
-              items: memberNavChildren.length > 1 ? memberNavChildren : undefined,
+              label: 'People',
+              href: peopleNavChildren[0]?.href ?? '/members',
+              items: peopleNavChildren.length > 1 ? peopleNavChildren : undefined,
             }]
           : []),
         ...(!permissions.canAccessMemberData && permissions.canManageCustomLists
@@ -159,7 +159,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
                     { href: '/super-admin/local-pages', label: 'Local pages' },
                   ]
                 : []),
-              ...(permissions.hasStaffAccess && permissions.canManageCustomLists && !memberNavChildren.some((item) => item.href === '/custom-lists')
+              ...(permissions.hasStaffAccess && permissions.canManageCustomLists && !peopleNavChildren.some((item) => item.href === '/custom-lists')
                 ? [{ href: '/custom-lists', label: 'Custom lists' }]
                 : []),
               ...(permissions.canAccessOrganizationSettings || permissions.canManageAdmins
