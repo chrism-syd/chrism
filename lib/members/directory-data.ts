@@ -117,13 +117,23 @@ export async function loadLocalUnitMemberDirectoryData(args: {
   localUnitId: string
 }): Promise<DirectoryData> {
   const { admin, localUnitId } = args
+  const untypedAdmin = admin as any
 
-  const [{ data: membershipData, error: membershipError }, { data: localUnitData, error: localUnitError }] = await Promise.all([
+  const [
+    { data: membershipData, error: membershipError },
+    { data: localUnitPeopleData, error: localUnitPeopleError },
+    { data: localUnitData, error: localUnitError },
+  ] = await Promise.all([
     admin
       .from('member_records')
       .select('legacy_people_id, preferred_display_name')
       .eq('local_unit_id', localUnitId)
       .is('archived_at', null),
+    untypedAdmin
+      .from('local_unit_people')
+      .select('person_id')
+      .eq('local_unit_id', localUnitId)
+      .is('ended_at', null),
     admin
       .from('local_units')
       .select('id, legacy_council_id')
@@ -132,10 +142,14 @@ export async function loadLocalUnitMemberDirectoryData(args: {
   ])
 
   if (membershipError) throw new Error(`Could not load local-unit member records. ${membershipError.message}`)
+  if (localUnitPeopleError) throw new Error(`Could not load local-unit people. ${localUnitPeopleError.message}`)
   if (localUnitError) throw new Error(`Could not load local-unit context. ${localUnitError.message}`)
 
   const membershipRows = ((membershipData as Array<{ legacy_people_id: string | null; preferred_display_name: string | null }> | null) ?? [])
-  const personIds = [...new Set(membershipRows.map((row) => row.legacy_people_id).filter((value): value is string => Boolean(value)))]
+  const localUnitPeopleRows = ((localUnitPeopleData as Array<{ person_id: string | null }> | null) ?? [])
+  const memberRecordPersonIds = membershipRows.map((row) => row.legacy_people_id).filter((value): value is string => Boolean(value))
+  const localUnitPersonIds = localUnitPeopleRows.map((row) => row.person_id).filter((value): value is string => Boolean(value))
+  const personIds = [...new Set([...memberRecordPersonIds, ...localUnitPersonIds])]
 
   if (personIds.length === 0) {
     return buildDirectoryData({ people: [], officerTerms: [] })
@@ -171,7 +185,7 @@ export async function loadLocalUnitMemberDirectoryData(args: {
       : Promise.resolve({ data: [] as OfficerTermWithPerson[], error: null }),
   ])
 
-  if (peopleError) throw new Error(`Could not load local-unit members. ${peopleError.message}`)
+  if (peopleError) throw new Error(`Could not load local-unit people. ${peopleError.message}`)
   if (officerTermsError) throw new Error(`Could not load officer terms for this local unit. ${officerTermsError.message}`)
 
   return buildDirectoryData({
