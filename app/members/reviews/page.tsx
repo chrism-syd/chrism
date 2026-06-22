@@ -245,6 +245,8 @@ export default async function MemberReviewsPage() {
                       borderTop: index === 0 ? 'none' : '1px solid rgba(92, 74, 114, 0.16)',
                       borderRadius: index === 0 ? undefined : 0,
                       boxShadow: 'none',
+                      marginTop: index === 0 ? undefined : 14,
+                      paddingTop: index === 0 ? undefined : 16,
                     }}
                   >
                     <div className="qv-list-row-head">
