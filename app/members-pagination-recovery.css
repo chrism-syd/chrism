@@ -1,0 +1,160 @@
+.qv-members-list-card .qv-pagination-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 2px 0 14px;
+  padding: 14px 0 12px;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+}
+
+.qv-members-list-card .qv-pagination-left,
+.qv-members-list-card .qv-pagination-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.qv-members-list-card .qv-pagination-right {
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.qv-members-list-card .qv-pagination-meta-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.qv-members-list-card .qv-pagination-meta-label,
+.qv-members-list-card .qv-pagination-total,
+.qv-members-list-card .qv-pagination-page-total {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.qv-members-list-card .qv-pagination-inline-select {
+  width: auto;
+  min-width: 0;
+  padding: 4px 22px 4px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.qv-members-list-card .qv-pagination-inline-select:focus {
+  box-shadow: none;
+}
+
+.qv-members-list-card .qv-pagination-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 28px;
+  background: var(--divider-strong);
+}
+
+.qv-members-list-card .qv-pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qv-members-list-card .qv-pagination-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  letter-spacing: -0.04em;
+}
+
+.qv-members-list-card .qv-pagination-icon-button:hover:not(:disabled) {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+}
+
+.qv-members-list-card .qv-pagination-icon-button:disabled {
+  opacity: 0.35;
+}
+
+.qv-members-list-card .qv-pagination-page-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
+.qv-members-list-card .qv-pagination-page-input {
+  width: 46px;
+  min-width: 46px;
+  height: 34px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  text-align: center;
+}
+
+.qv-members-list-card .qv-text-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.qv-members-list-card .qv-text-toggle:hover {
+  color: var(--interactive);
+  background: transparent;
+}
+
+.qv-members-list-card .qv-text-toggle-secondary {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.qv-members-list-card .qv-text-toggle-chevron {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.qv-members-list-card input[type='checkbox'] {
+  accent-color: var(--interactive);
+}
+
+@media (max-width: 720px) {
+  .qv-members-list-card .qv-pagination-toolbar,
+  .qv-members-list-card .qv-pagination-left,
+  .qv-members-list-card .qv-pagination-right {
+    align-items: flex-start;
+  }
+
+  .qv-members-list-card .qv-pagination-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .qv-members-list-card .qv-pagination-controls {
+    flex-wrap: wrap;
+  }
+}
