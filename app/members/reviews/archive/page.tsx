@@ -39,6 +39,16 @@ function publicInquiryTypeLabel(code: string | null) {
   return 'General question'
 }
 
+function archivedRowStyle(index: number) {
+  return {
+    borderTop: index === 0 ? 'none' : '1px solid rgba(92, 74, 114, 0.16)',
+    borderRadius: index === 0 ? undefined : 0,
+    boxShadow: 'none',
+    marginTop: index === 0 ? undefined : 14,
+    paddingTop: index === 0 ? undefined : 16,
+  }
+}
+
 type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
@@ -164,8 +174,8 @@ export default async function ReviewDecisionArchivePage() {
             </div>
           ) : (
             <div>
-              {archivedDecisions.map((item) => (
-                <div key={item.request.id} className="qv-list-row-card">
+              {archivedDecisions.map((item, index) => (
+                <div key={item.request.id} className="qv-list-row-card" style={archivedRowStyle(index)}>
                   <div className="qv-list-row-head">
                     <div>
                       <div className="qv-list-row-title">{getDisplayName(item.person)}</div>
@@ -210,15 +220,7 @@ export default async function ReviewDecisionArchivePage() {
                 const capturedPersonId = capturedPersonIdForInquiry(inquiry)
 
                 return (
-                  <div
-                    key={inquiry.id}
-                    className="qv-list-row-card"
-                    style={{
-                      borderTop: index === 0 ? 'none' : '1px solid rgba(92, 74, 114, 0.16)',
-                      borderRadius: index === 0 ? undefined : 0,
-                      boxShadow: 'none',
-                    }}
-                  >
+                  <div key={inquiry.id} className="qv-list-row-card" style={archivedRowStyle(index)}>
                     <div className="qv-list-row-head">
                       <div>
                         <div className="qv-list-row-title">{inquiry.submitter_name ?? 'Unnamed submitter'}</div>
