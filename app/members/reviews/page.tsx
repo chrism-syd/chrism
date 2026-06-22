@@ -9,7 +9,7 @@ import {
   listProfileChangeReviewSummaries,
   type ProfileChangeReviewField,
 } from '@/lib/profile-change-reviews'
-import { clearReviewDecisionNoticeAction } from './actions'
+import { clearPublicContactInquiryAction, clearReviewDecisionNoticeAction } from './actions'
 
 function formatDateTime(value: string | null) {
   if (!value) return '—'
@@ -46,19 +46,6 @@ function publicInquiryTypeLabel(code: string | null) {
   if (code === 'help_request') return 'Help request'
   if (code === 'other') return 'Other inquiry'
   return 'General question'
-}
-
-function publicInquiryStatusLabel(code: string | null) {
-  if (code === 'sent') return 'Sent'
-  if (code === 'failed') return 'Failed'
-  if (code === 'cancelled') return 'Cancelled'
-  return 'Pending'
-}
-
-function publicInquiryStatusClassName(code: string | null) {
-  if (code === 'sent') return 'qv-mini-pill'
-  if (code === 'failed' || code === 'cancelled') return 'qv-mini-pill qv-mini-pill-draft'
-  return 'qv-mini-pill qv-mini-pill-accent'
 }
 
 type OrganizationRow = {
@@ -138,6 +125,7 @@ export default async function MemberReviewsPage() {
           .from('local_unit_public_contact_message_jobs')
           .select('id, inquiry_type_code, status_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, sent_at, failed_at, failure_message, payload_snapshot')
           .eq('local_unit_id', localUnitId)
+          .is('cleared_at', null)
           .order('created_at', { ascending: false })
           .limit(12)
       : Promise.resolve({ data: [] as PublicInquiryRow[] }),
@@ -147,7 +135,6 @@ export default async function MemberReviewsPage() {
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
   const publicInquiries = ((publicInquiryData.data ?? []) as PublicInquiryRow[])
-  const pendingPublicInquiryCount = publicInquiries.filter((item) => item.status_code === 'pending').length
 
   return (
     <main className="qv-page">
@@ -183,8 +170,8 @@ export default async function MemberReviewsPage() {
               <div className="qv-stat-label">Pending reviews</div>
             </div>
             <div className="qv-stat-card">
-              <div className="qv-stat-number">{pendingPublicInquiryCount}</div>
-              <div className="qv-stat-label">Pending web inquiries</div>
+              <div className="qv-stat-number">{publicInquiries.length}</div>
+              <div className="qv-stat-label">Web inquiries</div>
             </div>
           </div>
         </section>
@@ -235,7 +222,7 @@ export default async function MemberReviewsPage() {
             <div>
               <h2 className="qv-section-title">Public web-form inquiries</h2>
               <p className="qv-section-subtitle">
-                Recent messages submitted from the public page, including volunteer and membership interest.
+                Submissions from the public page form, including volunteer and membership interest. These were also sent by email to the organization admins.
               </p>
             </div>
           </div>
@@ -247,22 +234,24 @@ export default async function MemberReviewsPage() {
             </div>
           ) : (
             <div>
-              {publicInquiries.map((inquiry) => {
+              {publicInquiries.map((inquiry, index) => {
                 const capturedPersonId = capturedPersonIdForInquiry(inquiry)
-                const statusText = publicInquiryStatusLabel(inquiry.status_code)
-                const statusMeta = inquiry.status_code === 'sent'
-                  ? `Sent ${formatDateTime(inquiry.sent_at)}`
-                  : inquiry.status_code === 'failed'
-                    ? `Failed ${formatDateTime(inquiry.failed_at)}`
-                    : `Submitted ${formatDateTime(inquiry.created_at)}`
 
                 return (
-                  <div key={inquiry.id} className="qv-list-row-card">
+                  <div
+                    key={inquiry.id}
+                    className="qv-list-row-card"
+                    style={{
+                      borderTop: index === 0 ? 'none' : '1px solid rgba(92, 74, 114, 0.16)',
+                      borderRadius: index === 0 ? undefined : 0,
+                      boxShadow: 'none',
+                    }}
+                  >
                     <div className="qv-list-row-head">
                       <div>
                         <div className="qv-list-row-title">{inquiry.submitter_name ?? 'Unnamed submitter'}</div>
                         <div className="qv-review-row-meta">
-                          {publicInquiryTypeLabel(inquiry.inquiry_type_code)} • {statusMeta}
+                          {publicInquiryTypeLabel(inquiry.inquiry_type_code)} • Submitted {formatDateTime(inquiry.created_at)}
                         </div>
                         <div className="qv-inline-message" style={{ marginTop: 6 }}>
                           {[inquiry.reply_to_email, inquiry.submitter_phone].filter(Boolean).join(' • ') || 'No contact details recorded'}
@@ -277,12 +266,17 @@ export default async function MemberReviewsPage() {
                         ) : null}
                       </div>
                       <div className="qv-list-row-actions">
-                        <span className={publicInquiryStatusClassName(inquiry.status_code)}>{statusText}</span>
                         {capturedPersonId ? (
                           <Link href={`/members/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
                             View person
                           </Link>
                         ) : null}
+                        <form action={clearPublicContactInquiryAction}>
+                          <input type="hidden" name="inquiry_id" value={inquiry.id} />
+                          <button type="submit" className="qv-button-secondary">
+                            Dismiss
+                          </button>
+                        </form>
                       </div>
                     </div>
                   </div>
