@@ -152,7 +152,7 @@ export default async function MemberReviewsPage() {
                 <h1 className="qv-directory-name">Review queue</h1>
               </div>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Review profile changes and public web-form inquiries for your local organization.
+                Review profile changes and public web-form submissions for your local organization.
               </p>
             </div>
             <div className="qv-org-avatar-wrap">
@@ -171,7 +171,7 @@ export default async function MemberReviewsPage() {
             </div>
             <div className="qv-stat-card">
               <div className="qv-stat-number">{publicInquiries.length}</div>
-              <div className="qv-stat-label">Web inquiries</div>
+              <div className="qv-stat-label">Web submissions</div>
             </div>
           </div>
         </section>
@@ -220,7 +220,7 @@ export default async function MemberReviewsPage() {
         <section className="qv-card">
           <div className="qv-directory-section-head">
             <div>
-              <h2 className="qv-section-title">Public web-form inquiries</h2>
+              <h2 className="qv-section-title">Public web-form submissions</h2>
               <p className="qv-section-subtitle">
                 Submissions from the public page form, including volunteer and membership interest. These were also sent by email to the organization admins.
               </p>
@@ -229,7 +229,7 @@ export default async function MemberReviewsPage() {
 
           {publicInquiries.length === 0 ? (
             <div className="qv-empty">
-              <h3 className="qv-empty-title">No public inquiries yet</h3>
+              <h3 className="qv-empty-title">No public submissions yet</h3>
               <p className="qv-empty-text">Messages from the public contact form will appear here after someone submits the form.</p>
             </div>
           ) : (
