@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import CleanQueryMessageParams from '@/app/components/clean-query-message-params'
 import PendingSubmitEnhancer from '@/app/components/pending-submit-enhancer'
 import './globals.css'
+import './site-recovery.css'
 import './auth-polish.css'
 
 const bodyFont = localFont({
