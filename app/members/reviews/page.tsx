@@ -40,6 +40,27 @@ function statusClassName(statusCode: string) {
   return 'qv-mini-pill qv-mini-pill-accent'
 }
 
+function publicInquiryTypeLabel(code: string | null) {
+  if (code === 'volunteer') return 'Volunteer interest'
+  if (code === 'membership') return 'Membership interest'
+  if (code === 'help_request') return 'Help request'
+  if (code === 'other') return 'Other inquiry'
+  return 'General question'
+}
+
+function publicInquiryStatusLabel(code: string | null) {
+  if (code === 'sent') return 'Sent'
+  if (code === 'failed') return 'Failed'
+  if (code === 'cancelled') return 'Cancelled'
+  return 'Pending'
+}
+
+function publicInquiryStatusClassName(code: string | null) {
+  if (code === 'sent') return 'qv-mini-pill'
+  if (code === 'failed' || code === 'cancelled') return 'qv-mini-pill qv-mini-pill-draft'
+  return 'qv-mini-pill qv-mini-pill-accent'
+}
+
 type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
@@ -54,15 +75,42 @@ type OrganizationRow = {
   } | null
 } | null
 
+type PublicContactPayloadSnapshot = {
+  captured_person_id?: string | null
+  message?: string | null
+  submitter_email?: string | null
+  recipient_source?: string | null
+}
+
+type PublicInquiryRow = {
+  id: string
+  inquiry_type_code: string | null
+  status_code: string | null
+  submitter_name: string | null
+  reply_to_email: string | null
+  submitter_phone: string | null
+  subject: string | null
+  created_at: string | null
+  sent_at: string | null
+  failed_at: string | null
+  failure_message: string | null
+  payload_snapshot: PublicContactPayloadSnapshot | null
+}
+
+function capturedPersonIdForInquiry(inquiry: PublicInquiryRow) {
+  const value = inquiry.payload_snapshot?.captured_person_id
+  return typeof value === 'string' && value.trim() ? value : null
+}
+
 export default async function MemberReviewsPage() {
-  const { admin, council } = await getCurrentActingCouncilContext({
+  const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
 
-  const [pendingReviews, recentDecisions, organizationData] = await Promise.all([
+  const [pendingReviews, recentDecisions, organizationData, publicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
       admin,
       councilId: council.id,
@@ -85,11 +133,21 @@ export default async function MemberReviewsPage() {
           .eq('id', council.organization_id)
           .maybeSingle<Exclude<OrganizationRow, null>>()
       : Promise.resolve({ data: null as OrganizationRow }),
+    localUnitId
+      ? (admin as any)
+          .from('local_unit_public_contact_message_jobs')
+          .select('id, inquiry_type_code, status_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, sent_at, failed_at, failure_message, payload_snapshot')
+          .eq('local_unit_id', localUnitId)
+          .order('created_at', { ascending: false })
+          .limit(12)
+      : Promise.resolve({ data: [] as PublicInquiryRow[] }),
   ])
 
   const organization = organizationData.data ?? null
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
+  const publicInquiries = ((publicInquiryData.data ?? []) as PublicInquiryRow[])
+  const pendingPublicInquiryCount = publicInquiries.filter((item) => item.status_code === 'pending').length
 
   return (
     <main className="qv-page">
@@ -107,7 +165,7 @@ export default async function MemberReviewsPage() {
                 <h1 className="qv-directory-name">Review queue</h1>
               </div>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Review member-submitted contact changes before they update the directory.
+                Review profile changes and public web-form inquiries for your local organization.
               </p>
             </div>
             <div className="qv-org-avatar-wrap">
@@ -124,6 +182,10 @@ export default async function MemberReviewsPage() {
               <div className="qv-stat-number">{pendingReviews.length}</div>
               <div className="qv-stat-label">Pending reviews</div>
             </div>
+            <div className="qv-stat-card">
+              <div className="qv-stat-number">{pendingPublicInquiryCount}</div>
+              <div className="qv-stat-label">Pending web inquiries</div>
+            </div>
           </div>
         </section>
 
@@ -132,17 +194,17 @@ export default async function MemberReviewsPage() {
         <section className="qv-card">
           <div className="qv-directory-section-head">
             <div>
-              <h2 className="qv-section-title">Pending changes to review</h2>
+              <h2 className="qv-section-title">Pending profile changes</h2>
               <p className="qv-section-subtitle">
-                Open a request to compare the current record against the change that was submitted.
+                Open a request to compare the current People record against the submitted change.
               </p>
             </div>
           </div>
 
           {pendingReviews.length === 0 ? (
             <div className="qv-empty">
-              <h3 className="qv-empty-title">Nothing is waiting right now</h3>
-              <p className="qv-empty-text">New member-submitted contact changes will land here.</p>
+              <h3 className="qv-empty-title">No profile changes are waiting right now</h3>
+              <p className="qv-empty-text">New submitted profile or contact changes will land here.</p>
             </div>
           ) : (
             <div>
@@ -164,6 +226,68 @@ export default async function MemberReviewsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <h2 className="qv-section-title">Public web-form inquiries</h2>
+              <p className="qv-section-subtitle">
+                Recent messages submitted from the public page, including volunteer and membership interest.
+              </p>
+            </div>
+          </div>
+
+          {publicInquiries.length === 0 ? (
+            <div className="qv-empty">
+              <h3 className="qv-empty-title">No public inquiries yet</h3>
+              <p className="qv-empty-text">Messages from the public contact form will appear here after someone submits the form.</p>
+            </div>
+          ) : (
+            <div>
+              {publicInquiries.map((inquiry) => {
+                const capturedPersonId = capturedPersonIdForInquiry(inquiry)
+                const statusText = publicInquiryStatusLabel(inquiry.status_code)
+                const statusMeta = inquiry.status_code === 'sent'
+                  ? `Sent ${formatDateTime(inquiry.sent_at)}`
+                  : inquiry.status_code === 'failed'
+                    ? `Failed ${formatDateTime(inquiry.failed_at)}`
+                    : `Submitted ${formatDateTime(inquiry.created_at)}`
+
+                return (
+                  <div key={inquiry.id} className="qv-list-row-card">
+                    <div className="qv-list-row-head">
+                      <div>
+                        <div className="qv-list-row-title">{inquiry.submitter_name ?? 'Unnamed submitter'}</div>
+                        <div className="qv-review-row-meta">
+                          {publicInquiryTypeLabel(inquiry.inquiry_type_code)} • {statusMeta}
+                        </div>
+                        <div className="qv-inline-message" style={{ marginTop: 6 }}>
+                          {[inquiry.reply_to_email, inquiry.submitter_phone].filter(Boolean).join(' • ') || 'No contact details recorded'}
+                        </div>
+                        {inquiry.subject ? (
+                          <div className="qv-inline-message" style={{ marginTop: 4, color: 'var(--text-primary)' }}>
+                            {inquiry.subject}
+                          </div>
+                        ) : null}
+                        {inquiry.status_code === 'failed' && inquiry.failure_message ? (
+                          <p className="qv-inline-error" style={{ marginTop: 6 }}>{inquiry.failure_message}</p>
+                        ) : null}
+                      </div>
+                      <div className="qv-list-row-actions">
+                        <span className={publicInquiryStatusClassName(inquiry.status_code)}>{statusText}</span>
+                        {capturedPersonId ? (
+                          <Link href={`/members/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
+                            View person
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </section>
