@@ -202,3 +202,44 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
   revalidatePath(`/members/reviews/${requestId}`)
   revalidatePath('/me')
 }
+
+export async function clearPublicContactInquiryAction(formData: FormData) {
+  const inquiryId = normalizeText(formData.get('inquiry_id'))
+
+  if (!inquiryId) {
+    throw new Error('Missing public inquiry id.')
+  }
+
+  const { admin, permissions, localUnitId } = await getCurrentActingCouncilContext({
+    requireAdmin: true,
+    redirectTo: '/members/reviews',
+    areaCode: 'members',
+    minimumAccessLevel: 'edit_manage',
+  })
+
+  if (!permissions.authUser) {
+    throw new Error('You must be signed in to dismiss public inquiries.')
+  }
+
+  if (!localUnitId) {
+    throw new Error('Could not identify the active local organization.')
+  }
+
+  const { error } = await (admin as any)
+    .from('local_unit_public_contact_message_jobs')
+    .update({
+      cleared_at: new Date().toISOString(),
+      cleared_by_auth_user_id: permissions.authUser.id,
+    })
+    .eq('id', inquiryId)
+    .eq('local_unit_id', localUnitId)
+    .is('cleared_at', null)
+
+  if (error) {
+    throw new Error(`Could not dismiss that public inquiry: ${error.message}`)
+  }
+
+  revalidatePath('/members/reviews')
+  revalidatePath('/members/reviews/archive')
+  revalidatePath('/me')
+}
