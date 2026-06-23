@@ -7,6 +7,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 type InquiryTypeCode = 'volunteer' | 'membership' | 'general_question' | 'help_request' | 'other'
 
+const PUBLIC_CONTACT_COOLDOWN_MS = 10 * 60 * 1000
+
 type CouncilRow = {
   id: string
   name: string | null
@@ -325,7 +327,7 @@ async function createDirectoryPerson(args: {
     .single()
 
   if (error || !data?.id) {
-    throw new Error(error?.message ?? 'Could not create a directory record for this inquiry.')
+    throw new Error(error?.message ?? 'Could not create a directory record for this submission.')
   }
 
   return data.id as string
@@ -341,9 +343,9 @@ function buildMessageBody(args: {
   recipientSource: PublicContactRecipient['source']
 }) {
   return [
-    `New public page inquiry for ${args.orgName}`,
+    `New public page submission for ${args.orgName}`,
     '',
-    `Inquiry type: ${inquiryTypeLabel(args.inquiryType)}`,
+    `Submission type: ${inquiryTypeLabel(args.inquiryType)}`,
     `Name: ${args.submitterName}`,
     `Email: ${args.submitterEmail}`,
     args.submitterPhone ? `Phone: ${args.submitterPhone}` : null,
@@ -351,9 +353,32 @@ function buildMessageBody(args: {
     args.message,
     '',
     args.recipientSource === 'admin_default'
-      ? 'Note: Public page inquiries are sent to active admins by default. You can change the recipient in Chrism under Council settings > Public Page.'
+      ? 'Note: Public page submissions are sent to active admins by default. You can change the recipient in Chrism under Council settings > Public Page.'
       : null,
   ].filter(Boolean).join('\n')
+}
+
+function hasFilledHoneypot(formData: FormData) {
+  return Boolean(textValue(formData, 'website'))
+}
+
+async function hasRecentPublicContactSubmission(args: {
+  admin: ReturnType<typeof createAdminClient>
+  localUnitId: string
+  submitterEmail: string
+}) {
+  const since = new Date(Date.now() - PUBLIC_CONTACT_COOLDOWN_MS).toISOString()
+  const { data, error } = await (args.admin as any)
+    .from('local_unit_public_contact_message_jobs')
+    .select('id')
+    .eq('local_unit_id', args.localUnitId)
+    .eq('reply_to_email', args.submitterEmail)
+    .gte('created_at', since)
+    .limit(1)
+
+  if (error) throw new Error(error.message)
+
+  return ((data as { id: string }[] | null) ?? []).length > 0
 }
 
 export async function submitPublicContactFormAction(formData: FormData) {
@@ -362,6 +387,10 @@ export async function submitPublicContactFormAction(formData: FormData) {
 
   const context = await loadPublicContext({ slug })
   if (!context) notFoundRedirect()
+
+  if (hasFilledHoneypot(formData)) {
+    redirect(`/o/${context.canonicalSlug}?contact=sent#contact`)
+  }
 
   const inquiryType = normalizeInquiryType(textValue(formData, 'inquiry_type'))
   const submitterName = textValue(formData, 'name')
@@ -376,6 +405,16 @@ export async function submitPublicContactFormAction(formData: FormData) {
   let capturedPersonId: string | null = null
 
   try {
+    const isDuplicateSubmission = await hasRecentPublicContactSubmission({
+      admin: context.admin,
+      localUnitId: context.localUnit.id,
+      submitterEmail,
+    })
+
+    if (isDuplicateSubmission) {
+      redirect(`/o/${context.canonicalSlug}?contact=sent#contact`)
+    }
+
     capturedPersonId = await findOrCreateDirectoryPerson({
       admin: context.admin,
       councilId: context.council.id,
@@ -425,7 +464,8 @@ export async function submitPublicContactFormAction(formData: FormData) {
       .insert(jobs)
 
     if (jobError) throw new Error(jobError.message)
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') throw error
     redirect(`/o/${context.canonicalSlug}?contact=error#contact`)
   }
 
