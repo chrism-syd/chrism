@@ -402,19 +402,25 @@ export async function submitPublicContactFormAction(formData: FormData) {
     redirect(`/o/${context.canonicalSlug}?contact=missing#contact`)
   }
 
-  let capturedPersonId: string | null = null
+  let isDuplicateSubmission = false
 
   try {
-    const isDuplicateSubmission = await hasRecentPublicContactSubmission({
+    isDuplicateSubmission = await hasRecentPublicContactSubmission({
       admin: context.admin,
       localUnitId: context.localUnit.id,
       submitterEmail,
     })
+  } catch {
+    redirect(`/o/${context.canonicalSlug}?contact=error#contact`)
+  }
 
-    if (isDuplicateSubmission) {
-      redirect(`/o/${context.canonicalSlug}?contact=sent#contact`)
-    }
+  if (isDuplicateSubmission) {
+    redirect(`/o/${context.canonicalSlug}?contact=sent#contact`)
+  }
 
+  let capturedPersonId: string | null = null
+
+  try {
     capturedPersonId = await findOrCreateDirectoryPerson({
       admin: context.admin,
       councilId: context.council.id,
@@ -464,8 +470,7 @@ export async function submitPublicContactFormAction(formData: FormData) {
       .insert(jobs)
 
     if (jobError) throw new Error(jobError.message)
-  } catch (error) {
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') throw error
+  } catch {
     redirect(`/o/${context.canonicalSlug}?contact=error#contact`)
   }
 
