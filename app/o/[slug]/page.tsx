@@ -85,13 +85,13 @@ function eventKindLabel(kind: EventRow['event_kind_code']) {
 
 function contactStatusMessage(status: string | undefined) {
   if (status === 'sent') {
-    return 'Thanks. Your message has been sent to the local organization.'
+    return 'Thanks. Your submission has been sent to the local organization.'
   }
   if (status === 'missing') {
     return 'Please include your name, email, and message before sending.'
   }
   if (status === 'error') {
-    return 'Sorry, we could not send that message. Please try again later.'
+    return 'Sorry, we could not send that submission. Please try again later.'
   }
   return null
 }
@@ -357,6 +357,10 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           {showContactForm ? (
             <form action={submitPublicContactFormAction} className="qv-form-grid" style={{ marginTop: 8 }}>
               <input type="hidden" name="slug" value={canonicalSlug} />
+              <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
+                Website
+                <input name="website" tabIndex={-1} autoComplete="off" />
+              </label>
               {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
               <div className="qv-form-row qv-form-row-2">
                 <label className="qv-control">
@@ -374,7 +378,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
                   <input name="phone" autoComplete="tel" />
                 </label>
                 <label className="qv-control">
-                  <span className="qv-label">Inquiry type</span>
+                  <span className="qv-label">Submission type</span>
                   <select name="inquiry_type" defaultValue="general_question">
                     <option value="volunteer">I want to volunteer</option>
                     <option value="membership">I&apos;m interested in joining</option>
@@ -389,10 +393,10 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
                 <textarea name="message" rows={4} required />
               </label>
               <p className="qv-inline-message">
-                By submitting this form, you agree that this organization may contact you about your inquiry.
+                By submitting this form, you agree that this organization may contact you about your submission.
               </p>
               <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                <button type="submit" className="qv-button-primary">Send message</button>
+                <button type="submit" className="qv-button-primary">Send submission</button>
               </div>
             </form>
           ) : null}
