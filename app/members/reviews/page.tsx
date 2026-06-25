@@ -134,6 +134,7 @@ export default async function MemberReviewsPage() {
   const organization = organizationData.data ?? null
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Organization'
   const effectiveBranding = getEffectiveOrganizationBranding(organization)
+  const publicInquiryError = publicInquiryData.error?.message ?? null
   const publicInquiries = ((publicInquiryData.data ?? []) as PublicInquiryRow[])
 
   return (
@@ -227,7 +228,12 @@ export default async function MemberReviewsPage() {
             </div>
           </div>
 
-          {publicInquiries.length === 0 ? (
+          {publicInquiryError ? (
+            <div className="qv-error">
+              <strong>Could not load public submissions.</strong>
+              <p>{publicInquiryError}</p>
+            </div>
+          ) : publicInquiries.length === 0 ? (
             <div className="qv-empty">
               <h3 className="qv-empty-title">No public submissions yet</h3>
               <p className="qv-empty-text">Messages from the public contact form will appear here after someone submits the form.</p>
