@@ -302,10 +302,15 @@ export default async function PublicPageSettingsPage() {
                       <span className="qv-label">Order</span>
                       <input name={`gallery_sort_order_${image.id}`} type="number" min="0" defaultValue={image.sort_order} />
                     </label>
-                    <form action={deletePublicGalleryImageAction}>
-                      <input type="hidden" name="gallery_image_id" value={image.id} />
-                      <button type="submit" className="qv-button-secondary">Remove</button>
-                    </form>
+                    <button
+                      type="submit"
+                      formAction={deletePublicGalleryImageAction}
+                      name="gallery_image_id"
+                      value={image.id}
+                      className="qv-button-secondary"
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
