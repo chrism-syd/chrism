@@ -205,7 +205,6 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const displayTitle = `${displayName}${council.council_number ? ` ${council.council_number}` : ''}`
   const parentBrandName = council.council_number ? 'Knights of Columbus' : displayText(organizationName)
   const eventsHref = `/o/${canonicalSlug}/events`
-  const feedHref = `/o/${canonicalSlug}/calendar.ics`
   const upcomingEvents = eventsResponse.data ?? []
   const externalLinks = (externalLinksResponse.data ?? []) as ExternalLinkRow[]
   const contactRoute = ((contactRouteResponse.data as MessageRouteRow[] | null) ?? [])[0] ?? null
@@ -228,6 +227,12 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         .local-page-chrism-powered:focus-visible {
           opacity: 1;
           filter: none;
+        }
+
+        .local-page-contact-form input,
+        .local-page-contact-form select,
+        .local-page-contact-form textarea {
+          background: var(--bg-card);
         }
       `}</style>
 
@@ -278,7 +283,6 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
             <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
-            {upcomingEvents.length > 0 ? <Link href={eventsHref} className="qv-link-button qv-button-secondary">View events</Link> : null}
           </div>
         </div>
 
@@ -338,24 +342,24 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
             {paragraph(involvementCopy(organization?.organization_type_code))}
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {upcomingEvents.length > 0 ? <Link href={eventsHref} className="qv-link-button qv-button-secondary">View all events</Link> : null}
-            <Link href={feedHref} className="qv-link-button qv-button-secondary">Subscribe to calendar</Link>
-            {externalLinks.map((externalLink) => (
-              <a
-                key={externalLink.id}
-                href={externalLink.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="qv-link-button qv-button-secondary"
-              >
-                {displayText(externalLink.label)}
-              </a>
-            ))}
-          </div>
+          {externalLinks.length > 0 ? (
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {externalLinks.map((externalLink) => (
+                <a
+                  key={externalLink.id}
+                  href={externalLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="qv-link-button qv-button-secondary"
+                >
+                  {displayText(externalLink.label)}
+                </a>
+              ))}
+            </div>
+          ) : null}
 
           {showContactForm ? (
-            <form action={submitPublicContactFormAction} className="qv-form-grid" style={{ marginTop: 8 }}>
+            <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form" style={{ marginTop: 8 }}>
               <input type="hidden" name="slug" value={canonicalSlug} />
               <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
                 Website
