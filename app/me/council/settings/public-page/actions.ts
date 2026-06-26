@@ -9,6 +9,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const SETTINGS_PATH = '/me/council/settings/public-page'
 const PUBLIC_CONTACT_ROUTE_KEY = 'public_contact'
+const PUBLIC_GALLERY_BUCKET = 'local-unit-public-gallery'
+const PUBLIC_GALLERY_MAX_IMAGES = 12
+const PUBLIC_GALLERY_MAX_FILE_SIZE = 5 * 1024 * 1024
+const PUBLIC_GALLERY_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -118,6 +122,18 @@ function buildExternalLinksPayload(args: {
       updated_by_auth_user_id: args.authUserId,
     }]
   })
+}
+
+function getFileExtension(file: File) {
+  if (file.type === 'image/png') return 'png'
+  if (file.type === 'image/webp') return 'webp'
+  return 'jpg'
+}
+
+function getUploadFiles(formData: FormData) {
+  return formData
+    .getAll('gallery_images')
+    .filter((value): value is File => value instanceof File && value.size > 0)
 }
 
 export async function updatePublicPageSettingsAction(formData: FormData) {
@@ -277,4 +293,175 @@ export async function savePublicExternalLinksAction(formData: FormData) {
 
   revalidatePublicPageSurfaces(context)
   return await redirectToPublicPageSettings({ notice: 'Public page links saved.' })
+}
+
+export async function uploadPublicGalleryImagesAction(formData: FormData) {
+  const context = await requirePublicPageSettingsAccess()
+  const admin = createAdminClient() as any
+  const localUnitId = context.localUnitId!
+  const authUserId = context.permissions.authUser!.id
+  const files = getUploadFiles(formData)
+
+  if (files.length === 0) {
+    return await redirectToPublicPageSettings({ error: 'Choose at least one image to upload.' })
+  }
+
+  try {
+    const { count, error: countError } = await admin
+      .from('local_unit_public_gallery_images')
+      .select('id', { count: 'exact', head: true })
+      .eq('local_unit_id', localUnitId)
+      .eq('is_active', true)
+
+    if (countError) {
+      throw new Error(countError.message)
+    }
+
+    const activeCount = count ?? 0
+    const availableSlots = PUBLIC_GALLERY_MAX_IMAGES - activeCount
+
+    if (availableSlots <= 0) {
+      throw new Error(`This gallery already has the maximum of ${PUBLIC_GALLERY_MAX_IMAGES} images.`)
+    }
+
+    if (files.length > availableSlots) {
+      throw new Error(`You can upload ${availableSlots} more image${availableSlots === 1 ? '' : 's'} to this gallery.`)
+    }
+
+    const rows = []
+
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index]
+
+      if (!PUBLIC_GALLERY_ALLOWED_TYPES.has(file.type)) {
+        throw new Error('Gallery images must be JPG, PNG, or WebP files.')
+      }
+
+      if (file.size > PUBLIC_GALLERY_MAX_FILE_SIZE) {
+        throw new Error('Each gallery image must be 5 MB or smaller.')
+      }
+
+      const extension = getFileExtension(file)
+      const storagePath = `${localUnitId}/${crypto.randomUUID()}.${extension}`
+      const arrayBuffer = await file.arrayBuffer()
+      const { error: uploadError } = await admin.storage
+        .from(PUBLIC_GALLERY_BUCKET)
+        .upload(storagePath, arrayBuffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false,
+        })
+
+      if (uploadError) {
+        throw new Error(uploadError.message)
+      }
+
+      rows.push({
+        local_unit_id: localUnitId,
+        storage_bucket: PUBLIC_GALLERY_BUCKET,
+        storage_path: storagePath,
+        sort_order: activeCount + index + 1,
+        is_active: true,
+        created_by_auth_user_id: authUserId,
+        updated_by_auth_user_id: authUserId,
+      })
+    }
+
+    const { error: insertError } = await admin
+      .from('local_unit_public_gallery_images')
+      .insert(rows)
+
+    if (insertError) {
+      throw new Error(insertError.message)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'We could not upload those gallery images.'
+    return await redirectToPublicPageSettings({ error: message })
+  }
+
+  revalidatePublicPageSurfaces(context)
+  return await redirectToPublicPageSettings({ notice: 'Gallery images uploaded.' })
+}
+
+export async function savePublicGalleryImagesAction(formData: FormData) {
+  const context = await requirePublicPageSettingsAccess()
+  const admin = createAdminClient() as any
+  const localUnitId = context.localUnitId!
+  const authUserId = context.permissions.authUser!.id
+
+  try {
+    const { data: existingRows, error: existingError } = await admin
+      .from('local_unit_public_gallery_images')
+      .select('id')
+      .eq('local_unit_id', localUnitId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(PUBLIC_GALLERY_MAX_IMAGES)
+
+    if (existingError) {
+      throw new Error(existingError.message)
+    }
+
+    for (const row of existingRows ?? []) {
+      const id = row.id as string
+      const title = textValue(formData, `gallery_title_${id}`)
+      const sortOrderValue = textValue(formData, `gallery_sort_order_${id}`)
+      const parsedSortOrder = Number.parseInt(sortOrderValue ?? '', 10)
+      const sortOrder = Number.isFinite(parsedSortOrder) && parsedSortOrder >= 0 ? parsedSortOrder : 0
+
+      const { error: updateError } = await admin
+        .from('local_unit_public_gallery_images')
+        .update({
+          title,
+          sort_order: sortOrder,
+          updated_by_auth_user_id: authUserId,
+        })
+        .eq('id', id)
+        .eq('local_unit_id', localUnitId)
+
+      if (updateError) {
+        throw new Error(updateError.message)
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'We could not save the gallery details.'
+    return await redirectToPublicPageSettings({ error: message })
+  }
+
+  revalidatePublicPageSurfaces(context)
+  return await redirectToPublicPageSettings({ notice: 'Gallery details saved.' })
+}
+
+export async function deletePublicGalleryImageAction(formData: FormData) {
+  const context = await requirePublicPageSettingsAccess()
+  const admin = createAdminClient() as any
+  const localUnitId = context.localUnitId!
+  const authUserId = context.permissions.authUser!.id
+  const imageId = textValue(formData, 'gallery_image_id')
+
+  if (!imageId) {
+    return await redirectToPublicPageSettings({ error: 'Choose a gallery image to remove.' })
+  }
+
+  try {
+    const { error: updateError } = await admin
+      .from('local_unit_public_gallery_images')
+      .update({
+        is_active: false,
+        updated_by_auth_user_id: authUserId,
+      })
+      .eq('id', imageId)
+      .eq('local_unit_id', localUnitId)
+
+    if (updateError) {
+      throw new Error(updateError.message)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'We could not remove that gallery image.'
+    return await redirectToPublicPageSettings({ error: message })
+  }
+
+  revalidatePublicPageSurfaces(context)
+  return await redirectToPublicPageSettings({ notice: 'Gallery image removed.' })
 }
