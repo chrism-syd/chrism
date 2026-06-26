@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
+import { getLocalPageTheme, LocalPageThemeStyle } from '@/lib/local-pages/themes'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -56,7 +57,6 @@ type PublicGalleryImage = {
 }
 
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
-const CHRISM_YELLOW = '#f5c84b'
 const PUBLIC_GALLERY_MAX_IMAGES = 12
 
 export const dynamic = 'force-dynamic'
@@ -254,18 +254,15 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   )).filter((image): image is PublicGalleryImage => image !== null)
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
-  const isKnightsPage = organization?.organization_type_code === 'knights_of_columbus'
+  const localPageTheme = getLocalPageTheme({
+    organizationTypeCode: organization?.organization_type_code,
+    councilNumber: council.council_number,
+  })
 
   return (
-    <main className={isKnightsPage ? 'local-page local-page-knights' : 'local-page'} style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
+    <main className={`local-page ${localPageTheme.className}`} style={{ background: 'var(--local-page-bg)', color: 'var(--local-page-body-text)', minHeight: '100vh' }}>
+      <LocalPageThemeStyle theme={localPageTheme} />
       <style>{`
-        .local-page {
-          --local-page-accent-blue: #082a5a;
-          --local-page-accent-blue-deep: #031b3d;
-          --local-page-accent-gold: #d6ad3b;
-          --local-page-accent-gold-bright: #f5c84b;
-        }
-
         .local-page-chrism-powered {
           opacity: 0.48;
           filter: grayscale(1) saturate(0);
@@ -278,6 +275,26 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           filter: none;
         }
 
+        .local-page .qv-eyebrow,
+        .local-page .qv-section-title {
+          color: var(--local-page-primary-dark);
+        }
+
+        .local-page .qv-section-subtitle {
+          color: var(--local-page-muted-text);
+        }
+
+        .local-page .qv-button-secondary {
+          border-color: var(--local-page-primary);
+          color: var(--local-page-button-secondary-text);
+        }
+
+        .local-page .qv-button-secondary:hover,
+        .local-page .qv-button-secondary:focus-visible {
+          border-color: var(--local-page-primary-dark);
+          color: var(--local-page-primary-dark);
+        }
+
         .local-page-hero {
           position: relative;
           overflow: hidden;
@@ -286,55 +303,30 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           gap: 28px;
           padding: 76px clamp(20px, 6vw, 80px) 76px;
           align-items: center;
-          background:
-            radial-gradient(circle at 82% 18%, rgba(245, 200, 75, 0.24), transparent 34%),
-            linear-gradient(135deg, #dfeade 0%, #eee8d6 58%, #f7f3e8 100%);
-          border-bottom: 1px solid var(--divider);
-        }
-
-        .local-page-knights .local-page-hero {
-          color: white;
-          background:
-            radial-gradient(circle at 83% 18%, rgba(245, 200, 75, 0.34), transparent 34%),
-            radial-gradient(circle at 18% 92%, rgba(214, 173, 59, 0.18), transparent 30%),
-            linear-gradient(135deg, var(--local-page-accent-blue-deep) 0%, var(--local-page-accent-blue) 56%, #123e78 100%);
-          border-bottom-color: rgba(214, 173, 59, 0.36);
-        }
-
-        .local-page-knights .local-page-hero p {
-          color: rgba(255, 255, 255, 0.86) !important;
-        }
-
-        .local-page-knights .local-page-hero .qv-button-primary {
-          background: var(--local-page-accent-gold-bright);
-          border-color: var(--local-page-accent-gold-bright);
-          color: #15121c;
-          box-shadow: 0 14px 30px rgba(3, 27, 61, 0.22);
-        }
-
-        .local-page-knights .local-page-story-visual {
-          border-color: rgba(214, 173, 59, 0.42);
-          background:
-            radial-gradient(circle at 35% 26%, rgba(245, 200, 75, 0.36), transparent 28%),
-            linear-gradient(135deg, rgba(8, 42, 90, 0.24), rgba(214, 173, 59, 0.14));
-        }
-
-        .local-page-knights .local-page-story-card {
-          border-color: rgba(214, 173, 59, 0.28);
-        }
-
-        .local-page-knights .qv-eyebrow {
-          color: var(--local-page-accent-blue);
-        }
-
-        .local-page-knights footer {
-          background: var(--local-page-accent-blue-deep) !important;
-          border-top: 4px solid var(--local-page-accent-gold);
+          color: var(--local-page-hero-text);
+          background: var(--local-page-hero-bg);
+          border-bottom: 1px solid color-mix(in srgb, var(--local-page-accent) 38%, transparent);
         }
 
         .local-page-hero > * {
           position: relative;
           z-index: 1;
+        }
+
+        .local-page-hero p {
+          color: var(--local-page-hero-muted-text) !important;
+        }
+
+        .local-page-hero .qv-button-primary {
+          background: var(--local-page-button-primary-bg);
+          border-color: var(--local-page-button-primary-bg);
+          color: var(--local-page-button-primary-text);
+          box-shadow: 0 14px 30px color-mix(in srgb, var(--local-page-primary-dark) 24%, transparent);
+        }
+
+        .local-page-about-card {
+          background: var(--local-page-accent);
+          color: var(--local-page-button-primary-text);
         }
 
         .local-page-story-section {
@@ -353,11 +345,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           overflow: hidden;
           width: 100%;
           aspect-ratio: 4 / 3;
-          border: 1px solid var(--divider);
+          border: 1px solid color-mix(in srgb, var(--local-page-accent) 42%, transparent);
           border-radius: 28px;
           background:
-            radial-gradient(circle at 35% 26%, rgba(245, 200, 75, 0.32), transparent 28%),
-            linear-gradient(135deg, rgba(143, 160, 140, 0.32), rgba(92, 74, 114, 0.16));
+            radial-gradient(circle at 35% 26%, color-mix(in srgb, var(--local-page-accent) 32%, transparent), transparent 28%),
+            linear-gradient(135deg, color-mix(in srgb, var(--local-page-primary) 24%, transparent), color-mix(in srgb, var(--local-page-secondary) 14%, transparent));
           box-shadow: 0 18px 50px rgba(46, 42, 52, 0.08);
         }
 
@@ -567,9 +559,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           display: grid;
           gap: 8px;
           padding: 16px;
-          border: 1px solid var(--divider);
+          border: 1px solid color-mix(in srgb, var(--local-page-primary) 16%, transparent);
           border-radius: 18px;
-          background: color-mix(in srgb, var(--bg-card) 76%, var(--bg-sunken) 24%);
+          background:
+            radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.58), transparent 26%),
+            linear-gradient(135deg, var(--local-page-soft-bg-light) 0%, var(--local-page-soft-bg) 100%);
         }
 
         .local-page-story-card strong,
@@ -578,15 +572,14 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         }
 
         .local-page-story-card p {
-          color: var(--text-secondary);
+          color: var(--local-page-muted-text);
           font-size: 13px;
           line-height: 1.42;
         }
 
         .local-page-contact-section {
           padding: 36px clamp(20px, 6vw, 80px) 78px;
-          background:
-            linear-gradient(180deg, rgba(238, 245, 239, 0.28), rgba(253, 252, 249, 0));
+          background: linear-gradient(180deg, color-mix(in srgb, var(--local-page-soft-bg) 28%, transparent), transparent);
         }
 
         .local-page-contact-grid {
@@ -608,7 +601,10 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           align-content: start;
           gap: 18px;
           padding: clamp(26px, 4vw, 42px);
-          background: var(--bg-sunken);
+          border-color: color-mix(in srgb, var(--local-page-primary) 16%, transparent);
+          background:
+            radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.6), transparent 26%),
+            linear-gradient(135deg, var(--local-page-soft-bg-light) 0%, var(--local-page-soft-bg) 100%);
         }
 
         .local-page-contact-form-card {
@@ -632,6 +628,18 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         .local-page-contact-form select,
         .local-page-contact-form textarea {
           background: var(--bg-card);
+        }
+
+        .local-page-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          flex-wrap: wrap;
+          padding: 34px clamp(20px, 6vw, 80px);
+          color: white;
+          background: var(--local-page-footer-bg);
+          border-top: 4px solid var(--local-page-accent);
         }
 
         @media (max-width: 860px) {
@@ -693,7 +701,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
             Welcome to {displayTitle}
           </h1>
-          <p style={{ margin: 0, maxWidth: 620, color: 'var(--text-secondary)', fontSize: 22, lineHeight: 1.35 }}>
+          <p style={{ margin: 0, maxWidth: 620, fontSize: 22, lineHeight: 1.35 }}>
             {paragraph(heroSubtitle(displayName))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
@@ -714,7 +722,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </div>
-          <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: CHRISM_YELLOW, color: 'var(--text-primary)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
+          <div id="about" className="local-page-about-card" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
               {paragraph(aboutCopy)}
             </p>
@@ -726,7 +734,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         <section id="events" style={{ padding: '48px clamp(20px, 6vw, 80px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 14 }}>
             <div>
-              <h2 className="qv-section-title" style={{ margin: 0, color: 'var(--qv-plum)' }}>Upcoming events</h2>
+              <h2 className="qv-section-title" style={{ margin: 0 }}>Upcoming events</h2>
               <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>
                 {paragraph('A quick look at what is coming up next.')}
               </p>
@@ -737,10 +745,10 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           <div style={{ display: 'grid' }}>
             {upcomingEvents.map((event) => (
               <div key={event.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr)', gap: 18, alignItems: 'center', padding: '24px 0', borderBottom: '1px solid var(--divider)' }}>
-                <div style={{ color: 'var(--text-secondary)', fontWeight: 800 }}>{formatShortDate(event.starts_at)}</div>
+                <div style={{ color: 'var(--local-page-muted-text)', fontWeight: 800 }}>{formatShortDate(event.starts_at)}</div>
                 <div>
-                  <div style={{ color: 'var(--text-primary)', fontSize: 26, fontWeight: 800 }}>{displayText(event.title)}</div>
-                  <span style={{ color: 'var(--text-secondary)' }}>
+                  <div style={{ color: 'var(--local-page-body-text)', fontSize: 26, fontWeight: 800 }}>{displayText(event.title)}</div>
+                  <span style={{ color: 'var(--local-page-muted-text)' }}>
                     {eventKindLabel(event.event_kind_code)} / {displayText(event.location_name || event.location_address || 'Location to be confirmed')}
                   </span>
                 </div>
@@ -865,7 +873,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         </div>
       </section>
 
-      <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', padding: '34px clamp(20px, 6vw, 80px)', background: 'var(--qv-plum)', color: 'white' }}>
+      <footer className="local-page-footer">
         <div style={{ display: 'grid', gap: 8 }}>
           <strong>{displayTitle}</strong>
           <span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism.')}</span>
