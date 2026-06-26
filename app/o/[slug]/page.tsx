@@ -300,21 +300,17 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           align-items: center;
         }
 
-        .local-page-story-visual,
-        .local-page-story-copy {
-          border: 1px solid var(--divider);
-          border-radius: 28px;
-          box-shadow: 0 18px 50px rgba(46, 42, 52, 0.08);
-        }
-
         .local-page-story-visual {
           position: relative;
           overflow: hidden;
           width: 100%;
           aspect-ratio: 4 / 3;
+          border: 1px solid var(--divider);
+          border-radius: 28px;
           background:
             radial-gradient(circle at 35% 26%, rgba(245, 200, 75, 0.32), transparent 28%),
             linear-gradient(135deg, rgba(143, 160, 140, 0.32), rgba(92, 74, 114, 0.16));
+          box-shadow: 0 18px 50px rgba(46, 42, 52, 0.08);
         }
 
         .local-page-story-visual::before,
@@ -369,7 +365,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           inset: 0;
           width: 100%;
           height: 100%;
-          object-fit: contain;
+          object-fit: cover;
           opacity: 0;
           transition: opacity 900ms ease;
           background: rgba(253, 252, 249, 0.42);
@@ -483,6 +479,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           line-height: 1;
         }
 
+        .local-page-gallery-modal-arrow:hover,
+        .local-page-gallery-modal-arrow:focus-visible {
+          transform: translateY(-50%);
+        }
+
         .local-page-gallery-modal-arrow-left {
           left: 22px;
         }
@@ -502,8 +503,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           display: grid;
           align-content: center;
           gap: 18px;
-          padding: clamp(28px, 4vw, 48px);
-          background: var(--bg-card);
+          padding: clamp(8px, 2vw, 18px) 0;
+          background: transparent;
         }
 
         .local-page-story-card-grid {
