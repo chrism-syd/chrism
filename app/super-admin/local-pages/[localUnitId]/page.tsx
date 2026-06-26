@@ -6,7 +6,9 @@ import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { formatEventDateTimeRange } from '@/lib/events/display'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
+import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { submitPublicContactFormAction } from '@/app/o/[slug]/actions'
 import LocalPageModalButton from './local-page-modal-button'
 
 type PageProps = {
@@ -27,6 +29,8 @@ type OrganizationRow = {
   display_name: string | null
   preferred_name: string | null
   organization_type_code: string | null
+  public_contact_form_enabled: boolean | null
+  public_description: string | null
   logo_storage_path: string | null
   logo_alt_text: string | null
   brand_profile?: {
@@ -56,6 +60,11 @@ type EventRow = {
   requires_rsvp: boolean
 }
 
+type MessageRouteRow = {
+  recipient_email: string | null
+  recipient_label: string | null
+}
+
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
 const CHRISM_YELLOW = '#f5c84b'
 
@@ -76,7 +85,7 @@ function involvementCopy(code?: string | null) {
     return 'We share a desire to be better husbands, fathers, sons, neighbours, and role models, putting charity and community first. Attend an event, subscribe to meeting updates, or reach out to local leaders.'
   }
 
-  return 'Attend an event, subscribe to meeting updates, or reach out to local leaders. Future versions of this page can support contact forms, join requests, sponsors, and custom sections.'
+  return 'Attend an event, subscribe to meeting updates, or reach out to local leaders.'
 }
 
 function formatShortDate(value: string) {
@@ -112,6 +121,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
   const { localUnitId } = await params
   const admin = createAdminClient()
+  const untypedAdmin = admin as any
 
   const { data: localUnitData } = await admin
     .from('local_units')
@@ -122,11 +132,11 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const localUnit = (localUnitData as LocalUnitRow | null) ?? null
   if (!localUnit) notFound()
 
-  const [organizationResponse, councilResponse, eventsResponse] = await Promise.all([
+  const [organizationResponse, councilResponse, eventsResponse, contactRouteResponse] = await Promise.all([
     localUnit.legacy_organization_id
       ? admin
           .from('organizations')
-          .select('id, display_name, preferred_name, organization_type_code, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
+          .select('id, display_name, preferred_name, organization_type_code, public_contact_form_enabled, public_description, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', localUnit.legacy_organization_id)
           .maybeSingle<OrganizationRow>()
       : Promise.resolve({ data: null }),
@@ -143,6 +153,14 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       .eq('local_unit_id', localUnit.id)
       .order('starts_at', { ascending: true })
       .returns<EventRow[]>(),
+    untypedAdmin
+      .from('local_unit_message_routes')
+      .select('recipient_email, recipient_label')
+      .eq('local_unit_id', localUnit.id)
+      .eq('route_key', 'public_contact')
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1),
   ])
 
   const organization = (organizationResponse.data as OrganizationRow | null) ?? null
@@ -161,8 +179,15 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const meetingEvents = events.filter((event) => event.event_kind_code !== 'standard').slice(0, 3)
   const publicMeetingsHref = councilNumber ? `/councils/${councilNumber}/meetings` : null
   const meetingsFeedHref = councilNumber ? `/councils/${councilNumber}/meetings.ics` : null
+  const canonicalSlug = councilNumber
+    ? buildCouncilPublicOrgSlug({ name: council?.name ?? localUnit.display_name ?? localUnit.official_name, councilNumber })
+    : null
   const displayTitle = `${displayName}${councilNumber ? ` ${councilNumber}` : ''}`
   const parentBrandName = councilNumber ? 'Knights of Columbus' : displayText(organizationName) || 'Local organization'
+  const contactRoute = ((contactRouteResponse.data as MessageRouteRow[] | null) ?? [])[0] ?? null
+  const hasCustomContactRecipient = Boolean(contactRoute?.recipient_email)
+  const showContactForm = Boolean(canonicalSlug && organization?.public_contact_form_enabled !== false && hasCustomContactRecipient)
+  const aboutCopy = displayText(organization?.public_description) || missionCopy()
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -231,16 +256,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             {paragraph(heroSubtitle(displayName))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
-            <LocalPageModalButton label="Get Involved" title="Get involved" className="qv-link-button qv-button-primary">
-              <div style={{ display: 'grid', gap: 14 }}>
-                <p className="qv-section-subtitle" style={{ margin: 0 }}>
-                  {paragraph('A contact form will live here in a future pass. For now, this preview confirms the modal interaction and placement.')}
-                </p>
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                  {paragraph(`Visitors will eventually be able to contact ${displayName}, request more information, or express interest in getting involved.`)}
-                </p>
-              </div>
-            </LocalPageModalButton>
+            <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
           </div>
         </div>
 
@@ -260,7 +276,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: CHRISM_YELLOW, color: 'var(--text-primary)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
             <p style={{ margin: '0 0 10px', opacity: 0.78, fontWeight: 800 }}>Our mission</p>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
-              {paragraph(missionCopy())}
+              {paragraph(aboutCopy)}
             </p>
           </div>
         </div>
@@ -332,18 +348,59 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
             {paragraph(involvementCopy(orgTypeCode))}
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <LocalPageModalButton label="Get Involved" title="Get involved" className="qv-link-button qv-button-primary">
-              <div style={{ display: 'grid', gap: 14 }}>
-                <p className="qv-section-subtitle" style={{ margin: 0 }}>
-                  {paragraph('A contact form will live here in a future pass. For now, this preview confirms the modal interaction and placement.')}
-                </p>
-                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                  {paragraph(`Visitors will eventually be able to contact ${displayName}, request more information, or express interest in getting involved.`)}
-                </p>
-              </div>
-            </LocalPageModalButton>
             {publicMeetingsHref ? <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">View Meetings</Link> : null}
           </div>
+
+          {showContactForm ? (
+            <form action={submitPublicContactFormAction} className="qv-form-grid" style={{ marginTop: 8 }}>
+              <input type="hidden" name="slug" value={canonicalSlug ?? ''} />
+              <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
+                Website
+                <input name="website" tabIndex={-1} autoComplete="off" />
+              </label>
+              <div className="qv-form-row qv-form-row-2">
+                <label className="qv-control">
+                  <span className="qv-label">Name</span>
+                  <input name="name" autoComplete="name" required />
+                </label>
+                <label className="qv-control">
+                  <span className="qv-label">Email</span>
+                  <input name="email" type="email" autoComplete="email" required />
+                </label>
+              </div>
+              <div className="qv-form-row qv-form-row-2">
+                <label className="qv-control">
+                  <span className="qv-label">Phone optional</span>
+                  <input name="phone" autoComplete="tel" />
+                </label>
+                <label className="qv-control">
+                  <span className="qv-label">Submission type</span>
+                  <select name="inquiry_type" defaultValue="general_question">
+                    <option value="volunteer">I want to volunteer</option>
+                    <option value="membership">I&apos;m interested in joining</option>
+                    <option value="general_question">I have a general question</option>
+                    <option value="help_request">I need help with something</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+              </div>
+              <label className="qv-control">
+                <span className="qv-label">Message</span>
+                <textarea name="message" rows={4} required />
+              </label>
+              <p className="qv-inline-message">
+                By submitting this form, you agree that this organization may contact you about your submission.
+              </p>
+              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                <button type="submit" className="qv-button-primary">Send submission</button>
+              </div>
+            </form>
+          ) : (
+            <div className="qv-empty" style={{ borderStyle: 'solid' }}>
+              <h3 className="qv-empty-title">Contact form is not showing yet</h3>
+              <p className="qv-empty-text">Enable the contact form and add a public form recipient in Public Page settings to show the live form here.</p>
+            </div>
+          )}
         </div>
       </section>
 
