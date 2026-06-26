@@ -275,13 +275,31 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           filter: none;
         }
 
-        .local-page .qv-eyebrow,
+        .local-page .qv-eyebrow {
+          color: var(--local-page-primary-dark);
+          font-size: 13px;
+          letter-spacing: 0.12em;
+        }
+
         .local-page .qv-section-title {
           color: var(--local-page-primary-dark);
+          font-size: clamp(34px, 3.5vw, 56px);
+          font-weight: 900;
+          letter-spacing: -0.045em;
+          line-height: 0.98;
         }
 
         .local-page .qv-section-subtitle {
           color: var(--local-page-muted-text);
+          font-size: clamp(17px, 1.2vw, 20px);
+          line-height: 1.55;
+        }
+
+        .local-page .qv-button-primary {
+          background: var(--local-page-primary-dark);
+          border-color: var(--local-page-primary-dark);
+          color: white;
+          box-shadow: 0 12px 26px color-mix(in srgb, var(--local-page-primary-dark) 22%, transparent);
         }
 
         .local-page .qv-button-secondary {
@@ -330,13 +348,13 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         }
 
         .local-page-story-section {
-          padding: 56px clamp(20px, 6vw, 80px) 36px;
+          padding: 64px clamp(20px, 6vw, 80px) 42px;
         }
 
         .local-page-story-grid {
           display: grid;
           grid-template-columns: minmax(240px, 0.82fr) minmax(320px, 1.18fr);
-          gap: 28px;
+          gap: clamp(28px, 5vw, 58px);
           align-items: center;
         }
 
@@ -543,7 +561,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         .local-page-story-copy {
           display: grid;
           align-content: center;
-          gap: 18px;
+          gap: 20px;
           padding: clamp(8px, 2vw, 18px) 0;
           background: transparent;
         }
@@ -558,7 +576,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         .local-page-story-card {
           display: grid;
           gap: 8px;
-          padding: 16px;
+          padding: 18px;
           border: 1px solid color-mix(in srgb, var(--local-page-primary) 16%, transparent);
           border-radius: 18px;
           background:
@@ -571,6 +589,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           margin: 0;
         }
 
+        .local-page-story-card strong {
+          color: var(--local-page-primary-dark);
+          font-size: 16px;
+        }
+
         .local-page-story-card p {
           color: var(--local-page-muted-text);
           font-size: 13px;
@@ -578,50 +601,75 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         }
 
         .local-page-contact-section {
-          padding: 36px clamp(20px, 6vw, 80px) 78px;
+          padding: 46px clamp(20px, 6vw, 80px) 86px;
           background: linear-gradient(180deg, color-mix(in srgb, var(--local-page-soft-bg) 28%, transparent), transparent);
         }
 
+        .local-page-contact-shell {
+          position: relative;
+          overflow: hidden;
+          border: 1px solid color-mix(in srgb, var(--local-page-primary) 14%, transparent);
+          border-radius: 34px;
+          background:
+            radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.72), transparent 30%),
+            linear-gradient(135deg, var(--local-page-soft-bg-light) 0%, var(--local-page-soft-bg) 100%);
+          box-shadow: 0 26px 80px rgba(46, 42, 52, 0.10);
+        }
+
+        .local-page-contact-shell::before {
+          content: '';
+          position: absolute;
+          left: -90px;
+          bottom: -120px;
+          width: 300px;
+          height: 300px;
+          border-radius: 999px;
+          border: 1px solid color-mix(in srgb, var(--local-page-primary) 18%, transparent);
+          opacity: 0.9;
+        }
+
         .local-page-contact-grid {
+          position: relative;
           display: grid;
-          grid-template-columns: minmax(260px, 0.82fr) minmax(320px, 1.18fr);
-          gap: 24px;
+          grid-template-columns: minmax(280px, 0.78fr) minmax(360px, 1.22fr);
+          gap: clamp(24px, 4vw, 46px);
           align-items: stretch;
+          padding: clamp(22px, 4vw, 42px);
+          z-index: 1;
         }
 
         .local-page-contact-copy,
         .local-page-contact-form-card {
-          border: 1px solid var(--divider);
-          border-radius: 24px;
-          box-shadow: 0 18px 50px rgba(46, 42, 52, 0.08);
+          border-radius: 26px;
         }
 
         .local-page-contact-copy {
           display: grid;
           align-content: start;
-          gap: 18px;
-          padding: clamp(26px, 4vw, 42px);
-          border-color: color-mix(in srgb, var(--local-page-primary) 16%, transparent);
-          background:
-            radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.6), transparent 26%),
-            linear-gradient(135deg, var(--local-page-soft-bg-light) 0%, var(--local-page-soft-bg) 100%);
+          gap: 22px;
+          padding: clamp(20px, 3vw, 32px);
+          color: var(--local-page-body-text);
         }
 
         .local-page-contact-form-card {
           display: grid;
-          gap: 18px;
-          padding: clamp(24px, 4vw, 36px);
-          background: var(--bg-card);
+          gap: 22px;
+          padding: clamp(24px, 4vw, 42px);
+          border: 1px solid color-mix(in srgb, var(--local-page-primary) 10%, transparent);
+          background: rgba(253, 252, 249, 0.88);
+          box-shadow: 0 18px 55px rgba(46, 42, 52, 0.08);
+          backdrop-filter: blur(10px);
         }
 
         .local-page-contact-links {
           display: grid;
-          gap: 10px;
+          gap: 12px;
           margin-top: 6px;
         }
 
         .local-page-contact-links a {
           justify-content: space-between;
+          background: rgba(255, 255, 255, 0.42);
         }
 
         .local-page-contact-form input,
@@ -731,11 +779,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       </section>
 
       {upcomingEvents.length > 0 ? (
-        <section id="events" style={{ padding: '48px clamp(20px, 6vw, 80px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 14 }}>
+        <section id="events" style={{ padding: '58px clamp(20px, 6vw, 80px)' }}>
+          <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 18 }}>
             <div>
               <h2 className="qv-section-title" style={{ margin: 0 }}>Upcoming events</h2>
-              <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>
+              <p className="qv-section-subtitle" style={{ margin: '10px 0 0' }}>
                 {paragraph('A quick look at what is coming up next.')}
               </p>
             </div>
@@ -794,82 +842,84 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       </section>
 
       <section id="contact" className="local-page-contact-section">
-        <div className="local-page-contact-grid">
-          <div className="local-page-contact-copy">
-            <p className="qv-eyebrow">Get involved</p>
-            <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
-            <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
-              {paragraph(involvementCopy(organization?.organization_type_code))}
-            </p>
-            {externalLinks.length > 0 ? (
-              <div className="local-page-contact-links">
-                {externalLinks.map((externalLink) => (
-                  <a
-                    key={externalLink.id}
-                    href={externalLink.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="qv-link-button qv-button-secondary"
-                  >
-                    {displayText(externalLink.label)}
-                  </a>
-                ))}
+        <div className="local-page-contact-shell">
+          <div className="local-page-contact-grid">
+            <div className="local-page-contact-copy">
+              <p className="qv-eyebrow">Get involved</p>
+              <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
+              <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
+                {paragraph(involvementCopy(organization?.organization_type_code))}
+              </p>
+              {externalLinks.length > 0 ? (
+                <div className="local-page-contact-links">
+                  {externalLinks.map((externalLink) => (
+                    <a
+                      key={externalLink.id}
+                      href={externalLink.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="qv-link-button qv-button-secondary"
+                    >
+                      {displayText(externalLink.label)}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {showContactForm ? (
+              <div className="local-page-contact-form-card">
+                <div>
+                  <p className="qv-eyebrow">Contact the council</p>
+                  <h3 className="qv-section-title" style={{ marginTop: 8 }}>Send a message</h3>
+                </div>
+                <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form" style={{ marginTop: 0 }}>
+                  <input type="hidden" name="slug" value={canonicalSlug} />
+                  <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
+                    Website
+                    <input name="website" tabIndex={-1} autoComplete="off" />
+                  </label>
+                  {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
+                  <div className="qv-form-row qv-form-row-2">
+                    <label className="qv-control">
+                      <span className="qv-label">Name</span>
+                      <input name="name" autoComplete="name" required />
+                    </label>
+                    <label className="qv-control">
+                      <span className="qv-label">Email</span>
+                      <input name="email" type="email" autoComplete="email" required />
+                    </label>
+                  </div>
+                  <div className="qv-form-row qv-form-row-2">
+                    <label className="qv-control">
+                      <span className="qv-label">Phone optional</span>
+                      <input name="phone" autoComplete="tel" />
+                    </label>
+                    <label className="qv-control">
+                      <span className="qv-label">Submission type</span>
+                      <select name="inquiry_type" defaultValue="general_question">
+                        <option value="volunteer">I want to volunteer</option>
+                        <option value="membership">I&apos;m interested in joining</option>
+                        <option value="general_question">I have a general question</option>
+                        <option value="help_request">I need help with something</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="qv-control">
+                    <span className="qv-label">Message</span>
+                    <textarea name="message" rows={4} required />
+                  </label>
+                  <p className="qv-inline-message">
+                    By submitting this form, you agree that this organization may contact you about your submission.
+                  </p>
+                  <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                    <button type="submit" className="qv-button-primary">Send submission</button>
+                  </div>
+                </form>
               </div>
             ) : null}
           </div>
-
-          {showContactForm ? (
-            <div className="local-page-contact-form-card">
-              <div>
-                <p className="qv-eyebrow">Contact the council</p>
-                <h3 className="qv-section-title" style={{ marginTop: 8 }}>Send a message</h3>
-              </div>
-              <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form" style={{ marginTop: 0 }}>
-                <input type="hidden" name="slug" value={canonicalSlug} />
-                <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
-                  Website
-                  <input name="website" tabIndex={-1} autoComplete="off" />
-                </label>
-                {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
-                <div className="qv-form-row qv-form-row-2">
-                  <label className="qv-control">
-                    <span className="qv-label">Name</span>
-                    <input name="name" autoComplete="name" required />
-                  </label>
-                  <label className="qv-control">
-                    <span className="qv-label">Email</span>
-                    <input name="email" type="email" autoComplete="email" required />
-                  </label>
-                </div>
-                <div className="qv-form-row qv-form-row-2">
-                  <label className="qv-control">
-                    <span className="qv-label">Phone optional</span>
-                    <input name="phone" autoComplete="tel" />
-                  </label>
-                  <label className="qv-control">
-                    <span className="qv-label">Submission type</span>
-                    <select name="inquiry_type" defaultValue="general_question">
-                      <option value="volunteer">I want to volunteer</option>
-                      <option value="membership">I&apos;m interested in joining</option>
-                      <option value="general_question">I have a general question</option>
-                      <option value="help_request">I need help with something</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </label>
-                </div>
-                <label className="qv-control">
-                  <span className="qv-label">Message</span>
-                  <textarea name="message" rows={4} required />
-                </label>
-                <p className="qv-inline-message">
-                  By submitting this form, you agree that this organization may contact you about your submission.
-                </p>
-                <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                  <button type="submit" className="qv-button-primary">Send submission</button>
-                </div>
-              </form>
-            </div>
-          ) : null}
         </div>
       </section>
 
