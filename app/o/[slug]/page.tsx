@@ -7,6 +7,7 @@ import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { submitPublicContactFormAction } from './actions'
+import PublicGallerySlideshow from './public-gallery-slideshow'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -40,8 +41,23 @@ type MessageRouteRow = {
   recipient_label: string | null
 }
 
+type GalleryImageRow = {
+  id: string
+  title: string | null
+  storage_bucket: string
+  storage_path: string
+  sort_order: number
+}
+
+type PublicGalleryImage = {
+  id: string
+  title: string | null
+  url: string
+}
+
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
 const CHRISM_YELLOW = '#f5c84b'
+const PUBLIC_GALLERY_MAX_IMAGES = 12
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -166,7 +182,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   if (organization?.public_page_enabled === false) notFound()
 
   const localUnit = (localUnitResponse.data as LocalUnitRow | null) ?? null
-  const [externalLinksResponse, contactRouteResponse, adminRecipientResponse] = localUnit?.id
+  const [externalLinksResponse, contactRouteResponse, adminRecipientResponse, galleryResponse] = localUnit?.id
     ? await Promise.all([
         untypedAdmin
           .from('local_unit_external_links')
@@ -192,11 +208,20 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               .eq('is_active', true)
               .limit(1)
           : Promise.resolve({ data: [] }),
+        untypedAdmin
+          .from('local_unit_public_gallery_images')
+          .select('id, title, storage_bucket, storage_path, sort_order')
+          .eq('local_unit_id', localUnit.id)
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true })
+          .limit(PUBLIC_GALLERY_MAX_IMAGES),
       ])
     : [
         { data: [] as ExternalLinkRow[] },
         { data: [] as MessageRouteRow[] },
         { data: [] as { id: string }[] },
+        { data: [] as GalleryImageRow[] },
       ]
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
@@ -211,6 +236,22 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const hasCustomContactRecipient = Boolean(contactRoute?.recipient_email)
   const hasDefaultAdminRecipient = ((adminRecipientResponse.data as { id: string }[] | null) ?? []).length > 0
   const showContactForm = Boolean(organization?.public_contact_form_enabled !== false && (hasCustomContactRecipient || hasDefaultAdminRecipient))
+  const galleryRows = ((galleryResponse.data as GalleryImageRow[] | null) ?? []).slice(0, PUBLIC_GALLERY_MAX_IMAGES)
+  const galleryImages = (await Promise.all(
+    galleryRows.map(async (image) => {
+      const { data } = await admin.storage
+        .from(image.storage_bucket)
+        .createSignedUrl(image.storage_path, 60 * 60)
+
+      if (!data?.signedUrl) return null
+
+      return {
+        id: image.id,
+        title: image.title,
+        url: data.signedUrl,
+      }
+    })
+  )).filter((image): image is PublicGalleryImage => image !== null)
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
 
@@ -256,7 +297,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           display: grid;
           grid-template-columns: minmax(240px, 0.82fr) minmax(320px, 1.18fr);
           gap: 28px;
-          align-items: stretch;
+          align-items: center;
         }
 
         .local-page-story-visual,
@@ -269,7 +310,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         .local-page-story-visual {
           position: relative;
           overflow: hidden;
-          min-height: 340px;
+          width: 100%;
+          aspect-ratio: 4 / 3;
           background:
             radial-gradient(circle at 35% 26%, rgba(245, 200, 75, 0.32), transparent 28%),
             linear-gradient(135deg, rgba(143, 160, 140, 0.32), rgba(92, 74, 114, 0.16));
@@ -281,6 +323,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           position: absolute;
           border-radius: 999px;
           border: 1px solid rgba(253, 252, 249, 0.42);
+          pointer-events: none;
         }
 
         .local-page-story-visual::before {
@@ -308,6 +351,151 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           border-radius: 22px;
           background: rgba(253, 252, 249, 0.38);
           backdrop-filter: blur(6px);
+          z-index: 1;
+        }
+
+        .local-page-gallery {
+          all: unset;
+          position: absolute;
+          inset: 0;
+          display: block;
+          cursor: pointer;
+          background: rgba(253, 252, 249, 0.42);
+          z-index: 1;
+        }
+
+        .local-page-gallery-image {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          opacity: 0;
+          transition: opacity 900ms ease;
+          background: rgba(253, 252, 249, 0.42);
+        }
+
+        .local-page-gallery-image.is-active {
+          opacity: 1;
+        }
+
+        .local-page-gallery-dots {
+          position: absolute;
+          left: 50%;
+          bottom: 16px;
+          display: flex;
+          gap: 7px;
+          transform: translateX(-50%);
+          z-index: 2;
+        }
+
+        .local-page-gallery-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.58);
+          box-shadow: 0 1px 5px rgba(46, 42, 52, 0.2);
+        }
+
+        .local-page-gallery-dot.is-active {
+          background: white;
+        }
+
+        .local-page-gallery-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          display: grid;
+          place-items: center;
+          padding: clamp(18px, 4vw, 48px);
+        }
+
+        .local-page-gallery-modal-backdrop {
+          all: unset;
+          position: absolute;
+          inset: 0;
+          cursor: pointer;
+          background: rgba(21, 18, 28, 0.74);
+          backdrop-filter: blur(8px);
+        }
+
+        .local-page-gallery-modal-panel {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          gap: 14px;
+          width: min(1040px, 100%);
+          max-height: min(86vh, 900px);
+          padding: clamp(14px, 2vw, 22px);
+          border-radius: 26px;
+          background: #111015;
+          color: white;
+          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+        }
+
+        .local-page-gallery-modal-image-wrap {
+          display: grid;
+          place-items: center;
+          min-height: min(68vh, 680px);
+          overflow: hidden;
+          border-radius: 18px;
+          background: #050506;
+        }
+
+        .local-page-gallery-modal-image-wrap img {
+          max-width: 100%;
+          max-height: min(68vh, 680px);
+          object-fit: contain;
+          display: block;
+        }
+
+        .local-page-gallery-modal-close,
+        .local-page-gallery-modal-arrow {
+          position: absolute;
+          z-index: 2;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255, 255, 255, 0.26);
+          background: rgba(255, 255, 255, 0.12);
+          color: white;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+          cursor: pointer;
+          backdrop-filter: blur(8px);
+        }
+
+        .local-page-gallery-modal-close {
+          top: 16px;
+          right: 16px;
+          width: 42px;
+          height: 42px;
+          border-radius: 999px;
+          font-size: 28px;
+          line-height: 1;
+        }
+
+        .local-page-gallery-modal-arrow {
+          top: 50%;
+          width: 46px;
+          height: 64px;
+          transform: translateY(-50%);
+          border-radius: 999px;
+          font-size: 42px;
+          line-height: 1;
+        }
+
+        .local-page-gallery-modal-arrow-left {
+          left: 22px;
+        }
+
+        .local-page-gallery-modal-arrow-right {
+          right: 22px;
+        }
+
+        .local-page-gallery-modal-title {
+          margin: 0;
+          color: rgba(255, 255, 255, 0.86);
+          font-weight: 800;
+          text-align: center;
         }
 
         .local-page-story-copy {
@@ -514,10 +702,14 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
 
       <section className="local-page-story-section" aria-label="Local community story">
         <div className="local-page-story-grid">
-          <div className="local-page-story-visual" aria-hidden="true">
-            <div className="local-page-story-placeholder">
-              <span>Image area</span>
-            </div>
+          <div className="local-page-story-visual" aria-label="Community image gallery">
+            {galleryImages.length > 0 ? (
+              <PublicGallerySlideshow images={galleryImages} />
+            ) : (
+              <div className="local-page-story-placeholder">
+                <span>Image area</span>
+              </div>
+            )}
           </div>
           <section className="local-page-story-copy">
             <p className="qv-eyebrow">Community life</p>
