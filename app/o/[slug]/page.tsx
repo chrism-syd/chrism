@@ -229,10 +229,85 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           filter: none;
         }
 
+        .local-page-hero {
+          position: relative;
+          overflow: hidden;
+          display: grid;
+          grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+          gap: 28px;
+          padding: 76px clamp(20px, 6vw, 80px) 76px;
+          align-items: center;
+          background:
+            radial-gradient(circle at 82% 18%, rgba(245, 200, 75, 0.18), transparent 34%),
+            linear-gradient(135deg, #eef5ef 0%, #f7f4ea 58%, #fdfcf9 100%);
+          border-bottom: 1px solid var(--divider);
+        }
+
+        .local-page-hero > * {
+          position: relative;
+          z-index: 1;
+        }
+
+        .local-page-contact-section {
+          padding: 56px clamp(20px, 6vw, 80px) 78px;
+          background:
+            linear-gradient(180deg, rgba(238, 245, 239, 0.28), rgba(253, 252, 249, 0));
+        }
+
+        .local-page-contact-grid {
+          display: grid;
+          grid-template-columns: minmax(260px, 0.82fr) minmax(320px, 1.18fr);
+          gap: 24px;
+          align-items: stretch;
+        }
+
+        .local-page-contact-copy,
+        .local-page-contact-form-card {
+          border: 1px solid var(--divider);
+          border-radius: 24px;
+          box-shadow: 0 18px 50px rgba(46, 42, 52, 0.08);
+        }
+
+        .local-page-contact-copy {
+          display: grid;
+          align-content: start;
+          gap: 18px;
+          padding: clamp(26px, 4vw, 42px);
+          background: var(--bg-sunken);
+        }
+
+        .local-page-contact-form-card {
+          display: grid;
+          gap: 18px;
+          padding: clamp(24px, 4vw, 36px);
+          background: var(--bg-card);
+        }
+
+        .local-page-contact-links {
+          display: grid;
+          gap: 10px;
+          margin-top: 6px;
+        }
+
+        .local-page-contact-links a {
+          justify-content: space-between;
+        }
+
         .local-page-contact-form input,
         .local-page-contact-form select,
         .local-page-contact-form textarea {
           background: var(--bg-card);
+        }
+
+        @media (max-width: 860px) {
+          .local-page-hero,
+          .local-page-contact-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .local-page-hero {
+            padding-top: 54px;
+          }
         }
       `}</style>
 
@@ -273,7 +348,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         </Link>
       </header>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(320px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
+      <section className="local-page-hero">
         <div style={{ display: 'grid', gap: 18 }}>
           <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
             Welcome to {displayTitle}
@@ -335,74 +410,82 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         </section>
       ) : null}
 
-      <section id="contact" style={{ padding: '48px clamp(20px, 6vw, 80px) 70px' }}>
-        <div className="qv-card" style={{ display: 'grid', gap: 18, background: 'var(--bg-sunken)' }}>
-          <p className="qv-eyebrow">Get involved</p>
-          <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
-          <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
-            {paragraph(involvementCopy(organization?.organization_type_code))}
-          </p>
-          {externalLinks.length > 0 ? (
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {externalLinks.map((externalLink) => (
-                <a
-                  key={externalLink.id}
-                  href={externalLink.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="qv-link-button qv-button-secondary"
-                >
-                  {displayText(externalLink.label)}
-                </a>
-              ))}
-            </div>
-          ) : null}
+      <section id="contact" className="local-page-contact-section">
+        <div className="local-page-contact-grid">
+          <div className="local-page-contact-copy">
+            <p className="qv-eyebrow">Get involved</p>
+            <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
+            <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
+              {paragraph(involvementCopy(organization?.organization_type_code))}
+            </p>
+            {externalLinks.length > 0 ? (
+              <div className="local-page-contact-links">
+                {externalLinks.map((externalLink) => (
+                  <a
+                    key={externalLink.id}
+                    href={externalLink.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="qv-link-button qv-button-secondary"
+                  >
+                    {displayText(externalLink.label)}
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
 
           {showContactForm ? (
-            <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form" style={{ marginTop: 8 }}>
-              <input type="hidden" name="slug" value={canonicalSlug} />
-              <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
-                Website
-                <input name="website" tabIndex={-1} autoComplete="off" />
-              </label>
-              {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
-              <div className="qv-form-row qv-form-row-2">
-                <label className="qv-control">
-                  <span className="qv-label">Name</span>
-                  <input name="name" autoComplete="name" required />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">Email</span>
-                  <input name="email" type="email" autoComplete="email" required />
-                </label>
+            <div className="local-page-contact-form-card">
+              <div>
+                <p className="qv-eyebrow">Contact the council</p>
+                <h3 className="qv-section-title" style={{ marginTop: 8 }}>Send a message</h3>
               </div>
-              <div className="qv-form-row qv-form-row-2">
-                <label className="qv-control">
-                  <span className="qv-label">Phone optional</span>
-                  <input name="phone" autoComplete="tel" />
+              <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form" style={{ marginTop: 0 }}>
+                <input type="hidden" name="slug" value={canonicalSlug} />
+                <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
+                  Website
+                  <input name="website" tabIndex={-1} autoComplete="off" />
                 </label>
+                {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
+                <div className="qv-form-row qv-form-row-2">
+                  <label className="qv-control">
+                    <span className="qv-label">Name</span>
+                    <input name="name" autoComplete="name" required />
+                  </label>
+                  <label className="qv-control">
+                    <span className="qv-label">Email</span>
+                    <input name="email" type="email" autoComplete="email" required />
+                  </label>
+                </div>
+                <div className="qv-form-row qv-form-row-2">
+                  <label className="qv-control">
+                    <span className="qv-label">Phone optional</span>
+                    <input name="phone" autoComplete="tel" />
+                  </label>
+                  <label className="qv-control">
+                    <span className="qv-label">Submission type</span>
+                    <select name="inquiry_type" defaultValue="general_question">
+                      <option value="volunteer">I want to volunteer</option>
+                      <option value="membership">I&apos;m interested in joining</option>
+                      <option value="general_question">I have a general question</option>
+                      <option value="help_request">I need help with something</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                </div>
                 <label className="qv-control">
-                  <span className="qv-label">Submission type</span>
-                  <select name="inquiry_type" defaultValue="general_question">
-                    <option value="volunteer">I want to volunteer</option>
-                    <option value="membership">I&apos;m interested in joining</option>
-                    <option value="general_question">I have a general question</option>
-                    <option value="help_request">I need help with something</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <span className="qv-label">Message</span>
+                  <textarea name="message" rows={4} required />
                 </label>
-              </div>
-              <label className="qv-control">
-                <span className="qv-label">Message</span>
-                <textarea name="message" rows={4} required />
-              </label>
-              <p className="qv-inline-message">
-                By submitting this form, you agree that this organization may contact you about your submission.
-              </p>
-              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                <button type="submit" className="qv-button-primary">Send submission</button>
-              </div>
-            </form>
+                <p className="qv-inline-message">
+                  By submitting this form, you agree that this organization may contact you about your submission.
+                </p>
+                <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                  <button type="submit" className="qv-button-primary">Send submission</button>
+                </div>
+              </form>
+            </div>
           ) : null}
         </div>
       </section>
