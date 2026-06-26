@@ -279,8 +279,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           padding: 76px clamp(20px, 6vw, 80px) 76px;
           align-items: center;
           background:
-            radial-gradient(circle at 82% 18%, rgba(245, 200, 75, 0.18), transparent 34%),
-            linear-gradient(135deg, #eef5ef 0%, #f7f4ea 58%, #fdfcf9 100%);
+            radial-gradient(circle at 82% 18%, rgba(245, 200, 75, 0.24), transparent 34%),
+            linear-gradient(135deg, #dfeade 0%, #eee8d6 58%, #f7f3e8 100%);
           border-bottom: 1px solid var(--divider);
         }
 
