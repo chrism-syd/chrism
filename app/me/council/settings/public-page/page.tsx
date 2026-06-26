@@ -5,7 +5,14 @@ import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { getFlashMessage } from '@/lib/flash-messages'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
-import { savePublicContactRouteAction, savePublicExternalLinksAction, updatePublicPageSettingsAction } from './actions'
+import {
+  deletePublicGalleryImageAction,
+  savePublicContactRouteAction,
+  savePublicExternalLinksAction,
+  savePublicGalleryImagesAction,
+  updatePublicPageSettingsAction,
+  uploadPublicGalleryImagesAction,
+} from './actions'
 
 type OrganizationPublicSettingsRow = {
   id: string
@@ -30,7 +37,21 @@ type MessageRouteRow = {
   recipient_label: string | null
 }
 
+type GalleryImageRow = {
+  id: string
+  title: string | null
+  storage_bucket: string
+  storage_path: string
+  sort_order: number
+  is_active: boolean
+}
+
+type GalleryImageView = GalleryImageRow & {
+  signedUrl: string | null
+}
+
 const DEFAULT_PUBLIC_INTRO = 'Empowering Catholic men to live out their faith through charity, unity, and fraternity.'
+const PUBLIC_GALLERY_MAX_IMAGES = 12
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -57,7 +78,7 @@ export default async function PublicPageSettingsPage() {
   if (!localUnitId) redirect('/me/council')
 
   const untypedAdmin = admin as any
-  const [{ data: organizationData }, { data: externalLinksData }, { data: messageRouteData }] = await Promise.all([
+  const [{ data: organizationData }, { data: externalLinksData }, { data: messageRouteData }, { data: galleryData }] = await Promise.all([
     untypedAdmin
       .from('organizations')
       .select('id, display_name, preferred_name, public_page_enabled, public_description, public_contact_form_enabled')
@@ -78,11 +99,33 @@ export default async function PublicPageSettingsPage() {
       .eq('is_active', true)
       .order('updated_at', { ascending: false })
       .limit(1),
+    untypedAdmin
+      .from('local_unit_public_gallery_images')
+      .select('id, title, storage_bucket, storage_path, sort_order, is_active')
+      .eq('local_unit_id', localUnitId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(PUBLIC_GALLERY_MAX_IMAGES),
   ])
 
   const organization = organizationData as OrganizationPublicSettingsRow | null
   const externalLinks = ((externalLinksData as ExternalLinkRow[] | null) ?? []).slice(0, 3)
   const messageRoute = ((messageRouteData as MessageRouteRow[] | null) ?? [])[0] ?? null
+  const galleryRows = ((galleryData as GalleryImageRow[] | null) ?? []).slice(0, PUBLIC_GALLERY_MAX_IMAGES)
+  const galleryImages: GalleryImageView[] = await Promise.all(
+    galleryRows.map(async (image) => {
+      const { data } = await admin.storage
+        .from(image.storage_bucket)
+        .createSignedUrl(image.storage_path, 60 * 60)
+
+      return {
+        ...image,
+        signedUrl: data?.signedUrl ?? null,
+      }
+    })
+  )
+  const gallerySlotsRemaining = Math.max(0, PUBLIC_GALLERY_MAX_IMAGES - galleryImages.length)
   const publicSlug = council.council_number
     ? buildCouncilPublicOrgSlug({ name: council.name, councilNumber: council.council_number })
     : null
@@ -196,6 +239,85 @@ export default async function PublicPageSettingsPage() {
               <button type="submit" className="qv-button-primary">Save public page settings</button>
             </div>
           </form>
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <p className="qv-eyebrow">Community gallery</p>
+              <h2 className="qv-section-title">Public page photos</h2>
+              <p className="qv-section-subtitle">
+                Add up to {PUBLIC_GALLERY_MAX_IMAGES} curated photos for the slideshow on the public page. Titles only appear in the larger gallery view.
+              </p>
+            </div>
+            <span className="qv-badge">{galleryImages.length} / {PUBLIC_GALLERY_MAX_IMAGES}</span>
+          </div>
+
+          <form action={uploadPublicGalleryImagesAction} className="qv-form-grid" encType="multipart/form-data">
+            <label className="qv-control">
+              <span className="qv-label">Upload photos</span>
+              <input
+                type="file"
+                name="gallery_images"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                disabled={gallerySlotsRemaining <= 0}
+              />
+            </label>
+            <p className="qv-inline-message">
+              JPG, PNG, or WebP. Maximum 5 MB each. You can add {gallerySlotsRemaining} more image{gallerySlotsRemaining === 1 ? '' : 's'}.
+            </p>
+            <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+              <button type="submit" className="qv-button-primary" disabled={gallerySlotsRemaining <= 0}>Upload gallery images</button>
+            </div>
+          </form>
+
+          {galleryImages.length > 0 ? (
+            <form action={savePublicGalleryImagesAction} className="qv-form-grid" style={{ marginTop: 20 }}>
+              <div style={{ display: 'grid', gap: 14 }}>
+                {galleryImages.map((image, index) => (
+                  <div
+                    key={image.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '104px minmax(0, 1fr) 90px auto',
+                      gap: 12,
+                      alignItems: 'center',
+                      padding: 12,
+                      border: '1px solid var(--divider)',
+                      borderRadius: 16,
+                      background: 'var(--bg-card)',
+                    }}
+                  >
+                    <div style={{ aspectRatio: '4 / 3', overflow: 'hidden', borderRadius: 12, background: 'var(--bg-sunken)', border: '1px solid var(--divider)' }}>
+                      {image.signedUrl ? (
+                        <img src={image.signedUrl} alt={image.title ?? `Gallery image ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      ) : null}
+                    </div>
+                    <label className="qv-control">
+                      <span className="qv-label">Title optional</span>
+                      <input name={`gallery_title_${image.id}`} defaultValue={image.title ?? ''} placeholder="Pancake breakfast" />
+                    </label>
+                    <label className="qv-control">
+                      <span className="qv-label">Order</span>
+                      <input name={`gallery_sort_order_${image.id}`} type="number" min="0" defaultValue={image.sort_order} />
+                    </label>
+                    <form action={deletePublicGalleryImageAction}>
+                      <input type="hidden" name="gallery_image_id" value={image.id} />
+                      <button type="submit" className="qv-button-secondary">Remove</button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                <button type="submit" className="qv-button-primary">Save gallery details</button>
+              </div>
+            </form>
+          ) : (
+            <div className="qv-empty" style={{ borderStyle: 'solid', marginTop: 20 }}>
+              No gallery images yet. Upload a few photos to replace the image placeholder on the public page.
+            </div>
+          )}
         </section>
 
         <section className="qv-card">
