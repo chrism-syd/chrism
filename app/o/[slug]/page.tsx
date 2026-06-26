@@ -403,7 +403,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           z-index: 100;
           display: grid;
           place-items: center;
-          padding: clamp(18px, 4vw, 48px);
+          padding: clamp(24px, 4vw, 64px);
         }
 
         .local-page-gallery-modal-backdrop {
@@ -419,35 +419,35 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           position: relative;
           z-index: 1;
           display: grid;
-          gap: 14px;
-          width: min(1040px, 100%);
-          max-height: min(86vh, 900px);
-          padding: clamp(14px, 2vw, 22px);
-          border-radius: 26px;
-          background: #111015;
+          gap: 12px;
+          width: min(1180px, calc(100vw - 72px));
+          max-height: calc(100vh - 72px);
+          padding: 0;
+          border-radius: 0;
+          background: transparent;
           color: white;
-          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+          box-shadow: none;
         }
 
         .local-page-gallery-modal-image-wrap {
           display: grid;
           place-items: center;
-          min-height: min(68vh, 680px);
-          overflow: hidden;
-          border-radius: 18px;
-          background: #050506;
+          max-height: calc(100vh - 132px);
+          overflow: visible;
+          border-radius: 0;
+          background: transparent;
         }
 
         .local-page-gallery-modal-image-wrap img {
           max-width: 100%;
-          max-height: min(68vh, 680px);
+          max-height: calc(100vh - 132px);
           object-fit: contain;
           display: block;
         }
 
         .local-page-gallery-modal-close,
         .local-page-gallery-modal-arrow {
-          position: absolute;
+          position: fixed;
           z-index: 2;
           display: grid;
           place-items: center;
@@ -460,8 +460,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         }
 
         .local-page-gallery-modal-close {
-          top: 16px;
-          right: 16px;
+          top: clamp(18px, 3vw, 34px);
+          right: clamp(18px, 3vw, 34px);
           width: 42px;
           height: 42px;
           border-radius: 999px;
@@ -485,18 +485,19 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         }
 
         .local-page-gallery-modal-arrow-left {
-          left: 22px;
+          left: clamp(18px, 3vw, 44px);
         }
 
         .local-page-gallery-modal-arrow-right {
-          right: 22px;
+          right: clamp(18px, 3vw, 44px);
         }
 
         .local-page-gallery-modal-title {
           margin: 0;
-          color: rgba(255, 255, 255, 0.86);
+          color: rgba(255, 255, 255, 0.92);
           font-weight: 800;
           text-align: center;
+          text-shadow: 0 2px 12px rgba(0, 0, 0, 0.32);
         }
 
         .local-page-story-copy {
