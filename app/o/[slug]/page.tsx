@@ -248,8 +248,105 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           z-index: 1;
         }
 
+        .local-page-story-section {
+          padding: 56px clamp(20px, 6vw, 80px) 36px;
+        }
+
+        .local-page-story-grid {
+          display: grid;
+          grid-template-columns: minmax(240px, 0.82fr) minmax(320px, 1.18fr);
+          gap: 28px;
+          align-items: stretch;
+        }
+
+        .local-page-story-visual,
+        .local-page-story-copy {
+          border: 1px solid var(--divider);
+          border-radius: 28px;
+          box-shadow: 0 18px 50px rgba(46, 42, 52, 0.08);
+        }
+
+        .local-page-story-visual {
+          position: relative;
+          overflow: hidden;
+          min-height: 340px;
+          background:
+            radial-gradient(circle at 35% 26%, rgba(245, 200, 75, 0.32), transparent 28%),
+            linear-gradient(135deg, rgba(143, 160, 140, 0.32), rgba(92, 74, 114, 0.16));
+        }
+
+        .local-page-story-visual::before,
+        .local-page-story-visual::after {
+          content: '';
+          position: absolute;
+          border-radius: 999px;
+          border: 1px solid rgba(253, 252, 249, 0.42);
+        }
+
+        .local-page-story-visual::before {
+          width: 220px;
+          height: 220px;
+          left: -54px;
+          bottom: -42px;
+        }
+
+        .local-page-story-visual::after {
+          width: 160px;
+          height: 160px;
+          right: 34px;
+          top: 34px;
+        }
+
+        .local-page-story-placeholder {
+          position: absolute;
+          inset: 28px;
+          display: grid;
+          place-items: end start;
+          padding: 28px;
+          color: rgba(46, 42, 52, 0.72);
+          border: 1px dashed rgba(92, 74, 114, 0.28);
+          border-radius: 22px;
+          background: rgba(253, 252, 249, 0.38);
+          backdrop-filter: blur(6px);
+        }
+
+        .local-page-story-copy {
+          display: grid;
+          align-content: center;
+          gap: 18px;
+          padding: clamp(28px, 4vw, 48px);
+          background: var(--bg-card);
+        }
+
+        .local-page-story-card-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 6px;
+        }
+
+        .local-page-story-card {
+          display: grid;
+          gap: 8px;
+          padding: 16px;
+          border: 1px solid var(--divider);
+          border-radius: 18px;
+          background: color-mix(in srgb, var(--bg-card) 76%, var(--bg-sunken) 24%);
+        }
+
+        .local-page-story-card strong,
+        .local-page-story-card p {
+          margin: 0;
+        }
+
+        .local-page-story-card p {
+          color: var(--text-secondary);
+          font-size: 13px;
+          line-height: 1.42;
+        }
+
         .local-page-contact-section {
-          padding: 56px clamp(20px, 6vw, 80px) 78px;
+          padding: 36px clamp(20px, 6vw, 80px) 78px;
           background:
             linear-gradient(180deg, rgba(238, 245, 239, 0.28), rgba(253, 252, 249, 0));
         }
@@ -301,12 +398,17 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
 
         @media (max-width: 860px) {
           .local-page-hero,
+          .local-page-story-grid,
           .local-page-contact-grid {
             grid-template-columns: 1fr;
           }
 
           .local-page-hero {
             padding-top: 54px;
+          }
+
+          .local-page-story-card-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
@@ -409,6 +511,37 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           </div>
         </section>
       ) : null}
+
+      <section className="local-page-story-section" aria-label="Local community story">
+        <div className="local-page-story-grid">
+          <div className="local-page-story-visual" aria-hidden="true">
+            <div className="local-page-story-placeholder">
+              <span>Image area</span>
+            </div>
+          </div>
+          <section className="local-page-story-copy">
+            <p className="qv-eyebrow">Community life</p>
+            <h2 className="qv-section-title" style={{ margin: 0 }}>A place for service, faith, and fellowship.</h2>
+            <p className="qv-section-subtitle" style={{ maxWidth: 720 }}>
+              {paragraph(`${displayName} brings people together through local service, shared responsibility, and simple ways to stay connected to the community.`)}
+            </p>
+            <div className="local-page-story-card-grid">
+              <div className="local-page-story-card">
+                <strong>Serve locally</strong>
+                <p>{paragraph('Find practical ways to help neighbours, families, and local community efforts.')}</p>
+              </div>
+              <div className="local-page-story-card">
+                <strong>Stay connected</strong>
+                <p>{paragraph('Keep an eye on upcoming events, meetings, and opportunities to take part.')}</p>
+              </div>
+              <div className="local-page-story-card">
+                <strong>Build community</strong>
+                <p>{paragraph('Meet people who are working together in faith, service, and friendship.')}</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
 
       <section id="contact" className="local-page-contact-section">
         <div className="local-page-contact-grid">
