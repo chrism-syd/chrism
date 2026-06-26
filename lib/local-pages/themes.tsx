@@ -21,7 +21,12 @@ type ThemeColors = {
   accentDark: string
   softBackground: string
   softBackgroundLight: string
+  pageBackground: string
   footerBackground: string
+  heroText: string
+  heroMutedText: string
+  bodyText: string
+  mutedText: string
   buttonPrimaryBackground: string
   buttonPrimaryText: string
   buttonSecondaryText: string
@@ -45,7 +50,12 @@ const DEFAULT_THEME: LocalPageTheme = {
     accentDark: '#d6ad3b',
     softBackground: '#f7f4ea',
     softBackgroundLight: '#fdfcf9',
+    pageBackground: '#fdfcf9',
     footerBackground: '#5c4a72',
+    heroText: '#2e2a34',
+    heroMutedText: '#5f5968',
+    bodyText: '#2e2a34',
+    mutedText: '#6b6572',
     buttonPrimaryBackground: '#f5c84b',
     buttonPrimaryText: '#15121c',
     buttonSecondaryText: '#5c4a72',
@@ -67,7 +77,12 @@ const KNIGHTS_OF_COLUMBUS_THEME: LocalPageTheme = {
     accentDark: '#e2a501',
     softBackground: '#d7e4f1',
     softBackgroundLight: '#ebf1f8',
+    pageBackground: '#fdfcf9',
     footerBackground: '#071a4d',
+    heroText: '#ffffff',
+    heroMutedText: 'rgba(255, 255, 255, 0.86)',
+    bodyText: '#2e2a34',
+    mutedText: '#6b6572',
     buttonPrimaryBackground: '#f7b718',
     buttonPrimaryText: '#071a4d',
     buttonSecondaryText: '#112866',
@@ -132,7 +147,12 @@ function localPageThemeVars(theme: LocalPageTheme): CSSProperties {
     '--local-page-accent-dark': theme.colors.accentDark,
     '--local-page-soft-bg': theme.colors.softBackground,
     '--local-page-soft-bg-light': theme.colors.softBackgroundLight,
+    '--local-page-bg': theme.colors.pageBackground,
     '--local-page-footer-bg': theme.colors.footerBackground,
+    '--local-page-hero-text': theme.colors.heroText,
+    '--local-page-hero-muted-text': theme.colors.heroMutedText,
+    '--local-page-body-text': theme.colors.bodyText,
+    '--local-page-muted-text': theme.colors.mutedText,
     '--local-page-button-primary-bg': theme.colors.buttonPrimaryBackground,
     '--local-page-button-primary-text': theme.colors.buttonPrimaryText,
     '--local-page-button-secondary-text': theme.colors.buttonSecondaryText,
@@ -148,50 +168,6 @@ export function LocalPageThemeStyle({ theme }: { theme: LocalPageTheme }) {
         ${Object.entries(localPageThemeVars(theme))
           .map(([key, value]) => `${key}: ${value};`)
           .join('\n        ')}
-      }
-
-      .local-page.${theme.className} .local-page-hero {
-        color: white;
-        background: var(--local-page-hero-bg);
-        border-bottom-color: color-mix(in srgb, var(--local-page-accent) 38%, transparent);
-      }
-
-      .local-page.${theme.className} .local-page-hero {
-        --text-secondary: rgba(255, 255, 255, 0.86);
-      }
-
-      .local-page.${theme.className} .local-page-hero .qv-button-primary {
-        background: var(--local-page-button-primary-bg);
-        border-color: var(--local-page-button-primary-bg);
-        color: var(--local-page-button-primary-text);
-        box-shadow: 0 14px 30px color-mix(in srgb, var(--local-page-primary-dark) 24%, transparent);
-      }
-
-      .local-page.${theme.className} .qv-button-secondary {
-        border-color: var(--local-page-primary);
-        color: var(--local-page-button-secondary-text);
-      }
-
-      .local-page.${theme.className} .qv-button-secondary:hover,
-      .local-page.${theme.className} .qv-button-secondary:focus-visible {
-        border-color: var(--local-page-primary-dark);
-        color: var(--local-page-primary-dark);
-      }
-
-      .local-page.${theme.className} .local-page-story-visual {
-        border-color: color-mix(in srgb, var(--local-page-accent) 42%, transparent);
-      }
-
-      .local-page.${theme.className} .local-page-story-card,
-      .local-page.${theme.className} .local-page-contact-copy {
-        border-color: color-mix(in srgb, var(--local-page-primary) 16%, transparent);
-        background:
-          radial-gradient(circle at 92% 8%, rgba(255, 255, 255, 0.58), transparent 26%),
-          linear-gradient(135deg, var(--local-page-soft-bg-light) 0%, var(--local-page-soft-bg) 100%);
-      }
-
-      .local-page.${theme.className} footer {
-        border-top: 4px solid var(--local-page-accent);
       }
     `}</style>
   )
