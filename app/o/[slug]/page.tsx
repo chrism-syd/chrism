@@ -254,10 +254,18 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   )).filter((image): image is PublicGalleryImage => image !== null)
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
+  const isKnightsPage = organization?.organization_type_code === 'knights_of_columbus'
 
   return (
-    <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
+    <main className={isKnightsPage ? 'local-page local-page-knights' : 'local-page'} style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
       <style>{`
+        .local-page {
+          --local-page-accent-blue: #082a5a;
+          --local-page-accent-blue-deep: #031b3d;
+          --local-page-accent-gold: #d6ad3b;
+          --local-page-accent-gold-bright: #f5c84b;
+        }
+
         .local-page-chrism-powered {
           opacity: 0.48;
           filter: grayscale(1) saturate(0);
@@ -282,6 +290,46 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
             radial-gradient(circle at 82% 18%, rgba(245, 200, 75, 0.24), transparent 34%),
             linear-gradient(135deg, #dfeade 0%, #eee8d6 58%, #f7f3e8 100%);
           border-bottom: 1px solid var(--divider);
+        }
+
+        .local-page-knights .local-page-hero {
+          color: white;
+          background:
+            radial-gradient(circle at 83% 18%, rgba(245, 200, 75, 0.34), transparent 34%),
+            radial-gradient(circle at 18% 92%, rgba(214, 173, 59, 0.18), transparent 30%),
+            linear-gradient(135deg, var(--local-page-accent-blue-deep) 0%, var(--local-page-accent-blue) 56%, #123e78 100%);
+          border-bottom-color: rgba(214, 173, 59, 0.36);
+        }
+
+        .local-page-knights .local-page-hero p {
+          color: rgba(255, 255, 255, 0.86) !important;
+        }
+
+        .local-page-knights .local-page-hero .qv-button-primary {
+          background: var(--local-page-accent-gold-bright);
+          border-color: var(--local-page-accent-gold-bright);
+          color: #15121c;
+          box-shadow: 0 14px 30px rgba(3, 27, 61, 0.22);
+        }
+
+        .local-page-knights .local-page-story-visual {
+          border-color: rgba(214, 173, 59, 0.42);
+          background:
+            radial-gradient(circle at 35% 26%, rgba(245, 200, 75, 0.36), transparent 28%),
+            linear-gradient(135deg, rgba(8, 42, 90, 0.24), rgba(214, 173, 59, 0.14));
+        }
+
+        .local-page-knights .local-page-story-card {
+          border-color: rgba(214, 173, 59, 0.28);
+        }
+
+        .local-page-knights .qv-eyebrow {
+          color: var(--local-page-accent-blue);
+        }
+
+        .local-page-knights footer {
+          background: var(--local-page-accent-blue-deep) !important;
+          border-top: 4px solid var(--local-page-accent-gold);
         }
 
         .local-page-hero > * {
