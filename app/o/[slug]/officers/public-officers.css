@@ -41,11 +41,21 @@
   line-height: 1.45;
 }
 
+.public-officers-sections,
+.public-officers-section {
+  display: grid;
+  gap: clamp(18px, 3vw, 28px);
+}
+
 .public-officers-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(14px, 2vw, 22px);
   align-items: stretch;
+}
+
+.public-officers-grid-leadership {
+  margin-bottom: clamp(6px, 1vw, 12px);
 }
 
 .public-officer-card {
@@ -69,6 +79,10 @@
   border-radius: 36px;
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 24px 72px rgba(15, 23, 42, 0.12);
+}
+
+.public-officer-card-deputy {
+  grid-column: span 1;
 }
 
 .public-officer-portrait {
@@ -114,11 +128,44 @@
   line-height: 0.96;
 }
 
+.public-officer-card-deputy .public-officer-name-leadership {
+  font-size: clamp(24px, 2.5vw, 32px);
+}
+
 .public-officer-email {
   color: var(--local-link);
   font-size: 14px;
   font-weight: 750;
   overflow-wrap: anywhere;
+}
+
+.public-officers-section {
+  margin-top: clamp(10px, 2vw, 20px);
+  padding-top: clamp(20px, 4vw, 34px);
+  border-top: 1px solid rgba(15, 23, 42, 0.14);
+}
+
+.public-officers-section-head {
+  display: grid;
+  gap: 6px;
+}
+
+.public-officers-section-eyebrow {
+  margin: 0;
+  color: var(--local-muted);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.public-officers-section-title {
+  margin: 0;
+  color: var(--local-ink);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 1;
 }
 
 .public-officers-empty {
@@ -136,7 +183,7 @@
   }
 
   .public-officer-card-featured {
-    grid-column: span 3;
+    grid-column: span 2;
   }
 }
 
@@ -156,7 +203,8 @@
     grid-template-columns: 1fr;
   }
 
-  .public-officer-card-featured {
+  .public-officer-card-featured,
+  .public-officer-card-deputy {
     grid-column: span 1;
   }
 }
