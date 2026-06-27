@@ -1,5 +1,7 @@
 'use server'
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- local_unit_public_officers is added by this branch before generated Supabase types are refreshed. */
+
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
