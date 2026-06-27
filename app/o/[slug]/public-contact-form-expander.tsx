@@ -157,8 +157,15 @@ export default function PublicContactFormExpander() {
         line-height: 1.55;
       }
 
-      .local-page-contact-reveal-button {
+      .local-page-contact-reveal-button,
+      .local-page-contact-form .qv-button-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         justify-self: start;
+        min-height: 44px;
+        padding: 12px 16px;
+        line-height: 1;
       }
 
       .local-page-contact-form-card.is-expanded form,
