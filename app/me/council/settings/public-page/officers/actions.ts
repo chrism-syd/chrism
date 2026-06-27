@@ -319,6 +319,7 @@ export async function saveOfficerPublicProfileAction(formData: FormData) {
     display_name_override: displayNameOverride,
     public_title_override: textValue(formData, 'public_title_override'),
     public_email: publicEmail,
+    show_public_email: formData.get('show_public_email') === 'true' && Boolean(publicEmail),
     is_public: formData.get('is_public') === 'true',
     sort_order: Math.max(0, integerValue(formData, 'sort_order', 0)),
     photo_zoom: clamp(numberValue(formData, 'photo_zoom', 1), 1, 3),
