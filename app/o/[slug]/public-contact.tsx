@@ -1,4 +1,5 @@
 import { submitPublicContactFormAction } from './actions'
+import PublicContactFormExpander from './public-contact-form-expander'
 
 type PublicContactDetail = {
   type: 'email' | 'location'
@@ -22,6 +23,11 @@ type PublicContactProps = {
   showContactForm: boolean
   canonicalSlug: string
   contactMessage: string | null
+}
+
+function contactDetailIcon(type: PublicContactDetail['type']) {
+  if (type === 'email') return '✉'
+  return '⌖'
 }
 
 export default function PublicContact({
@@ -48,6 +54,7 @@ export default function PublicContact({
               <div className="local-page-contact-detail-list" aria-label="Public contact details">
                 {contactDetails.map((detail) => (
                   <div key={detail.type} className="local-page-contact-detail">
+                    <span className="local-page-contact-detail-icon" aria-hidden="true">{contactDetailIcon(detail.type)}</span>
                     <span className="local-page-contact-detail-label">{detail.label}</span>
                     {detail.value ? (
                       <span className="local-page-contact-detail-value">
@@ -90,7 +97,7 @@ export default function PublicContact({
           </div>
 
           {showContactForm ? (
-            <div className="local-page-contact-form-card">
+            <PublicContactFormExpander initiallyExpanded={Boolean(contactMessage)}>
               <div>
                 <p className="qv-eyebrow">Contact the council</p>
                 <h3 className="qv-section-title local-page-section-subtitle-tight">Send a message</h3>
@@ -139,7 +146,7 @@ export default function PublicContact({
                   <button type="submit" className="qv-button-primary">Send</button>
                 </div>
               </form>
-            </div>
+            </PublicContactFormExpander>
           ) : null}
         </div>
       </div>
