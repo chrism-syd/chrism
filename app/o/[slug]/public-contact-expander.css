@@ -7,15 +7,6 @@
   min-height: clamp(360px, 38vw, 520px);
 }
 
-.local-page-contact-form-card.is-collapsed > div:not(.local-page-contact-reveal),
-.local-page-contact-form-card.is-collapsed > form {
-  display: none;
-}
-
-.local-page-contact-form-card.is-transitioning {
-  transform: translateY(2px);
-}
-
 .local-page-contact-reveal {
   display: grid;
   align-content: center;
@@ -57,8 +48,9 @@
   line-height: 1;
 }
 
-.local-page-contact-form-card.is-expanded form,
-.local-page-contact-form-card.is-expanded > div {
+.local-page-contact-form-content {
+  display: grid;
+  gap: 18px;
   animation: localPageFormReveal 240ms ease-out;
 }
 
