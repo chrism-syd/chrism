@@ -128,7 +128,7 @@ export default async function MemberReviewsPage() {
           .is('cleared_at', null)
           .order('created_at', { ascending: false })
           .limit(12)
-      : Promise.resolve({ data: [] as PublicInquiryRow[] }),
+      : Promise.resolve({ data: [] as PublicInquiryRow[], error: null }),
   ])
 
   const organization = organizationData.data ?? null
