@@ -90,7 +90,7 @@ export default function PublicContactFormExpander() {
         min-height: clamp(360px, 38vw, 520px);
       }
 
-      .local-page-contact-form-card.is-collapsed > div,
+      .local-page-contact-form-card.is-collapsed > div:not(.local-page-contact-reveal),
       .local-page-contact-form-card.is-collapsed > form {
         display: none;
       }
