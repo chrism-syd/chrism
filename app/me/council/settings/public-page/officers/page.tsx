@@ -12,6 +12,7 @@ import { decryptPeopleRecords } from '@/lib/security/pii'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import {
   removeOfficerPortraitAction,
+  saveOfficerPortraitPositionAction,
   saveOfficerPublicProfileAction,
   uploadOfficerPortraitAction,
 } from './actions'
@@ -349,6 +350,7 @@ export default async function PublicOfficerSettingsPage() {
                         idPrefix={`officer-${profile.term.id}`}
                         uploadAction={uploadOfficerPortraitAction}
                         removeAction={removeOfficerPortraitAction}
+                        positionAction={saveOfficerPortraitPositionAction}
                         hiddenFields={{ term_id: profile.term.id }}
                         imageUrl={profile.portraitUrl}
                         imageAlt={`${profile.memberLabel} portrait`}
@@ -367,6 +369,9 @@ export default async function PublicOfficerSettingsPage() {
                     <div className="qv-officer-public-forms">
                       <form action={saveOfficerPublicProfileAction} className="qv-officer-public-form">
                         <input type="hidden" name="term_id" value={profile.term.id} />
+                        <input type="hidden" name="photo_zoom" value={zoom} />
+                        <input type="hidden" name="photo_position_x" value={positionX} />
+                        <input type="hidden" name="photo_position_y" value={positionY} />
                         <label className="qv-toggle-card">
                           <input
                             type="checkbox"
@@ -421,23 +426,6 @@ export default async function PublicOfficerSettingsPage() {
                             <span className="qv-label">Display order</span>
                             <input type="number" min="0" name="sort_order" defaultValue={sortOrder} />
                           </label>
-                        </div>
-
-                        <div className="qv-portrait-editor">
-                          <div className="qv-portrait-controls">
-                            <label className="qv-control qv-portrait-control">
-                              <span className="qv-label">Portrait zoom</span>
-                              <input type="range" name="photo_zoom" min="1" max="3" step="0.05" defaultValue={zoom} />
-                            </label>
-                            <label className="qv-control qv-portrait-control">
-                              <span className="qv-label">Move left or right</span>
-                              <input type="range" name="photo_position_x" min="0" max="100" step="1" defaultValue={positionX} />
-                            </label>
-                            <label className="qv-control qv-portrait-control">
-                              <span className="qv-label">Move up or down</span>
-                              <input type="range" name="photo_position_y" min="0" max="100" step="1" defaultValue={positionY} />
-                            </label>
-                          </div>
                         </div>
 
                         <div className="qv-officer-public-actions">
