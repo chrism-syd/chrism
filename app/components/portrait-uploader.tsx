@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import type { ChangeEvent, CSSProperties, FormEvent } from 'react'
+import type { ChangeEvent, CSSProperties, FormEvent, PointerEvent } from 'react'
 
 type ServerAction = (formData: FormData) => void | Promise<void>
 
@@ -11,6 +11,14 @@ type PortraitUploaderStyle = CSSProperties & {
   '--portrait-uploader-zoom': string
   '--portrait-uploader-position-x': string
   '--portrait-uploader-position-y': string
+}
+
+type DragState = {
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startPositionX: number
+  startPositionY: number
 }
 
 type PortraitUploaderProps = {
@@ -68,6 +76,7 @@ export default function PortraitUploader({
   placeholderLabel = 'Portrait not set',
 }: PortraitUploaderProps) {
   const uploadFormRef = useRef<HTMLFormElement>(null)
+  const dragStateRef = useRef<DragState | null>(null)
   const fileInputId = `${idPrefix}-portrait-upload`
   const resolvedHelpText = helpText ?? `JPG, PNG, or WebP. ${maxSizeLabel}`
   const [currentZoom, setCurrentZoom] = useState(clamp(Number(zoom ?? 1), 1, 3, 1))
@@ -75,6 +84,7 @@ export default function PortraitUploader({
   const [currentPositionY, setCurrentPositionY] = useState(clamp(Number(positionY ?? 50), 0, 100, 50))
   const [fileName, setFileName] = useState('')
   const [isUploadSubmitting, setIsUploadSubmitting] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const frameStyle: PortraitUploaderStyle = {
     '--portrait-uploader-size': `${frameSize}px`,
@@ -100,9 +110,37 @@ export default function PortraitUploader({
     }
   }
 
-  function nudge(deltaX: number, deltaY: number) {
-    setCurrentPositionX((value) => clamp(value + deltaX, 0, 100, 50))
-    setCurrentPositionY((value) => clamp(value + deltaY, 0, 100, 50))
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!imageUrl) return
+
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startPositionX: currentPositionX,
+      startPositionY: currentPositionY,
+    }
+    setIsDragging(true)
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const dragState = dragStateRef.current
+    if (!dragState || dragState.pointerId !== event.pointerId) return
+
+    const movementScale = 100 / frameSize
+    const deltaX = (event.clientX - dragState.startClientX) * movementScale
+    const deltaY = (event.clientY - dragState.startClientY) * movementScale
+
+    setCurrentPositionX(clamp(dragState.startPositionX - deltaX, 0, 100, 50))
+    setCurrentPositionY(clamp(dragState.startPositionY - deltaY, 0, 100, 50))
+  }
+
+  function stopDragging(event: PointerEvent<HTMLDivElement>) {
+    if (dragStateRef.current?.pointerId === event.pointerId) {
+      dragStateRef.current = null
+      setIsDragging(false)
+    }
   }
 
   function resetPosition() {
@@ -122,10 +160,19 @@ export default function PortraitUploader({
       ) : null}
 
       <div className="qv-portrait-uploader-stage">
-        <div className="qv-portrait-uploader-frame" style={frameStyle}>
+        <div
+          className={`qv-portrait-uploader-frame${imageUrl ? ' qv-portrait-uploader-frame-draggable' : ''}${isDragging ? ' qv-portrait-uploader-frame-dragging' : ''}`}
+          style={frameStyle}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+          role={imageUrl ? 'application' : undefined}
+          aria-label={imageUrl ? 'Drag portrait to reposition it inside the frame' : undefined}
+        >
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- signed private storage URLs are positioned inside a fixed portrait frame.
-            <img className="qv-portrait-uploader-image" src={imageUrl} alt={imageAlt} />
+            <img className="qv-portrait-uploader-image" src={imageUrl} alt={imageAlt} draggable={false} />
           ) : (
             <div className="qv-portrait-uploader-placeholder" aria-label={placeholderLabel}>
               <div className="qv-portrait-uploader-placeholder-mark" aria-hidden="true">✦</div>
@@ -159,9 +206,9 @@ export default function PortraitUploader({
           ) : null}
         </div>
 
-        <div className="qv-portrait-mini-tools" aria-label="Portrait position controls">
-          <div className="qv-portrait-zoom-stack">
-            <span className="qv-portrait-zoom-mark" aria-hidden="true">+</span>
+        <div className="qv-portrait-simple-tools" aria-label="Portrait zoom controls">
+          <label className="qv-portrait-simple-zoom">
+            <span className="qv-label">Zoom</span>
             <input
               className="qv-portrait-zoom-slider"
               type="range"
@@ -172,22 +219,14 @@ export default function PortraitUploader({
               aria-label="Portrait zoom"
               onChange={(event) => setCurrentZoom(Number.parseFloat(event.currentTarget.value))}
             />
-            <span className="qv-portrait-zoom-mark" aria-hidden="true">-</span>
-          </div>
-
-          <div className="qv-portrait-nudge-pad">
-            <button type="button" className="qv-portrait-nudge-button qv-portrait-nudge-up" onClick={() => nudge(0, -2)} aria-label="Move portrait up">↑</button>
-            <button type="button" className="qv-portrait-nudge-button qv-portrait-nudge-left" onClick={() => nudge(-2, 0)} aria-label="Move portrait left">←</button>
-            <button type="button" className="qv-portrait-reset-button" onClick={resetPosition}>Reset</button>
-            <button type="button" className="qv-portrait-nudge-button qv-portrait-nudge-right" onClick={() => nudge(2, 0)} aria-label="Move portrait right">→</button>
-            <button type="button" className="qv-portrait-nudge-button qv-portrait-nudge-down" onClick={() => nudge(0, 2)} aria-label="Move portrait down">↓</button>
-          </div>
+          </label>
+          <button type="button" className="qv-link-button qv-portrait-reset-button" onClick={resetPosition}>Reset</button>
         </div>
       </div>
 
       <div className="qv-portrait-upload-copy">
         <span className="qv-label">{uploadLabel}</span>
-        <span className="qv-help-text">{fileName ? `Selected: ${fileName}` : resolvedHelpText}</span>
+        <span className="qv-help-text">{fileName ? `Selected: ${fileName}` : imageUrl ? 'Drag the photo to reposition it, then save the public profile.' : resolvedHelpText}</span>
       </div>
     </div>
   )
