@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type PublicGalleryImage = {
   id: string
@@ -13,11 +13,13 @@ type PublicGallerySlideshowProps = {
 }
 
 const AUTO_ADVANCE_MS = 5600
+const SWIPE_THRESHOLD_PX = 42
 
 export default function PublicGallerySlideshow({ images }: PublicGallerySlideshowProps) {
   const galleryImages = useMemo(() => images.filter((image) => image.url), [images])
   const [activeIndex, setActiveIndex] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
+  const touchStartX = useRef<number | null>(null)
 
   useEffect(() => {
     if (galleryImages.length <= 1 || modalOpen) return
@@ -50,6 +52,7 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
   if (galleryImages.length === 0) return null
 
   const activeImage = galleryImages[activeIndex] ?? galleryImages[0]
+  const galleryPositionLabel = `${activeIndex + 1} of ${galleryImages.length}`
 
   function showPrevious() {
     setActiveIndex((currentIndex) => (currentIndex - 1 + galleryImages.length) % galleryImages.length)
@@ -59,13 +62,29 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
     setActiveIndex((currentIndex) => (currentIndex + 1) % galleryImages.length)
   }
 
+  function handleTouchStart(event: React.TouchEvent) {
+    touchStartX.current = event.touches[0]?.clientX ?? null
+  }
+
+  function handleTouchEnd(event: React.TouchEvent) {
+    if (touchStartX.current === null || galleryImages.length <= 1) return
+
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current
+    const deltaX = endX - touchStartX.current
+    touchStartX.current = null
+
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) return
+    if (deltaX > 0) showPrevious()
+    else showNext()
+  }
+
   return (
     <>
       <button
         type="button"
         className="local-page-gallery"
         onClick={() => setModalOpen(true)}
-        aria-label="Open gallery"
+        aria-label={`Open gallery, image ${galleryPositionLabel}`}
       >
         {galleryImages.map((image, index) => (
           <img
@@ -73,8 +92,11 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
             src={image.url}
             alt=""
             className={`local-page-gallery-image${index === activeIndex ? ' is-active' : ''}`}
+            loading={index === 0 ? 'eager' : 'lazy'}
+            decoding="async"
           />
         ))}
+        <span className="local-page-gallery-count" aria-hidden="true">{galleryPositionLabel}</span>
         {galleryImages.length > 1 ? (
           <span className="local-page-gallery-dots" aria-hidden="true">
             {galleryImages.map((image, index) => (
@@ -92,7 +114,11 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
             onClick={() => setModalOpen(false)}
             aria-label="Close gallery"
           />
-          <div className="local-page-gallery-modal-panel">
+          <div
+            className="local-page-gallery-modal-panel"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <button
               type="button"
               className="local-page-gallery-modal-close"
@@ -124,7 +150,10 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
                 ›
               </button>
             ) : null}
-            {activeImage.title ? <p className="local-page-gallery-modal-title">{activeImage.title}</p> : null}
+            <div className="local-page-gallery-modal-meta">
+              <span>{galleryPositionLabel}</span>
+              {activeImage.title ? <p className="local-page-gallery-modal-title">{activeImage.title}</p> : null}
+            </div>
           </div>
         </div>
       ) : null}
