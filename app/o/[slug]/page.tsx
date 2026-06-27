@@ -1,7 +1,4 @@
-import Image from 'next/image'
-import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import OrganizationAvatar from '@/app/components/organization-avatar'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
 import { getLocalPageTheme, LocalPageThemeStyle } from '@/lib/local-pages/themes'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
@@ -9,6 +6,8 @@ import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/p
 import { createAdminClient } from '@/lib/supabase/admin'
 import PublicContact from './public-contact'
 import PublicEvents from './public-events'
+import PublicFooter from './public-footer'
+import PublicHeader from './public-header'
 import PublicHero from './public-hero'
 import PublicStory from './public-story'
 
@@ -320,28 +319,15 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     <main className={`local-page ${localPageTheme.className}`}>
       <LocalPageThemeStyle theme={localPageTheme} />
 
-      <header className="local-page-header">
-        <Link href={`/o/${canonicalSlug}`} className="local-page-header-brand">
-          <OrganizationAvatar
-            displayName={displayName}
-            logoStoragePath={organizationBranding.logo_storage_path}
-            logoAltText={organizationBranding.logo_alt_text ?? displayTitle}
-            size={68}
-          />
-          <span className="local-page-header-brand-copy">
-            <span className="local-page-header-parent">{parentBrandName}</span>
-            <strong className="local-page-header-name">{displayName}</strong>
-          </span>
-        </Link>
-        <nav className="local-page-header-nav">
-          <a href="#about">About</a>
-          {publicEvents.length > 0 ? <a href="#events">Events</a> : null}
-          <a href="#contact">Get involved</a>
-        </nav>
-        <Link href="/about" className="local-page-chrism-powered" aria-label="About Chrism">
-          <Image src="/Chrism_horiz.svg" alt="Chrism" width={92} height={31} priority />
-        </Link>
-      </header>
+      <PublicHeader
+        canonicalSlug={canonicalSlug}
+        displayName={displayName}
+        displayTitle={displayTitle}
+        parentBrandName={parentBrandName}
+        logoStoragePath={organizationBranding.logo_storage_path}
+        logoAltText={organizationBranding.logo_alt_text}
+        hasEvents={publicEvents.length > 0}
+      />
 
       <PublicHero
         displayTitle={displayTitle}
@@ -364,13 +350,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         contactMessage={contactMessage}
       />
 
-      <footer className="local-page-footer">
-        <div className="local-page-footer-copy">
-          <strong>{displayTitle}</strong>
-          <span>{paragraph('Powered by Chrism.')}</span>
-        </div>
-        <Link href="/about" className="qv-link-button qv-button-secondary">About Chrism</Link>
-      </footer>
+      <PublicFooter displayTitle={displayTitle} poweredByText={paragraph('Powered by Chrism.')} />
     </main>
   )
 }
