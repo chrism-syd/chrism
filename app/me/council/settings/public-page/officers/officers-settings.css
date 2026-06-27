@@ -67,6 +67,42 @@
   background: var(--bg-card);
 }
 
+.qv-portrait-editor-preview {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--bg-sunken);
+}
+
+.qv-portrait-editor-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: var(--portrait-editor-position-x) var(--portrait-editor-position-y);
+  transform: scale(var(--portrait-editor-zoom));
+}
+
+.qv-portrait-editor-placeholder {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 12px;
+}
+
+.qv-portrait-editor-placeholder p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .qv-portrait-controls {
   display: grid;
   gap: 10px;
