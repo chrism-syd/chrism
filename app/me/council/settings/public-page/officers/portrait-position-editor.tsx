@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import PortraitFrame from '@/app/components/portrait-frame'
 
 type Props = {
   officerName: string
@@ -12,6 +11,7 @@ type Props = {
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
+  if (!Number.isFinite(value)) return minimum
   return Math.min(maximum, Math.max(minimum, value))
 }
 
@@ -34,18 +34,24 @@ export default function PortraitPositionEditor({
 
   return (
     <div className="qv-portrait-editor">
-      <PortraitFrame
-        image={{
-          src: imageUrl,
-          alt: imageUrl ? `${officerName} portrait` : '',
-          zoom,
-          positionX,
-          positionY,
-        }}
-        size={132}
-        radius={22}
-        placeholderLabel="No portrait yet"
-      />
+      <div
+        className="qv-portrait-editor-preview"
+        style={{
+          '--portrait-editor-zoom': String(zoom),
+          '--portrait-editor-position-x': `${positionX}%`,
+          '--portrait-editor-position-y': `${positionY}%`,
+        } as React.CSSProperties}
+      >
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- signed private storage URLs are positioned inside a fixed preview frame.
+          <img src={imageUrl} alt={`${officerName} portrait preview`} className="qv-portrait-editor-image" />
+        ) : (
+          <div className="qv-portrait-editor-placeholder">
+            <div aria-hidden="true">✦</div>
+            <p>No portrait yet</p>
+          </div>
+        )}
+      </div>
 
       <input type="hidden" name="photo_zoom" value={zoom} />
       <input type="hidden" name="photo_position_x" value={positionX} />
