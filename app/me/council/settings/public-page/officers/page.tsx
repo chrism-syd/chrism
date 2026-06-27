@@ -89,11 +89,6 @@ function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickna
   return `${firstName} ${lastName}`.trim()
 }
 
-function hasPreferredName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null) {
-  if (!member?.nickname?.trim()) return false
-  return memberName(member) !== officialMemberName(member)
-}
-
 function shouldUsePreferredNameByDefault(args: {
   publicProfile: PublicOfficerRow | null
   person: PersonRow | null
@@ -287,7 +282,6 @@ export default async function PublicOfficerSettingsPage() {
                 const positionY = Number(publicProfile?.photo_position_y ?? 50)
                 const officialLabel = officialMemberName(profile.person)
                 const preferredLabel = memberName(profile.person)
-                const hasPreferredLabel = hasPreferredName(profile.person)
                 const usePreferredName = shouldUsePreferredNameByDefault({ publicProfile, person: profile.person })
 
                 return (
@@ -329,25 +323,21 @@ export default async function PublicOfficerSettingsPage() {
                           </span>
                         </label>
 
-                        {hasPreferredLabel ? (
-                          <label className="qv-toggle-card">
-                            <input
-                              type="checkbox"
-                              name="use_preferred_name"
-                              value="true"
-                              defaultChecked={usePreferredName}
-                              className="qv-toggle-checkbox"
-                            />
-                            <span className="qv-toggle-copy">
-                              <span className="qv-toggle-title">Use preferred name</span>
-                              <span className="qv-toggle-text">
-                                Show {preferredLabel} instead of the official name {officialLabel}, unless a custom display name is entered below.
-                              </span>
+                        <label className="qv-toggle-card">
+                          <input
+                            type="checkbox"
+                            name="use_preferred_name"
+                            value="true"
+                            defaultChecked={usePreferredName}
+                            className="qv-toggle-checkbox"
+                          />
+                          <span className="qv-toggle-copy">
+                            <span className="qv-toggle-title">Use preferred name</span>
+                            <span className="qv-toggle-text">
+                              Use this member’s preferred name from their profile or member record instead of their official name{officialLabel ? ` (${officialLabel})` : ''}, unless a custom display name is entered below.
                             </span>
-                          </label>
-                        ) : (
-                          <input type="hidden" name="use_preferred_name" value="true" />
-                        )}
+                          </span>
+                        </label>
 
                         <div className="qv-form-row qv-form-row-2">
                           <label className="qv-control">
