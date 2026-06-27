@@ -1,6 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
+
+type PortraitEditorStyle = CSSProperties & {
+  '--portrait-editor-zoom': string
+  '--portrait-editor-position-x': string
+  '--portrait-editor-position-y': string
+}
 
 type Props = {
   officerName: string
@@ -25,6 +32,11 @@ export default function PortraitPositionEditor({
   const [zoom, setZoom] = useState(clamp(initialZoom, 1, 3))
   const [positionX, setPositionX] = useState(clamp(initialPositionX, 0, 100))
   const [positionY, setPositionY] = useState(clamp(initialPositionY, 0, 100))
+  const previewStyle: PortraitEditorStyle = {
+    '--portrait-editor-zoom': String(zoom),
+    '--portrait-editor-position-x': `${positionX}%`,
+    '--portrait-editor-position-y': `${positionY}%`,
+  }
 
   function resetPosition() {
     setZoom(1)
@@ -34,14 +46,7 @@ export default function PortraitPositionEditor({
 
   return (
     <div className="qv-portrait-editor">
-      <div
-        className="qv-portrait-editor-preview"
-        style={{
-          '--portrait-editor-zoom': String(zoom),
-          '--portrait-editor-position-x': `${positionX}%`,
-          '--portrait-editor-position-y': `${positionY}%`,
-        } as React.CSSProperties}
-      >
+      <div className="qv-portrait-editor-preview" style={previewStyle}>
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- signed private storage URLs are positioned inside a fixed preview frame.
           <img src={imageUrl} alt={`${officerName} portrait preview`} className="qv-portrait-editor-image" />
