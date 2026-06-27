@@ -5,7 +5,7 @@
 
 .qv-officer-public-card {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
   padding: 18px;
@@ -49,8 +49,7 @@
   gap: 14px;
 }
 
-.qv-officer-public-actions,
-.qv-portrait-uploader-actions {
+.qv-officer-public-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -59,8 +58,14 @@
 
 .qv-portrait-uploader {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   width: 100%;
+}
+
+.qv-portrait-uploader-stage {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .qv-portrait-uploader-frame {
@@ -109,17 +114,6 @@
   line-height: 1.25;
 }
 
-.qv-portrait-uploader-controls {
-  display: grid;
-  gap: 12px;
-  width: 100%;
-}
-
-.qv-portrait-uploader-form {
-  display: grid;
-  gap: 8px;
-}
-
 .qv-portrait-upload-input {
   position: absolute;
   width: 1px;
@@ -128,9 +122,23 @@
   pointer-events: none;
 }
 
-.qv-portrait-upload-button {
+.qv-portrait-empty-upload-form,
+.qv-portrait-replace-form,
+.qv-portrait-delete-form {
+  margin: 0;
+}
+
+.qv-portrait-empty-upload-form {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+
+.qv-portrait-empty-upload-button,
+.qv-portrait-replace-button {
   display: inline-flex;
-  width: fit-content;
   align-items: center;
   justify-content: center;
   min-height: 40px;
@@ -143,10 +151,153 @@
   font-size: 13px;
   font-weight: 900;
   text-decoration: none;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
 }
 
-.qv-portrait-upload-button:hover {
+.qv-portrait-empty-upload-button:hover,
+.qv-portrait-replace-button:hover {
   border-color: var(--accent);
+}
+
+.qv-portrait-replace-form {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+}
+
+.qv-portrait-replace-button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.qv-portrait-delete-form {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+
+.qv-portrait-delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(180, 35, 24, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--danger, #b42318);
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+}
+
+.qv-portrait-delete-button:hover {
+  background: #fff5f5;
+}
+
+.qv-portrait-mini-tools {
+  display: grid;
+  grid-template-columns: 34px 96px;
+  gap: 10px;
+  align-items: center;
+}
+
+.qv-portrait-zoom-stack {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  background: var(--bg-card);
+}
+
+.qv-portrait-zoom-mark {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.qv-portrait-zoom-slider {
+  width: 92px;
+  height: 22px;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  accent-color: var(--accent);
+}
+
+.qv-portrait-nudge-pad {
+  display: grid;
+  grid-template-columns: 30px 34px 30px;
+  grid-template-rows: 30px 34px 30px;
+  gap: 4px;
+  align-items: center;
+  justify-items: center;
+}
+
+.qv-portrait-nudge-button,
+.qv-portrait-reset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--divider);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.qv-portrait-nudge-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.qv-portrait-reset-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.qv-portrait-nudge-button:hover,
+.qv-portrait-reset-button:hover {
+  border-color: var(--accent);
+}
+
+.qv-portrait-nudge-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.qv-portrait-nudge-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.qv-portrait-reset-button {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.qv-portrait-nudge-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.qv-portrait-nudge-down {
+  grid-column: 2;
+  grid-row: 3;
 }
 
 .qv-portrait-upload-copy {
@@ -154,34 +305,22 @@
   gap: 2px;
 }
 
-.qv-portrait-position-form {
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--divider);
-  border-radius: 18px;
-  background: var(--bg-card);
-}
-
-.qv-portrait-controls {
-  display: grid;
-  gap: 10px;
-}
-
-.qv-portrait-control {
-  gap: 4px;
-}
-
-.qv-portrait-control input[type='range'] {
-  width: 100%;
-}
-
-.qv-portrait-delete-button {
-  color: var(--danger, #b42318);
-}
-
 @media (max-width: 820px) {
   .qv-officer-public-card {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 460px) {
+  .qv-portrait-uploader-stage {
+    align-items: start;
+  }
+
+  .qv-portrait-mini-tools {
+    grid-template-columns: 34px;
+  }
+
+  .qv-portrait-nudge-pad {
+    grid-template-columns: 28px 32px 28px;
   }
 }
