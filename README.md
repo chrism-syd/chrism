@@ -1,47 +1,79 @@
 # Chrism
 
-Chrism is a Next.js application for church and ministry administration. It supports two primary experiences:
+Chrism is a Next.js + Supabase application for local organization administration, public presence, and member belonging.
 
-- **Operations / staff** workflows for member management, custom lists, event planning, admin access, and organization settings
-- **Spiritual / member** workflows for profile management, public meeting access, invited events, and explicitly shared custom lists
+It currently supports operations workflows for councils and local organizations, while moving toward a broader organization-first model that can support councils, parishes, ministries, conferences, school groups, nonprofit boards, and volunteer teams.
 
-The app is built around organization-aware access control, with active work underway to move context and permissions from legacy council-only assumptions toward a newer local-unit model.
+## Start here
 
-## What the app does
+Before making major changes, read the living documentation:
 
-### Member and profile workflows
-- Personal profile management under `/me`
-- Pending and reviewed profile change requests
-- Organization claim / admin-access request flows
-- Claimed RSVP history for signed-in users
+- `docs/CHRISM_PRINCIPLES.md` — durable product and engineering principles
+- `docs/ARCHITECTURE.md` — current high-level application architecture
+- `docs/OPERATIONS_ARCHITECTURE.md` — authenticated local-org operations architecture
+- `docs/PUBLIC_PAGES.md` — public organization page architecture and conventions
+- `docs/DEVELOPMENT.md` — working process, commit rhythm, and seam lifecycle
+- `docs/SUPABASE_WORKFLOW.md` — migrations, schema mirrors, repairs, and generated types
 
-### Staff operations
-- Member directory and officer views
-- Custom lists for outreach, follow-up, and planning
-- Event scheduling, RSVP management, volunteer coordination, and public meetings
-- Organization settings, officer assignments, and admin invitations
+GitHub issues are the canonical todo list. Historical handoff documents are reference material only.
 
-### Multi-context and preview tooling
-- Role-aware navigation for staff vs member users
-- Context switching between accessible organization areas
-- Super-admin dev preview for testing organization/member/admin views
+## Product surfaces
 
-## Main areas
+### Public organization pages
 
-- `/` — staff operations landing page
-- `/spiritual` — member-facing landing page
-- `/me` — personal profile and organization/account status
-- `/members` — member directory
-- `/custom-lists` — custom list management and shared-list access
-- `/events` — events and public meeting workflows
-- `/me/council` — organization settings and admin management
+Public local organization pages live under:
+
+```text
+/o/[slug]
+```
+
+They are visitor-facing projections of operational data such as organization profile, public events, contact details, gallery images, external links, and visible leadership.
+
+### Member and personal workflows
+
+Member-facing and personal workflows live primarily under:
+
+```text
+/me
+```
+
+This area handles profile, organization/account status, claimed RSVP history, and personal participation flows.
+
+### Operations workflows
+
+Authenticated operations workflows include:
+
+```text
+/members
+/events
+/custom-lists
+/me/council
+```
+
+These areas handle people/member management, event planning, RSVP and volunteer coordination, custom lists, organization settings, admin invitations, and future organization profile/officer management.
+
+## Current architectural direction
+
+Chrism is moving from older council-shaped assumptions toward an organization-first and local-unit-aware architecture.
+
+Important ideas:
+
+- durable identity is person-first
+- users represent authentication/application identity
+- organizations are the long-term product boundary
+- councils remain an important Knights-specific subtype
+- legacy `council_id` compatibility bridges still exist and should be handled carefully
+- public pages should present operational truth, not become separate data silos
+
+Do not retire legacy database structures simply because better structures exist. Follow the migration principles in the docs and track future cleanup in GitHub issues.
 
 ## Tech stack
 
-- **Next.js** app router application
-- **React**
-- **Supabase** for data access, auth-adjacent access checks, and server actions
-- Role- and context-aware navigation built around current user permissions
+- Next.js app router
+- React
+- Supabase
+- TypeScript
+- Route-aware server actions and access checks
 
 ## Local development
 
@@ -52,46 +84,56 @@ npm install
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Then open:
 
-You can start from the main entry points in:
+```text
+http://localhost:3000
+```
 
-- `app/page.tsx`
-- `app/spiritual/page.tsx`
-- `app/me/page.tsx`
-- `app/members/page.tsx`
-- `app/custom-lists/page.tsx`
-- `app/events/page.tsx`
+Useful checks:
 
-## Current architecture note
+```bash
+npm run lint
+npm run typecheck
+npm run verify
+```
 
-The codebase is in the middle of a permissions/context migration:
+## Recommended code areas
 
-- prefer **local-unit-aware** access and context resolution
-- retain some **legacy `council_id` compatibility bridges** where the database schema still requires them
+Start with these areas depending on the work:
 
-If you are working on permissions, acting context, custom lists, or area access, check the latest migration and auth helpers before widening legacy behavior.
+```text
+app/app-header.tsx
+app/me/
+app/me/council/
+app/members/
+app/events/
+app/custom-lists/
+app/o/[slug]/
+lib/auth/
+lib/organizations/
+lib/local-pages/
+lib/supabase/
+```
 
-## Recommended areas to understand first
+## Development process
 
-If you are onboarding into the codebase, start here:
+Work one seam at a time.
 
-- `app/app-header.tsx`
-- `lib/auth/permissions.ts`
-- `lib/auth/acting-context.ts`
-- `lib/auth/parallel-access-summary.ts`
-- `lib/custom-lists.ts`
-- `app/custom-lists/`
-- `app/events/`
-- `app/me/`
+A good seam starts from a GitHub issue, identifies data ownership and access rules, builds a narrow vertical slice, commits in small reversible steps, refactors while context is fresh, updates docs/issues, then closes the issue.
 
-## Notes for contributors
+See `docs/DEVELOPMENT.md` for the full workflow.
 
-- Keep product behavior different for **staff** and **non-staff** users
-- Be careful with access checks that mix legacy council context and newer local-unit context
-- Prefer small, testable changes in auth, preview mode, and custom-list flows
-- Treat helper scripts used during refactors/debugging as disposable and keep them out of git
+## Supabase
+
+Database changes should stay aligned with Git history.
+
+When changing schema, commit migrations, generated types, related application code, and any intentional schema mirror updates together where practical.
+
+See `docs/SUPABASE_WORKFLOW.md` before migration repair, rebaseline, or dashboard-derived schema work.
 
 ## Deployment
 
-This is a Next.js app. Standard deployment guidance applies for your chosen platform. If deploying with Vercel, start with the usual Next.js deployment flow and ensure all required environment variables and Supabase credentials are configured for the target environment.
+This is a Next.js app. Standard deployment guidance applies for Vercel or another Next.js host.
+
+Ensure required environment variables and Supabase credentials are configured for the target environment before deployment.
