@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type PublicGalleryImage = {
   id: string
@@ -20,6 +20,16 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
   const [activeIndex, setActiveIndex] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const touchStartX = useRef<number | null>(null)
+
+  const showPrevious = useCallback(() => {
+    if (galleryImages.length === 0) return
+    setActiveIndex((currentIndex) => (currentIndex - 1 + galleryImages.length) % galleryImages.length)
+  }, [galleryImages.length])
+
+  const showNext = useCallback(() => {
+    if (galleryImages.length === 0) return
+    setActiveIndex((currentIndex) => (currentIndex + 1) % galleryImages.length)
+  }, [galleryImages.length])
 
   useEffect(() => {
     if (galleryImages.length <= 1 || modalOpen) return
@@ -47,20 +57,12 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
       document.body.style.overflow = ''
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [modalOpen, galleryImages.length])
+  }, [modalOpen, showNext, showPrevious])
 
   if (galleryImages.length === 0) return null
 
   const activeImage = galleryImages[activeIndex] ?? galleryImages[0]
   const galleryPositionLabel = `${activeIndex + 1} of ${galleryImages.length}`
-
-  function showPrevious() {
-    setActiveIndex((currentIndex) => (currentIndex - 1 + galleryImages.length) % galleryImages.length)
-  }
-
-  function showNext() {
-    setActiveIndex((currentIndex) => (currentIndex + 1) % galleryImages.length)
-  }
 
   function handleTouchStart(event: React.TouchEvent) {
     touchStartX.current = event.touches[0]?.clientX ?? null
