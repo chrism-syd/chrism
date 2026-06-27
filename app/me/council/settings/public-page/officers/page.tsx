@@ -12,7 +12,6 @@ import { decryptPeopleRecords } from '@/lib/security/pii'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import {
   removeOfficerPortraitAction,
-  saveOfficerPortraitPositionAction,
   saveOfficerPublicProfileAction,
   uploadOfficerPortraitAction,
 } from './actions'
@@ -342,6 +341,7 @@ export default async function PublicOfficerSettingsPage() {
                   person: profile.person,
                   preferredDisplayName: profile.preferredDisplayName,
                 })
+                const profileFormId = `officer-public-profile-${profile.term.id}`
 
                 return (
                   <article key={profile.term.id} className="qv-officer-public-card">
@@ -350,8 +350,8 @@ export default async function PublicOfficerSettingsPage() {
                         idPrefix={`officer-${profile.term.id}`}
                         uploadAction={uploadOfficerPortraitAction}
                         removeAction={removeOfficerPortraitAction}
-                        positionAction={saveOfficerPortraitPositionAction}
                         hiddenFields={{ term_id: profile.term.id }}
+                        profileFormId={profileFormId}
                         imageUrl={profile.portraitUrl}
                         imageAlt={`${profile.memberLabel} portrait`}
                         zoom={zoom}
@@ -367,11 +367,8 @@ export default async function PublicOfficerSettingsPage() {
                     </div>
 
                     <div className="qv-officer-public-forms">
-                      <form action={saveOfficerPublicProfileAction} className="qv-officer-public-form">
+                      <form id={profileFormId} action={saveOfficerPublicProfileAction} className="qv-officer-public-form">
                         <input type="hidden" name="term_id" value={profile.term.id} />
-                        <input type="hidden" name="photo_zoom" value={zoom} />
-                        <input type="hidden" name="photo_position_x" value={positionX} />
-                        <input type="hidden" name="photo_position_y" value={positionY} />
                         <label className="qv-toggle-card">
                           <input
                             type="checkbox"
