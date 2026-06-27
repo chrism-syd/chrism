@@ -89,10 +89,10 @@ function heroSubtitle(displayName: string) {
 
 function involvementCopy(code?: string | null) {
   if (code === 'knights_of_columbus') {
-    return 'We share a desire to be better husbands, fathers, sons, neighbours, and role models, putting charity and community first. Attend an event, subscribe to updates, or reach out to local leaders.'
+    return 'Join the 1.9 million Knights worldwide who lead, serve, protect, and defend. We share a desire to be better husbands, fathers, sons, neighbours, and role models. And to put charity and community first.'
   }
 
-  return 'Attend an event, subscribe to updates, or reach out to local leaders.'
+  return 'Attend an event, learn more about this local organization, or get in touch.'
 }
 
 function formatShortDate(value: string) {
@@ -289,61 +289,47 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const hasPublicContactDetails = Boolean(localUnit?.public_email || localUnit?.public_location_name || publicAddressLines.length > 0)
 
   return (
-    <main className={`local-page ${localPageTheme.className}`} style={{ background: 'var(--local-page-bg)', color: 'var(--local-page-body-text)', minHeight: '100vh' }}>
+    <main className={`local-page ${localPageTheme.className}`}>
       <LocalPageThemeStyle theme={localPageTheme} />
 
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 18,
-          padding: '14px clamp(20px, 6vw, 80px)',
-          background: 'rgba(253, 252, 249, 0.94)',
-          borderBottom: '1px solid var(--divider)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <Link href={`/o/${canonicalSlug}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 14, color: 'var(--text-primary)', textDecoration: 'none' }}>
+      <header className="local-page-header">
+        <Link href={`/o/${canonicalSlug}`} className="local-page-header-brand">
           <OrganizationAvatar
             displayName={displayName}
             logoStoragePath={organizationBranding.logo_storage_path}
             logoAltText={organizationBranding.logo_alt_text ?? displayTitle}
             size={68}
           />
-          <span style={{ display: 'grid', gap: 2 }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 900, letterSpacing: '0.01em' }}>{parentBrandName}</span>
-            <strong style={{ fontSize: 22, lineHeight: 1.08 }}>{displayName}</strong>
+          <span className="local-page-header-brand-copy">
+            <span className="local-page-header-parent">{parentBrandName}</span>
+            <strong className="local-page-header-name">{displayName}</strong>
           </span>
         </Link>
-        <nav style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', fontSize: 14, fontWeight: 700 }}>
-          <a href="#about" style={{ color: 'var(--text-primary)' }}>About</a>
-          {upcomingEvents.length > 0 ? <a href="#events" style={{ color: 'var(--text-primary)' }}>Events</a> : null}
-          <a href="#contact" style={{ color: 'var(--text-primary)' }}>Get involved</a>
+        <nav className="local-page-header-nav">
+          <a href="#about">About</a>
+          {upcomingEvents.length > 0 ? <a href="#events">Events</a> : null}
+          <a href="#contact">Get involved</a>
         </nav>
-        <Link href="/about" className="local-page-chrism-powered" style={{ display: 'inline-flex', alignItems: 'center' }} aria-label="About Chrism">
+        <Link href="/about" className="local-page-chrism-powered" aria-label="About Chrism">
           <Image src="/Chrism_horiz.svg" alt="Chrism" width={92} height={31} priority />
         </Link>
       </header>
 
       <section className="local-page-hero">
-        <div style={{ display: 'grid', gap: 18 }}>
-          <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
+        <div className="local-page-hero-copy">
+          <h1 className="local-page-hero-title">
             Welcome to {displayTitle}
           </h1>
-          <p style={{ margin: 0, maxWidth: 620, fontSize: 22, lineHeight: 1.35 }}>
+          <p className="local-page-hero-subtitle">
             {paragraph(heroSubtitle(displayName))}
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
+          <div className="local-page-action-row">
             <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
           </div>
         </div>
 
-        <div style={{ position: 'relative', minHeight: 'clamp(420px, 44vw, 620px)' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, width: '70%', aspectRatio: '1 / 1', overflow: 'hidden', background: 'var(--bg-sunken)' }}>
+        <div className="local-page-hero-visual">
+          <div className="local-page-hero-video-frame">
             <video
               src={HERO_VIDEO_SRC}
               autoPlay
@@ -352,11 +338,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               playsInline
               preload="metadata"
               aria-label="Community service video"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              className="local-page-hero-video"
             />
           </div>
-          <div id="about" className="local-page-about-card" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
-            <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
+          <div id="about" className="local-page-about-card">
+            <p className="local-page-about-copy">
               {paragraph(aboutCopy)}
             </p>
           </div>
@@ -364,24 +350,24 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       </section>
 
       {upcomingEvents.length > 0 ? (
-        <section id="events" style={{ padding: '58px clamp(20px, 6vw, 80px)' }}>
-          <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 18 }}>
+        <section id="events" className="local-page-section">
+          <div className="local-page-section-head">
             <div>
-              <h2 className="qv-section-title" style={{ margin: 0 }}>Upcoming events</h2>
-              <p className="qv-section-subtitle" style={{ margin: '10px 0 0' }}>
+              <h2 className="qv-section-title local-page-section-title-tight">Upcoming events</h2>
+              <p className="qv-section-subtitle local-page-section-subtitle-tight">
                 {paragraph('A quick look at what is coming up next.')}
               </p>
             </div>
             <Link href={eventsHref} className="qv-link-button qv-button-secondary">View all events</Link>
           </div>
 
-          <div style={{ display: 'grid' }}>
+          <div className="local-page-events-list">
             {upcomingEvents.map((event) => (
-              <div key={event.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr)', gap: 18, alignItems: 'center', padding: '24px 0', borderBottom: '1px solid var(--divider)' }}>
-                <div style={{ color: 'var(--local-page-muted-text)', fontWeight: 800 }}>{formatShortDate(event.starts_at)}</div>
+              <div key={event.id} className="local-page-event-row">
+                <div className="local-page-event-date">{formatShortDate(event.starts_at)}</div>
                 <div>
-                  <div style={{ color: 'var(--local-page-body-text)', fontSize: 26, fontWeight: 800 }}>{displayText(event.title)}</div>
-                  <span style={{ color: 'var(--local-page-muted-text)' }}>
+                  <div className="local-page-event-title">{displayText(event.title)}</div>
+                  <span className="local-page-event-meta">
                     {eventKindLabel(event.event_kind_code)} / {displayText(event.location_name || event.location_address || 'Location to be confirmed')}
                   </span>
                 </div>
@@ -404,8 +390,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           </div>
           <section className="local-page-story-copy">
             <p className="qv-eyebrow">Community life</p>
-            <h2 className="qv-section-title" style={{ margin: 0 }}>A place for service, faith, and fellowship.</h2>
-            <p className="qv-section-subtitle" style={{ maxWidth: 720 }}>
+            <h2 className="qv-section-title local-page-section-title-tight">A place for service, faith, and fellowship.</h2>
+            <p className="qv-section-subtitle local-page-story-subtitle">
               {paragraph(`${displayName} brings people together through local service, shared responsibility, and simple ways to stay connected to the community.`)}
             </p>
             <div className="local-page-story-card-grid">
@@ -431,8 +417,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           <div className="local-page-contact-grid">
             <div className="local-page-contact-copy">
               <p className="qv-eyebrow">Get involved</p>
-              <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
-              <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
+              <h2 className="qv-section-title local-page-contact-heading">Interested in what is happening at {displayName}?</h2>
+              <p className="qv-section-subtitle local-page-contact-subtitle">
                 {paragraph(involvementCopy(organization?.organization_type_code))}
               </p>
 
@@ -492,15 +478,15 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               <div className="local-page-contact-form-card">
                 <div>
                   <p className="qv-eyebrow">Contact the council</p>
-                  <h3 className="qv-section-title" style={{ marginTop: 8 }}>Send a message</h3>
+                  <h3 className="qv-section-title local-page-section-subtitle-tight">Send a message</h3>
                 </div>
-                <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form" style={{ marginTop: 0 }}>
+                <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form">
                   <input type="hidden" name="slug" value={canonicalSlug} />
-                  <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
+                  <label className="local-page-visually-hidden-honeypot" aria-hidden="true">
                     Website
                     <input name="website" tabIndex={-1} autoComplete="off" />
                   </label>
-                  {contactMessage ? <div className="qv-empty" style={{ borderStyle: 'solid' }}>{contactMessage}</div> : null}
+                  {contactMessage ? <div className="qv-empty local-page-contact-status">{contactMessage}</div> : null}
                   <div className="qv-form-row qv-form-row-2">
                     <label className="qv-control">
                       <span className="qv-label">Name</span>
@@ -534,7 +520,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
                   <p className="qv-inline-message">
                     By submitting this form, you agree that this organization may contact you about your submission.
                   </p>
-                  <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+                  <div className="qv-form-actions local-page-form-actions-start">
                     <button type="submit" className="qv-button-primary">Send</button>
                   </div>
                 </form>
@@ -545,9 +531,9 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       </section>
 
       <footer className="local-page-footer">
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div className="local-page-footer-copy">
           <strong>{displayTitle}</strong>
-          <span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism.')}</span>
+          <span>{paragraph('Powered by Chrism.')}</span>
         </div>
         <Link href="/about" className="qv-link-button qv-button-secondary">About Chrism</Link>
       </footer>
