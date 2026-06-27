@@ -20,7 +20,9 @@ export default function PublicStory({ galleryImages, communityText }: PublicStor
             <PublicGallerySlideshow images={galleryImages} />
           ) : (
             <div className="local-page-story-placeholder">
-              <span>Image area</span>
+              <span className="local-page-story-placeholder-kicker">Community gallery</span>
+              <strong>Photos will appear here.</strong>
+              <span>Upload curated images in settings to bring this local page to life.</span>
             </div>
           )}
         </div>
