@@ -2,6 +2,8 @@
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
+const CONTACT_FORM_CONTENT_ID = 'local-page-contact-form-content'
+
 type PublicContactFormExpanderProps = {
   children: ReactNode
   initiallyExpanded?: boolean
@@ -23,7 +25,9 @@ export default function PublicContactFormExpander({ children, initiallyExpanded 
   return (
     <div ref={cardRef} className={`local-page-contact-form-card ${isExpanded ? 'is-expanded' : 'is-collapsed'}`}>
       {isExpanded ? (
-        children
+        <div id={CONTACT_FORM_CONTENT_ID} className="local-page-contact-form-content">
+          {children}
+        </div>
       ) : (
         <div className="local-page-contact-reveal">
           <div className="local-page-contact-reveal-copy">
@@ -32,7 +36,13 @@ export default function PublicContactFormExpander({ children, initiallyExpanded 
               Interested in becoming a Knight, looking to volunteer, or simply have a question? We&apos;d be happy to hear from you.
             </p>
           </div>
-          <button type="button" className="qv-button-primary local-page-contact-reveal-button" onClick={() => setIsExpanded(true)}>
+          <button
+            type="button"
+            className="qv-button-primary local-page-contact-reveal-button"
+            aria-controls={CONTACT_FORM_CONTENT_ID}
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded(true)}
+          >
             Contact the Council
           </button>
         </div>
