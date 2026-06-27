@@ -76,7 +76,9 @@ export default function AdminInvitePhraseHandoff() {
     if (!stored || !pageShowsInviteSentNotice(stored.email)) return
 
     anchorRef.current?.closest('details')?.setAttribute('open', '')
-    setStoredPhrase(stored)
+    const timer = window.setTimeout(() => setStoredPhrase(stored), 0)
+
+    return () => window.clearTimeout(timer)
   }, [])
 
   function dismissPhrase() {
