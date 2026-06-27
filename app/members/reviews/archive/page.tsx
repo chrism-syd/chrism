@@ -93,7 +93,7 @@ export default async function ReviewDecisionArchivePage() {
   })
 
   const archivedPublicInquiryPromise = localUnitId
-    ? (admin as any)
+    ? admin
         .from('local_unit_public_contact_message_jobs')
         .select('id, inquiry_type_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, cleared_at, payload_snapshot')
         .eq('local_unit_id', localUnitId)
