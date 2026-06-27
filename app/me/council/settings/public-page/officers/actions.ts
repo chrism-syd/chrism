@@ -39,6 +39,13 @@ type PersonNameRecord = {
   nickname: string | null
 }
 
+type UploadedImageFile = {
+  name?: string
+  type: string
+  size: number
+  arrayBuffer: () => Promise<ArrayBuffer>
+}
+
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -84,10 +91,39 @@ function preferredMemberName(member: PersonNameRecord | null, preferredDisplayNa
   return name.length > 0 ? name : null
 }
 
-function getFileExtension(file: File) {
+function isUploadedImageFile(value: FormDataEntryValue | null): value is UploadedImageFile {
+  return Boolean(
+    value &&
+    typeof value !== 'string' &&
+    typeof (value as Partial<UploadedImageFile>).arrayBuffer === 'function' &&
+    typeof (value as Partial<UploadedImageFile>).type === 'string' &&
+    typeof (value as Partial<UploadedImageFile>).size === 'number'
+  )
+}
+
+function getFileExtension(file: UploadedImageFile) {
   if (file.type === 'image/png') return 'png'
   if (file.type === 'image/webp') return 'webp'
   return 'jpg'
+}
+
+function buildOfficerPortraitStoragePath(args: {
+  localUnitId: string
+  personId: string
+  termId: string
+  fileId: string
+  extension: string
+}) {
+  return [
+    'local-units',
+    args.localUnitId,
+    'people',
+    args.personId,
+    'public-officers',
+    args.termId,
+    'portrait',
+    `${args.fileId}.${args.extension}`,
+  ].join('/')
 }
 
 async function redirectToOfficerSettings(args: { error?: string | null; notice?: string | null }): Promise<never> {
@@ -315,7 +351,7 @@ export async function uploadOfficerPortraitAction(formData: FormData) {
   const term = await loadOfficerTerm({ admin, context, termId: textValue(formData, 'term_id') })
   const file = formData.get('officer_photo')
 
-  if (!(file instanceof File) || file.size === 0) {
+  if (!isUploadedImageFile(file) || file.size === 0) {
     return await redirectToOfficerSettings({ error: 'Choose a portrait image to upload.' })
   }
 
@@ -330,7 +366,13 @@ export async function uploadOfficerPortraitAction(formData: FormData) {
   try {
     const existing = await ensureOfficerPublicRecord({ admin, context, term })
     const extension = getFileExtension(file)
-    const storagePath = `${context.localUnitId}/officers/${term.id}/${crypto.randomUUID()}.${extension}`
+    const storagePath = buildOfficerPortraitStoragePath({
+      localUnitId: context.localUnitId!,
+      personId: term.person_id,
+      termId: term.id,
+      fileId: crypto.randomUUID(),
+      extension,
+    })
     const arrayBuffer = await file.arrayBuffer()
     const { error: uploadError } = await admin.storage
       .from(PORTRAIT_BUCKET)
