@@ -9,6 +9,7 @@ import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/p
 import { createAdminClient } from '@/lib/supabase/admin'
 import { submitPublicContactFormAction } from './actions'
 import PublicGallerySlideshow from './public-gallery-slideshow'
+import PublicHero from './public-hero'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -65,7 +66,6 @@ type PublicGalleryImage = {
   url: string
 }
 
-const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
 const PUBLIC_GALLERY_MAX_IMAGES = 12
 
 export const dynamic = 'force-dynamic'
@@ -315,39 +315,12 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         </Link>
       </header>
 
-      <section className="local-page-hero">
-        <div className="local-page-hero-copy">
-          <h1 className="local-page-hero-title">
-            Welcome to {displayTitle}
-          </h1>
-          <p className="local-page-hero-subtitle">
-            {paragraph(heroSubtitle(displayName))}
-          </p>
-          <div className="local-page-action-row">
-            <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
-          </div>
-        </div>
-
-        <div className="local-page-hero-visual">
-          <div className="local-page-hero-video-frame">
-            <video
-              src={HERO_VIDEO_SRC}
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              aria-label="Community service video"
-              className="local-page-hero-video"
-            />
-          </div>
-          <div id="about" className="local-page-about-card">
-            <p className="local-page-about-copy">
-              {paragraph(aboutCopy)}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PublicHero
+        displayTitle={displayTitle}
+        displayName={displayName}
+        subtitle={paragraph(heroSubtitle(displayName))}
+        aboutCopy={paragraph(aboutCopy)}
+      />
 
       {upcomingEvents.length > 0 ? (
         <section id="events" className="local-page-section">
