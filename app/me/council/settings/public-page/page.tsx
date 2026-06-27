@@ -13,6 +13,7 @@ import {
   updatePublicPageSettingsAction,
   uploadPublicGalleryImagesAction,
 } from './actions'
+import { savePublicContactDetailsAction } from './contact-details-actions'
 
 type OrganizationPublicSettingsRow = {
   id: string
@@ -21,6 +22,19 @@ type OrganizationPublicSettingsRow = {
   public_page_enabled: boolean | null
   public_description: string | null
   public_contact_form_enabled: boolean | null
+}
+
+type LocalUnitContactDetailsRow = {
+  id: string
+  public_email: string | null
+  public_location_name: string | null
+  public_address_line1: string | null
+  public_address_line2: string | null
+  public_city: string | null
+  public_region: string | null
+  public_postal_code: string | null
+  public_country: string | null
+  public_location_url: string | null
 }
 
 type ExternalLinkRow = {
@@ -78,11 +92,22 @@ export default async function PublicPageSettingsPage() {
   if (!localUnitId) redirect('/me/council')
 
   const untypedAdmin = admin as any
-  const [{ data: organizationData }, { data: externalLinksData }, { data: messageRouteData }, { data: galleryData }] = await Promise.all([
+  const [
+    { data: organizationData },
+    { data: localUnitData },
+    { data: externalLinksData },
+    { data: messageRouteData },
+    { data: galleryData },
+  ] = await Promise.all([
     untypedAdmin
       .from('organizations')
       .select('id, display_name, preferred_name, public_page_enabled, public_description, public_contact_form_enabled')
       .eq('id', permissions.organizationId)
+      .maybeSingle(),
+    untypedAdmin
+      .from('local_units')
+      .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
+      .eq('id', localUnitId)
       .maybeSingle(),
     untypedAdmin
       .from('local_unit_external_links')
@@ -110,6 +135,7 @@ export default async function PublicPageSettingsPage() {
   ])
 
   const organization = organizationData as OrganizationPublicSettingsRow | null
+  const localUnitContactDetails = localUnitData as LocalUnitContactDetailsRow | null
   const externalLinks = ((externalLinksData as ExternalLinkRow[] | null) ?? []).slice(0, 3)
   const messageRoute = ((messageRouteData as MessageRouteRow[] | null) ?? [])[0] ?? null
   const galleryRows = ((galleryData as GalleryImageRow[] | null) ?? []).slice(0, PUBLIC_GALLERY_MAX_IMAGES)
@@ -237,6 +263,92 @@ export default async function PublicPageSettingsPage() {
 
             <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
               <button type="submit" className="qv-button-primary">Save public page settings</button>
+            </div>
+          </form>
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <p className="qv-eyebrow">Council profile</p>
+              <h2 className="qv-section-title">Public contact details</h2>
+              <p className="qv-section-subtitle">
+                These details describe the local organization itself. They can appear on the public page and will later live with the main council profile settings.
+              </p>
+            </div>
+          </div>
+
+          <form action={savePublicContactDetailsAction} className="qv-form-grid">
+            <div className="qv-form-row qv-form-row-2">
+              <label className="qv-control">
+                <span className="qv-label">Public email</span>
+                <input
+                  name="public_email"
+                  type="email"
+                  defaultValue={localUnitContactDetails?.public_email ?? ''}
+                  placeholder="hello@example.org"
+                />
+              </label>
+              <label className="qv-control">
+                <span className="qv-label">Location name</span>
+                <input
+                  name="public_location_name"
+                  defaultValue={localUnitContactDetails?.public_location_name ?? ''}
+                  placeholder="St. Patrick’s Parish"
+                />
+              </label>
+            </div>
+
+            <label className="qv-control">
+              <span className="qv-label">Address line 1</span>
+              <input
+                name="public_address_line1"
+                defaultValue={localUnitContactDetails?.public_address_line1 ?? ''}
+                placeholder="5633 Highway 7"
+              />
+            </label>
+
+            <label className="qv-control">
+              <span className="qv-label">Address line 2 optional</span>
+              <input
+                name="public_address_line2"
+                defaultValue={localUnitContactDetails?.public_address_line2 ?? ''}
+                placeholder="Room, hall, building, or care of"
+              />
+            </label>
+
+            <div className="qv-form-row qv-form-row-public-links">
+              <label className="qv-control">
+                <span className="qv-label">City</span>
+                <input name="public_city" defaultValue={localUnitContactDetails?.public_city ?? ''} placeholder="Markham" />
+              </label>
+              <label className="qv-control">
+                <span className="qv-label">Province / region</span>
+                <input name="public_region" defaultValue={localUnitContactDetails?.public_region ?? ''} placeholder="Ontario" />
+              </label>
+              <label className="qv-control">
+                <span className="qv-label">Postal code</span>
+                <input name="public_postal_code" defaultValue={localUnitContactDetails?.public_postal_code ?? ''} placeholder="L3P 1B6" />
+              </label>
+            </div>
+
+            <div className="qv-form-row qv-form-row-2">
+              <label className="qv-control">
+                <span className="qv-label">Country</span>
+                <input name="public_country" defaultValue={localUnitContactDetails?.public_country ?? ''} placeholder="Canada" />
+              </label>
+              <label className="qv-control">
+                <span className="qv-label">Location link optional</span>
+                <input
+                  name="public_location_url"
+                  defaultValue={localUnitContactDetails?.public_location_url ?? ''}
+                  placeholder="https://maps.google.com/..."
+                />
+              </label>
+            </div>
+
+            <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+              <button type="submit" className="qv-button-primary">Save public contact details</button>
             </div>
           </form>
         </section>
