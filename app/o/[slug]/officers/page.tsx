@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- local_unit_public_officers is added by this branch before generated Supabase types are refreshed. */
+
 import { notFound, redirect } from 'next/navigation'
 import PortraitFrame from '@/app/components/portrait-frame'
 import { bindSaintNames, preventParagraphOrphans } from '@/lib/local-pages/text'
@@ -241,6 +243,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
         logoStoragePath={organizationBranding.logo_storage_path}
         logoAltText={organizationBranding.logo_alt_text}
         hasEvents={hasEvents}
+        hasOfficers={officers.length > 0}
       />
 
       <section className="public-officers-main">
