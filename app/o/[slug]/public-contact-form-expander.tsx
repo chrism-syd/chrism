@@ -2,6 +2,21 @@
 
 import { useEffect } from 'react'
 
+const KNIGHTS_INVITATION_COPY = 'Join the 1.9 million Knights worldwide who lead, serve, protect, and defend. We share a desire to be better husbands, fathers, sons, neighbours, and role models. And to put charity and community first.'
+const DEFAULT_INVITATION_COPY = 'Attend an event, learn more about this local organization, or get in touch.'
+
+function enhanceContactCopy() {
+  const contactCopy = document.querySelector<HTMLElement>('.local-page-contact-copy')
+  if (!contactCopy || contactCopy.dataset.copyEnhanced === 'true') return
+
+  const subtitle = contactCopy.querySelector<HTMLElement>('.qv-section-subtitle')
+  if (!subtitle) return
+
+  const isKnightsPage = Boolean(document.querySelector('.local-page-theme-knights'))
+  subtitle.textContent = isKnightsPage ? KNIGHTS_INVITATION_COPY : DEFAULT_INVITATION_COPY
+  contactCopy.dataset.copyEnhanced = 'true'
+}
+
 function enhanceContactDetails() {
   const details = Array.from(document.querySelectorAll<HTMLElement>('.local-page-contact-detail'))
 
@@ -33,6 +48,7 @@ function enhanceGalleryEmptyState() {
 
 export default function PublicContactFormExpander() {
   useEffect(() => {
+    enhanceContactCopy()
     enhanceContactDetails()
     enhanceGalleryEmptyState()
 
@@ -56,11 +72,10 @@ export default function PublicContactFormExpander() {
     reveal.className = 'local-page-contact-reveal'
     reveal.innerHTML = `
       <div class="local-page-contact-reveal-copy">
-        <p class="local-page-contact-reveal-kicker">Start here</p>
-        <h3 class="local-page-contact-reveal-title">Let&apos;s start the conversation.</h3>
-        <p class="local-page-contact-reveal-text">Whether you are interested in becoming a member, volunteering, or simply have a question, we would love to hear from you.</p>
+        <h3 class="local-page-contact-reveal-title">Get in touch.</h3>
+        <p class="local-page-contact-reveal-text">Have a question? Interested in becoming a Knight? Looking to volunteer? We'd be happy to hear from you.</p>
       </div>
-      <button type="button" class="qv-button-primary local-page-contact-reveal-button">Send us a message</button>
+      <button type="button" class="qv-button-primary local-page-contact-reveal-button">Contact the Council</button>
     `
 
     form.insertAdjacentElement('beforebegin', reveal)
@@ -112,21 +127,12 @@ export default function PublicContactFormExpander() {
         gap: 14px;
       }
 
-      .local-page-contact-reveal-kicker {
-        margin: 0;
-        color: var(--local-page-primary-dark);
-        font-size: 13px;
-        font-weight: 900;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
       .local-page-contact-reveal-title {
         margin: 0;
         color: var(--local-page-primary-dark);
-        font-size: clamp(38px, 4vw, 64px);
+        font-size: clamp(42px, 4.4vw, 70px);
         font-weight: 900;
-        letter-spacing: -0.05em;
+        letter-spacing: -0.055em;
         line-height: 0.95;
       }
 
@@ -151,6 +157,18 @@ export default function PublicContactFormExpander() {
         grid-template-columns: auto minmax(0, 1fr);
         column-gap: 12px;
         align-items: start;
+      }
+
+      .local-page-contact-detail-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       .local-page-contact-detail-icon {
