@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- local_unit_public_officers is added by this branch before generated Supabase types are refreshed. */
+
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
