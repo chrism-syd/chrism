@@ -12,6 +12,11 @@ const supabaseHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '6mb',
+    },
+  },
   images: {
     remotePatterns: supabaseHostname
       ? [
