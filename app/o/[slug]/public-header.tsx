@@ -10,6 +10,7 @@ type PublicHeaderProps = {
   logoStoragePath: string | null
   logoAltText: string | null
   hasEvents: boolean
+  hasOfficers?: boolean
 }
 
 export default function PublicHeader({
@@ -20,6 +21,7 @@ export default function PublicHeader({
   logoStoragePath,
   logoAltText,
   hasEvents,
+  hasOfficers = false,
 }: PublicHeaderProps) {
   return (
     <header className="local-page-header">
@@ -39,6 +41,7 @@ export default function PublicHeader({
       <nav className="local-page-header-nav">
         <a href="#about">About</a>
         {hasEvents ? <a href="#events">Events</a> : null}
+        {hasOfficers ? <Link href={`/o/${canonicalSlug}/officers`}>Officers</Link> : null}
         <a href="#contact">Get involved</a>
       </nav>
 
