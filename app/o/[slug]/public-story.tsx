@@ -7,12 +7,11 @@ type GalleryImage = {
 }
 
 type PublicStoryProps = {
-  displayName: string
   galleryImages: GalleryImage[]
   communityText: string
 }
 
-export default function PublicStory({ displayName, galleryImages, communityText }: PublicStoryProps) {
+export default function PublicStory({ galleryImages, communityText }: PublicStoryProps) {
   return (
     <section className="local-page-story-section" aria-label="Local community story">
       <div className="local-page-story-grid">
@@ -49,4 +48,4 @@ export default function PublicStory({ displayName, galleryImages, communityText 
       </div>
     </section>
   )
-}"}
+}
