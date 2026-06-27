@@ -108,6 +108,42 @@ function eventKindLabel(kind: EventRow['event_kind_code']) {
   return 'Event'
 }
 
+function buildPublicEvents(events: EventRow[]) {
+  return events.map((event) => ({
+    id: event.id,
+    date: formatShortDate(event.starts_at),
+    title: displayText(event.title),
+    meta: `${eventKindLabel(event.event_kind_code)} / ${displayText(event.location_name || event.location_address || 'Location to be confirmed')}`,
+  }))
+}
+
+function buildContactDetails(localUnit: LocalUnitRow | null, publicAddressLines: string[]) {
+  return [
+    ...(localUnit?.public_email
+      ? [{ type: 'email' as const, label: 'Email', value: localUnit.public_email, href: `mailto:${localUnit.public_email}` }]
+      : []),
+    ...(localUnit?.public_location_name || publicAddressLines.length > 0
+      ? [
+          {
+            type: 'location' as const,
+            label: 'Location',
+            value: localUnit?.public_location_name ? displayText(localUnit.public_location_name) : null,
+            href: localUnit?.public_location_url ?? null,
+            addressLines: publicAddressLines.map((line) => displayText(line)),
+          },
+        ]
+      : []),
+  ]
+}
+
+function buildPublicExternalLinks(externalLinks: ExternalLinkRow[]) {
+  return externalLinks.map((externalLink) => ({
+    id: externalLink.id,
+    label: displayText(externalLink.label),
+    url: externalLink.url,
+  }))
+}
+
 function contactStatusMessage(status: string | undefined) {
   if (status === 'sent') {
     return 'Thanks! Your message has been sent to the council.'
@@ -286,34 +322,10 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     councilNumber: council.council_number,
   })
   const publicAddressLines = compactAddressLines(localUnit)
-  const publicEvents = upcomingEvents.map((event) => ({
-    id: event.id,
-    date: formatShortDate(event.starts_at),
-    title: displayText(event.title),
-    meta: `${eventKindLabel(event.event_kind_code)} / ${displayText(event.location_name || event.location_address || 'Location to be confirmed')}`,
-  }))
+  const publicEvents = buildPublicEvents(upcomingEvents)
   const communityText = paragraph(`${displayName} brings people together through local service, shared responsibility, and simple ways to stay connected to the community.`)
-  const contactDetails = [
-    ...(localUnit?.public_email
-      ? [{ type: 'email' as const, label: 'Email', value: localUnit.public_email, href: `mailto:${localUnit.public_email}` }]
-      : []),
-    ...(localUnit?.public_location_name || publicAddressLines.length > 0
-      ? [
-          {
-            type: 'location' as const,
-            label: 'Location',
-            value: localUnit?.public_location_name ? displayText(localUnit.public_location_name) : null,
-            href: localUnit?.public_location_url ?? null,
-            addressLines: publicAddressLines.map((line) => displayText(line)),
-          },
-        ]
-      : []),
-  ]
-  const publicExternalLinks = externalLinks.map((externalLink) => ({
-    id: externalLink.id,
-    label: displayText(externalLink.label),
-    url: externalLink.url,
-  }))
+  const contactDetails = buildContactDetails(localUnit, publicAddressLines)
+  const publicExternalLinks = buildPublicExternalLinks(externalLinks)
 
   return (
     <main className={`local-page ${localPageTheme.className}`}>
