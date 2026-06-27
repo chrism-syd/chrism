@@ -5,7 +5,7 @@
 
 .qv-officer-public-card {
   display: grid;
-  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
   padding: 18px;
@@ -49,58 +49,118 @@
   gap: 14px;
 }
 
-.qv-officer-public-actions {
+.qv-officer-public-actions,
+.qv-portrait-uploader-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
 }
 
-.qv-portrait-editor {
+.qv-portrait-uploader {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-  padding: 14px;
-  border: 1px solid var(--divider);
-  border-radius: 18px;
-  background: var(--bg-card);
+  gap: 14px;
+  width: 100%;
 }
 
-.qv-portrait-editor-preview {
+.qv-portrait-uploader-frame {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: var(--portrait-uploader-size);
+  height: var(--portrait-uploader-size);
   overflow: hidden;
-  border-radius: 22px;
-  background: var(--bg-sunken);
+  border: 1px solid var(--divider);
+  border-radius: var(--portrait-uploader-radius);
+  background: var(--bg-card);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
 }
 
-.qv-portrait-editor-image {
+.qv-portrait-uploader-image {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: var(--portrait-editor-position-x) var(--portrait-editor-position-y);
-  transform: scale(var(--portrait-editor-zoom));
+  object-position: var(--portrait-uploader-position-x) var(--portrait-uploader-position-y);
+  transform: scale(var(--portrait-uploader-zoom));
+  transform-origin: var(--portrait-uploader-position-x) var(--portrait-uploader-position-y);
+  transition: transform 120ms ease, object-position 120ms ease;
 }
 
-.qv-portrait-editor-placeholder {
+.qv-portrait-uploader-placeholder {
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   height: 100%;
+  padding: 16px;
   color: var(--text-secondary);
   text-align: center;
-  padding: 12px;
 }
 
-.qv-portrait-editor-placeholder p {
+.qv-portrait-uploader-placeholder-mark {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.qv-portrait-uploader-placeholder p {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
+  line-height: 1.25;
+}
+
+.qv-portrait-uploader-controls {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.qv-portrait-uploader-form {
+  display: grid;
+  gap: 8px;
+}
+
+.qv-portrait-upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.qv-portrait-upload-button {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.qv-portrait-upload-button:hover {
+  border-color: var(--accent);
+}
+
+.qv-portrait-upload-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.qv-portrait-position-form {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 18px;
+  background: var(--bg-card);
 }
 
 .qv-portrait-controls {
@@ -116,9 +176,12 @@
   width: 100%;
 }
 
+.qv-portrait-delete-button {
+  color: var(--danger, #b42318);
+}
+
 @media (max-width: 820px) {
-  .qv-officer-public-card,
-  .qv-portrait-editor {
+  .qv-officer-public-card {
     grid-template-columns: 1fr;
   }
 }
