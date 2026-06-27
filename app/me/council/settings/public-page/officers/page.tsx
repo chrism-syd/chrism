@@ -26,6 +26,11 @@ type PersonRow = {
   email: string | null
 }
 
+type MemberRecordRow = {
+  legacy_people_id: string | null
+  preferred_display_name: string | null
+}
+
 type OfficerTermRow = {
   id: string
   person_id: string
@@ -57,6 +62,7 @@ type PublicOfficerRow = {
 type OfficerProfileView = {
   term: OfficerTermRow
   person: PersonRow | null
+  preferredDisplayName: string | null
   memberLabel: string
   officeLabel: string
   serviceLabel: string
@@ -75,29 +81,42 @@ function officialMemberName(member: Pick<PersonRow, 'first_name' | 'last_name'> 
   return `${firstName} ${lastName}`.trim()
 }
 
-function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null) {
+function memberName(
+  member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null,
+  preferredDisplayName?: string | null
+) {
   if (!member) return 'Unknown member'
 
-  const preferred = member.nickname?.trim()
+  const preferred = preferredDisplayName?.trim() || member.nickname?.trim() || member.first_name.trim()
   const lastName = member.last_name.trim()
-  const firstName = member.first_name.trim()
-
-  if (preferred) {
-    return `${preferred} ${lastName}`.trim()
-  }
-
-  return `${firstName} ${lastName}`.trim()
+  return `${preferred} ${lastName}`.trim()
 }
 
 function shouldUsePreferredNameByDefault(args: {
   publicProfile: PublicOfficerRow | null
   person: PersonRow | null
+  preferredDisplayName: string | null
 }) {
   if (!args.person) return true
   const displayNameOverride = args.publicProfile?.display_name_override?.trim()
   if (!displayNameOverride) return true
 
-  return displayNameOverride === memberName(args.person)
+  return displayNameOverride === memberName(args.person, args.preferredDisplayName)
+}
+
+function customDisplayNameValue(args: {
+  publicProfile: PublicOfficerRow | null
+  person: PersonRow | null
+  preferredDisplayName: string | null
+}) {
+  const displayNameOverride = args.publicProfile?.display_name_override?.trim()
+  if (!displayNameOverride) return ''
+
+  const officialLabel = officialMemberName(args.person)
+  const preferredLabel = memberName(args.person, args.preferredDisplayName)
+
+  if (displayNameOverride === officialLabel || displayNameOverride === preferredLabel) return ''
+  return displayNameOverride
 }
 
 function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
@@ -177,7 +196,7 @@ export default async function PublicOfficerSettingsPage() {
 
   const termIds = officerTerms.map((term) => term.id)
   const personIds = [...new Set(officerTerms.map((term) => term.person_id))]
-  const [{ data: publicOfficerData }, { data: personData }] = await Promise.all([
+  const [{ data: publicOfficerData }, { data: personData }, { data: memberRecordData }] = await Promise.all([
     termIds.length > 0
       ? (admin as any)
           .from('local_unit_public_officers')
@@ -192,6 +211,14 @@ export default async function PublicOfficerSettingsPage() {
           .in('id', personIds)
           .is('archived_at', null)
       : Promise.resolve({ data: [] as PersonRow[] }),
+    personIds.length > 0
+      ? (admin as any)
+          .from('member_records')
+          .select('legacy_people_id, preferred_display_name')
+          .eq('local_unit_id', localUnitId)
+          .in('legacy_people_id', personIds)
+          .is('archived_at', null)
+      : Promise.resolve({ data: [] as MemberRecordRow[] }),
   ])
 
   const publicOfficerByTermId = new Map(
@@ -199,18 +226,25 @@ export default async function PublicOfficerSettingsPage() {
   )
   const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? [])
   const personById = new Map(people.map((person) => [person.id, person]))
+  const preferredDisplayNameByPersonId = new Map(
+    ((memberRecordData as MemberRecordRow[] | null) ?? [])
+      .filter((row) => Boolean(row.legacy_people_id))
+      .map((row) => [row.legacy_people_id!, row.preferred_display_name?.trim() || null])
+  )
 
   const officerProfiles: OfficerProfileView[] = await Promise.all(
     officerTerms.map(async (term, index) => {
       const publicProfile = publicOfficerByTermId.get(term.id) ?? null
       const person = personById.get(term.person_id) ?? null
-      const memberLabel = publicProfile?.display_name_override ?? memberName(person)
+      const preferredDisplayName = preferredDisplayNameByPersonId.get(term.person_id) ?? null
+      const memberLabel = publicProfile?.display_name_override ?? memberName(person, preferredDisplayName)
       const officeLabel = publicProfile?.public_title_override ?? formatOfficerLabel(term)
       const portraitUrl = await signedPortraitUrl(admin, publicProfile)
 
       return {
         term,
         person,
+        preferredDisplayName,
         memberLabel,
         officeLabel,
         serviceLabel: formatServiceLabel(term),
@@ -281,8 +315,17 @@ export default async function PublicOfficerSettingsPage() {
                 const positionX = Number(publicProfile?.photo_position_x ?? 50)
                 const positionY = Number(publicProfile?.photo_position_y ?? 50)
                 const officialLabel = officialMemberName(profile.person)
-                const preferredLabel = memberName(profile.person)
-                const usePreferredName = shouldUsePreferredNameByDefault({ publicProfile, person: profile.person })
+                const preferredLabel = memberName(profile.person, profile.preferredDisplayName)
+                const usePreferredName = shouldUsePreferredNameByDefault({
+                  publicProfile,
+                  person: profile.person,
+                  preferredDisplayName: profile.preferredDisplayName,
+                })
+                const customNameValue = customDisplayNameValue({
+                  publicProfile,
+                  person: profile.person,
+                  preferredDisplayName: profile.preferredDisplayName,
+                })
 
                 return (
                   <article key={profile.term.id} className="qv-officer-public-card">
@@ -334,7 +377,7 @@ export default async function PublicOfficerSettingsPage() {
                           <span className="qv-toggle-copy">
                             <span className="qv-toggle-title">Use preferred name</span>
                             <span className="qv-toggle-text">
-                              Use this member’s preferred name from their profile or member record instead of their official name{officialLabel ? ` (${officialLabel})` : ''}, unless a custom display name is entered below.
+                              Use {preferredLabel} instead of the official name{officialLabel ? ` (${officialLabel})` : ''}, unless a custom display name is entered below.
                             </span>
                           </span>
                         </label>
@@ -342,7 +385,7 @@ export default async function PublicOfficerSettingsPage() {
                         <div className="qv-form-row qv-form-row-2">
                           <label className="qv-control">
                             <span className="qv-label">Display name optional</span>
-                            <input name="display_name_override" defaultValue={publicProfile?.display_name_override ?? ''} placeholder={preferredLabel} />
+                            <input name="display_name_override" defaultValue={customNameValue} placeholder={preferredLabel} />
                           </label>
                           <label className="qv-control">
                             <span className="qv-label">Public title optional</span>
