@@ -49,6 +49,7 @@ type PublicOfficerRow = {
   display_name_override: string | null
   public_title_override: string | null
   public_email: string | null
+  show_public_email: boolean | null
   is_public: boolean
   sort_order: number
   photo_storage_bucket: string | null
@@ -74,18 +75,13 @@ export const revalidate = 0
 
 function officialMemberName(member: Pick<PersonRow, 'first_name' | 'last_name'> | null) {
   if (!member) return 'Unknown member'
-
   const lastName = member.last_name.trim()
   const firstName = member.first_name.trim()
   return `${firstName} ${lastName}`.trim()
 }
 
-function memberName(
-  member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null,
-  preferredDisplayName?: string | null
-) {
+function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null, preferredDisplayName?: string | null) {
   if (!member) return 'Unknown member'
-
   const preferred = preferredDisplayName?.trim() || member.nickname?.trim() || member.first_name.trim()
   const lastName = member.last_name.trim()
   return `${preferred} ${lastName}`.trim()
@@ -95,37 +91,23 @@ function normalizeName(value: string | null | undefined) {
   return (value ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
-function hasMeaningfulPreferredName(args: {
-  person: PersonRow | null
-  preferredDisplayName: string | null
-}) {
+function hasMeaningfulPreferredName(args: { person: PersonRow | null; preferredDisplayName: string | null }) {
   if (!args.person) return false
   return normalizeName(memberName(args.person, args.preferredDisplayName)) !== normalizeName(officialMemberName(args.person))
 }
 
-function shouldUsePreferredNameByDefault(args: {
-  publicProfile: PublicOfficerRow | null
-  person: PersonRow | null
-  preferredDisplayName: string | null
-}) {
+function shouldUsePreferredNameByDefault(args: { publicProfile: PublicOfficerRow | null; person: PersonRow | null; preferredDisplayName: string | null }) {
   if (!args.person) return true
   const displayNameOverride = args.publicProfile?.display_name_override?.trim()
   if (!displayNameOverride) return true
-
   return displayNameOverride === memberName(args.person, args.preferredDisplayName)
 }
 
-function customDisplayNameValue(args: {
-  publicProfile: PublicOfficerRow | null
-  person: PersonRow | null
-  preferredDisplayName: string | null
-}) {
+function customDisplayNameValue(args: { publicProfile: PublicOfficerRow | null; person: PersonRow | null; preferredDisplayName: string | null }) {
   const displayNameOverride = args.publicProfile?.display_name_override?.trim()
   if (!displayNameOverride) return ''
-
   const officialLabel = officialMemberName(args.person)
   const preferredLabel = memberName(args.person, args.preferredDisplayName)
-
   if (displayNameOverride === officialLabel || displayNameOverride === preferredLabel) return ''
   return displayNameOverride
 }
@@ -166,11 +148,7 @@ function formatServiceLabel(term: OfficerTermRow) {
 
 async function signedPortraitUrl(admin: ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>, officer: PublicOfficerRow | null) {
   if (!officer?.photo_storage_bucket || !officer.photo_storage_path) return null
-
-  const { data } = await admin.storage
-    .from(officer.photo_storage_bucket)
-    .createSignedUrl(officer.photo_storage_path, 60 * 60)
-
+  const { data } = await admin.storage.from(officer.photo_storage_bucket).createSignedUrl(officer.photo_storage_path, 60 * 60)
   return data?.signedUrl ?? null
 }
 
@@ -211,16 +189,12 @@ export default async function PublicOfficerSettingsPage() {
     termIds.length > 0
       ? (admin as any)
           .from('local_unit_public_officers')
-          .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, is_public, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
+          .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, show_public_email, is_public, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
           .eq('local_unit_id', localUnitId)
           .in('person_officer_term_id', termIds)
       : Promise.resolve({ data: [] as PublicOfficerRow[] }),
     personIds.length > 0
-      ? admin
-          .from('people')
-          .select('id, first_name, last_name, nickname, email')
-          .in('id', personIds)
-          .is('archived_at', null)
+      ? admin.from('people').select('id, first_name, last_name, nickname, email').in('id', personIds).is('archived_at', null)
       : Promise.resolve({ data: [] as PersonRow[] }),
     personIds.length > 0
       ? (admin as any)
@@ -232,9 +206,7 @@ export default async function PublicOfficerSettingsPage() {
       : Promise.resolve({ data: [] as MemberRecordRow[] }),
   ])
 
-  const publicOfficerByTermId = new Map(
-    ((publicOfficerData as PublicOfficerRow[] | null) ?? []).map((row) => [row.person_officer_term_id, row])
-  )
+  const publicOfficerByTermId = new Map(((publicOfficerData as PublicOfficerRow[] | null) ?? []).map((row) => [row.person_officer_term_id, row]))
   const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? [])
   const personById = new Map(people.map((person) => [person.id, person]))
   const preferredDisplayNameByPersonId = new Map(
@@ -251,7 +223,6 @@ export default async function PublicOfficerSettingsPage() {
       const memberLabel = publicProfile?.display_name_override ?? memberName(person, preferredDisplayName)
       const officeLabel = publicProfile?.public_title_override ?? formatOfficerLabel(term)
       const portraitUrl = await signedPortraitUrl(admin, publicProfile)
-
       return {
         term,
         person,
@@ -259,17 +230,13 @@ export default async function PublicOfficerSettingsPage() {
         memberLabel,
         officeLabel,
         serviceLabel: formatServiceLabel(term),
-        publicProfile: publicProfile
-          ? { ...publicProfile, sort_order: publicProfile.sort_order ?? index + 1 }
-          : null,
+        publicProfile: publicProfile ? { ...publicProfile, sort_order: publicProfile.sort_order ?? index + 1 } : null,
         portraitUrl,
       }
     })
   )
 
-  const publicSlug = council.council_number
-    ? buildCouncilPublicOrgSlug({ name: council.name, councilNumber: council.council_number })
-    : null
+  const publicSlug = council.council_number ? buildCouncilPublicOrgSlug({ name: council.name, councilNumber: council.council_number }) : null
   const publicOfficersHref = publicSlug ? `/o/${publicSlug}/officers` : null
 
   return (
@@ -282,9 +249,7 @@ export default async function PublicOfficerSettingsPage() {
           <p className="qv-eyebrow">Public page settings</p>
           <div className="qv-detail-action-row" style={{ alignItems: 'flex-start' }}>
             <div>
-              <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em' }}>
-                Public Officers
-              </h1>
+              <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em' }}>Public Officers</h1>
               <p style={{ margin: '14px 0 0', maxWidth: '48ch', fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>
                 Choose which current officers appear publicly, adjust names and ordering, and position portraits without cropping the original image.
               </p>
@@ -304,18 +269,14 @@ export default async function PublicOfficerSettingsPage() {
             <div>
               <p className="qv-eyebrow">Public page</p>
               <h2 className="qv-section-title">Officer profiles</h2>
-              <p className="qv-section-subtitle">
-                These settings affect only what visitors see. The official officer term remains the operational record.
-              </p>
+              <p className="qv-section-subtitle">These settings affect only what visitors see. The official officer term remains the operational record.</p>
             </div>
           </div>
 
           {officerProfiles.length === 0 ? (
             <div className="qv-empty" style={{ marginTop: 18 }}>
               <p className="qv-empty-text">No current officer assignments are recorded yet.</p>
-              <p className="qv-section-subtitle" style={{ margin: 0 }}>
-                Add officer terms from Council Settings first. Once officers are on file, you can choose who appears publicly.
-              </p>
+              <p className="qv-section-subtitle" style={{ margin: 0 }}>Add officer terms from Council Settings first. Once officers are on file, you can choose who appears publicly.</p>
             </div>
           ) : (
             <div className="qv-officer-settings-grid" style={{ marginTop: 18 }}>
@@ -327,25 +288,19 @@ export default async function PublicOfficerSettingsPage() {
                 const positionY = Number(publicProfile?.photo_position_y ?? 50)
                 const officialLabel = officialMemberName(profile.person)
                 const preferredLabel = memberName(profile.person, profile.preferredDisplayName)
-                const hasPreferredName = hasMeaningfulPreferredName({
-                  person: profile.person,
-                  preferredDisplayName: profile.preferredDisplayName,
-                })
-                const usePreferredName = shouldUsePreferredNameByDefault({
-                  publicProfile,
-                  person: profile.person,
-                  preferredDisplayName: profile.preferredDisplayName,
-                })
-                const customNameValue = customDisplayNameValue({
-                  publicProfile,
-                  person: profile.person,
-                  preferredDisplayName: profile.preferredDisplayName,
-                })
+                const hasPreferredName = hasMeaningfulPreferredName({ person: profile.person, preferredDisplayName: profile.preferredDisplayName })
+                const usePreferredName = shouldUsePreferredNameByDefault({ publicProfile, person: profile.person, preferredDisplayName: profile.preferredDisplayName })
+                const customNameValue = customDisplayNameValue({ publicProfile, person: profile.person, preferredDisplayName: profile.preferredDisplayName })
                 const profileFormId = `officer-public-profile-${profile.term.id}`
 
                 return (
                   <article key={profile.term.id} className="qv-officer-public-card">
                     <div className="qv-officer-public-summary">
+                      <div className="qv-officer-public-meta">
+                        <h3 className="qv-officer-public-title">{profile.officeLabel}</h3>
+                        <p className="qv-officer-public-subtitle">{profile.memberLabel}</p>
+                        <p className="qv-officer-public-subtitle">{profile.serviceLabel}</p>
+                      </div>
                       <PortraitUploader
                         idPrefix={`officer-${profile.term.id}`}
                         uploadAction={uploadOfficerPortraitAction}
@@ -359,24 +314,13 @@ export default async function PublicOfficerSettingsPage() {
                         positionY={positionY}
                         placeholderLabel="Portrait not set"
                       />
-                      <div className="qv-officer-public-meta">
-                        <h3 className="qv-officer-public-title">{profile.officeLabel}</h3>
-                        <p className="qv-officer-public-subtitle">{profile.memberLabel}</p>
-                        <p className="qv-officer-public-subtitle">{profile.serviceLabel}</p>
-                      </div>
                     </div>
 
                     <div className="qv-officer-public-forms">
                       <form id={profileFormId} action={saveOfficerPublicProfileAction} className="qv-officer-public-form">
                         <input type="hidden" name="term_id" value={profile.term.id} />
                         <label className="qv-toggle-card">
-                          <input
-                            type="checkbox"
-                            name="is_public"
-                            value="true"
-                            defaultChecked={publicProfile?.is_public ?? false}
-                            className="qv-toggle-checkbox"
-                          />
+                          <input type="checkbox" name="is_public" value="true" defaultChecked={publicProfile?.is_public ?? false} className="qv-toggle-checkbox" />
                           <span className="qv-toggle-copy">
                             <span className="qv-toggle-title">Show this officer publicly</span>
                             <span className="qv-toggle-text">Visitors will see this officer on the public Officers page.</span>
@@ -385,18 +329,10 @@ export default async function PublicOfficerSettingsPage() {
 
                         {hasPreferredName ? (
                           <label className="qv-toggle-card">
-                            <input
-                              type="checkbox"
-                              name="use_preferred_name"
-                              value="true"
-                              defaultChecked={usePreferredName}
-                              className="qv-toggle-checkbox"
-                            />
+                            <input type="checkbox" name="use_preferred_name" value="true" defaultChecked={usePreferredName} className="qv-toggle-checkbox" />
                             <span className="qv-toggle-copy">
                               <span className="qv-toggle-title">Use preferred name</span>
-                              <span className="qv-toggle-text">
-                                Use {preferredLabel} instead of the official name{officialLabel ? ` (${officialLabel})` : ''}, unless a custom display name is entered below.
-                              </span>
+                              <span className="qv-toggle-text">Use {preferredLabel} instead of the official name{officialLabel ? ` (${officialLabel})` : ''}, unless a custom display name is entered below.</span>
                             </span>
                           </label>
                         ) : (
@@ -419,11 +355,19 @@ export default async function PublicOfficerSettingsPage() {
                             <span className="qv-label">Public email optional</span>
                             <input type="email" name="public_email" defaultValue={publicProfile?.public_email ?? ''} placeholder="office@example.org" />
                           </label>
-                          <label className="qv-control">
+                          <label className="qv-control qv-order-control">
                             <span className="qv-label">Display order</span>
-                            <input type="number" min="0" name="sort_order" defaultValue={sortOrder} />
+                            <input type="number" min="0" step="1" name="sort_order" defaultValue={sortOrder} />
                           </label>
                         </div>
+
+                        <label className="qv-toggle-card">
+                          <input type="checkbox" name="show_public_email" value="true" defaultChecked={Boolean(publicProfile?.show_public_email)} className="qv-toggle-checkbox" />
+                          <span className="qv-toggle-copy">
+                            <span className="qv-toggle-title">Show email on public profile</span>
+                            <span className="qv-toggle-text">Only displays when a public email is entered above.</span>
+                          </span>
+                        </label>
 
                         <div className="qv-officer-public-actions">
                           <button type="submit" className="qv-button-primary">Save public profile</button>
