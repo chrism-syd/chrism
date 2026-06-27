@@ -437,11 +437,12 @@ export default async function PublicOfficerSettingsPage() {
                         </div>
                       </form>
 
-                      <form action={uploadOfficerPortraitAction} className="qv-officer-public-actions">
+                      <form action={uploadOfficerPortraitAction} className="qv-officer-public-actions" encType="multipart/form-data">
                         <input type="hidden" name="term_id" value={profile.term.id} />
                         <label className="qv-control" style={{ flex: '1 1 260px' }}>
                           <span className="qv-label">Upload or replace portrait</span>
                           <input type="file" name="officer_photo" accept="image/jpeg,image/png,image/webp" />
+                          <span className="qv-help-text">JPG, PNG, or WebP. Maximum 5 MB.</span>
                         </label>
                         <button type="submit" className="qv-button-secondary">Upload portrait</button>
                       </form>
