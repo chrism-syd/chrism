@@ -201,6 +201,7 @@ export default async function PublicPageSettingsPage() {
             </div>
             <div className="qv-directory-actions">
               <Link href="/me/council" className="qv-link-button qv-button-secondary">Back to council</Link>
+              <Link href="/me/council/settings/public-page/officers" className="qv-link-button qv-button-secondary">Manage public officers</Link>
               {publicPageHref ? <Link href={publicPageHref} className="qv-link-button qv-button-primary">View public page</Link> : null}
             </div>
           </div>
@@ -348,7 +349,7 @@ export default async function PublicPageSettingsPage() {
             </div>
 
             <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-              <button type="submit" className="qv-button-primary">Save public contact details</button>
+              <button type="submit" className="qv-button-primary">Save contact details</button>
             </div>
           </form>
         </section>
@@ -356,18 +357,61 @@ export default async function PublicPageSettingsPage() {
         <section className="qv-card">
           <div className="qv-directory-section-head">
             <div>
-              <p className="qv-eyebrow">Community gallery</p>
-              <h2 className="qv-section-title">Public page photos</h2>
-              <p className="qv-section-subtitle">
-                Add up to {PUBLIC_GALLERY_MAX_IMAGES} curated photos for the slideshow on the public page. Titles only appear in the larger gallery view.
-              </p>
+              <p className="qv-eyebrow">Links</p>
+              <h2 className="qv-section-title">Public links</h2>
+              <p className="qv-section-subtitle">Add up to three links for visitors, such as a parish, RSVP form, or donation page.</p>
             </div>
-            <span className="qv-badge">{galleryImages.length} / {PUBLIC_GALLERY_MAX_IMAGES}</span>
           </div>
 
-          <form action={uploadPublicGalleryImagesAction} className="qv-form-grid" encType="multipart/form-data">
+          <form action={savePublicExternalLinksAction} className="qv-form-grid">
+            {[0, 1, 2].map((index) => {
+              const link = externalLinkAt(externalLinks, index)
+              return (
+                <div key={index} className="qv-form-row qv-form-row-public-links">
+                  <input type="hidden" name={`link_${index}_id`} value={link?.id ?? ''} />
+                  <label className="qv-control">
+                    <span className="qv-label">Label {index + 1}</span>
+                    <input name={`link_${index}_label`} defaultValue={link?.label ?? ''} placeholder="Parish website" />
+                  </label>
+                  <label className="qv-control qv-form-row-public-links-url">
+                    <span className="qv-label">URL {index + 1}</span>
+                    <input name={`link_${index}_url`} defaultValue={link?.url ?? ''} placeholder="https://example.org" />
+                  </label>
+                  <label className="qv-toggle-card qv-toggle-card-compact">
+                    <input
+                      type="checkbox"
+                      name={`link_${index}_active`}
+                      value="true"
+                      defaultChecked={link?.is_active ?? false}
+                      className="qv-toggle-checkbox"
+                    />
+                    <span className="qv-toggle-copy">
+                      <span className="qv-toggle-title">Show</span>
+                      <span className="qv-toggle-text">Display this link publicly.</span>
+                    </span>
+                  </label>
+                </div>
+              )
+            })}
+
+            <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
+              <button type="submit" className="qv-button-primary">Save public links</button>
+            </div>
+          </form>
+        </section>
+
+        <section className="qv-card">
+          <div className="qv-directory-section-head">
+            <div>
+              <p className="qv-eyebrow">Gallery</p>
+              <h2 className="qv-section-title">Public gallery</h2>
+              <p className="qv-section-subtitle">Add photos that show the life and service of this organization. Up to {PUBLIC_GALLERY_MAX_IMAGES} active photos can be shown publicly.</p>
+            </div>
+          </div>
+
+          <form action={uploadPublicGalleryImagesAction} className="qv-form-grid">
             <label className="qv-control">
-              <span className="qv-label">Upload photos</span>
+              <span className="qv-label">Upload gallery images</span>
               <input
                 type="file"
                 name="gallery_images"
@@ -376,63 +420,43 @@ export default async function PublicPageSettingsPage() {
                 disabled={gallerySlotsRemaining <= 0}
               />
             </label>
-            <p className="qv-inline-message">
-              JPG, PNG, or WebP. Maximum 5 MB each. You can add {gallerySlotsRemaining} more image{gallerySlotsRemaining === 1 ? '' : 's'}.
+            <p className="qv-section-subtitle" style={{ margin: 0 }}>
+              {gallerySlotsRemaining > 0
+                ? `${gallerySlotsRemaining} gallery slot${gallerySlotsRemaining === 1 ? '' : 's'} remaining.`
+                : 'The public gallery is full. Remove an image before uploading another.'}
             </p>
             <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-              <button type="submit" className="qv-button-primary" disabled={gallerySlotsRemaining <= 0}>Upload gallery images</button>
+              <button type="submit" className="qv-button-secondary" disabled={gallerySlotsRemaining <= 0}>Upload images</button>
             </div>
           </form>
 
           {galleryImages.length > 0 ? (
-            <form action={savePublicGalleryImagesAction} className="qv-form-grid" style={{ marginTop: 20 }}>
-              <div style={{ display: 'grid', gap: 14 }}>
-                {galleryImages.map((image, index) => (
-                  <div
-                    key={image.id}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '104px minmax(0, 1fr) 90px auto',
-                      gap: 12,
-                      alignItems: 'center',
-                      padding: 12,
-                      border: '1px solid var(--divider)',
-                      borderRadius: 16,
-                      background: 'var(--bg-card)',
-                    }}
-                  >
-                    <div style={{ aspectRatio: '4 / 3', overflow: 'hidden', borderRadius: 12, background: 'var(--bg-sunken)', border: '1px solid var(--divider)' }}>
-                      {image.signedUrl ? (
-                        <img src={image.signedUrl} alt={image.title ?? `Gallery image ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      ) : null}
-                    </div>
+            <div className="qv-public-gallery-settings-grid">
+              {galleryImages.map((image) => (
+                <article key={image.id} className="qv-public-gallery-settings-card">
+                  {image.signedUrl ? <img src={image.signedUrl} alt={image.title ?? 'Public gallery image'} /> : null}
+                  <form action={savePublicGalleryImagesAction} className="qv-form-grid">
+                    <input type="hidden" name="image_id" value={image.id} />
                     <label className="qv-control">
-                      <span className="qv-label">Title optional</span>
-                      <input name={`gallery_title_${image.id}`} defaultValue={image.title ?? ''} placeholder="Pancake breakfast" />
+                      <span className="qv-label">Image title optional</span>
+                      <input name="title" defaultValue={image.title ?? ''} placeholder="Council service night" />
                     </label>
                     <label className="qv-control">
-                      <span className="qv-label">Order</span>
-                      <input name={`gallery_sort_order_${image.id}`} type="number" min="0" defaultValue={image.sort_order} />
+                      <span className="qv-label">Display order</span>
+                      <input type="number" name="sort_order" defaultValue={image.sort_order} min="0" />
                     </label>
-                    <button
-                      type="submit"
-                      formAction={deletePublicGalleryImageAction}
-                      name="gallery_image_id"
-                      value={image.id}
-                      className="qv-button-secondary"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                <button type="submit" className="qv-button-primary">Save gallery details</button>
-              </div>
-            </form>
+                    <button type="submit" className="qv-button-secondary">Save image</button>
+                  </form>
+                  <form action={deletePublicGalleryImageAction}>
+                    <input type="hidden" name="image_id" value={image.id} />
+                    <button type="submit" className="qv-link-button">Remove image</button>
+                  </form>
+                </article>
+              ))}
+            </div>
           ) : (
-            <div className="qv-empty" style={{ borderStyle: 'solid', marginTop: 20 }}>
-              No gallery images yet. Upload a few photos to replace the image placeholder on the public page.
+            <div className="qv-empty" style={{ marginTop: 18 }}>
+              <p className="qv-empty-text">No gallery images yet.</p>
             </div>
           )}
         </section>
@@ -440,79 +464,26 @@ export default async function PublicPageSettingsPage() {
         <section className="qv-card">
           <div className="qv-directory-section-head">
             <div>
-              <p className="qv-eyebrow">Contact routing</p>
-              <h2 className="qv-section-title">Public form recipient</h2>
-              <p className="qv-section-subtitle">
-                Submissions from the public get-involved form will be sent to this inbox. Volunteer and joining inquiries will also feed the People directory.
-              </p>
+              <p className="qv-eyebrow">Messages</p>
+              <h2 className="qv-section-title">Public contact routing</h2>
+              <p className="qv-section-subtitle">Choose where contact form messages should go.</p>
             </div>
           </div>
 
           <form action={savePublicContactRouteAction} className="qv-form-grid">
-            <div className="qv-form-row qv-form-row-public-links">
-              <label className="qv-control">
-                <span className="qv-label">Recipient label</span>
-                <input
-                  name="public_contact_recipient_label"
-                  defaultValue={messageRoute?.recipient_label ?? ''}
-                  placeholder="Membership inbox"
-                />
-              </label>
+            <div className="qv-form-row qv-form-row-2">
               <label className="qv-control">
                 <span className="qv-label">Recipient email</span>
-                <input
-                  name="public_contact_recipient_email"
-                  type="email"
-                  defaultValue={messageRoute?.recipient_email ?? ''}
-                  placeholder="hello@example.org"
-                />
+                <input type="email" name="recipient_email" defaultValue={messageRoute?.recipient_email ?? ''} placeholder="grandknight@example.org" />
+              </label>
+              <label className="qv-control">
+                <span className="qv-label">Recipient label optional</span>
+                <input name="recipient_label" defaultValue={messageRoute?.recipient_label ?? ''} placeholder="Grand Knight" />
               </label>
             </div>
-            <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-              <button type="submit" className="qv-button-primary">Save contact recipient</button>
-            </div>
-          </form>
-        </section>
-
-        <section className="qv-card">
-          <div className="qv-directory-section-head">
-            <div>
-              <p className="qv-eyebrow">Helpful links</p>
-              <h2 className="qv-section-title">External links</h2>
-              <p className="qv-section-subtitle">
-                Add up to three links. Use them for donations, a Facebook page, a Google Form, a parish site, or anything else worth sending visitors to.
-              </p>
-            </div>
-          </div>
-
-          <form action={savePublicExternalLinksAction} className="qv-form-grid">
-            {[0, 1, 2].map((index) => {
-              const link = externalLinkAt(externalLinks, index)
-              const fieldIndex = index + 1
-              return (
-                <div key={fieldIndex} className="qv-form-row qv-form-row-public-links">
-                  <label className="qv-control">
-                    <span className="qv-label">Link {fieldIndex} label</span>
-                    <input
-                      name={`external_link_${fieldIndex}_label`}
-                      defaultValue={link?.label ?? ''}
-                      placeholder={fieldIndex === 1 ? 'Donate' : 'Label'}
-                    />
-                  </label>
-                  <label className="qv-control">
-                    <span className="qv-label">Link {fieldIndex} URL</span>
-                    <input
-                      name={`external_link_${fieldIndex}_url`}
-                      defaultValue={link?.url ?? ''}
-                      placeholder="https://example.org"
-                    />
-                  </label>
-                </div>
-              )
-            })}
 
             <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-              <button type="submit" className="qv-button-primary">Save external links</button>
+              <button type="submit" className="qv-button-primary">Save contact routing</button>
             </div>
           </form>
         </section>
