@@ -75,6 +75,15 @@ function officialMemberName(member: Pick<PersonNameRecord, 'first_name' | 'last_
   return name.length > 0 ? name : null
 }
 
+function preferredMemberName(member: PersonNameRecord | null, preferredDisplayName: string | null) {
+  if (!member) return null
+
+  const preferred = preferredDisplayName?.trim() || member.nickname?.trim() || member.first_name.trim()
+  const lastName = member.last_name.trim()
+  const name = `${preferred} ${lastName}`.trim()
+  return name.length > 0 ? name : null
+}
+
 function getFileExtension(file: File) {
   if (file.type === 'image/png') return 'png'
   if (file.type === 'image/webp') return 'webp'
@@ -174,21 +183,34 @@ async function loadOfficerTerm(args: {
   return term as OfficerTermRecord
 }
 
-async function loadOfficialOfficerName(args: {
+async function loadOfficerDisplayName(args: {
   admin: ReturnType<typeof createAdminClient>
+  localUnitId: string
   personId: string
+  usePreferredName: boolean
 }) {
-  const { data, error } = await args.admin
-    .from('people')
-    .select('id, first_name, last_name, nickname')
-    .eq('id', args.personId)
-    .is('archived_at', null)
-    .maybeSingle()
+  const [{ data: personData }, { data: memberRecordData }] = await Promise.all([
+    args.admin
+      .from('people')
+      .select('id, first_name, last_name, nickname')
+      .eq('id', args.personId)
+      .is('archived_at', null)
+      .maybeSingle(),
+    (args.admin as any)
+      .from('member_records')
+      .select('preferred_display_name')
+      .eq('local_unit_id', args.localUnitId)
+      .eq('legacy_people_id', args.personId)
+      .is('archived_at', null)
+      .maybeSingle(),
+  ])
 
-  if (error || !data) return null
+  if (!personData) return null
 
-  const [person] = decryptPeopleRecords([data as PersonNameRecord])
-  return officialMemberName(person)
+  const [person] = decryptPeopleRecords([personData as PersonNameRecord])
+  if (!args.usePreferredName) return officialMemberName(person)
+
+  return preferredMemberName(person, memberRecordData?.preferred_display_name ?? null)
 }
 
 async function ensureOfficerPublicRecord(args: {
@@ -246,10 +268,13 @@ export async function saveOfficerPublicProfileAction(formData: FormData) {
     return await redirectToOfficerSettings({ error: 'Enter a valid public officer email, or leave it blank.' })
   }
 
-  let displayNameOverride = textValue(formData, 'display_name_override')
-  if (!displayNameOverride && formData.get('use_preferred_name') !== 'true') {
-    displayNameOverride = await loadOfficialOfficerName({ admin, personId: term.person_id })
-  }
+  const customDisplayName = textValue(formData, 'display_name_override')
+  const displayNameOverride = customDisplayName ?? await loadOfficerDisplayName({
+    admin,
+    localUnitId: context.localUnitId!,
+    personId: term.person_id,
+    usePreferredName: formData.get('use_preferred_name') === 'true',
+  })
 
   const payload = {
     local_unit_id: context.localUnitId!,
