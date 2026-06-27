@@ -24,11 +24,11 @@ export default function PublicContactFormExpander() {
     reveal.className = 'local-page-contact-reveal'
     reveal.innerHTML = `
       <div class="local-page-contact-reveal-copy">
-        <p class="local-page-contact-reveal-kicker">Ready to connect?</p>
-        <h3 class="local-page-contact-reveal-title">Send us a message.</h3>
-        <p class="local-page-contact-reveal-text">Whether you would like to volunteer, become a member, or simply ask a question, this is the easiest place to start.</p>
+        <p class="local-page-contact-reveal-kicker">Start here</p>
+        <h3 class="local-page-contact-reveal-title">Let&apos;s start the conversation.</h3>
+        <p class="local-page-contact-reveal-text">Whether you are interested in becoming a member, volunteering, or simply have a question, we would love to hear from you.</p>
       </div>
-      <button type="button" class="qv-button-primary local-page-contact-reveal-button">Open message form</button>
+      <button type="button" class="qv-button-primary local-page-contact-reveal-button">Send us a message</button>
     `
 
     form.insertAdjacentElement('beforebegin', reveal)
