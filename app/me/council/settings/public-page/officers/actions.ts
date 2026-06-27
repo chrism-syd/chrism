@@ -91,7 +91,7 @@ function preferredMemberName(member: PersonNameRecord | null, preferredDisplayNa
   return name.length > 0 ? name : null
 }
 
-function isUploadedImageFile(value: FormDataEntryValue | null): value is UploadedImageFile {
+function isUploadedImageFile(value: FormDataEntryValue | null) {
   return Boolean(
     value &&
     typeof value !== 'string' &&
@@ -349,9 +349,15 @@ export async function uploadOfficerPortraitAction(formData: FormData) {
   const context = await requireOfficerSettingsAccess()
   const admin = createAdminClient()
   const term = await loadOfficerTerm({ admin, context, termId: textValue(formData, 'term_id') })
-  const file = formData.get('officer_photo')
+  const fileEntry = formData.get('officer_photo')
 
-  if (!isUploadedImageFile(file) || file.size === 0) {
+  if (!isUploadedImageFile(fileEntry)) {
+    return await redirectToOfficerSettings({ error: 'Choose a portrait image to upload.' })
+  }
+
+  const file = fileEntry as UploadedImageFile
+
+  if (file.size === 0) {
     return await redirectToOfficerSettings({ error: 'Choose a portrait image to upload.' })
   }
 
