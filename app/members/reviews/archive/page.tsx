@@ -100,7 +100,7 @@ export default async function ReviewDecisionArchivePage() {
         .filter('cleared_at', 'not.is', 'null')
         .order('cleared_at', { ascending: false })
         .limit(200)
-    : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[] })
+    : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[], error: null })
 
   const [archivedDecisions, organizationData, archivedPublicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
