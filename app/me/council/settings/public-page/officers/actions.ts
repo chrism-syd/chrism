@@ -9,6 +9,7 @@ import { setFlashMessage } from '@/lib/flash-messages'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
+import { decryptPeopleRecords } from '@/lib/security/pii'
 
 const OFFICER_SETTINGS_PATH = '/me/council/settings/public-page/officers'
 const PORTRAIT_BUCKET = 'people-portraits'
@@ -29,6 +30,13 @@ type OfficerPublicRecord = {
   id: string
   photo_storage_bucket: string | null
   photo_storage_path: string | null
+}
+
+type PersonNameRecord = {
+  id: string
+  first_name: string
+  last_name: string
+  nickname: string | null
 }
 
 function textValue(formData: FormData, key: string) {
@@ -56,6 +64,15 @@ function normalizeEmail(value: string | null) {
   if (!value) return null
   const normalized = value.trim().toLowerCase()
   return normalized.includes('@') ? normalized : null
+}
+
+function officialMemberName(member: Pick<PersonNameRecord, 'first_name' | 'last_name'> | null) {
+  if (!member) return null
+
+  const firstName = member.first_name.trim()
+  const lastName = member.last_name.trim()
+  const name = `${firstName} ${lastName}`.trim()
+  return name.length > 0 ? name : null
 }
 
 function getFileExtension(file: File) {
@@ -157,6 +174,23 @@ async function loadOfficerTerm(args: {
   return term as OfficerTermRecord
 }
 
+async function loadOfficialOfficerName(args: {
+  admin: ReturnType<typeof createAdminClient>
+  personId: string
+}) {
+  const { data, error } = await args.admin
+    .from('people')
+    .select('id, first_name, last_name, nickname')
+    .eq('id', args.personId)
+    .is('archived_at', null)
+    .maybeSingle()
+
+  if (error || !data) return null
+
+  const [person] = decryptPeopleRecords([data as PersonNameRecord])
+  return officialMemberName(person)
+}
+
 async function ensureOfficerPublicRecord(args: {
   admin: ReturnType<typeof createAdminClient>
   context: ActingCouncilContext
@@ -212,11 +246,16 @@ export async function saveOfficerPublicProfileAction(formData: FormData) {
     return await redirectToOfficerSettings({ error: 'Enter a valid public officer email, or leave it blank.' })
   }
 
+  let displayNameOverride = textValue(formData, 'display_name_override')
+  if (!displayNameOverride && formData.get('use_preferred_name') !== 'true') {
+    displayNameOverride = await loadOfficialOfficerName({ admin, personId: term.person_id })
+  }
+
   const payload = {
     local_unit_id: context.localUnitId!,
     person_officer_term_id: term.id,
     person_id: term.person_id,
-    display_name_override: textValue(formData, 'display_name_override'),
+    display_name_override: displayNameOverride,
     public_title_override: textValue(formData, 'public_title_override'),
     public_email: publicEmail,
     is_public: formData.get('is_public') === 'true',
