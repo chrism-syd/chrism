@@ -28,6 +28,15 @@ type EventRow = {
 
 type LocalUnitRow = {
   id: string
+  public_email: string | null
+  public_location_name: string | null
+  public_address_line1: string | null
+  public_address_line2: string | null
+  public_city: string | null
+  public_region: string | null
+  public_postal_code: string | null
+  public_country: string | null
+  public_location_url: string | null
 }
 
 type ExternalLinkRow = {
@@ -112,6 +121,24 @@ function contactStatusMessage(status: string | undefined) {
   return null
 }
 
+function compactAddressLines(localUnit: LocalUnitRow | null) {
+  if (!localUnit) return [] as string[]
+
+  const cityRegionPostal = [localUnit.public_city, localUnit.public_region, localUnit.public_postal_code]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ')
+
+  return [
+    localUnit.public_address_line1,
+    localUnit.public_address_line2,
+    cityRegionPostal,
+    localUnit.public_country,
+  ]
+    .map((line) => line?.trim())
+    .filter((line): line is string => Boolean(line))
+}
+
 export default async function PublicLocalOrganizationPage({ params, searchParams }: PageProps) {
   const { slug } = await params
   const resolvedSearchParams = searchParams ? await searchParams : {}
@@ -154,11 +181,11 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       .order('starts_at', { ascending: true })
       .limit(4)
       .returns<EventRow[]>(),
-    admin
+    untypedAdmin
       .from('local_units')
-      .select('id')
+      .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
       .eq('legacy_council_id', council.id)
-      .maybeSingle<LocalUnitRow>(),
+      .maybeSingle(),
   ])
 
   const organization = organizationResponse.data as {
@@ -258,6 +285,8 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     organizationTypeCode: organization?.organization_type_code,
     councilNumber: council.council_number,
   })
+  const publicAddressLines = compactAddressLines(localUnit)
+  const hasPublicContactDetails = Boolean(localUnit?.public_email || localUnit?.public_location_name || publicAddressLines.length > 0)
 
   return (
     <main className={`local-page ${localPageTheme.className}`} style={{ background: 'var(--local-page-bg)', color: 'var(--local-page-body-text)', minHeight: '100vh' }}>
@@ -651,6 +680,44 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           color: var(--local-page-body-text);
         }
 
+        .local-page-contact-detail-list {
+          display: grid;
+          gap: 12px;
+          margin-top: 2px;
+        }
+
+        .local-page-contact-detail {
+          display: grid;
+          gap: 5px;
+          padding: 14px 16px;
+          border: 1px solid color-mix(in srgb, var(--local-page-primary) 12%, transparent);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.48);
+        }
+
+        .local-page-contact-detail-label {
+          color: var(--local-page-primary-dark);
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .local-page-contact-detail-value {
+          color: var(--local-page-body-text);
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .local-page-contact-detail-value a {
+          color: inherit;
+        }
+
+        .local-page-contact-address-lines {
+          display: grid;
+          gap: 2px;
+        }
+
         .local-page-contact-form-card {
           display: grid;
           gap: 22px;
@@ -850,6 +917,42 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
                 {paragraph(involvementCopy(organization?.organization_type_code))}
               </p>
+
+              {hasPublicContactDetails ? (
+                <div className="local-page-contact-detail-list" aria-label="Public contact details">
+                  {localUnit?.public_email ? (
+                    <div className="local-page-contact-detail">
+                      <span className="local-page-contact-detail-label">Email</span>
+                      <span className="local-page-contact-detail-value">
+                        <a href={`mailto:${localUnit.public_email}`}>{localUnit.public_email}</a>
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {localUnit?.public_location_name || publicAddressLines.length > 0 ? (
+                    <div className="local-page-contact-detail">
+                      <span className="local-page-contact-detail-label">Location</span>
+                      <span className="local-page-contact-detail-value">
+                        {localUnit?.public_location_name ? (
+                          localUnit.public_location_url ? (
+                            <a href={localUnit.public_location_url} target="_blank" rel="noopener noreferrer">{displayText(localUnit.public_location_name)}</a>
+                          ) : (
+                            displayText(localUnit.public_location_name)
+                          )
+                        ) : null}
+                      </span>
+                      {publicAddressLines.length > 0 ? (
+                        <span className="local-page-contact-address-lines">
+                          {publicAddressLines.map((line) => (
+                            <span key={line}>{displayText(line)}</span>
+                          ))}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               {externalLinks.length > 0 ? (
                 <div className="local-page-contact-links">
                   {externalLinks.map((externalLink) => (
