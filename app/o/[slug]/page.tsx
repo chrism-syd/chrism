@@ -8,8 +8,9 @@ import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { submitPublicContactFormAction } from './actions'
-import PublicGallerySlideshow from './public-gallery-slideshow'
+import PublicEvents from './public-events'
 import PublicHero from './public-hero'
+import PublicStory from './public-story'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -287,6 +288,13 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   })
   const publicAddressLines = compactAddressLines(localUnit)
   const hasPublicContactDetails = Boolean(localUnit?.public_email || localUnit?.public_location_name || publicAddressLines.length > 0)
+  const publicEvents = upcomingEvents.map((event) => ({
+    id: event.id,
+    date: formatShortDate(event.starts_at),
+    title: displayText(event.title),
+    meta: `${eventKindLabel(event.event_kind_code)} / ${displayText(event.location_name || event.location_address || 'Location to be confirmed')}`,
+  }))
+  const communityText = paragraph(`${displayName} brings people together through local service, shared responsibility, and simple ways to stay connected to the community.`)
 
   return (
     <main className={`local-page ${localPageTheme.className}`}>
@@ -307,7 +315,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         </Link>
         <nav className="local-page-header-nav">
           <a href="#about">About</a>
-          {upcomingEvents.length > 0 ? <a href="#events">Events</a> : null}
+          {publicEvents.length > 0 ? <a href="#events">Events</a> : null}
           <a href="#contact">Get involved</a>
         </nav>
         <Link href="/about" className="local-page-chrism-powered" aria-label="About Chrism">
@@ -322,68 +330,9 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
         aboutCopy={paragraph(aboutCopy)}
       />
 
-      {upcomingEvents.length > 0 ? (
-        <section id="events" className="local-page-section">
-          <div className="local-page-section-head">
-            <div>
-              <h2 className="qv-section-title local-page-section-title-tight">Upcoming events</h2>
-              <p className="qv-section-subtitle local-page-section-subtitle-tight">
-                {paragraph('A quick look at what is coming up next.')}
-              </p>
-            </div>
-            <Link href={eventsHref} className="qv-link-button qv-button-secondary">View all events</Link>
-          </div>
+      <PublicEvents events={publicEvents} eventsHref={eventsHref} />
 
-          <div className="local-page-events-list">
-            {upcomingEvents.map((event) => (
-              <div key={event.id} className="local-page-event-row">
-                <div className="local-page-event-date">{formatShortDate(event.starts_at)}</div>
-                <div>
-                  <div className="local-page-event-title">{displayText(event.title)}</div>
-                  <span className="local-page-event-meta">
-                    {eventKindLabel(event.event_kind_code)} / {displayText(event.location_name || event.location_address || 'Location to be confirmed')}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="local-page-story-section" aria-label="Local community story">
-        <div className="local-page-story-grid">
-          <div className="local-page-story-visual" aria-label="Community image gallery">
-            {galleryImages.length > 0 ? (
-              <PublicGallerySlideshow images={galleryImages} />
-            ) : (
-              <div className="local-page-story-placeholder">
-                <span>Image area</span>
-              </div>
-            )}
-          </div>
-          <section className="local-page-story-copy">
-            <p className="qv-eyebrow">Community life</p>
-            <h2 className="qv-section-title local-page-section-title-tight">A place for service, faith, and fellowship.</h2>
-            <p className="qv-section-subtitle local-page-story-subtitle">
-              {paragraph(`${displayName} brings people together through local service, shared responsibility, and simple ways to stay connected to the community.`)}
-            </p>
-            <div className="local-page-story-card-grid">
-              <div className="local-page-story-card">
-                <strong>Serve locally</strong>
-                <p>{paragraph('Find practical ways to help neighbours, families, and local community efforts.')}</p>
-              </div>
-              <div className="local-page-story-card">
-                <strong>Stay connected</strong>
-                <p>{paragraph('Keep an eye on upcoming events, meetings, and opportunities to take part.')}</p>
-              </div>
-              <div className="local-page-story-card">
-                <strong>Build community</strong>
-                <p>{paragraph('Meet people who are working together in faith, service, and friendship.')}</p>
-              </div>
-            </div>
-          </section>
-        </div>
-      </section>
+      <PublicStory galleryImages={galleryImages} communityText={communityText} />
 
       <section id="contact" className="local-page-contact-section">
         <div className="local-page-contact-shell">
