@@ -34,6 +34,18 @@ function enhanceContactDetails() {
   }
 }
 
+function enhanceContactFormCopy() {
+  const submitButton = document.querySelector<HTMLButtonElement>('.local-page-contact-form button[type="submit"]')
+  if (submitButton && submitButton.textContent?.trim() === 'Send submission') {
+    submitButton.textContent = 'Send'
+  }
+
+  const statusMessage = document.querySelector<HTMLElement>('.local-page-contact-form .qv-empty')
+  if (statusMessage?.textContent?.includes('Your submission has been sent')) {
+    statusMessage.textContent = 'Thanks! Your message has been sent to the council.'
+  }
+}
+
 function enhanceGalleryEmptyState() {
   const placeholder = document.querySelector<HTMLElement>('.local-page-story-placeholder')
   if (!placeholder || placeholder.dataset.enhanced === 'true') return
@@ -50,6 +62,7 @@ export default function PublicContactFormExpander() {
   useEffect(() => {
     enhanceContactCopy()
     enhanceContactDetails()
+    enhanceContactFormCopy()
     enhanceGalleryEmptyState()
 
     const card = document.querySelector<HTMLElement>('.local-page-contact-form-card')
@@ -73,7 +86,7 @@ export default function PublicContactFormExpander() {
     reveal.innerHTML = `
       <div class="local-page-contact-reveal-copy">
         <h3 class="local-page-contact-reveal-title">Get in touch.</h3>
-        <p class="local-page-contact-reveal-text">Have a question? Interested in becoming a Knight? Looking to volunteer? We'd be happy to hear from you.</p>
+        <p class="local-page-contact-reveal-text">Interested in becoming a Knight, looking to volunteer, or simply have a question? We'd be happy to hear from you.</p>
       </div>
       <button type="button" class="qv-button-primary local-page-contact-reveal-button">Contact the Council</button>
     `
@@ -173,16 +186,14 @@ export default function PublicContactFormExpander() {
 
       .local-page-contact-detail-icon {
         grid-row: 1 / span 3;
-        display: grid;
+        display: inline-grid;
         place-items: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.62);
+        width: 24px;
+        height: 24px;
         color: var(--local-page-primary-dark);
-        font-size: 17px;
+        font-size: 18px;
         font-weight: 900;
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--local-page-primary) 12%, transparent);
+        line-height: 1;
       }
 
       .local-page-contact-detail:hover {
