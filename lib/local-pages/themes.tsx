@@ -169,6 +169,10 @@ export function LocalPageThemeStyle({ theme }: { theme: LocalPageTheme }) {
           .map(([key, value]) => `${key}: ${value};`)
           .join('\n        ')}
       }
+
+      .local-page.${theme.className} .local-page-about-card p {
+        color: var(--local-page-button-primary-text) !important;
+      }
     `}</style>
   )
 }
