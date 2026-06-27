@@ -63,7 +63,8 @@
 }
 
 .qv-portrait-uploader-stage {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(100px, 1fr);
   gap: 12px;
   align-items: center;
 }
@@ -77,6 +78,15 @@
   border-radius: var(--portrait-uploader-radius);
   background: var(--bg-card);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  touch-action: none;
+}
+
+.qv-portrait-uploader-frame-draggable {
+  cursor: grab;
+}
+
+.qv-portrait-uploader-frame-dragging {
+  cursor: grabbing;
 }
 
 .qv-portrait-uploader-image {
@@ -88,6 +98,12 @@
   transform: scale(var(--portrait-uploader-zoom));
   transform-origin: var(--portrait-uploader-position-x) var(--portrait-uploader-position-y);
   transition: transform 120ms ease, object-position 120ms ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+.qv-portrait-uploader-frame-dragging .qv-portrait-uploader-image {
+  transition: none;
 }
 
 .qv-portrait-uploader-placeholder {
@@ -200,104 +216,24 @@
   background: #fff5f5;
 }
 
-.qv-portrait-mini-tools {
+.qv-portrait-simple-tools {
   display: grid;
-  grid-template-columns: 34px 96px;
   gap: 10px;
   align-items: center;
 }
 
-.qv-portrait-zoom-stack {
+.qv-portrait-simple-zoom {
   display: grid;
-  justify-items: center;
   gap: 6px;
-  padding: 8px 4px;
-  border: 1px solid var(--divider);
-  border-radius: 999px;
-  background: var(--bg-card);
-}
-
-.qv-portrait-zoom-mark {
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 1;
 }
 
 .qv-portrait-zoom-slider {
-  width: 92px;
-  height: 22px;
-  transform: rotate(-90deg);
-  transform-origin: center;
+  width: 100%;
   accent-color: var(--accent);
 }
 
-.qv-portrait-nudge-pad {
-  display: grid;
-  grid-template-columns: 30px 34px 30px;
-  grid-template-rows: 30px 34px 30px;
-  gap: 4px;
-  align-items: center;
-  justify-items: center;
-}
-
-.qv-portrait-nudge-button,
 .qv-portrait-reset-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--divider);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-weight: 900;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-}
-
-.qv-portrait-nudge-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  font-size: 14px;
-}
-
-.qv-portrait-reset-button {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  font-size: 9px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.qv-portrait-nudge-button:hover,
-.qv-portrait-reset-button:hover {
-  border-color: var(--accent);
-}
-
-.qv-portrait-nudge-up {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.qv-portrait-nudge-left {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.qv-portrait-reset-button {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.qv-portrait-nudge-right {
-  grid-column: 3;
-  grid-row: 2;
-}
-
-.qv-portrait-nudge-down {
-  grid-column: 2;
-  grid-row: 3;
+  justify-self: start;
 }
 
 .qv-portrait-upload-copy {
@@ -313,14 +249,6 @@
 
 @media (max-width: 460px) {
   .qv-portrait-uploader-stage {
-    align-items: start;
-  }
-
-  .qv-portrait-mini-tools {
-    grid-template-columns: 34px;
-  }
-
-  .qv-portrait-nudge-pad {
-    grid-template-columns: 28px 32px 28px;
+    grid-template-columns: 1fr;
   }
 }
