@@ -91,7 +91,6 @@ export default async function PublicPageSettingsPage() {
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
   if (!localUnitId) redirect('/me/council')
 
-  const untypedAdmin = admin as any
   const [
     { data: organizationData },
     { data: localUnitData },
@@ -99,24 +98,24 @@ export default async function PublicPageSettingsPage() {
     { data: messageRouteData },
     { data: galleryData },
   ] = await Promise.all([
-    untypedAdmin
+    admin
       .from('organizations')
       .select('id, display_name, preferred_name, public_page_enabled, public_description, public_contact_form_enabled')
       .eq('id', permissions.organizationId)
       .maybeSingle(),
-    untypedAdmin
+    admin
       .from('local_units')
       .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
       .eq('id', localUnitId)
       .maybeSingle(),
-    untypedAdmin
+    admin
       .from('local_unit_external_links')
       .select('id, label, url, sort_order, is_active')
       .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
-    untypedAdmin
+    admin
       .from('local_unit_message_routes')
       .select('id, recipient_email, recipient_label')
       .eq('local_unit_id', localUnitId)
@@ -124,7 +123,7 @@ export default async function PublicPageSettingsPage() {
       .eq('is_active', true)
       .order('updated_at', { ascending: false })
       .limit(1),
-    untypedAdmin
+    admin
       .from('local_unit_public_gallery_images')
       .select('id, title, storage_bucket, storage_path, sort_order, is_active')
       .eq('local_unit_id', localUnitId)
