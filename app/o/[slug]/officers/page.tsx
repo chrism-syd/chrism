@@ -60,6 +60,9 @@ type PublicOfficerView = {
   photoZoom: number
   photoPositionX: number
   photoPositionY: number
+  sortOrder: number
+  rolePriority: number
+  isGrandKnight: boolean
 }
 
 export const dynamic = 'force-dynamic'
@@ -85,6 +88,54 @@ function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickna
   }
 
   return `${firstName} ${lastName}`.trim()
+}
+
+function officerRolePriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
+  const key = `${term.office_scope_code}:${term.office_code}`
+  switch (key) {
+    case 'council:grand_knight':
+      return 1
+    case 'council:deputy_grand_knight':
+      return 2
+    case 'council:chancellor':
+      return 3
+    case 'council:treasurer':
+      return 4
+    case 'council:advocate':
+      return 5
+    case 'council:recorder':
+      return 6
+    case 'council:warden':
+      return 7
+    case 'council:inside_guard':
+      return 8
+    case 'council:outside_guard':
+      return 9
+    case 'council:trustee':
+      return 10 + (term.office_rank ?? 0)
+    case 'council:chaplain':
+      return 20
+    case 'council:financial_secretary':
+      return 21
+    case 'council:lecturer':
+      return 22
+    case 'council:program_director':
+      return 23
+    case 'council:faith_director':
+      return 24
+    case 'council:family_director':
+      return 25
+    case 'council:community_director':
+      return 26
+    case 'council:life_director':
+      return 27
+    case 'council:membership_director':
+      return 28
+    case 'council:retention_chairman':
+      return 29
+    default:
+      return 100
+  }
 }
 
 async function signedPortraitUrl(admin: ReturnType<typeof createAdminClient>, officer: PublicOfficerRow) {
@@ -216,9 +267,18 @@ export default async function PublicOfficersPage({ params }: PageProps) {
         photoZoom: Number(officer.photo_zoom ?? 1),
         photoPositionX: Number(officer.photo_position_x ?? 50),
         photoPositionY: Number(officer.photo_position_y ?? 50),
+        sortOrder: officer.sort_order ?? 0,
+        rolePriority: officerRolePriority(term),
+        isGrandKnight: term.office_scope_code === 'council' && term.office_code === 'grand_knight',
       }
     })
-  )).filter((officer): officer is PublicOfficerView => officer !== null)
+  ))
+    .filter((officer): officer is PublicOfficerView => officer !== null)
+    .sort((left, right) => {
+      if (left.rolePriority !== right.rolePriority) return left.rolePriority - right.rolePriority
+      if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder
+      return left.name.localeCompare(right.name)
+    })
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
   const organizationBranding = getEffectiveOrganizationBranding(organization)
@@ -259,7 +319,10 @@ export default async function PublicOfficersPage({ params }: PageProps) {
           {officers.length > 0 ? (
             <div className="public-officers-grid">
               {officers.map((officer) => (
-                <article key={officer.id} className="public-officer-card">
+                <article
+                  key={officer.id}
+                  className={officer.isGrandKnight ? 'public-officer-card public-officer-card-featured' : 'public-officer-card'}
+                >
                   <div className="public-officer-portrait">
                     <PortraitFrame
                       image={{
@@ -269,8 +332,8 @@ export default async function PublicOfficersPage({ params }: PageProps) {
                         positionX: officer.photoPositionX,
                         positionY: officer.photoPositionY,
                       }}
-                      size={220}
-                      radius={26}
+                      size={officer.isGrandKnight ? 260 : 220}
+                      radius={officer.isGrandKnight ? 34 : 26}
                       placeholderLabel="Officer portrait"
                     />
                   </div>
