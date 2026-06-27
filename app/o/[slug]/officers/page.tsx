@@ -63,6 +63,8 @@ type PublicOfficerView = {
   sortOrder: number
   rolePriority: number
   isGrandKnight: boolean
+  isDeputyGrandKnight: boolean
+  isAppointedOfficer: boolean
 }
 
 export const dynamic = 'force-dynamic'
@@ -119,23 +121,21 @@ function officerRolePriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'o
       return 21
     case 'council:lecturer':
       return 22
-    case 'council:program_director':
-      return 23
-    case 'council:faith_director':
-      return 24
-    case 'council:family_director':
-      return 25
-    case 'council:community_director':
-      return 26
-    case 'council:life_director':
-      return 27
-    case 'council:membership_director':
-      return 28
-    case 'council:retention_chairman':
-      return 29
     default:
       return 100
   }
+}
+
+function isAppointedOfficerTerm(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code'>) {
+  if (term.office_scope_code !== 'council') return false
+
+  return ['chaplain', 'financial_secretary', 'lecturer'].includes(term.office_code)
+}
+
+function officerCardClassName(officer: PublicOfficerView) {
+  if (officer.isGrandKnight) return 'public-officer-card public-officer-card-featured'
+  if (officer.isDeputyGrandKnight) return 'public-officer-card public-officer-card-deputy'
+  return 'public-officer-card'
 }
 
 async function signedPortraitUrl(admin: ReturnType<typeof createAdminClient>, officer: PublicOfficerRow) {
@@ -146,6 +146,34 @@ async function signedPortraitUrl(admin: ReturnType<typeof createAdminClient>, of
     .createSignedUrl(officer.photo_storage_path, 60 * 60)
 
   return data?.signedUrl ?? null
+}
+
+function PublicOfficerCard({ officer }: { officer: PublicOfficerView }) {
+  const isLeadershipOfficer = officer.isGrandKnight || officer.isDeputyGrandKnight
+
+  return (
+    <article className={officerCardClassName(officer)}>
+      <div className="public-officer-portrait">
+        <PortraitFrame
+          image={{
+            src: officer.portraitUrl,
+            alt: officer.portraitUrl ? `${officer.name} portrait` : '',
+            zoom: officer.photoZoom,
+            positionX: officer.photoPositionX,
+            positionY: officer.photoPositionY,
+          }}
+          size={officer.isGrandKnight ? 260 : 220}
+          radius={officer.isGrandKnight ? 34 : 26}
+          placeholderLabel="Officer portrait"
+        />
+      </div>
+      <div className="public-officer-copy">
+        <p className="public-officer-title">{officer.title}</p>
+        <h2 className={isLeadershipOfficer ? 'public-officer-name public-officer-name-leadership' : 'public-officer-name'}>{officer.name}</h2>
+        {officer.email ? <a className="public-officer-email" href={`mailto:${officer.email}`}>{officer.email}</a> : null}
+      </div>
+    </article>
+  )
 }
 
 export default async function PublicOfficersPage({ params }: PageProps) {
@@ -257,6 +285,8 @@ export default async function PublicOfficersPage({ params }: PageProps) {
       const name = displayText(officer.display_name_override ?? memberName(person))
       const title = displayText(officer.public_title_override ?? formatOfficerLabel(term))
       const portraitUrl = await signedPortraitUrl(admin, officer)
+      const isGrandKnight = term.office_scope_code === 'council' && term.office_code === 'grand_knight'
+      const isDeputyGrandKnight = term.office_scope_code === 'council' && term.office_code === 'deputy_grand_knight'
 
       return {
         id: officer.id,
@@ -269,7 +299,9 @@ export default async function PublicOfficersPage({ params }: PageProps) {
         photoPositionY: Number(officer.photo_position_y ?? 50),
         sortOrder: officer.sort_order ?? 0,
         rolePriority: officerRolePriority(term),
-        isGrandKnight: term.office_scope_code === 'council' && term.office_code === 'grand_knight',
+        isGrandKnight,
+        isDeputyGrandKnight,
+        isAppointedOfficer: isAppointedOfficerTerm(term),
       }
     })
   ))
@@ -279,6 +311,14 @@ export default async function PublicOfficersPage({ params }: PageProps) {
       if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder
       return left.name.localeCompare(right.name)
     })
+
+  const grandKnight = officers.find((officer) => officer.isGrandKnight) ?? null
+  const deputyGrandKnight = officers.find((officer) => officer.isDeputyGrandKnight) ?? null
+  const electedOfficers = officers.filter(
+    (officer) => !officer.isGrandKnight && !officer.isDeputyGrandKnight && !officer.isAppointedOfficer
+  )
+  const appointedOfficers = officers.filter((officer) => officer.isAppointedOfficer)
+  const hasLeadershipRow = Boolean(grandKnight || deputyGrandKnight)
 
   const organizationName = getEffectiveOrganizationName(organization) ?? council.name ?? 'Local organization'
   const organizationBranding = getEffectiveOrganizationBranding(organization)
@@ -317,33 +357,31 @@ export default async function PublicOfficersPage({ params }: PageProps) {
           </div>
 
           {officers.length > 0 ? (
-            <div className="public-officers-grid">
-              {officers.map((officer) => (
-                <article
-                  key={officer.id}
-                  className={officer.isGrandKnight ? 'public-officer-card public-officer-card-featured' : 'public-officer-card'}
-                >
-                  <div className="public-officer-portrait">
-                    <PortraitFrame
-                      image={{
-                        src: officer.portraitUrl,
-                        alt: officer.portraitUrl ? `${officer.name} portrait` : '',
-                        zoom: officer.photoZoom,
-                        positionX: officer.photoPositionX,
-                        positionY: officer.photoPositionY,
-                      }}
-                      size={officer.isGrandKnight ? 260 : 220}
-                      radius={officer.isGrandKnight ? 34 : 26}
-                      placeholderLabel="Officer portrait"
-                    />
+            <div className="public-officers-sections">
+              {hasLeadershipRow ? (
+                <div className="public-officers-grid public-officers-grid-leadership">
+                  {grandKnight ? <PublicOfficerCard officer={grandKnight} /> : null}
+                  {deputyGrandKnight ? <PublicOfficerCard officer={deputyGrandKnight} /> : null}
+                </div>
+              ) : null}
+
+              {electedOfficers.length > 0 ? (
+                <div className="public-officers-grid">
+                  {electedOfficers.map((officer) => <PublicOfficerCard key={officer.id} officer={officer} />)}
+                </div>
+              ) : null}
+
+              {appointedOfficers.length > 0 ? (
+                <section className="public-officers-section">
+                  <div className="public-officers-section-head">
+                    <p className="public-officers-section-eyebrow">Additional leadership</p>
+                    <h2 className="public-officers-section-title">Appointed Officers</h2>
                   </div>
-                  <div className="public-officer-copy">
-                    <p className="public-officer-title">{officer.title}</p>
-                    <h2 className="public-officer-name">{officer.name}</h2>
-                    {officer.email ? <a className="public-officer-email" href={`mailto:${officer.email}`}>{officer.email}</a> : null}
+                  <div className="public-officers-grid">
+                    {appointedOfficers.map((officer) => <PublicOfficerCard key={officer.id} officer={officer} />)}
                   </div>
-                </article>
-              ))}
+                </section>
+              ) : null}
             </div>
           ) : (
             <div className="public-officers-empty">
