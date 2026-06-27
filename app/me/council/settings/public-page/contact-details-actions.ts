@@ -88,7 +88,7 @@ function revalidatePublicPageSurfaces(context: Awaited<ReturnType<typeof getCurr
 
 export async function savePublicContactDetailsAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
 
