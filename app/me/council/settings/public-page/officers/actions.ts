@@ -422,6 +422,36 @@ export async function uploadOfficerPortraitAction(formData: FormData) {
   return await redirectToOfficerSettings({ notice: 'Officer portrait uploaded.' })
 }
 
+export async function saveOfficerPortraitPositionAction(formData: FormData) {
+  const context = await requireOfficerSettingsAccess()
+  const admin = createAdminClient()
+  const term = await loadOfficerTerm({ admin, context, termId: textValue(formData, 'term_id') })
+
+  try {
+    const existing = await ensureOfficerPublicRecord({ admin, context, term })
+    const { error } = await (admin as any)
+      .from('local_unit_public_officers')
+      .update({
+        photo_zoom: clamp(numberValue(formData, 'photo_zoom', 1), 1, 3),
+        photo_position_x: clamp(numberValue(formData, 'photo_position_x', 50), 0, 100),
+        photo_position_y: clamp(numberValue(formData, 'photo_position_y', 50), 0, 100),
+        updated_by_auth_user_id: context.permissions.authUser!.id,
+      })
+      .eq('id', existing.id)
+      .eq('local_unit_id', context.localUnitId!)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'We could not save that portrait position.'
+    return await redirectToOfficerSettings({ error: message })
+  }
+
+  revalidateOfficerSurfaces(context)
+  return await redirectToOfficerSettings({ notice: 'Officer portrait position saved.' })
+}
+
 export async function removeOfficerPortraitAction(formData: FormData) {
   const context = await requireOfficerSettingsAccess()
   const admin = createAdminClient()
