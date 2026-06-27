@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { ChangeEvent, CSSProperties } from 'react'
 
 type ServerAction = (formData: FormData) => void | Promise<void>
 
@@ -86,7 +86,7 @@ export default function PortraitUploader({
     '--portrait-uploader-position-y': `${currentPositionY}%`,
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0]
     setFileName(file?.name ?? '')
 
@@ -124,7 +124,7 @@ export default function PortraitUploader({
           <input type="hidden" name="photo_position_y" value={currentPositionY} />
 
           <label className="qv-portrait-upload-button" htmlFor={fileInputId}>
-            {isUploadSubmitting ? 'Uploading…' : uploadButtonLabel}
+            {isUploadSubmitting ? 'Uploading...' : uploadButtonLabel}
           </label>
           <input
             id={fileInputId}
