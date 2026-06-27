@@ -2,15 +2,13 @@
 
 import { useRef, useState } from 'react'
 import type { ChangeEvent, CSSProperties, FormEvent, PointerEvent } from 'react'
+import PortraitFrame from './portrait-frame'
 
 type ServerAction = (formData: FormData) => void | Promise<void>
 
 type PortraitUploaderStyle = CSSProperties & {
   '--portrait-uploader-size': string
   '--portrait-uploader-radius': string
-  '--portrait-uploader-zoom': string
-  '--portrait-uploader-position-x': string
-  '--portrait-uploader-position-y': string
 }
 
 type DragState = {
@@ -89,9 +87,6 @@ export default function PortraitUploader({
   const frameStyle: PortraitUploaderStyle = {
     '--portrait-uploader-size': `${frameSize}px`,
     '--portrait-uploader-radius': `${frameRadius}px`,
-    '--portrait-uploader-zoom': String(currentZoom),
-    '--portrait-uploader-position-x': `${currentPositionX}%`,
-    '--portrait-uploader-position-y': `${currentPositionY}%`,
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -170,33 +165,19 @@ export default function PortraitUploader({
           role={imageUrl ? 'application' : undefined}
           aria-label={imageUrl ? 'Drag portrait to reposition it inside the frame' : undefined}
         >
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- signed private storage URLs are positioned inside a fixed portrait frame.
-            <img className="qv-portrait-uploader-image" src={imageUrl} alt={imageAlt} draggable={false} />
-          ) : (
-            <div className="qv-portrait-uploader-placeholder" aria-label={placeholderLabel}>
-              <div className="qv-portrait-uploader-placeholder-mark" aria-hidden="true">✦</div>
-              <p>{placeholderLabel}</p>
-            </div>
-          )}
-
-          <form ref={uploadFormRef} action={uploadAction} className={imageUrl ? 'qv-portrait-replace-form' : 'qv-portrait-empty-upload-form'} encType="multipart/form-data">
-            <HiddenFields fields={hiddenFields} />
-            <input type="hidden" name="photo_zoom" value={currentZoom} />
-            <input type="hidden" name="photo_position_x" value={currentPositionX} />
-            <input type="hidden" name="photo_position_y" value={currentPositionY} />
-            <label className={imageUrl ? 'qv-portrait-replace-button' : 'qv-portrait-empty-upload-button'} htmlFor={fileInputId}>
-              {isUploadSubmitting ? 'Uploading...' : uploadButtonLabel}
-            </label>
-            <input
-              id={fileInputId}
-              className="qv-portrait-upload-input"
-              type="file"
-              name="officer_photo"
-              accept={acceptedMimeTypes}
-              onChange={handleFileChange}
-            />
-          </form>
+          <PortraitFrame
+            image={{
+              src: imageUrl,
+              alt: imageUrl ? imageAlt : '',
+              zoom: currentZoom,
+              positionX: currentPositionX,
+              positionY: currentPositionY,
+            }}
+            size={frameSize}
+            radius={frameRadius}
+            placeholderLabel={placeholderLabel}
+            className="qv-portrait-uploader-frame-inner"
+          />
 
           {removeAction && imageUrl ? (
             <form action={removeAction} onSubmit={handleDeleteSubmit} className="qv-portrait-delete-form">
@@ -206,27 +187,42 @@ export default function PortraitUploader({
           ) : null}
         </div>
 
-        <div className="qv-portrait-simple-tools" aria-label="Portrait zoom controls">
-          <label className="qv-portrait-simple-zoom">
-            <span className="qv-label">Zoom</span>
-            <input
-              className="qv-portrait-zoom-slider"
-              type="range"
-              min="1"
-              max="3"
-              step="0.05"
-              value={currentZoom}
-              aria-label="Portrait zoom"
-              onChange={(event) => setCurrentZoom(Number.parseFloat(event.currentTarget.value))}
-            />
-          </label>
-          <button type="button" className="qv-link-button qv-portrait-reset-button" onClick={resetPosition}>Reset</button>
-        </div>
+        <label className="qv-portrait-simple-zoom">
+          <span className="qv-label">Zoom</span>
+          <input
+            className="qv-portrait-zoom-slider"
+            type="range"
+            min="1"
+            max="3"
+            step="0.05"
+            value={currentZoom}
+            aria-label="Portrait zoom"
+            onChange={(event) => setCurrentZoom(Number.parseFloat(event.currentTarget.value))}
+          />
+        </label>
       </div>
 
+      <form ref={uploadFormRef} action={uploadAction} className="qv-portrait-upload-form" encType="multipart/form-data">
+        <HiddenFields fields={hiddenFields} />
+        <input type="hidden" name="photo_zoom" value={currentZoom} />
+        <input type="hidden" name="photo_position_x" value={currentPositionX} />
+        <input type="hidden" name="photo_position_y" value={currentPositionY} />
+        <label className="qv-portrait-upload-button" htmlFor={fileInputId}>
+          {isUploadSubmitting ? 'Uploading...' : imageUrl ? 'Replace portrait' : uploadButtonLabel}
+        </label>
+        <input
+          id={fileInputId}
+          className="qv-portrait-upload-input"
+          type="file"
+          name="officer_photo"
+          accept={acceptedMimeTypes}
+          onChange={handleFileChange}
+        />
+      </form>
+
       <div className="qv-portrait-upload-copy">
-        <span className="qv-label">{uploadLabel}</span>
         <span className="qv-help-text">{fileName ? `Selected: ${fileName}` : imageUrl ? 'Drag the photo to reposition it, then save the public profile.' : resolvedHelpText}</span>
+        {imageUrl ? <button type="button" className="qv-link-button qv-portrait-reset-button" onClick={resetPosition}>Reset portrait</button> : null}
       </div>
     </div>
   )
