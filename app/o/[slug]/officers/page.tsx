@@ -48,6 +48,7 @@ type PublicOfficerRow = {
   display_name_override: string | null
   public_title_override: string | null
   public_email: string | null
+  show_public_email: boolean | null
   sort_order: number
   photo_storage_bucket: string | null
   photo_storage_path: string | null
@@ -85,33 +86,23 @@ function paragraph(text: string) {
 
 function officialMemberName(member: Pick<PersonRow, 'first_name' | 'last_name'> | null) {
   if (!member) return null
-
   const firstName = member.first_name.trim()
   const lastName = member.last_name.trim()
   const name = `${firstName} ${lastName}`.trim()
   return name.length > 0 ? name : null
 }
 
-function memberName(
-  member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null,
-  preferredDisplayName?: string | null
-) {
+function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null, preferredDisplayName?: string | null) {
   if (!member) return 'Officer'
-
   const preferred = preferredDisplayName?.trim() || member.nickname?.trim() || member.first_name.trim()
   const lastName = member.last_name.trim()
   return `${preferred} ${lastName}`.trim()
 }
 
-function publicDisplayName(args: {
-  officer: PublicOfficerRow
-  person: PersonRow | null
-  preferredDisplayName: string | null
-}) {
+function publicDisplayName(args: { officer: PublicOfficerRow; person: PersonRow | null; preferredDisplayName: string | null }) {
   const displayNameOverride = args.officer.display_name_override?.trim()
   const officialLabel = officialMemberName(args.person)
   const preferredLabel = memberName(args.person, args.preferredDisplayName)
-
   if (displayNameOverride && displayNameOverride !== officialLabel) return displayNameOverride
   return preferredLabel
 }
@@ -152,7 +143,6 @@ function officerRolePriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'o
 
 function isAppointedOfficerTerm(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code'>) {
   if (term.office_scope_code !== 'council') return false
-
   return ['chaplain', 'financial_secretary', 'lecturer'].includes(term.office_code)
 }
 
@@ -164,11 +154,7 @@ function officerCardClassName(officer: PublicOfficerView) {
 
 async function signedPortraitUrl(admin: ReturnType<typeof createAdminClient>, officer: PublicOfficerRow) {
   if (!officer.photo_storage_bucket || !officer.photo_storage_path) return null
-
-  const { data } = await admin.storage
-    .from(officer.photo_storage_bucket)
-    .createSignedUrl(officer.photo_storage_path, 60 * 60)
-
+  const { data } = await admin.storage.from(officer.photo_storage_bucket).createSignedUrl(officer.photo_storage_path, 60 * 60)
   return data?.signedUrl ?? null
 }
 
@@ -203,7 +189,6 @@ function PublicOfficerCard({ officer }: { officer: PublicOfficerView }) {
 export default async function PublicOfficersPage({ params }: PageProps) {
   const { slug } = await params
   const councilNumber = extractTrailingCouncilNumber(slug)
-
   if (!councilNumber) notFound()
 
   const admin = createAdminClient()
@@ -218,9 +203,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
   if (!council?.id) notFound()
 
   const canonicalSlug = buildCouncilPublicOrgSlug({ name: council.name, councilNumber: council.council_number })
-  if (slug !== canonicalSlug) {
-    redirect(`/o/${canonicalSlug}/officers`)
-  }
+  if (slug !== canonicalSlug) redirect(`/o/${canonicalSlug}/officers`)
 
   const [organizationResponse, localUnitResponse, eventResponse] = await Promise.all([
     council.organization_id
@@ -230,11 +213,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
           .eq('id', council.organization_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    untypedAdmin
-      .from('local_units')
-      .select('id')
-      .eq('legacy_council_id', council.id)
-      .maybeSingle(),
+    untypedAdmin.from('local_units').select('id').eq('legacy_council_id', council.id).maybeSingle(),
     admin
       .from('events')
       .select('id')
@@ -268,7 +247,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
 
   const { data: publicOfficerData } = await untypedAdmin
     .from('local_unit_public_officers')
-    .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
+    .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, show_public_email, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
     .eq('local_unit_id', localUnit.id)
     .eq('is_public', true)
     .order('sort_order', { ascending: true })
@@ -286,11 +265,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
           .in('id', termIds)
       : Promise.resolve({ data: [] as OfficerTermRow[] }),
     personIds.length > 0
-      ? admin
-          .from('people')
-          .select('id, first_name, last_name, nickname')
-          .in('id', personIds)
-          .is('archived_at', null)
+      ? admin.from('people').select('id, first_name, last_name, nickname').in('id', personIds).is('archived_at', null)
       : Promise.resolve({ data: [] as PersonRow[] }),
     personIds.length > 0
       ? untypedAdmin
@@ -302,9 +277,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
       : Promise.resolve({ data: [] as MemberRecordRow[] }),
   ])
 
-  const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) =>
-    isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true })
-  )
+  const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
   const termById = new Map(terms.map((term) => [term.id, term]))
   const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? [])
   const personById = new Map(people.map((person) => [person.id, person]))
@@ -313,6 +286,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
       .filter((row) => Boolean(row.legacy_people_id))
       .map((row) => [row.legacy_people_id!, row.preferred_display_name?.trim() || null])
   )
+
   const officers: PublicOfficerView[] = (await Promise.all(
     publicOfficerRows.map(async (officer) => {
       const term = termById.get(officer.person_officer_term_id)
@@ -330,7 +304,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
         id: officer.id,
         name,
         title,
-        email: officer.public_email,
+        email: officer.show_public_email ? officer.public_email : null,
         portraitUrl,
         photoZoom: Number(officer.photo_zoom ?? 1),
         photoPositionX: Number(officer.photo_position_x ?? 50),
@@ -352,9 +326,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
 
   const grandKnight = officers.find((officer) => officer.isGrandKnight) ?? null
   const deputyGrandKnight = officers.find((officer) => officer.isDeputyGrandKnight) ?? null
-  const electedOfficers = officers.filter(
-    (officer) => !officer.isGrandKnight && !officer.isDeputyGrandKnight && !officer.isAppointedOfficer
-  )
+  const electedOfficers = officers.filter((officer) => !officer.isGrandKnight && !officer.isDeputyGrandKnight && !officer.isAppointedOfficer)
   const appointedOfficers = officers.filter((officer) => officer.isAppointedOfficer)
   const hasLeadershipRow = Boolean(grandKnight || deputyGrandKnight)
 
@@ -363,16 +335,12 @@ export default async function PublicOfficersPage({ params }: PageProps) {
   const displayName = displayText(council.name || organizationName)
   const displayTitle = `${displayName}${council.council_number ? ` ${council.council_number}` : ''}`
   const parentBrandName = council.council_number ? 'Knights of Columbus' : displayText(organizationName)
-  const localPageTheme = getLocalPageTheme({
-    organizationTypeCode: organization?.organization_type_code,
-    councilNumber: council.council_number,
-  })
+  const localPageTheme = getLocalPageTheme({ organizationTypeCode: organization?.organization_type_code, councilNumber: council.council_number })
   const hasEvents = ((eventResponse.data as { id: string }[] | null) ?? []).length > 0
 
   return (
     <main className={`local-page ${localPageTheme.className}`}>
       <LocalPageThemeStyle theme={localPageTheme} />
-
       <PublicHeader
         canonicalSlug={canonicalSlug}
         displayName={displayName}
@@ -389,9 +357,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
           <div className="public-officers-hero">
             <p className="public-officers-eyebrow">Leadership</p>
             <h1 className="public-officers-title">Council officers</h1>
-            <p className="public-officers-intro">
-              {paragraph(`${displayName} is served by local officers who help guide the council’s work, meetings, and community service.`)}
-            </p>
+            <p className="public-officers-intro">{paragraph(`${displayName} is served by local officers who help guide the council’s work, meetings, and community service.`)}</p>
           </div>
 
           {officers.length > 0 ? (
@@ -422,9 +388,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
               ) : null}
             </div>
           ) : (
-            <div className="public-officers-empty">
-              Officers have not been published yet.
-            </div>
+            <div className="public-officers-empty">Officers have not been published yet.</div>
           )}
         </div>
       </section>
