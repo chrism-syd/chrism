@@ -4,13 +4,12 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie'
-import PortraitFrame from '@/app/components/portrait-frame'
+import PortraitUploader from '@/app/components/portrait-uploader'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { getFlashMessage } from '@/lib/flash-messages'
 import { formatOfficerLabel, isOfficerTermActive, type OfficerScopeCode } from '@/lib/members/officer-roles'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
-import PortraitPositionEditor from './portrait-position-editor'
 import {
   removeOfficerPortraitAction,
   saveOfficerPublicProfileAction,
@@ -346,16 +345,16 @@ export default async function PublicOfficerSettingsPage() {
                 return (
                   <article key={profile.term.id} className="qv-officer-public-card">
                     <div className="qv-officer-public-summary">
-                      <PortraitFrame
-                        image={{
-                          src: profile.portraitUrl,
-                          alt: profile.portraitUrl ? `${profile.memberLabel} portrait` : '',
-                          zoom,
-                          positionX,
-                          positionY,
-                        }}
-                        size={180}
-                        radius={26}
+                      <PortraitUploader
+                        idPrefix={`officer-${profile.term.id}`}
+                        uploadAction={uploadOfficerPortraitAction}
+                        removeAction={removeOfficerPortraitAction}
+                        hiddenFields={{ term_id: profile.term.id }}
+                        imageUrl={profile.portraitUrl}
+                        imageAlt={`${profile.memberLabel} portrait`}
+                        zoom={zoom}
+                        positionX={positionX}
+                        positionY={positionY}
                         placeholderLabel="Portrait not set"
                       />
                       <div className="qv-officer-public-meta">
@@ -424,35 +423,27 @@ export default async function PublicOfficerSettingsPage() {
                           </label>
                         </div>
 
-                        <PortraitPositionEditor
-                          officerName={profile.memberLabel}
-                          imageUrl={profile.portraitUrl}
-                          initialZoom={zoom}
-                          initialPositionX={positionX}
-                          initialPositionY={positionY}
-                        />
+                        <div className="qv-portrait-editor">
+                          <div className="qv-portrait-controls">
+                            <label className="qv-control qv-portrait-control">
+                              <span className="qv-label">Portrait zoom</span>
+                              <input type="range" name="photo_zoom" min="1" max="3" step="0.05" defaultValue={zoom} />
+                            </label>
+                            <label className="qv-control qv-portrait-control">
+                              <span className="qv-label">Move left or right</span>
+                              <input type="range" name="photo_position_x" min="0" max="100" step="1" defaultValue={positionX} />
+                            </label>
+                            <label className="qv-control qv-portrait-control">
+                              <span className="qv-label">Move up or down</span>
+                              <input type="range" name="photo_position_y" min="0" max="100" step="1" defaultValue={positionY} />
+                            </label>
+                          </div>
+                        </div>
 
                         <div className="qv-officer-public-actions">
                           <button type="submit" className="qv-button-primary">Save public profile</button>
                         </div>
                       </form>
-
-                      <form action={uploadOfficerPortraitAction} className="qv-officer-public-actions" encType="multipart/form-data">
-                        <input type="hidden" name="term_id" value={profile.term.id} />
-                        <label className="qv-control" style={{ flex: '1 1 260px' }}>
-                          <span className="qv-label">Upload or replace portrait</span>
-                          <input type="file" name="officer_photo" accept="image/jpeg,image/png,image/webp" />
-                          <span className="qv-help-text">JPG, PNG, or WebP. Maximum 5 MB.</span>
-                        </label>
-                        <button type="submit" className="qv-button-secondary">Upload portrait</button>
-                      </form>
-
-                      {profile.portraitUrl ? (
-                        <form action={removeOfficerPortraitAction}>
-                          <input type="hidden" name="term_id" value={profile.term.id} />
-                          <button type="submit" className="qv-link-button">Remove portrait</button>
-                        </form>
-                      ) : null}
                     </div>
                   </article>
                 )
