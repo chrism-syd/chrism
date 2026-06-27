@@ -7,7 +7,7 @@ import { getLocalPageTheme, LocalPageThemeStyle } from '@/lib/local-pages/themes
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { submitPublicContactFormAction } from './actions'
+import PublicContact from './public-contact'
 import PublicEvents from './public-events'
 import PublicHero from './public-hero'
 import PublicStory from './public-story'
@@ -287,7 +287,6 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     councilNumber: council.council_number,
   })
   const publicAddressLines = compactAddressLines(localUnit)
-  const hasPublicContactDetails = Boolean(localUnit?.public_email || localUnit?.public_location_name || publicAddressLines.length > 0)
   const publicEvents = upcomingEvents.map((event) => ({
     id: event.id,
     date: formatShortDate(event.starts_at),
@@ -295,6 +294,27 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     meta: `${eventKindLabel(event.event_kind_code)} / ${displayText(event.location_name || event.location_address || 'Location to be confirmed')}`,
   }))
   const communityText = paragraph(`${displayName} brings people together through local service, shared responsibility, and simple ways to stay connected to the community.`)
+  const contactDetails = [
+    ...(localUnit?.public_email
+      ? [{ type: 'email' as const, label: 'Email', value: localUnit.public_email, href: `mailto:${localUnit.public_email}` }]
+      : []),
+    ...(localUnit?.public_location_name || publicAddressLines.length > 0
+      ? [
+          {
+            type: 'location' as const,
+            label: 'Location',
+            value: localUnit?.public_location_name ? displayText(localUnit.public_location_name) : null,
+            href: localUnit?.public_location_url ?? null,
+            addressLines: publicAddressLines.map((line) => displayText(line)),
+          },
+        ]
+      : []),
+  ]
+  const publicExternalLinks = externalLinks.map((externalLink) => ({
+    id: externalLink.id,
+    label: displayText(externalLink.label),
+    url: externalLink.url,
+  }))
 
   return (
     <main className={`local-page ${localPageTheme.className}`}>
@@ -334,123 +354,15 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
 
       <PublicStory galleryImages={galleryImages} communityText={communityText} />
 
-      <section id="contact" className="local-page-contact-section">
-        <div className="local-page-contact-shell">
-          <div className="local-page-contact-grid">
-            <div className="local-page-contact-copy">
-              <p className="qv-eyebrow">Get involved</p>
-              <h2 className="qv-section-title local-page-contact-heading">Interested in what is happening at {displayName}?</h2>
-              <p className="qv-section-subtitle local-page-contact-subtitle">
-                {paragraph(involvementCopy(organization?.organization_type_code))}
-              </p>
-
-              {hasPublicContactDetails ? (
-                <div className="local-page-contact-detail-list" aria-label="Public contact details">
-                  {localUnit?.public_email ? (
-                    <div className="local-page-contact-detail">
-                      <span className="local-page-contact-detail-label">Email</span>
-                      <span className="local-page-contact-detail-value">
-                        <a href={`mailto:${localUnit.public_email}`}>{localUnit.public_email}</a>
-                      </span>
-                    </div>
-                  ) : null}
-
-                  {localUnit?.public_location_name || publicAddressLines.length > 0 ? (
-                    <div className="local-page-contact-detail">
-                      <span className="local-page-contact-detail-label">Location</span>
-                      <span className="local-page-contact-detail-value">
-                        {localUnit?.public_location_name ? (
-                          localUnit.public_location_url ? (
-                            <a href={localUnit.public_location_url} target="_blank" rel="noopener noreferrer">{displayText(localUnit.public_location_name)}</a>
-                          ) : (
-                            displayText(localUnit.public_location_name)
-                          )
-                        ) : null}
-                      </span>
-                      {publicAddressLines.length > 0 ? (
-                        <span className="local-page-contact-address-lines">
-                          {publicAddressLines.map((line) => (
-                            <span key={line}>{displayText(line)}</span>
-                          ))}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {externalLinks.length > 0 ? (
-                <div className="local-page-contact-links">
-                  {externalLinks.map((externalLink) => (
-                    <a
-                      key={externalLink.id}
-                      href={externalLink.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="qv-link-button qv-button-secondary"
-                    >
-                      {displayText(externalLink.label)}
-                    </a>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            {showContactForm ? (
-              <div className="local-page-contact-form-card">
-                <div>
-                  <p className="qv-eyebrow">Contact the council</p>
-                  <h3 className="qv-section-title local-page-section-subtitle-tight">Send a message</h3>
-                </div>
-                <form action={submitPublicContactFormAction} className="qv-form-grid local-page-contact-form">
-                  <input type="hidden" name="slug" value={canonicalSlug} />
-                  <label className="local-page-visually-hidden-honeypot" aria-hidden="true">
-                    Website
-                    <input name="website" tabIndex={-1} autoComplete="off" />
-                  </label>
-                  {contactMessage ? <div className="qv-empty local-page-contact-status">{contactMessage}</div> : null}
-                  <div className="qv-form-row qv-form-row-2">
-                    <label className="qv-control">
-                      <span className="qv-label">Name</span>
-                      <input name="name" autoComplete="name" required />
-                    </label>
-                    <label className="qv-control">
-                      <span className="qv-label">Email</span>
-                      <input name="email" type="email" autoComplete="email" required />
-                    </label>
-                  </div>
-                  <div className="qv-form-row qv-form-row-2">
-                    <label className="qv-control">
-                      <span className="qv-label">Phone optional</span>
-                      <input name="phone" autoComplete="tel" />
-                    </label>
-                    <label className="qv-control">
-                      <span className="qv-label">Submission type</span>
-                      <select name="inquiry_type" defaultValue="general_question">
-                        <option value="volunteer">I want to volunteer</option>
-                        <option value="membership">I&apos;m interested in joining</option>
-                        <option value="general_question">I have a general question</option>
-                        <option value="help_request">I need help with something</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </label>
-                  </div>
-                  <label className="qv-control">
-                    <span className="qv-label">Message</span>
-                    <textarea name="message" rows={4} required />
-                  </label>
-                  <p className="qv-inline-message">
-                    By submitting this form, you agree that this organization may contact you about your submission.
-                  </p>
-                  <div className="qv-form-actions local-page-form-actions-start">
-                    <button type="submit" className="qv-button-primary">Send</button>
-                  </div>
-                </form>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
+      <PublicContact
+        displayName={displayName}
+        involvementText={paragraph(involvementCopy(organization?.organization_type_code))}
+        contactDetails={contactDetails}
+        externalLinks={publicExternalLinks}
+        showContactForm={showContactForm}
+        canonicalSlug={canonicalSlug}
+        contactMessage={contactMessage}
+      />
 
       <footer className="local-page-footer">
         <div className="local-page-footer-copy">
