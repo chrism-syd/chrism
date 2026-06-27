@@ -24,6 +24,11 @@ type PersonRow = {
   nickname: string | null
 }
 
+type MemberRecordRow = {
+  legacy_people_id: string | null
+  preferred_display_name: string | null
+}
+
 type OfficerTermRow = {
   id: string
   person_id: string
@@ -78,18 +83,37 @@ function paragraph(text: string) {
   return preventParagraphOrphans(text)
 }
 
-function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null) {
+function officialMemberName(member: Pick<PersonRow, 'first_name' | 'last_name'> | null) {
+  if (!member) return null
+
+  const firstName = member.first_name.trim()
+  const lastName = member.last_name.trim()
+  const name = `${firstName} ${lastName}`.trim()
+  return name.length > 0 ? name : null
+}
+
+function memberName(
+  member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null,
+  preferredDisplayName?: string | null
+) {
   if (!member) return 'Officer'
 
-  const preferred = member.nickname?.trim()
+  const preferred = preferredDisplayName?.trim() || member.nickname?.trim() || member.first_name.trim()
   const lastName = member.last_name.trim()
-  const firstName = member.first_name.trim()
+  return `${preferred} ${lastName}`.trim()
+}
 
-  if (preferred) {
-    return `${preferred} ${lastName}`.trim()
-  }
+function publicDisplayName(args: {
+  officer: PublicOfficerRow
+  person: PersonRow | null
+  preferredDisplayName: string | null
+}) {
+  const displayNameOverride = args.officer.display_name_override?.trim()
+  const officialLabel = officialMemberName(args.person)
+  const preferredLabel = memberName(args.person, args.preferredDisplayName)
 
-  return `${firstName} ${lastName}`.trim()
+  if (displayNameOverride && displayNameOverride !== officialLabel) return displayNameOverride
+  return preferredLabel
 }
 
 function officerRolePriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
@@ -253,7 +277,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
   const publicOfficerRows = (publicOfficerData as PublicOfficerRow[] | null) ?? []
   const termIds = publicOfficerRows.map((officer) => officer.person_officer_term_id)
   const personIds = [...new Set(publicOfficerRows.map((officer) => officer.person_id))]
-  const [{ data: termData }, { data: personData }] = await Promise.all([
+  const [{ data: termData }, { data: personData }, { data: memberRecordData }] = await Promise.all([
     termIds.length > 0
       ? admin
           .from('person_officer_terms')
@@ -268,6 +292,14 @@ export default async function PublicOfficersPage({ params }: PageProps) {
           .in('id', personIds)
           .is('archived_at', null)
       : Promise.resolve({ data: [] as PersonRow[] }),
+    personIds.length > 0
+      ? untypedAdmin
+          .from('member_records')
+          .select('legacy_people_id, preferred_display_name')
+          .eq('local_unit_id', localUnit.id)
+          .in('legacy_people_id', personIds)
+          .is('archived_at', null)
+      : Promise.resolve({ data: [] as MemberRecordRow[] }),
   ])
 
   const terms = ((termData as OfficerTermRow[] | null) ?? []).filter((term) =>
@@ -276,13 +308,19 @@ export default async function PublicOfficersPage({ params }: PageProps) {
   const termById = new Map(terms.map((term) => [term.id, term]))
   const people = decryptPeopleRecords((personData as PersonRow[] | null) ?? [])
   const personById = new Map(people.map((person) => [person.id, person]))
+  const preferredDisplayNameByPersonId = new Map(
+    ((memberRecordData as MemberRecordRow[] | null) ?? [])
+      .filter((row) => Boolean(row.legacy_people_id))
+      .map((row) => [row.legacy_people_id!, row.preferred_display_name?.trim() || null])
+  )
   const officers: PublicOfficerView[] = (await Promise.all(
     publicOfficerRows.map(async (officer) => {
       const term = termById.get(officer.person_officer_term_id)
       if (!term) return null
 
       const person = personById.get(officer.person_id) ?? null
-      const name = displayText(officer.display_name_override ?? memberName(person))
+      const preferredDisplayName = preferredDisplayNameByPersonId.get(officer.person_id) ?? null
+      const name = displayText(publicDisplayName({ officer, person, preferredDisplayName }))
       const title = displayText(officer.public_title_override ?? formatOfficerLabel(term))
       const portraitUrl = await signedPortraitUrl(admin, officer)
       const isGrandKnight = term.office_scope_code === 'council' && term.office_code === 'grand_knight'
