@@ -117,6 +117,26 @@ function buildPublicEvents(events: EventRow[]) {
   }))
 }
 
+async function buildPublicGalleryImages(admin: ReturnType<typeof createAdminClient>, galleryRows: GalleryImageRow[]) {
+  const galleryImages = await Promise.all(
+    galleryRows.map(async (image) => {
+      const { data } = await admin.storage
+        .from(image.storage_bucket)
+        .createSignedUrl(image.storage_path, 60 * 60)
+
+      if (!data?.signedUrl) return null
+
+      return {
+        id: image.id,
+        title: image.title,
+        url: data.signedUrl,
+      }
+    })
+  )
+
+  return galleryImages.filter((image): image is PublicGalleryImage => image !== null)
+}
+
 function buildContactDetails(localUnit: LocalUnitRow | null, publicAddressLines: string[]) {
   return [
     ...(localUnit?.public_email
@@ -300,21 +320,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const hasDefaultAdminRecipient = ((adminRecipientResponse.data as { id: string }[] | null) ?? []).length > 0
   const showContactForm = Boolean(organization?.public_contact_form_enabled !== false && (hasCustomContactRecipient || hasDefaultAdminRecipient))
   const galleryRows = ((galleryResponse.data as GalleryImageRow[] | null) ?? []).slice(0, PUBLIC_GALLERY_MAX_IMAGES)
-  const galleryImages = (await Promise.all(
-    galleryRows.map(async (image) => {
-      const { data } = await admin.storage
-        .from(image.storage_bucket)
-        .createSignedUrl(image.storage_path, 60 * 60)
-
-      if (!data?.signedUrl) return null
-
-      return {
-        id: image.id,
-        title: image.title,
-        url: data.signedUrl,
-      }
-    })
-  )).filter((image): image is PublicGalleryImage => image !== null)
+  const galleryImages = await buildPublicGalleryImages(admin, galleryRows)
   const publicDescription = displayText(organization?.public_description)
   const aboutCopy = publicDescription || missionCopy()
   const localPageTheme = getLocalPageTheme({
