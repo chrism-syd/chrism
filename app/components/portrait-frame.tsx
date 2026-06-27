@@ -44,6 +44,7 @@ export default function PortraitFrame({
   return (
     <div className={classNames} style={style}>
       {image.src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- signed private storage URLs are already sized by the fixed portrait frame.
         <img className={styles.image} src={image.src} alt={image.alt} />
       ) : (
         <div className={styles.placeholder} aria-label={placeholderLabel}>
