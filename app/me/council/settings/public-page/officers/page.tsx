@@ -67,6 +67,14 @@ type OfficerProfileView = {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+function officialMemberName(member: Pick<PersonRow, 'first_name' | 'last_name'> | null) {
+  if (!member) return 'Unknown member'
+
+  const lastName = member.last_name.trim()
+  const firstName = member.first_name.trim()
+  return `${firstName} ${lastName}`.trim()
+}
+
 function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null) {
   if (!member) return 'Unknown member'
 
@@ -79,6 +87,22 @@ function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickna
   }
 
   return `${firstName} ${lastName}`.trim()
+}
+
+function hasPreferredName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null) {
+  if (!member?.nickname?.trim()) return false
+  return memberName(member) !== officialMemberName(member)
+}
+
+function shouldUsePreferredNameByDefault(args: {
+  publicProfile: PublicOfficerRow | null
+  person: PersonRow | null
+}) {
+  if (!args.person) return true
+  const displayNameOverride = args.publicProfile?.display_name_override?.trim()
+  if (!displayNameOverride) return true
+
+  return displayNameOverride === memberName(args.person)
 }
 
 function officeSortPriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
@@ -261,6 +285,10 @@ export default async function PublicOfficerSettingsPage() {
                 const zoom = Number(publicProfile?.photo_zoom ?? 1)
                 const positionX = Number(publicProfile?.photo_position_x ?? 50)
                 const positionY = Number(publicProfile?.photo_position_y ?? 50)
+                const officialLabel = officialMemberName(profile.person)
+                const preferredLabel = memberName(profile.person)
+                const hasPreferredLabel = hasPreferredName(profile.person)
+                const usePreferredName = shouldUsePreferredNameByDefault({ publicProfile, person: profile.person })
 
                 return (
                   <article key={profile.term.id} className="qv-officer-public-card">
@@ -301,10 +329,30 @@ export default async function PublicOfficerSettingsPage() {
                           </span>
                         </label>
 
+                        {hasPreferredLabel ? (
+                          <label className="qv-toggle-card">
+                            <input
+                              type="checkbox"
+                              name="use_preferred_name"
+                              value="true"
+                              defaultChecked={usePreferredName}
+                              className="qv-toggle-checkbox"
+                            />
+                            <span className="qv-toggle-copy">
+                              <span className="qv-toggle-title">Use preferred name</span>
+                              <span className="qv-toggle-text">
+                                Show {preferredLabel} instead of the official name {officialLabel}, unless a custom display name is entered below.
+                              </span>
+                            </span>
+                          </label>
+                        ) : (
+                          <input type="hidden" name="use_preferred_name" value="true" />
+                        )}
+
                         <div className="qv-form-row qv-form-row-2">
                           <label className="qv-control">
                             <span className="qv-label">Display name optional</span>
-                            <input name="display_name_override" defaultValue={publicProfile?.display_name_override ?? ''} placeholder={memberName(profile.person)} />
+                            <input name="display_name_override" defaultValue={publicProfile?.display_name_override ?? ''} placeholder={preferredLabel} />
                           </label>
                           <label className="qv-control">
                             <span className="qv-label">Public title optional</span>
