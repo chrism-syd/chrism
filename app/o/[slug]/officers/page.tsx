@@ -7,6 +7,7 @@ import { getLocalPageTheme, LocalPageThemeStyle } from '@/lib/local-pages/themes
 import { formatOfficerLabel, isOfficerTermActive, type OfficerScopeCode } from '@/lib/members/officer-roles'
 import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '@/lib/organizations/names'
 import { buildCouncilPublicOrgSlug, extractTrailingCouncilNumber } from '@/lib/public-org-slugs'
+import { normalizePublicOfficerImageMode, resolvePublicOfficerImageSrc } from '@/lib/public-officer-images'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import { createAdminClient } from '@/lib/supabase/admin'
 import PublicFooter from '../public-footer'
@@ -49,6 +50,7 @@ type PublicOfficerRow = {
   public_title_override: string | null
   public_email: string | null
   show_public_email: boolean | null
+  public_image_mode: string | null
   sort_order: number
   photo_storage_bucket: string | null
   photo_storage_path: string | null
@@ -62,7 +64,8 @@ type PublicOfficerView = {
   name: string
   title: string
   email: string | null
-  portraitUrl: string | null
+  imageSrc: string | null
+  showImage: boolean
   photoZoom: number
   photoPositionX: number
   photoPositionY: number
@@ -137,9 +140,11 @@ function isAppointedOfficerTerm(term: Pick<OfficerTermRow, 'office_scope_code' |
 }
 
 function officerCardClassName(officer: PublicOfficerView) {
-  if (officer.isGrandKnight) return 'public-officer-card public-officer-card-featured'
-  if (officer.isDeputyGrandKnight) return 'public-officer-card public-officer-card-deputy'
-  return 'public-officer-card'
+  const classes = ['public-officer-card']
+  if (officer.isGrandKnight) classes.push('public-officer-card-featured')
+  if (officer.isDeputyGrandKnight) classes.push('public-officer-card-deputy')
+  if (!officer.showImage) classes.push('public-officer-card-text-only')
+  return classes.join(' ')
 }
 
 async function signedPortraitUrl(admin: ReturnType<typeof createAdminClient>, officer: PublicOfficerRow) {
@@ -153,20 +158,22 @@ function PublicOfficerCard({ officer }: { officer: PublicOfficerView }) {
 
   return (
     <article className={officerCardClassName(officer)}>
-      <div className="public-officer-portrait">
-        <PortraitFrame
-          image={{
-            src: officer.portraitUrl,
-            alt: officer.portraitUrl ? `${officer.name} portrait` : '',
-            zoom: officer.photoZoom,
-            positionX: officer.photoPositionX,
-            positionY: officer.photoPositionY,
-          }}
-          size={officer.isGrandKnight ? 260 : 220}
-          radius={officer.isGrandKnight ? 34 : 26}
-          placeholderLabel="Officer portrait"
-        />
-      </div>
+      {officer.showImage ? (
+        <div className="public-officer-portrait">
+          <PortraitFrame
+            image={{
+              src: officer.imageSrc,
+              alt: officer.imageSrc ? `${officer.name} portrait` : '',
+              zoom: officer.photoZoom,
+              positionX: officer.photoPositionX,
+              positionY: officer.photoPositionY,
+            }}
+            size={officer.isGrandKnight ? 260 : 220}
+            radius={officer.isGrandKnight ? 34 : 26}
+            placeholderLabel="Officer portrait"
+          />
+        </div>
+      ) : null}
       <div className="public-officer-copy">
         <p className="public-officer-title">{officer.title}</p>
         <h2 className={isLeadershipOfficer ? 'public-officer-name public-officer-name-leadership' : 'public-officer-name'}>{officer.name}</h2>
@@ -237,7 +244,7 @@ export default async function PublicOfficersPage({ params }: PageProps) {
 
   const { data: publicOfficerData } = await untypedAdmin
     .from('local_unit_public_officers')
-    .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, show_public_email, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
+    .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, show_public_email, public_image_mode, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
     .eq('local_unit_id', localUnit.id)
     .eq('is_public', true)
     .order('sort_order', { ascending: true })
@@ -286,7 +293,15 @@ export default async function PublicOfficersPage({ params }: PageProps) {
       const preferredDisplayName = preferredDisplayNameByPersonId.get(officer.person_id) ?? null
       const name = displayText(publicDisplayName({ officer, person, preferredDisplayName }))
       const title = displayText(officer.public_title_override ?? formatOfficerLabel(term))
-      const portraitUrl = await signedPortraitUrl(admin, officer)
+      const uploadedPortraitUrl = await signedPortraitUrl(admin, officer)
+      const imageMode = normalizePublicOfficerImageMode(officer.public_image_mode)
+      const imageSrc = resolvePublicOfficerImageSrc({
+        imageMode,
+        uploadedPortraitUrl,
+        organizationTypeCode: organization?.organization_type_code,
+        officeScopeCode: term.office_scope_code,
+        officeCode: term.office_code,
+      })
       const isGrandKnight = term.office_scope_code === 'council' && term.office_code === 'grand_knight'
       const isDeputyGrandKnight = term.office_scope_code === 'council' && term.office_code === 'deputy_grand_knight'
 
@@ -295,7 +310,8 @@ export default async function PublicOfficersPage({ params }: PageProps) {
         name,
         title,
         email: officer.show_public_email ? officer.public_email : null,
-        portraitUrl,
+        imageSrc,
+        showImage: imageMode === 'show_image',
         photoZoom: Number(officer.photo_zoom ?? 1),
         photoPositionX: Number(officer.photo_position_x ?? 50),
         photoPositionY: Number(officer.photo_position_y ?? 50),
