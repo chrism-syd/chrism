@@ -27,7 +27,6 @@ type PortraitUploaderProps = {
   profileFormId?: string
   imageUrl: string | null
   imageAlt: string
-  uploadLabel?: string
   uploadButtonLabel?: string
   removeButtonLabel?: string
   helpText?: string
@@ -60,7 +59,6 @@ export default function PortraitUploader({
   profileFormId,
   imageUrl,
   imageAlt,
-  uploadLabel = 'Upload or replace portrait',
   uploadButtonLabel = 'Upload portrait',
   removeButtonLabel = 'Delete portrait',
   helpText,
