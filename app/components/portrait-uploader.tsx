@@ -157,10 +157,10 @@ export default function PortraitUploader({
             </button>
             <button type="submit" className="qv-button-danger qv-link-button" disabled={isDeleteSubmitting}>
               {isDeleteSubmitting ? (
-                <>
-                  <span className="qv-portrait-working-star" aria-hidden="true">✱</span>
+                <span className="qv-portrait-working-state">
+                  <span className="qv-portrait-working-star" aria-hidden="true" />
                   Working...
-                </>
+                </span>
               ) : (
                 'Delete portrait'
               )}
@@ -294,7 +294,16 @@ export default function PortraitUploader({
         <input type="hidden" name="photo_position_x" value={currentPositionX} />
         <input type="hidden" name="photo_position_y" value={currentPositionY} />
         <label className="qv-portrait-upload-button" htmlFor={fileInputId}>
-          {isUploadSubmitting ? <span className="qv-portrait-working-star" aria-label="Uploading portrait">✱</span> : imageUrl ? 'Replace portrait' : uploadButtonLabel}
+          {isUploadSubmitting ? (
+            <span className="qv-portrait-working-state">
+              <span className="qv-portrait-working-star" aria-hidden="true" />
+              Uploading...
+            </span>
+          ) : imageUrl ? (
+            'Replace portrait'
+          ) : (
+            uploadButtonLabel
+          )}
         </label>
         <input
           id={fileInputId}
