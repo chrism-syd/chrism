@@ -156,7 +156,14 @@ export default function PortraitUploader({
               Cancel
             </button>
             <button type="submit" className="qv-button-danger qv-link-button" disabled={isDeleteSubmitting}>
-              {isDeleteSubmitting ? <span className="qv-portrait-working-star" aria-label="Deleting portrait">✱</span> : 'Delete portrait'}
+              {isDeleteSubmitting ? (
+                <>
+                  <span className="qv-portrait-working-star" aria-hidden="true">✱</span>
+                  Working...
+                </>
+              ) : (
+                'Delete portrait'
+              )}
             </button>
           </div>
         </form>
