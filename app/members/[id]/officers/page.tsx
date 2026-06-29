@@ -72,6 +72,7 @@ export default async function MemberOfficerTermsPage({ params, searchParams }: P
   const { data: officerTerms, error: officerTermsError } = await supabase
     .from('person_officer_terms')
     .select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
+    .eq('local_unit_id', localUnitId)
     .eq('person_id', person.id)
     .returns<OfficerTermRow[]>()
 
