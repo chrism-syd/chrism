@@ -194,13 +194,21 @@
   font-size: 12px;
 }
 
+.qv-portrait-working-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .qv-portrait-working-star {
-  display: inline-grid;
-  place-items: center;
-  width: 1.1em;
-  height: 1.1em;
-  line-height: 1;
-  animation: qvPortraitWorkingStar 700ms linear infinite;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: url('/chrism_star.png') center / contain no-repeat;
+  flex: 0 0 16px;
+  transform-origin: center center;
+  animation: qvPortraitWorkingStar 900ms linear infinite;
 }
 
 @keyframes qvPortraitWorkingStar {
