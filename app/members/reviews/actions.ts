@@ -225,7 +225,7 @@ export async function clearPublicContactInquiryAction(formData: FormData) {
     throw new Error('Could not identify the active local organization.')
   }
 
-  const { error } = await (admin as any)
+  const { error } = await admin
     .from('local_unit_public_contact_message_jobs')
     .update({
       cleared_at: new Date().toISOString(),

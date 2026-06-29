@@ -41,7 +41,7 @@ function escapeHtml(value: string) {
 
 async function processPublicContactMessageJobs() {
   const admin = createAdminClient()
-  const { data, error } = await (admin as any)
+  const { data, error } = await admin
     .from('local_unit_public_contact_message_jobs')
     .select('id, recipient_email, recipient_label, reply_to_email, submitter_name, subject, body_text')
     .eq('status_code', 'pending')
@@ -59,7 +59,7 @@ async function processPublicContactMessageJobs() {
 
   for (const job of jobs) {
     try {
-      await (admin as any)
+      await admin
         .from('local_unit_public_contact_message_jobs')
         .update({ status_code: 'pending' })
         .eq('id', job.id)
@@ -73,7 +73,7 @@ async function processPublicContactMessageJobs() {
         replyTo: { email: job.reply_to_email, name: job.submitter_name },
       })
 
-      const { error: sentError } = await (admin as any)
+      const { error: sentError } = await admin
         .from('local_unit_public_contact_message_jobs')
         .update({
           status_code: 'sent',
@@ -90,7 +90,7 @@ async function processPublicContactMessageJobs() {
       results.push({ id: job.id, status: 'sent' })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown public contact email failure'
-      await (admin as any)
+      await admin
         .from('local_unit_public_contact_message_jobs')
         .update({
           status_code: 'failed',

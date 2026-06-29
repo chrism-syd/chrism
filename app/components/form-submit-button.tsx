@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { CSSProperties, ReactNode } from 'react'
@@ -32,12 +33,14 @@ function PendingLabel({ label }: { label: ReactNode }) {
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-      <img
+      <Image
         ref={starRef}
         src="/chrism_star.png"
         alt=""
         aria-hidden="true"
-        style={{ width: 16, height: 16, objectFit: 'contain', flexShrink: 0 }}
+        width={16}
+        height={16}
+        style={{ objectFit: 'contain', flexShrink: 0 }}
       />
       <span>{label}</span>
     </span>

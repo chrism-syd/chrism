@@ -204,7 +204,6 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   if (!councilNumber) notFound()
 
   const admin = createAdminClient()
-  const untypedAdmin = admin as any
 
   const { data: council } = await admin
     .from('councils')
@@ -221,7 +220,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
 
   const [organizationResponse, eventsResponse, localUnitResponse] = await Promise.all([
     council.organization_id
-      ? untypedAdmin
+      ? admin
           .from('organizations')
           .select('display_name, preferred_name, organization_type_code, public_page_enabled, public_description, public_contact_form_enabled, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', council.organization_id)
@@ -237,7 +236,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       .order('starts_at', { ascending: true })
       .limit(4)
       .returns<EventRow[]>(),
-    untypedAdmin
+    admin
       .from('local_units')
       .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
       .eq('legacy_council_id', council.id)
@@ -267,7 +266,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const localUnit = (localUnitResponse.data as LocalUnitRow | null) ?? null
   const [externalLinksResponse, contactRouteResponse, adminRecipientResponse, galleryResponse] = localUnit?.id
     ? await Promise.all([
-        untypedAdmin
+        admin
           .from('local_unit_external_links')
           .select('id, label, url, sort_order')
           .eq('local_unit_id', localUnit.id)
@@ -275,7 +274,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true })
           .limit(3),
-        untypedAdmin
+        admin
           .from('local_unit_message_routes')
           .select('recipient_email, recipient_label')
           .eq('local_unit_id', localUnit.id)
@@ -291,7 +290,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               .eq('is_active', true)
               .limit(1)
           : Promise.resolve({ data: [] }),
-        untypedAdmin
+        admin
           .from('local_unit_public_gallery_images')
           .select('id, title, storage_bucket, storage_path, sort_order')
           .eq('local_unit_id', localUnit.id)

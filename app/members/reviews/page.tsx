@@ -121,14 +121,14 @@ export default async function MemberReviewsPage() {
           .maybeSingle<Exclude<OrganizationRow, null>>()
       : Promise.resolve({ data: null as OrganizationRow }),
     localUnitId
-      ? (admin as any)
+      ? admin
           .from('local_unit_public_contact_message_jobs')
           .select('id, inquiry_type_code, status_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, sent_at, failed_at, failure_message, payload_snapshot')
           .eq('local_unit_id', localUnitId)
           .is('cleared_at', null)
           .order('created_at', { ascending: false })
           .limit(12)
-      : Promise.resolve({ data: [] as PublicInquiryRow[] }),
+      : Promise.resolve({ data: [] as PublicInquiryRow[], error: null }),
   ])
 
   const organization = organizationData.data ?? null

@@ -117,7 +117,6 @@ export async function loadLocalUnitMemberDirectoryData(args: {
   localUnitId: string
 }): Promise<DirectoryData> {
   const { admin, localUnitId } = args
-  const untypedAdmin = admin as any
 
   const [
     { data: membershipData, error: membershipError },
@@ -129,7 +128,7 @@ export async function loadLocalUnitMemberDirectoryData(args: {
       .select('legacy_people_id, preferred_display_name')
       .eq('local_unit_id', localUnitId)
       .is('archived_at', null),
-    untypedAdmin
+    admin
       .from('local_unit_people')
       .select('person_id')
       .eq('local_unit_id', localUnitId)

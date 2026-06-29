@@ -778,6 +778,23 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
           </section>
         ) : null}
 
+        <section className="qv-card" style={{ marginTop: 18 }}>
+          <div className="qv-directory-section-head">
+            <div>
+              <p className="qv-eyebrow">Public presence</p>
+              <h2 className="qv-section-title">Public landing page</h2>
+              <p className="qv-section-subtitle">
+                Manage what visitors see on this local organization’s Chrism page, including intro copy, contact details, gallery, links, message routing, and public officer display.
+              </p>
+            </div>
+            <div className="qv-directory-actions">
+              <Link href="/me/council/settings/public-page" className="qv-link-button qv-button-primary">
+                Manage public page
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <div
           style={{
             display: 'grid',

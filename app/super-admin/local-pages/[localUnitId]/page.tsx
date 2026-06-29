@@ -121,7 +121,6 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
   const { localUnitId } = await params
   const admin = createAdminClient()
-  const untypedAdmin = admin as any
 
   const { data: localUnitData } = await admin
     .from('local_units')
@@ -153,7 +152,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       .eq('local_unit_id', localUnit.id)
       .order('starts_at', { ascending: true })
       .returns<EventRow[]>(),
-    untypedAdmin
+    admin
       .from('local_unit_message_routes')
       .select('recipient_email, recipient_label')
       .eq('local_unit_id', localUnit.id)
