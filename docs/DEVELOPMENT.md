@@ -132,6 +132,30 @@ Common rules:
 
 When data ownership is unclear, stop and clarify it in the issue before creating new structures.
 
+## New-plumbing rule
+
+New work should be wired to the organization/local-unit model by default.
+
+Do not build new features by adding more operational dependence on legacy council-shaped plumbing.
+
+Prefer:
+
+- `organization_id` for organization-owned account/profile data
+- `local_unit_id` for local operating-unit ownership and permissions
+- `local_unit_people` or member-record helpers for local membership scope
+- public pages as projections of organization/local-unit data
+
+Avoid:
+
+- adding new operational ownership through `council_id`
+- deriving a `council_id` just to keep an old query shape alive
+- using compatibility bridges as the foundation for new features
+- expanding legacy helpers when a local-unit-native helper should exist instead
+
+`council_id` may still be valid for Knights-specific public identifiers, imported/historical data, and temporary compatibility during a deliberate migration. It should not be the default ownership key for new builds.
+
+If a feature touches an old compatibility bridge, prefer to cut that seam over to the new model rather than feeding the compatibility monster.
+
 ## CSS and component expectations
 
 Prefer:
