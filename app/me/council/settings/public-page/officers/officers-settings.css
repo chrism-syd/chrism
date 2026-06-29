@@ -56,6 +56,32 @@
   align-items: center;
 }
 
+.qv-image-mode-fieldset {
+  margin: 0;
+}
+
+.qv-radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.qv-radio-option + .qv-radio-option {
+  margin-left: 14px;
+}
+
+.qv-radio-option input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 .qv-portrait-uploader {
   display: grid;
   gap: 8px;
@@ -230,5 +256,9 @@
 @media (max-width: 460px) {
   .qv-portrait-uploader-stage {
     grid-template-columns: auto 46px;
+  }
+
+  .qv-radio-option + .qv-radio-option {
+    margin-left: 0;
   }
 }
