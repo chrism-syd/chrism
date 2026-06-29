@@ -29,11 +29,13 @@ export function isKnightsOfColumbusOrganizationType(organizationTypeCode: string
 }
 
 export function getKofcOfficerMedalSrc(args: {
-  organizationTypeCode: string | null | undefined
+  organizationTypeCode?: string | null | undefined
+  useKofcOfficerMedals?: boolean
   officeScopeCode: OfficerScopeCode | string
   officeCode: string
 }) {
-  if (!isKnightsOfColumbusOrganizationType(args.organizationTypeCode)) return null
+  const canUseKofcOfficerMedals = args.useKofcOfficerMedals || isKnightsOfColumbusOrganizationType(args.organizationTypeCode)
+  if (!canUseKofcOfficerMedals) return null
   if (args.officeScopeCode !== 'council') return null
 
   return KofcOfficerMedalByOfficeCode[args.officeCode] ?? null
@@ -42,7 +44,8 @@ export function getKofcOfficerMedalSrc(args: {
 export function resolvePublicOfficerImageSrc(args: {
   imageMode: PublicOfficerImageMode | string | null | undefined
   uploadedPortraitUrl: string | null
-  organizationTypeCode: string | null | undefined
+  organizationTypeCode?: string | null | undefined
+  useKofcOfficerMedals?: boolean
   officeScopeCode: OfficerScopeCode | string
   officeCode: string
 }) {
