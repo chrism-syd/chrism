@@ -20,12 +20,21 @@ const KofcOfficerMedalByOfficeCode: Record<string, string> = {
   lecturer: '/kofc/officer-medals/lecturer.png',
 }
 
+function normalizeLookupCode(value: string | null | undefined) {
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
 export function normalizePublicOfficerImageMode(value: string | null | undefined): PublicOfficerImageMode {
   return value === 'none' ? 'none' : 'show_image'
 }
 
 export function isKnightsOfColumbusOrganizationType(organizationTypeCode: string | null | undefined) {
-  const normalizedCode = (organizationTypeCode ?? '').trim().toLowerCase()
+  const normalizedCode = normalizeLookupCode(organizationTypeCode)
   return !normalizedCode || KofcOrganizationTypeCodes.has(normalizedCode)
 }
 
@@ -37,9 +46,9 @@ export function getKofcOfficerMedalSrc(args: {
 }) {
   const canUseKofcOfficerMedals = args.useKofcOfficerMedals || isKnightsOfColumbusOrganizationType(args.organizationTypeCode)
   if (!canUseKofcOfficerMedals) return null
-  if (args.officeScopeCode !== 'council') return null
+  if (normalizeLookupCode(args.officeScopeCode) !== 'council') return null
 
-  return KofcOfficerMedalByOfficeCode[args.officeCode] ?? null
+  return KofcOfficerMedalByOfficeCode[normalizeLookupCode(args.officeCode)] ?? null
 }
 
 export function resolvePublicOfficerImageSrc(args: {
