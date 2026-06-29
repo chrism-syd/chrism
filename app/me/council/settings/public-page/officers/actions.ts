@@ -9,6 +9,7 @@ import { setFlashMessage } from '@/lib/flash-messages'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { listValidMemberPersonIdsForLocalUnit } from '@/lib/custom-lists'
+import { normalizePublicOfficerImageMode } from '@/lib/public-officer-images'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 
 const OFFICER_SETTINGS_PATH = '/me/council/settings/public-page/officers'
@@ -320,6 +321,7 @@ export async function saveOfficerPublicProfileAction(formData: FormData) {
     public_title_override: textValue(formData, 'public_title_override'),
     public_email: publicEmail,
     show_public_email: formData.get('show_public_email') === 'true' && Boolean(publicEmail),
+    public_image_mode: normalizePublicOfficerImageMode(textValue(formData, 'public_image_mode')),
     is_public: formData.get('is_public') === 'true',
     sort_order: Math.max(0, integerValue(formData, 'sort_order', 0)),
     photo_zoom: clamp(numberValue(formData, 'photo_zoom', 1), 1, 3),
