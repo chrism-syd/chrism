@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import type { ChangeEvent, CSSProperties, FormEvent, PointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import PortraitFrame from './portrait-frame'
 
 type ServerAction = (formData: FormData) => void | Promise<void>
@@ -51,6 +52,50 @@ function clamp(value: number, minimum: number, maximum: number, fallback: number
   return Math.min(maximum, Math.max(minimum, value))
 }
 
+function overlayStyle(): CSSProperties {
+  return {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(15, 23, 42, 0.56)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    zIndex: 4000,
+  }
+}
+
+function cardStyle(): CSSProperties {
+  return {
+    width: '100%',
+    maxWidth: 460,
+    borderRadius: 20,
+    border: '1px solid var(--divider)',
+    background: 'var(--bg-elevated, #fff)',
+    boxShadow: '0 18px 48px rgba(15, 23, 42, 0.18)',
+    padding: 20,
+  }
+}
+
+function textStyle(): CSSProperties {
+  return {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 1.5,
+    color: 'var(--text-secondary)',
+  }
+}
+
+function actionsRowStyle(): CSSProperties {
+  return {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 18,
+    flexWrap: 'wrap',
+  }
+}
+
 export default function PortraitUploader({
   idPrefix,
   uploadAction,
@@ -74,6 +119,7 @@ export default function PortraitUploader({
   const uploadFormRef = useRef<HTMLFormElement>(null)
   const dragStateRef = useRef<DragState | null>(null)
   const fileInputId = `${idPrefix}-portrait-upload`
+  const modalTitleId = `${idPrefix}-portrait-delete-title`
   const resolvedHelpText = helpText ?? `JPG, PNG, or WebP. ${maxSizeLabel}`
   const [currentZoom, setCurrentZoom] = useState(clamp(Number(zoom ?? 1), 1, 3, 1))
   const [currentPositionX, setCurrentPositionX] = useState(clamp(Number(positionX ?? 50), 0, 100, 50))
@@ -81,11 +127,42 @@ export default function PortraitUploader({
   const [fileName, setFileName] = useState('')
   const [isUploadSubmitting, setIsUploadSubmitting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false)
 
   const frameStyle: PortraitUploaderStyle = {
     '--portrait-uploader-size': `${frameSize}px`,
     '--portrait-uploader-radius': `${frameRadius}px`,
   }
+
+  const deleteDialog = isDeleteOpen && removeAction ? (
+    <div style={overlayStyle()} role="dialog" aria-modal="true" aria-labelledby={modalTitleId}>
+      <div style={cardStyle()}>
+        <h3 id={modalTitleId} className="qv-section-title">
+          Delete portrait?
+        </h3>
+        <p style={textStyle()}>
+          This removes the portrait from the public officer profile. You can upload a new one later.
+        </p>
+        <form
+          action={removeAction}
+          onSubmit={() => setIsDeleteSubmitting(true)}
+          className="qv-form-grid"
+          style={{ marginTop: 18 }}
+        >
+          <HiddenFields fields={hiddenFields} />
+          <div style={actionsRowStyle()}>
+            <button type="button" className="qv-button-secondary" onClick={() => setIsDeleteOpen(false)} disabled={isDeleteSubmitting}>
+              Cancel
+            </button>
+            <button type="submit" className="qv-button-danger qv-link-button" disabled={isDeleteSubmitting}>
+              {isDeleteSubmitting ? <span className="qv-portrait-working-star" aria-label="Deleting portrait">✱</span> : 'Delete portrait'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0]
@@ -97,10 +174,9 @@ export default function PortraitUploader({
     uploadFormRef.current?.requestSubmit()
   }
 
-  function handleDeleteSubmit(event: FormEvent<HTMLFormElement>) {
-    if (!window.confirm('Delete portrait?')) {
-      event.preventDefault()
-    }
+  function openDeleteDialog(event: PointerEvent<HTMLButtonElement>) {
+    event.stopPropagation()
+    setIsDeleteOpen(true)
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -178,16 +254,15 @@ export default function PortraitUploader({
           />
 
           {removeAction && imageUrl ? (
-            <form
-              action={removeAction}
-              onSubmit={handleDeleteSubmit}
-              onPointerDown={(event) => event.stopPropagation()}
+            <button
+              type="button"
+              onPointerDown={openDeleteDialog}
               onClick={(event) => event.stopPropagation()}
-              className="qv-portrait-delete-form"
+              className="qv-portrait-delete-button"
+              aria-label={removeButtonLabel}
             >
-              <HiddenFields fields={hiddenFields} />
-              <button type="submit" className="qv-portrait-delete-button" aria-label={removeButtonLabel}>x</button>
-            </form>
+              x
+            </button>
           ) : null}
         </div>
 
@@ -212,7 +287,7 @@ export default function PortraitUploader({
         <input type="hidden" name="photo_position_x" value={currentPositionX} />
         <input type="hidden" name="photo_position_y" value={currentPositionY} />
         <label className="qv-portrait-upload-button" htmlFor={fileInputId}>
-          {isUploadSubmitting ? 'Uploading...' : imageUrl ? 'Replace portrait' : uploadButtonLabel}
+          {isUploadSubmitting ? <span className="qv-portrait-working-star" aria-label="Uploading portrait">✱</span> : imageUrl ? 'Replace portrait' : uploadButtonLabel}
         </label>
         <input
           id={fileInputId}
@@ -228,6 +303,8 @@ export default function PortraitUploader({
         <span className="qv-help-text">{fileName ? `Selected: ${fileName}` : imageUrl ? 'Drag the photo to reposition it, then save the public profile.' : resolvedHelpText}</span>
         {imageUrl ? <button type="button" className="qv-link-button qv-portrait-reset-button" onClick={resetPosition}>Reset portrait</button> : null}
       </div>
+
+      {deleteDialog ? createPortal(deleteDialog, document.body) : null}
     </div>
   )
 }
