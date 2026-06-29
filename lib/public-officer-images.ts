@@ -44,8 +44,6 @@ export function getKofcOfficerMedalSrc(args: {
   officeScopeCode: OfficerScopeCode | string
   officeCode: string
 }) {
-  const canUseKofcOfficerMedals = args.useKofcOfficerMedals || isKnightsOfColumbusOrganizationType(args.organizationTypeCode)
-  if (!canUseKofcOfficerMedals) return null
   if (normalizeLookupCode(args.officeScopeCode) !== 'council') return null
 
   return KofcOfficerMedalByOfficeCode[normalizeLookupCode(args.officeCode)] ?? null
