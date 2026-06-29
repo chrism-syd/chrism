@@ -37,23 +37,7 @@ function getButtonPendingLabel(button: HTMLButtonElement) {
   return getPendingLabelText(button.textContent ?? '')
 }
 
-function getLinkPendingLabel(link: HTMLAnchorElement) {
-  const explicitLabel = link.dataset.pendingLabel?.trim()
-
-  if (explicitLabel) {
-    return explicitLabel
-  }
-
-  return getPendingLabelText(link.textContent ?? '')
-}
-
-function buildPendingContents(label: string) {
-  const wrapper = document.createElement('span')
-  wrapper.style.display = 'inline-flex'
-  wrapper.style.alignItems = 'center'
-  wrapper.style.justifyContent = 'center'
-  wrapper.style.gap = '8px'
-
+function buildPendingStar() {
   const star = document.createElement('img')
   star.src = STAR_SRC
   star.alt = ''
@@ -70,10 +54,30 @@ function buildPendingContents(label: string) {
     )
   }
 
+  return star
+}
+
+function buildPendingContents(label: string) {
+  const wrapper = document.createElement('span')
+  wrapper.style.display = 'inline-flex'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.justifyContent = 'center'
+  wrapper.style.gap = '8px'
+
   const text = document.createElement('span')
   text.textContent = label
 
-  wrapper.append(star, text)
+  wrapper.append(buildPendingStar(), text)
+
+  return wrapper
+}
+
+function buildCompactPendingContents() {
+  const wrapper = document.createElement('span')
+  wrapper.style.display = 'inline-grid'
+  wrapper.style.placeItems = 'center'
+  wrapper.style.minWidth = '1.25em'
+  wrapper.append(buildPendingStar())
 
   return wrapper
 }
@@ -130,7 +134,7 @@ function applyLinkPendingState(link: HTMLAnchorElement) {
   link.dataset.pendingOriginalHtml = link.innerHTML
   link.setAttribute('aria-busy', 'true')
   link.setAttribute('aria-disabled', 'true')
-  link.replaceChildren(buildPendingContents(getLinkPendingLabel(link)))
+  link.replaceChildren(buildCompactPendingContents())
 
   window.setTimeout(() => {
     if (document.contains(link)) {
