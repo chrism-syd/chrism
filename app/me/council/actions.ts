@@ -141,6 +141,7 @@ function buildAbsoluteInviteUrl(args: { origin: string | null; invitePath: strin
 }
 
 async function saveOfficerRoleEmail(args: {
+  localUnitId: string
   councilId: string
   officeScopeCode: string
   officeCode: string
@@ -152,7 +153,7 @@ async function saveOfficerRoleEmail(args: {
   const existingQuery = admin
     .from('officer_role_emails')
     .select('id')
-    .eq('council_id', args.councilId)
+    .eq('local_unit_id', args.localUnitId)
     .eq('office_scope_code', args.officeScopeCode)
     .eq('office_code', args.officeCode)
     .eq('is_active', true)
@@ -172,7 +173,7 @@ async function saveOfficerRoleEmail(args: {
         .from('officer_role_emails')
         .delete()
         .eq('id', existingRecord.id)
-        .eq('council_id', args.councilId)
+        .eq('local_unit_id', args.localUnitId)
 
       if (error) {
         throw new Error(error.message)
@@ -182,6 +183,7 @@ async function saveOfficerRoleEmail(args: {
   }
 
   const payload = {
+    local_unit_id: args.localUnitId,
     council_id: args.councilId,
     office_scope_code: args.officeScopeCode,
     office_code: args.officeCode,
@@ -206,14 +208,14 @@ async function saveOfficerRoleEmail(args: {
 
 async function personStillHasAutomaticAdmin(args: {
   admin: ReturnType<typeof createAdminClient>
-  councilId: string
+  localUnitId: string
   personId: string
   excludeTermId?: string | null
 }) {
   const query = args.admin
     .from('person_officer_terms')
     .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
-    .eq('council_id', args.councilId)
+    .eq('local_unit_id', args.localUnitId)
     .eq('person_id', args.personId)
 
   const { data, error } = await (args.excludeTermId
@@ -297,12 +299,16 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
     return await redirectToCouncilPage({ error: 'We could not tell which officer email to save.' })
   }
 
+  if (!context.localUnitId) {
+    return await redirectToCouncilPage({ error: 'This view is missing its active local organization context. Refresh and try again.' })
+  }
+
   const admin = createAdminClient()
   const { data: term, error: termError } = await admin
     .from('person_officer_terms')
     .select('id, person_id, office_scope_code, office_code, office_rank')
     .eq('id', termId)
-    .eq('council_id', context.council.id)
+    .eq('local_unit_id', context.localUnitId)
     .maybeSingle()
 
   if (termError) {
@@ -315,6 +321,7 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
 
   try {
     await saveOfficerRoleEmail({
+      localUnitId: context.localUnitId,
       councilId: context.council.id,
       officeScopeCode: term.office_scope_code,
       officeCode: term.office_code,
@@ -534,10 +541,14 @@ export async function revokeCouncilAdminAction(formData: FormData) {
   let revokeNotice = 'Manual admin access removed.'
 
   if (personId) {
+    if (!context.localUnitId) {
+      return await redirectToCouncilPage({ error: 'This view is missing its active local organization context. Refresh and try again.' })
+    }
+
     const admin = createAdminClient()
     const stillAutomatic = await personStillHasAutomaticAdmin({
       admin,
-      councilId: context.council.id,
+      localUnitId: context.localUnitId,
       personId,
     })
 
@@ -636,6 +647,10 @@ export async function addOfficerTermAction(formData: FormData) {
     return await redirectToCouncilPage({ error: 'Please choose the member, office, and start year before saving this officer term.' })
   }
 
+  if (!context.localUnitId) {
+    return await redirectToCouncilPage({ error: 'This view is missing its active local organization context. Refresh and try again.' })
+  }
+
   const resolvedPersonId = personId as string
   const resolvedOfficeScopeCode = officeScopeCode as OfficerScopeCode
   const resolvedOfficeCode = officeCode as string
@@ -663,6 +678,7 @@ export async function addOfficerTermAction(formData: FormData) {
   })
 
   const termPayload = {
+    local_unit_id: context.localUnitId,
     council_id: context.council.id,
     person_id: resolvedPersonId,
     office_scope_code: resolvedOfficeScopeCode,
@@ -690,7 +706,7 @@ export async function addOfficerTermAction(formData: FormData) {
     .from('person_officer_terms')
     .select('id, service_start_year, service_end_year, manual_end_effective_date')
     .eq('person_id', resolvedPersonId)
-    .eq('council_id', context.council.id)
+    .eq('local_unit_id', context.localUnitId)
     .eq('office_scope_code', resolvedOfficeScopeCode)
     .eq('office_code', resolvedOfficeCode)
 
@@ -741,6 +757,29 @@ export async function addOfficerTermAction(formData: FormData) {
     }
   }
 
+  if (officialEmail) {
+    try {
+      await saveOfficerRoleEmail({
+        localUnitId: context.localUnitId,
+        councilId: context.council.id,
+        officeScopeCode: resolvedOfficeScopeCode,
+        officeCode: resolvedOfficeCode,
+        officeRank: option.supportsRank ? rank : null,
+        email: officialEmail,
+        authUserId: context.permissions.authUser!.id,
+      })
+    } catch (error) {
+      if (isRedirectError(error)) {
+        throw error
+      }
+      return await redirectToCouncilPage({
+        error: error instanceof Error
+          ? `Officer role saved, but the official officer email could not be saved: ${error.message}`
+          : 'Officer role saved, but the official officer email could not be saved.',
+      })
+    }
+  }
+
   revalidateOfficerSurfaces(resolvedPersonId)
   return await redirectToCouncilPage({ notice: `${label} role added.` })
 }
@@ -753,13 +792,17 @@ export async function removeOfficerTermAction(formData: FormData) {
     return await redirectToCouncilPage({ error: 'We could not tell which officer role to remove.' })
   }
 
+  if (!context.localUnitId) {
+    return await redirectToCouncilPage({ error: 'This view is missing its active local organization context. Refresh and try again.' })
+  }
+
   const admin = createAdminClient()
 
   const { data: term, error: termError } = await admin
     .from('person_officer_terms')
     .select('id, person_id, office_scope_code, office_code, office_rank, office_label')
     .eq('id', termId)
-    .eq('council_id', context.council.id)
+    .eq('local_unit_id', context.localUnitId)
     .maybeSingle()
 
   if (termError) {
@@ -781,7 +824,7 @@ export async function removeOfficerTermAction(formData: FormData) {
     .from('person_officer_terms')
     .delete()
     .eq('id', termId)
-    .eq('council_id', context.council.id)
+    .eq('local_unit_id', context.localUnitId)
 
   if (error) {
     return await redirectToCouncilPage({ error: error.message })
@@ -789,7 +832,7 @@ export async function removeOfficerTermAction(formData: FormData) {
 
   const stillAutomatic = await personStillHasAutomaticAdmin({
     admin,
-    councilId: context.council.id,
+    localUnitId: context.localUnitId,
     personId: term.person_id,
     excludeTermId: term.id,
   })
