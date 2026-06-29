@@ -1,6 +1,6 @@
 import type { OfficerScopeCode } from '@/lib/members/officer-roles'
 
-export type PublicOfficerImageMode = 'auto' | 'none'
+export type PublicOfficerImageMode = 'show_image' | 'none'
 
 const KofcOfficerMedalByOfficeCode: Record<string, string> = {
   grand_knight: '/kofc/officer-medals/grand_knight.png',
@@ -19,7 +19,7 @@ const KofcOfficerMedalByOfficeCode: Record<string, string> = {
 }
 
 export function normalizePublicOfficerImageMode(value: string | null | undefined): PublicOfficerImageMode {
-  return value === 'none' ? 'none' : 'auto'
+  return value === 'none' ? 'none' : 'show_image'
 }
 
 export function isKnightsOfColumbusOrganizationType(organizationTypeCode: string | null | undefined) {
