@@ -84,14 +84,6 @@ function paragraph(text: string) {
   return preventParagraphOrphans(text)
 }
 
-function officialMemberName(member: Pick<PersonRow, 'first_name' | 'last_name'> | null) {
-  if (!member) return null
-  const firstName = member.first_name.trim()
-  const lastName = member.last_name.trim()
-  const name = `${firstName} ${lastName}`.trim()
-  return name.length > 0 ? name : null
-}
-
 function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickname'> | null, preferredDisplayName?: string | null) {
   if (!member) return 'Officer'
   const preferred = preferredDisplayName?.trim() || member.nickname?.trim() || member.first_name.trim()
@@ -101,10 +93,8 @@ function memberName(member: Pick<PersonRow, 'first_name' | 'last_name' | 'nickna
 
 function publicDisplayName(args: { officer: PublicOfficerRow; person: PersonRow | null; preferredDisplayName: string | null }) {
   const displayNameOverride = args.officer.display_name_override?.trim()
-  const officialLabel = officialMemberName(args.person)
-  const preferredLabel = memberName(args.person, args.preferredDisplayName)
-  if (displayNameOverride && displayNameOverride !== officialLabel) return displayNameOverride
-  return preferredLabel
+  if (displayNameOverride) return displayNameOverride
+  return memberName(args.person, args.preferredDisplayName)
 }
 
 function officerRolePriority(term: Pick<OfficerTermRow, 'office_scope_code' | 'office_code' | 'office_rank'>) {
