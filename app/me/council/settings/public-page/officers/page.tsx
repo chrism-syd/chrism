@@ -8,6 +8,7 @@ import PortraitUploader from '@/app/components/portrait-uploader'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { getFlashMessage } from '@/lib/flash-messages'
 import { formatOfficerLabel, isOfficerTermActive, type OfficerScopeCode } from '@/lib/members/officer-roles'
+import { normalizePublicOfficerImageMode } from '@/lib/public-officer-images'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import {
@@ -50,6 +51,7 @@ type PublicOfficerRow = {
   public_title_override: string | null
   public_email: string | null
   show_public_email: boolean | null
+  public_image_mode: string | null
   is_public: boolean
   sort_order: number
   photo_storage_bucket: string | null
@@ -189,7 +191,7 @@ export default async function PublicOfficerSettingsPage() {
     termIds.length > 0
       ? (admin as any)
           .from('local_unit_public_officers')
-          .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, show_public_email, is_public, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
+          .select('id, person_officer_term_id, person_id, display_name_override, public_title_override, public_email, show_public_email, public_image_mode, is_public, sort_order, photo_storage_bucket, photo_storage_path, photo_zoom, photo_position_x, photo_position_y')
           .eq('local_unit_id', localUnitId)
           .in('person_officer_term_id', termIds)
       : Promise.resolve({ data: [] as PublicOfficerRow[] }),
@@ -286,6 +288,7 @@ export default async function PublicOfficerSettingsPage() {
                 const zoom = Number(publicProfile?.photo_zoom ?? 1)
                 const positionX = Number(publicProfile?.photo_position_x ?? 50)
                 const positionY = Number(publicProfile?.photo_position_y ?? 50)
+                const imageMode = normalizePublicOfficerImageMode(publicProfile?.public_image_mode)
                 const officialLabel = officialMemberName(profile.person)
                 const preferredLabel = memberName(profile.person, profile.preferredDisplayName)
                 const hasPreferredName = hasMeaningfulPreferredName({ person: profile.person, preferredDisplayName: profile.preferredDisplayName })
@@ -301,24 +304,37 @@ export default async function PublicOfficerSettingsPage() {
                         <p className="qv-officer-public-subtitle">{profile.memberLabel}</p>
                         <p className="qv-officer-public-subtitle">{profile.serviceLabel}</p>
                       </div>
-                      <PortraitUploader
-                        idPrefix={`officer-${profile.term.id}`}
-                        uploadAction={uploadOfficerPortraitAction}
-                        removeAction={removeOfficerPortraitAction}
-                        hiddenFields={{ term_id: profile.term.id }}
-                        profileFormId={profileFormId}
-                        imageUrl={profile.portraitUrl}
-                        imageAlt={`${profile.memberLabel} portrait`}
-                        zoom={zoom}
-                        positionX={positionX}
-                        positionY={positionY}
-                        placeholderLabel="Portrait not set"
-                      />
+                      {imageMode === 'show_image' ? (
+                        <PortraitUploader
+                          idPrefix={`officer-${profile.term.id}`}
+                          uploadAction={uploadOfficerPortraitAction}
+                          removeAction={removeOfficerPortraitAction}
+                          hiddenFields={{ term_id: profile.term.id }}
+                          profileFormId={profileFormId}
+                          imageUrl={profile.portraitUrl}
+                          imageAlt={`${profile.memberLabel} portrait`}
+                          zoom={zoom}
+                          positionX={positionX}
+                          positionY={positionY}
+                          placeholderLabel="Portrait not set"
+                        />
+                      ) : (
+                        <div className="qv-empty" style={{ margin: 0, width: '100%' }}>
+                          <p className="qv-section-subtitle" style={{ margin: 0 }}>Image hidden on public profile.</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="qv-officer-public-forms">
                       <form id={profileFormId} action={saveOfficerPublicProfileAction} className="qv-officer-public-form">
                         <input type="hidden" name="term_id" value={profile.term.id} />
+                        {imageMode === 'none' ? (
+                          <>
+                            <input type="hidden" name="photo_zoom" value={zoom} />
+                            <input type="hidden" name="photo_position_x" value={positionX} />
+                            <input type="hidden" name="photo_position_y" value={positionY} />
+                          </>
+                        ) : null}
                         <label className="qv-toggle-card">
                           <input type="checkbox" name="is_public" value="true" defaultChecked={publicProfile?.is_public ?? false} className="qv-toggle-checkbox" />
                           <span className="qv-toggle-copy">
@@ -326,6 +342,19 @@ export default async function PublicOfficerSettingsPage() {
                             <span className="qv-toggle-text">Visitors will see this officer on the public Officers page.</span>
                           </span>
                         </label>
+
+                        <fieldset className="qv-toggle-card qv-image-mode-fieldset">
+                          <legend className="qv-toggle-title">Officer image</legend>
+                          <span className="qv-toggle-text">Show an uploaded portrait when available. Knights councils will use the officer medal when no portrait has been uploaded.</span>
+                          <label className="qv-radio-option">
+                            <input type="radio" name="public_image_mode" value="show_image" defaultChecked={imageMode === 'show_image'} />
+                            <span>Show image</span>
+                          </label>
+                          <label className="qv-radio-option">
+                            <input type="radio" name="public_image_mode" value="none" defaultChecked={imageMode === 'none'} />
+                            <span>No image</span>
+                          </label>
+                        </fieldset>
 
                         {hasPreferredName ? (
                           <label className="qv-toggle-card">
