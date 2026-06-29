@@ -8,7 +8,7 @@ import PortraitUploader from '@/app/components/portrait-uploader'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { getFlashMessage } from '@/lib/flash-messages'
 import { formatOfficerLabel, isOfficerTermActive, type OfficerScopeCode } from '@/lib/members/officer-roles'
-import { normalizePublicOfficerImageMode } from '@/lib/public-officer-images'
+import { normalizePublicOfficerImageMode, resolvePublicOfficerImageSrc } from '@/lib/public-officer-images'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import {
@@ -171,11 +171,21 @@ export default async function PublicOfficerSettingsPage() {
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
   if (!localUnitId) redirect('/me/council')
 
-  const { data: officerData } = await admin
-    .from('person_officer_terms')
-    .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
-    .eq('council_id', council.id)
-    .order('service_start_year', { ascending: false })
+  const [{ data: officerData }, { data: organizationData }] = await Promise.all([
+    admin
+      .from('person_officer_terms')
+      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
+      .eq('council_id', council.id)
+      .order('service_start_year', { ascending: false }),
+    (admin as any)
+      .from('organizations')
+      .select('organization_type_code, org_type_code')
+      .eq('id', permissions.organizationId)
+      .maybeSingle(),
+  ])
+
+  const organization = organizationData as { organization_type_code?: string | null; org_type_code?: string | null } | null
+  const organizationTypeCode = organization?.organization_type_code ?? organization?.org_type_code ?? null
 
   const officerTerms = ((officerData as OfficerTermRow[] | null) ?? [])
     .filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
@@ -289,6 +299,13 @@ export default async function PublicOfficerSettingsPage() {
                 const positionX = Number(publicProfile?.photo_position_x ?? 50)
                 const positionY = Number(publicProfile?.photo_position_y ?? 50)
                 const imageMode = normalizePublicOfficerImageMode(publicProfile?.public_image_mode)
+                const imageUrl = resolvePublicOfficerImageSrc({
+                  imageMode,
+                  uploadedPortraitUrl: profile.portraitUrl,
+                  organizationTypeCode,
+                  officeScopeCode: profile.term.office_scope_code,
+                  officeCode: profile.term.office_code,
+                })
                 const officialLabel = officialMemberName(profile.person)
                 const preferredLabel = memberName(profile.person, profile.preferredDisplayName)
                 const hasPreferredName = hasMeaningfulPreferredName({ person: profile.person, preferredDisplayName: profile.preferredDisplayName })
@@ -311,11 +328,11 @@ export default async function PublicOfficerSettingsPage() {
                           removeAction={removeOfficerPortraitAction}
                           hiddenFields={{ term_id: profile.term.id }}
                           profileFormId={profileFormId}
-                          imageUrl={profile.portraitUrl}
-                          imageAlt={`${profile.memberLabel} portrait`}
-                          zoom={zoom}
-                          positionX={positionX}
-                          positionY={positionY}
+                          imageUrl={imageUrl}
+                          imageAlt={`${profile.memberLabel} public officer image`}
+                          zoom={profile.portraitUrl ? zoom : 1}
+                          positionX={profile.portraitUrl ? positionX : 50}
+                          positionY={profile.portraitUrl ? positionY : 50}
                           placeholderLabel="Portrait not set"
                         />
                       ) : (
