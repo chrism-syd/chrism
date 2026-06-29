@@ -85,6 +85,14 @@
   grid-column: span 1;
 }
 
+.public-officer-card-text-only {
+  grid-template-columns: 1fr;
+}
+
+.public-officer-card-text-only.public-officer-card-featured {
+  min-height: 180px;
+}
+
 .public-officer-portrait {
   width: 100%;
 }
