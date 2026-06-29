@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import AppHeader from '@/app/app-header';
 import OrganizationAvatar from '@/app/components/organization-avatar';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
@@ -109,11 +110,15 @@ export default async function OfficersPage() {
     minimumAccessLevel: 'edit_manage',
   });
 
+  if (!localUnitId) {
+    redirect('/me');
+  }
+
   const [{ data: termData }, { data: organizationData }, directoryData] = await Promise.all([
     admin
       .from('person_officer_terms')
       .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
-      .eq('council_id', council.id)
+      .eq('local_unit_id', localUnitId)
       .order('service_start_year', { ascending: false }),
     permissions.organizationId
       ? admin
@@ -122,20 +127,10 @@ export default async function OfficersPage() {
           .eq('id', permissions.organizationId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    localUnitId
-      ? loadLocalUnitMemberDirectoryData({
-          admin,
-          localUnitId,
-        })
-      : Promise.resolve({
-          allPeople: [],
-          members: [],
-          prospects: [],
-          volunteers: [],
-          currentOfficerLabelsById: {},
-          executiveOfficerLabelsById: {},
-          officerCount: 0,
-        }),
+    loadLocalUnitMemberDirectoryData({
+      admin,
+      localUnitId,
+    }),
   ]);
 
   const people = directoryData.members;
