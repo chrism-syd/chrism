@@ -178,7 +178,13 @@ export default function PortraitUploader({
           />
 
           {removeAction && imageUrl ? (
-            <form action={removeAction} onSubmit={handleDeleteSubmit} className="qv-portrait-delete-form">
+            <form
+              action={removeAction}
+              onSubmit={handleDeleteSubmit}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              className="qv-portrait-delete-form"
+            >
               <HiddenFields fields={hiddenFields} />
               <button type="submit" className="qv-portrait-delete-button" aria-label={removeButtonLabel}>x</button>
             </form>
