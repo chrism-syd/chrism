@@ -31,11 +31,6 @@ export type DirectoryPerson = {
 
 type OfficerTermWithPerson = OfficerTermRow & { person_id: string }
 
-type DirectoryLocalUnitRow = {
-  id: string
-  legacy_council_id: string | null
-}
-
 type DirectoryData = {
   allPeople: DirectoryPerson[]
   members: DirectoryPerson[]
@@ -122,7 +117,6 @@ export async function loadLocalUnitMemberDirectoryData(args: {
   const [
     { data: membershipData, error: membershipError },
     { data: localUnitPeopleData, error: localUnitPeopleError },
-    { data: localUnitData, error: localUnitError },
   ] = await Promise.all([
     admin
       .from('member_records')
@@ -134,16 +128,10 @@ export async function loadLocalUnitMemberDirectoryData(args: {
       .select('person_id')
       .eq('local_unit_id', localUnitId)
       .is('ended_at', null),
-    admin
-      .from('local_units')
-      .select('id, legacy_council_id')
-      .eq('id', localUnitId)
-      .maybeSingle<DirectoryLocalUnitRow>(),
   ])
 
   if (membershipError) throw new Error(`Could not load local-unit member records. ${membershipError.message}`)
   if (localUnitPeopleError) throw new Error(`Could not load local-unit people. ${localUnitPeopleError.message}`)
-  if (localUnitError) throw new Error(`Could not load local-unit context. ${localUnitError.message}`)
 
   const membershipRows = ((membershipData as Array<{ legacy_people_id: string | null; preferred_display_name: string | null }> | null) ?? [])
   const localUnitPeopleRows = ((localUnitPeopleData as Array<{ person_id: string | null }> | null) ?? [])
@@ -162,8 +150,6 @@ export async function loadLocalUnitMemberDirectoryData(args: {
     }
   }
 
-  const localUnit = (localUnitData as DirectoryLocalUnitRow | null) ?? null
-
   const [{ data: peopleData, error: peopleError }, { data: officerTermsData, error: officerTermsError }] = await Promise.all([
     admin
       .from('people')
@@ -176,13 +162,11 @@ export async function loadLocalUnitMemberDirectoryData(args: {
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true })
       .returns<Array<Omit<DirectoryPerson, 'preferred_display_name'>>>(),
-    localUnit?.legacy_council_id
-      ? admin
-          .from('person_officer_terms')
-          .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
-          .eq('council_id', localUnit.legacy_council_id)
-          .returns<OfficerTermWithPerson[]>()
-      : Promise.resolve({ data: [] as OfficerTermWithPerson[], error: null }),
+    admin
+      .from('person_officer_terms')
+      .select('id, person_id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes')
+      .eq('local_unit_id', localUnitId)
+      .returns<OfficerTermWithPerson[]>(),
   ])
 
   if (peopleError) throw new Error(`Could not load local-unit people. ${peopleError.message}`)
