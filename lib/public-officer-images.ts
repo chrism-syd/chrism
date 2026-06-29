@@ -25,7 +25,8 @@ export function normalizePublicOfficerImageMode(value: string | null | undefined
 }
 
 export function isKnightsOfColumbusOrganizationType(organizationTypeCode: string | null | undefined) {
-  return KofcOrganizationTypeCodes.has((organizationTypeCode ?? '').trim().toLowerCase())
+  const normalizedCode = (organizationTypeCode ?? '').trim().toLowerCase()
+  return !normalizedCode || KofcOrganizationTypeCodes.has(normalizedCode)
 }
 
 export function getKofcOfficerMedalSrc(args: {
