@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import type { ChangeEvent, CSSProperties, FormEvent, PointerEvent } from 'react'
+import type { ChangeEvent, CSSProperties, PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import PortraitFrame from './portrait-frame'
 
