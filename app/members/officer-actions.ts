@@ -67,10 +67,11 @@ async function requireCouncilAdmin() {
   }
 
   return {
-    permissions: { ...permissions, councilId: council.id },
+    permissions,
     council,
     admin,
     localUnitId,
+    legacyCouncilId: council.id,
   };
 }
 
@@ -135,7 +136,7 @@ function buildCouncilOfficerActionFormData(formData: FormData) {
 }
 
 export async function addOfficerTermAction(formData: FormData) {
-  const { permissions, council, admin, localUnitId } = await requireCouncilAdmin();
+  const { permissions, council, admin, localUnitId, legacyCouncilId } = await requireCouncilAdmin();
   const nextFormData = buildCouncilOfficerActionFormData(formData);
   const personId = textEntry(nextFormData, 'person_id');
   const officeScopeCode = textEntry(nextFormData, 'office_scope_code') as OfficerScopeCode | null;
@@ -197,7 +198,7 @@ export async function addOfficerTermAction(formData: FormData) {
 
   const payload = {
     local_unit_id: localUnitId,
-    council_id: permissions.councilId!,
+    council_id: legacyCouncilId,
     person_id: personId as string,
     office_scope_code: officeScopeCode as OfficerScopeCode,
     office_code: officeCode as string,
