@@ -41,16 +41,20 @@ export default async function ProfileChangeReviewDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { admin, council } = await getCurrentActingCouncilContext({
+  const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
 
+  if (!localUnitId) {
+    notFound()
+  }
+
   const summary = await getProfileChangeReviewSummary({
     admin,
-    councilId: council.id,
+    localUnitId,
     organizationId: council.organization_id ?? null,
     requestId: id,
   })

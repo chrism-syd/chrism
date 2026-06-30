@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppHeader from '@/app/app-header'
 import OrganizationAvatar from '@/app/components/organization-avatar'
@@ -117,6 +118,10 @@ export default async function ReviewDecisionArchivePage() {
     minimumAccessLevel: 'edit_manage',
   })
 
+  if (!localUnitId) {
+    notFound()
+  }
+
   const archivedPublicInquiryPromise = localUnitId
     ? archivedPublicInquiryFrom<ArchivedPublicInquiryRow[]>(admin, 'local_unit_public_contact_message_jobs')
         .select('id, inquiry_type_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, cleared_at, payload_snapshot')
@@ -129,7 +134,7 @@ export default async function ReviewDecisionArchivePage() {
   const [archivedDecisions, organizationData, archivedPublicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
       admin,
-      councilId: council.id,
+      localUnitId,
       organizationId: council.organization_id ?? null,
       statusCodes: ['approved', 'rejected'],
       decisionNoticeState: 'all',

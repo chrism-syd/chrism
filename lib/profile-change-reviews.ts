@@ -176,22 +176,21 @@ export function buildProfileChangeReviewFields(args: {
 
 export async function listProfileChangeReviewSummaries(args: {
   admin: SupabaseClient
-  councilId: string
+  localUnitId: string
   organizationId?: string | null
   statusCodes: string[]
   limit?: number
   decisionNoticeState?: 'all' | 'uncleared'
 }) {
-  const { admin, councilId, organizationId = null, statusCodes, limit = 50, decisionNoticeState = 'all' } = args
+  const { admin, localUnitId, organizationId = null, statusCodes, limit = 50, decisionNoticeState = 'all' } = args
 
-  const [localPeopleResult, organizationAdminAssignmentsResult] = await Promise.all([
+  const [localUnitPeopleResult, organizationAdminAssignmentsResult] = await Promise.all([
     admin
-      .from('people')
-      .select('id, council_id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
-      .eq('council_id', councilId)
-      .is('archived_at', null)
-      .is('merged_into_person_id', null)
-      .returns<ProfileChangeReviewPerson[]>(),
+      .from('local_unit_people')
+      .select('person_id')
+      .eq('local_unit_id', localUnitId)
+      .is('ended_at', null)
+      .returns<Array<{ person_id: string | null }>>(),
     organizationId
       ? admin
           .from('organization_admin_assignments')
@@ -202,42 +201,40 @@ export async function listProfileChangeReviewSummaries(args: {
       : Promise.resolve({ data: [] as ActiveOrganizationAdminAssignmentRow[], error: null }),
   ])
 
-  if (localPeopleResult.error) {
-    throw new Error(`Could not load members for the review queue: ${localPeopleResult.error.message}`)
+  if (localUnitPeopleResult.error) {
+    throw new Error(`Could not load local-unit people for the review queue: ${localUnitPeopleResult.error.message}`)
   }
 
   if (organizationAdminAssignmentsResult.error) {
     throw new Error(`Could not load organization admin assignments for the review queue: ${organizationAdminAssignmentsResult.error.message}`)
   }
 
-  const localPeople = decryptPeopleRecords((localPeopleResult.data as ProfileChangeReviewPerson[] | null) ?? [])
-  const localPeopleById = new Map(localPeople.map((person) => [person.id, person] as const))
+  const localPersonIds = ((localUnitPeopleResult.data as Array<{ person_id: string | null }> | null) ?? [])
+    .map((row) => row.person_id)
+    .filter((personId): personId is string => Boolean(personId))
 
-  const additionalPersonIds = [
-    ...new Set(
-      ((organizationAdminAssignmentsResult.data as ActiveOrganizationAdminAssignmentRow[] | null) ?? [])
-        .map((row) => row.person_id)
-        .filter((personId): personId is string => Boolean(personId && !localPeopleById.has(personId)))
-    ),
-  ]
+  const organizationAdminPersonIds = ((organizationAdminAssignmentsResult.data as ActiveOrganizationAdminAssignmentRow[] | null) ?? [])
+    .map((row) => row.person_id)
+    .filter((personId): personId is string => Boolean(personId))
 
-  const additionalPeopleResult =
-    additionalPersonIds.length > 0
+  const personIdsToLoad = [...new Set([...localPersonIds, ...organizationAdminPersonIds])]
+
+  const peopleResult =
+    personIdsToLoad.length > 0
       ? await admin
           .from('people')
           .select('id, council_id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
-          .in('id', additionalPersonIds)
+          .in('id', personIdsToLoad)
           .is('archived_at', null)
           .is('merged_into_person_id', null)
           .returns<ProfileChangeReviewPerson[]>()
       : { data: [] as ProfileChangeReviewPerson[], error: null }
 
-  if (additionalPeopleResult.error) {
-    throw new Error(`Could not load external admin contacts for the review queue: ${additionalPeopleResult.error.message}`)
+  if (peopleResult.error) {
+    throw new Error(`Could not load people for the review queue: ${peopleResult.error.message}`)
   }
 
-  const additionalPeople = decryptPeopleRecords((additionalPeopleResult.data as ProfileChangeReviewPerson[] | null) ?? [])
-  const people = [...localPeople, ...additionalPeople]
+  const people = decryptPeopleRecords((peopleResult.data as ProfileChangeReviewPerson[] | null) ?? [])
 
   if (people.length === 0) {
     return [] as ProfileChangeReviewSummary[]
@@ -283,11 +280,11 @@ export async function listProfileChangeReviewSummaries(args: {
 
 export async function getProfileChangeReviewSummary(args: {
   admin: SupabaseClient
-  councilId: string
+  localUnitId: string
   organizationId?: string | null
   requestId: string
 }) {
-  const { admin, councilId, organizationId = null, requestId } = args
+  const { admin, localUnitId, organizationId = null, requestId } = args
 
   const { data: requestData, error: requestError } = await admin
     .from('person_profile_change_requests')
@@ -306,12 +303,20 @@ export async function getProfileChangeReviewSummary(args: {
     return null
   }
 
-  const [personResult, organizationAdminAccessResult] = await Promise.all([
+  const [personResult, localUnitPersonResult, organizationAdminAccessResult] = await Promise.all([
     admin
       .from('people')
       .select('id, council_id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
       .eq('id', request.person_id)
       .maybeSingle<ProfileChangeReviewPerson>(),
+    admin
+      .from('local_unit_people')
+      .select('person_id')
+      .eq('local_unit_id', localUnitId)
+      .eq('person_id', request.person_id)
+      .is('ended_at', null)
+      .limit(1)
+      .maybeSingle(),
     organizationId
       ? admin
           .from('organization_admin_assignments')
@@ -328,6 +333,10 @@ export async function getProfileChangeReviewSummary(args: {
     throw new Error(`Could not load the person tied to this review: ${personResult.error.message}`)
   }
 
+  if (localUnitPersonResult.error) {
+    throw new Error(`Could not verify local-unit person access for this review: ${localUnitPersonResult.error.message}`)
+  }
+
   if (organizationAdminAccessResult.error) {
     throw new Error(`Could not verify organization admin access for this review: ${organizationAdminAccessResult.error.message}`)
   }
@@ -337,10 +346,10 @@ export async function getProfileChangeReviewSummary(args: {
     return null
   }
 
-  const isCouncilScopedPerson = person.council_id === councilId
+  const isLocalUnitPerson = Boolean(localUnitPersonResult.data)
   const hasOrganizationAdminAccess = Boolean(organizationAdminAccessResult.data)
 
-  if (!isCouncilScopedPerson && !hasOrganizationAdminAccess) {
+  if (!isLocalUnitPerson && !hasOrganizationAdminAccess) {
     return null
   }
 

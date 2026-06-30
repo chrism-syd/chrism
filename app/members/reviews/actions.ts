@@ -37,7 +37,7 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
     throw new Error('Choose whether to approve or reject this request.')
   }
 
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
     areaCode: 'members',
@@ -48,9 +48,13 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
     throw new Error('You must be signed in to review profile changes.')
   }
 
+
+  if (!localUnitId) {
+    return
+  }
   const summary = await getProfileChangeReviewSummary({
     admin,
-    councilId: council.id,
+    localUnitId,
     organizationId: council.organization_id ?? null,
     requestId,
   })
@@ -160,7 +164,7 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
     throw new Error('Missing review decision id.')
   }
 
-  const { admin, permissions, council } = await getCurrentActingCouncilContext({
+  const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/members/reviews',
     areaCode: 'members',
@@ -171,9 +175,13 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
     throw new Error('You must be signed in to clear review notifications.')
   }
 
+
+  if (!localUnitId) {
+    return
+  }
   const summary = await getProfileChangeReviewSummary({
     admin,
-    councilId: council.id,
+    localUnitId,
     organizationId: council.organization_id ?? null,
     requestId,
   })
