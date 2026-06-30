@@ -8,7 +8,6 @@ import { formatEventDateTimeRange } from '@/lib/events/display'
 type ArchivedEventRow = {
   id: string
   original_event_id: string | null
-  council_id: string
   local_unit_id?: string | null
   title: string
   description: string | null
@@ -60,7 +59,7 @@ export default async function ArchivedEventDetailPage({ params }: { params: Prom
   }
 
   const archiveSelect =
-    'id, original_event_id, council_id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before, deleted_at'
+    'id, original_event_id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before, deleted_at'
 
   const { data, error } = await supabase
     .from('event_archives')

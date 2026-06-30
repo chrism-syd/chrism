@@ -22,7 +22,6 @@ type OrganizationRow = {
 type EventRow = {
   id: string;
   local_unit_id: string | null;
-  council_id: string;
   title: string;
   description: string | null;
   location_name: string | null;
@@ -175,7 +174,7 @@ export default async function EventVolunteersPage({ params }: VolunteersPageProp
   }
 
   const eventSelect =
-    'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at';
+    'id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, rsvp_deadline_at';
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
