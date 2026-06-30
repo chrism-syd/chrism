@@ -345,8 +345,7 @@ export async function getCurrentActingCouncilContextForEvent(options: {
     permissions.isSuperAdmin &&
       permissions.actingMode !== 'normal' &&
       event?.local_unit_id &&
-      (event.local_unit_id === permissions.activeLocalUnitId ||
-        (event.council_id && event.council_id === permissions.councilId))
+      event.local_unit_id === permissions.activeLocalUnitId
   )
 
   const canUseEventLocalUnit =
