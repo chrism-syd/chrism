@@ -63,7 +63,7 @@ type AppUserRow = NonNullable<CurrentUserPermissions['appUser']>
 type CouncilAdminAssignmentRow = { council_id: string | null; person_id: string | null }
 type OrganizationAdminAssignmentRow = { organization_id: string | null; person_id: string | null }
 type AutomaticCouncilAdminTermRow = {
-  council_id: string | null
+  local_unit_id: string | null
   office_scope_code: string
   office_code: string
 }
@@ -93,7 +93,7 @@ type OrganizationProfileRow = {
 }
 
 type OfficerRoleEmailRow = {
-  council_id: string
+  local_unit_id: string
   office_scope_code: string
   office_code: string
   office_rank: number | null
@@ -101,7 +101,7 @@ type OfficerRoleEmailRow = {
 
 type OfficerEmailTermRow = {
   person_id: string
-  council_id: string | null
+  local_unit_id: string | null
   office_scope_code: string
   office_code: string
   office_rank: number | null
@@ -703,12 +703,11 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const currentYear = new Date().getFullYear()
 
   let derivedOfficerEmailPersonId: string | null = null
-  let derivedOfficerEmailCouncilId: string | null = null
 
   if (normalizedEmail) {
     const { data: officerRoleEmailData } = await admin
       .from('officer_role_emails')
-      .select('council_id, office_scope_code, office_code, office_rank')
+      .select('local_unit_id, office_scope_code, office_code, office_rank')
       .eq('is_active', true)
       .eq('login_enabled', true)
       .ilike('email', normalizedEmail)
@@ -717,11 +716,11 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
 
     if (officerRoleEmails.length > 0) {
-      const councilIds = [...new Set(officerRoleEmails.map((row) => row.council_id))]
+      const localUnitIds = [...new Set(officerRoleEmails.map((row) => row.local_unit_id))]
       const { data: officerTermData } = await admin
         .from('person_officer_terms')
-        .select('person_id, council_id, office_scope_code, office_code, office_rank, service_end_year')
-        .in('council_id', councilIds)
+        .select('person_id, local_unit_id, office_scope_code, office_code, office_rank, service_end_year')
+        .in('local_unit_id', localUnitIds)
         .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
         .limit(50)
 
@@ -729,7 +728,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       const matchingTerm = officerTerms.find((term) =>
         officerRoleEmails.some(
           (emailRow) =>
-            emailRow.council_id === term.council_id &&
+            emailRow.local_unit_id === term.local_unit_id &&
             emailRow.office_scope_code === term.office_scope_code &&
             emailRow.office_code === term.office_code &&
             (emailRow.office_rank ?? null) === (term.office_rank ?? null)
@@ -737,7 +736,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       )
 
       derivedOfficerEmailPersonId = matchingTerm?.person_id ?? null
-      derivedOfficerEmailCouncilId = matchingTerm?.council_id ?? null
     }
   }
 
@@ -828,7 +826,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       linkedIdentityPersonIds.length > 0
         ? admin
             .from('person_officer_terms')
-            .select('council_id, office_scope_code, office_code')
+            .select('local_unit_id, office_scope_code, office_code')
             .in('person_id', linkedIdentityPersonIds)
             .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
             .limit(25)
@@ -848,8 +846,8 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
 
   const automaticCouncilAdminTerms =
     (automaticCouncilAdminTermResult.data as AutomaticCouncilAdminTermRow[] | null)?.filter(
-      (term): term is AutomaticCouncilAdminTermRow & { council_id: string } =>
-        Boolean(term.council_id) && isAutomaticCouncilAdminTerm(term)
+      (term): term is AutomaticCouncilAdminTermRow & { local_unit_id: string } =>
+        Boolean(term.local_unit_id) && isAutomaticCouncilAdminTerm(term)
     ) ?? []
 
   if (!personId) {
@@ -885,15 +883,21 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     userId: user.id,
   })
 
-  const assignmentCouncilIds = uniqueStrings([
-    ...councilAdminAssignments.map((assignment) => assignment.council_id),
-    ...automaticCouncilAdminTerms.map((term) => term.council_id),
-  ])
+  const assignmentCouncilIds = uniqueStrings(
+    councilAdminAssignments.map((assignment) => assignment.council_id)
+  )
+  const automaticAdminLocalUnitIds = uniqueStrings(
+    automaticCouncilAdminTerms.map((term) => term.local_unit_id)
+  )
   const assignmentOrganizationIds = uniqueStrings(
     organizationAdminAssignments.map((assignment) => assignment.organization_id)
   )
 
-  const [assignmentCouncilLocalUnitResult, assignmentOrganizationLocalUnitResult] = await Promise.all([
+  const [
+    assignmentCouncilLocalUnitResult,
+    assignmentOrganizationLocalUnitResult,
+    automaticAdminLocalUnitResult,
+  ] = await Promise.all([
     assignmentCouncilIds.length > 0
       ? admin
           .from('local_units')
@@ -905,6 +909,12 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
           .from('local_units')
           .select('id, legacy_council_id, legacy_organization_id')
           .in('legacy_organization_id', assignmentOrganizationIds)
+      : Promise.resolve({ data: [] as LocalUnitProfileRow[], error: null }),
+    automaticAdminLocalUnitIds.length > 0
+      ? admin
+          .from('local_units')
+          .select('id, legacy_council_id, legacy_organization_id')
+          .in('id', automaticAdminLocalUnitIds)
       : Promise.resolve({ data: [] as LocalUnitProfileRow[], error: null }),
   ])
 
@@ -918,10 +928,16 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     )
   }
 
+  if (automaticAdminLocalUnitResult.error) {
+    throw new Error(`Could not load officer-derived admin local units: ${automaticAdminLocalUnitResult.error.message}`)
+  }
+
   const councilScopedAdminLocalUnits =
     (assignmentCouncilLocalUnitResult.data as LocalUnitProfileRow[] | null) ?? []
   const organizationScopedAdminLocalUnits =
     (assignmentOrganizationLocalUnitResult.data as LocalUnitProfileRow[] | null) ?? []
+  const automaticAdminLocalUnits =
+    (automaticAdminLocalUnitResult.data as LocalUnitProfileRow[] | null) ?? []
 
   const directAssignmentCapabilitiesByLocalUnitId = new Map<string, ParallelUnitCapabilities>()
 
@@ -970,30 +986,27 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   }
 
   for (const term of automaticCouncilAdminTerms) {
-    const matchingLocalUnits = councilScopedAdminLocalUnits.filter(
-      (row) => row.legacy_council_id === term.council_id
-    )
+    const localUnit = automaticAdminLocalUnits.find((row) => row.id === term.local_unit_id) ?? null
 
-    if (matchingLocalUnits.length === 0) {
+    if (!localUnit) {
       directAssignmentSeeds.push({
+        localUnitId: term.local_unit_id,
         organizationId: null,
-        councilId: term.council_id,
+        councilId: null,
         accessLevel: 'manager',
         source: 'officer_term',
       })
       continue
     }
 
-    for (const localUnit of matchingLocalUnits) {
-      rememberDirectAssignmentCapability(localUnit.id)
-      directAssignmentSeeds.push({
-        localUnitId: localUnit.id,
-        organizationId: localUnit.legacy_organization_id ?? null,
-        councilId: localUnit.legacy_council_id ?? null,
-        accessLevel: 'manager',
-        source: 'officer_term',
-      })
-    }
+    rememberDirectAssignmentCapability(localUnit.id)
+    directAssignmentSeeds.push({
+      localUnitId: localUnit.id,
+      organizationId: localUnit.legacy_organization_id ?? null,
+      councilId: localUnit.legacy_council_id ?? null,
+      accessLevel: 'manager',
+      source: 'officer_term',
+    })
   }
 
   for (const assignment of organizationAdminAssignments) {
@@ -1026,9 +1039,8 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const directCouncilIds = uniqueStrings([
     ...memberLocalUnitSeeds.map((seed) => seed.councilId),
     ...assignmentCouncilIds,
-    derivedOfficerEmailCouncilId,
     ...councilAdminAssignments.map((assignment) => assignment.council_id),
-    ...automaticCouncilAdminTerms.map((term) => term.council_id),
+    ...automaticAdminLocalUnits.map((localUnit) => localUnit.legacy_council_id),
   ])
 
   const directOrganizationIds = uniqueStrings([
@@ -1109,7 +1121,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const defaultCouncilId =
     defaultContext?.councilId ??
     defaultMemberSeed?.councilId ??
-    derivedOfficerEmailCouncilId ??
     null
   const defaultOrganizationId =
     defaultContext?.organizationId ??
