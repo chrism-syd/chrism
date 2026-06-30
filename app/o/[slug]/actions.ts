@@ -37,6 +37,10 @@ type PersonRow = {
   primary_relationship_code: string
 }
 
+type LocalUnitPersonRow = {
+  person_id: string | null
+}
+
 type AdminAssignmentRow = {
   id: string
   grantee_email: string | null
@@ -241,6 +245,46 @@ async function loadPublicContext(args: { slug: string }) {
   return { admin, council, organization, localUnit, recipients, canonicalSlug }
 }
 
+async function findExistingLocalUnitDirectoryPerson(args: {
+  admin: ReturnType<typeof createAdminClient>
+  localUnitId: string
+  submitterEmail: string
+}) {
+  const emailHash = buildHashForField('email', args.submitterEmail)
+  if (!emailHash) return null
+
+  const { data: localUnitPeopleData, error: localUnitPeopleError } = await args.admin
+    .from('local_unit_people')
+    .select('person_id')
+    .eq('local_unit_id', args.localUnitId)
+    .is('ended_at', null)
+
+  if (localUnitPeopleError) {
+    throw new Error(localUnitPeopleError.message)
+  }
+
+  const personIds = ((localUnitPeopleData as LocalUnitPersonRow[] | null) ?? [])
+    .map((row) => row.person_id)
+    .filter((value): value is string => Boolean(value))
+
+  if (personIds.length === 0) return null
+
+  const { data, error } = await args.admin
+    .from('people')
+    .select('id, primary_relationship_code')
+    .in('id', personIds)
+    .eq('email_hash', emailHash)
+    .is('archived_at', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data as PersonRow | null
+}
+
 async function findOrCreateDirectoryPerson(args: {
   admin: ReturnType<typeof createAdminClient>
   councilId: string
@@ -253,21 +297,11 @@ async function findOrCreateDirectoryPerson(args: {
   if (args.inquiryType !== 'volunteer' && args.inquiryType !== 'membership') return null
 
   const untypedAdmin = args.admin as any
-  const emailHash = buildHashForField('email', args.submitterEmail)
-  let existingPerson: PersonRow | null = null
-
-  if (emailHash) {
-    const { data } = await args.admin
-      .from('people')
-      .select('id, primary_relationship_code')
-      .eq('council_id', args.councilId)
-      .eq('email_hash', emailHash)
-      .is('archived_at', null)
-      .limit(1)
-      .maybeSingle()
-
-    existingPerson = data as PersonRow | null
-  }
+  const existingPerson = await findExistingLocalUnitDirectoryPerson({
+    admin: args.admin,
+    localUnitId: args.localUnitId,
+    submitterEmail: args.submitterEmail,
+  })
 
   const personId = existingPerson?.id ?? await createDirectoryPerson(args)
 
