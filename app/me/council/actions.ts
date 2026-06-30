@@ -714,7 +714,7 @@ export async function addOfficerTermAction(formData: FormData) {
     return await redirectToCouncilPage({ error: 'This member already has that officer role for an overlapping service year.' })
   }
 
-  const { data: insertedTerm, error } = await admin
+  const { error } = await admin
     .from('person_officer_terms')
     .insert(termPayload)
     .select('id')
