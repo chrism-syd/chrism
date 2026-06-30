@@ -9,6 +9,28 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const SETTINGS_PATH = '/me/council/settings/public-page'
 
+type PublicContactDetailsDbError = {
+  message: string
+}
+
+type PublicContactDetailsQueryResult<TData = unknown> = {
+  data: TData | null
+  error: PublicContactDetailsDbError | null
+}
+
+type PublicContactDetailsQueryBuilder<TData = unknown> = PromiseLike<PublicContactDetailsQueryResult<TData>> & {
+  update(values: unknown): PublicContactDetailsQueryBuilder<TData>
+  eq(column: string, value: unknown): PublicContactDetailsQueryBuilder<TData>
+}
+
+function publicContactDetailsFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicContactDetailsQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -88,7 +110,7 @@ function revalidatePublicPageSurfaces(context: Awaited<ReturnType<typeof getCurr
 
 export async function savePublicContactDetailsAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
 
@@ -105,8 +127,7 @@ export async function savePublicContactDetailsAction(formData: FormData) {
     return await redirectToPublicPageSettings({ error: 'Enter a valid public location URL starting with http or https.' })
   }
 
-  const { error } = await admin
-    .from('local_units')
+  const { error } = await publicContactDetailsFrom(admin, 'local_units')
     .update({
       public_email: publicEmail,
       public_location_name: textValue(formData, 'public_location_name'),

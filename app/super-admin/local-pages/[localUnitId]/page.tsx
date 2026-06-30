@@ -65,6 +65,30 @@ type MessageRouteRow = {
   recipient_label: string | null
 }
 
+type SuperAdminLocalPageDbError = {
+  message: string
+}
+
+type SuperAdminLocalPageQueryResult<TData = unknown> = {
+  data: TData | null
+  error: SuperAdminLocalPageDbError | null
+}
+
+type SuperAdminLocalPageQueryBuilder<TData = unknown> = PromiseLike<SuperAdminLocalPageQueryResult<TData>> & {
+  select(columns: string): SuperAdminLocalPageQueryBuilder<TData>
+  eq(column: string, value: unknown): SuperAdminLocalPageQueryBuilder<TData>
+  order(column: string, options: { ascending: boolean }): SuperAdminLocalPageQueryBuilder<TData>
+  limit(count: number): SuperAdminLocalPageQueryBuilder<TData>
+}
+
+function superAdminLocalPageFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => SuperAdminLocalPageQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
 const CHRISM_YELLOW = '#f5c84b'
 
@@ -121,7 +145,6 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
   const { localUnitId } = await params
   const admin = createAdminClient()
-  const untypedAdmin = admin as any
 
   const { data: localUnitData } = await admin
     .from('local_units')
@@ -153,8 +176,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       .eq('local_unit_id', localUnit.id)
       .order('starts_at', { ascending: true })
       .returns<EventRow[]>(),
-    untypedAdmin
-      .from('local_unit_message_routes')
+    superAdminLocalPageFrom<MessageRouteRow[]>(admin, 'local_unit_message_routes')
       .select('recipient_email, recipient_label')
       .eq('local_unit_id', localUnit.id)
       .eq('route_key', 'public_contact')

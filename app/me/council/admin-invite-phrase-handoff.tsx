@@ -45,7 +45,13 @@ function pageShowsInviteSentNotice(email: string) {
 
 export default function AdminInvitePhraseHandoff() {
   const anchorRef = useRef<HTMLDivElement | null>(null)
-  const [storedPhrase, setStoredPhrase] = useState<StoredInvitePhrase | null>(null)
+  const [storedPhrase, setStoredPhrase] = useState<StoredInvitePhrase | null>(() => {
+    if (typeof window === 'undefined') return null
+
+    const stored = readStoredInvitePhrase()
+    if (!stored || !pageShowsInviteSentNotice(stored.email)) return null
+    return stored
+  })
 
   useEffect(() => {
     const anchor = anchorRef.current
@@ -72,12 +78,9 @@ export default function AdminInvitePhraseHandoff() {
   }, [])
 
   useEffect(() => {
-    const stored = readStoredInvitePhrase()
-    if (!stored || !pageShowsInviteSentNotice(stored.email)) return
-
+    if (!storedPhrase) return
     anchorRef.current?.closest('details')?.setAttribute('open', '')
-    setStoredPhrase(stored)
-  }, [])
+  }, [storedPhrase])
 
   function dismissPhrase() {
     window.sessionStorage.removeItem(STORAGE_KEY)

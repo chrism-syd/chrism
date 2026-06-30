@@ -12,6 +12,32 @@ type PublicContactMessageJobRow = {
   body_text: string
 }
 
+type PublicContactJobDbError = {
+  message: string
+}
+
+type PublicContactJobQueryResult<TData = unknown> = {
+  data: TData | null
+  error: PublicContactJobDbError | null
+}
+
+type PublicContactJobQueryBuilder<TData = unknown> = PromiseLike<PublicContactJobQueryResult<TData>> & {
+  select(columns: string): PublicContactJobQueryBuilder<TData>
+  update(values: unknown): PublicContactJobQueryBuilder<TData>
+  eq(column: string, value: unknown): PublicContactJobQueryBuilder<TData>
+  lte(column: string, value: unknown): PublicContactJobQueryBuilder<TData>
+  order(column: string, options: { ascending: boolean }): PublicContactJobQueryBuilder<TData>
+  limit(count: number): PublicContactJobQueryBuilder<TData>
+}
+
+function publicContactJobFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicContactJobQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 const JOB_LIMIT = 25
 
 function isAuthorized(request: Request) {
@@ -41,8 +67,7 @@ function escapeHtml(value: string) {
 
 async function processPublicContactMessageJobs() {
   const admin = createAdminClient()
-  const { data, error } = await (admin as any)
-    .from('local_unit_public_contact_message_jobs')
+  const { data, error } = await publicContactJobFrom<PublicContactMessageJobRow[]>(admin, 'local_unit_public_contact_message_jobs')
     .select('id, recipient_email, recipient_label, reply_to_email, submitter_name, subject, body_text')
     .eq('status_code', 'pending')
     .lte('scheduled_for', new Date().toISOString())
@@ -59,8 +84,7 @@ async function processPublicContactMessageJobs() {
 
   for (const job of jobs) {
     try {
-      await (admin as any)
-        .from('local_unit_public_contact_message_jobs')
+      await publicContactJobFrom(admin, 'local_unit_public_contact_message_jobs')
         .update({ status_code: 'pending' })
         .eq('id', job.id)
         .eq('status_code', 'pending')
@@ -73,8 +97,7 @@ async function processPublicContactMessageJobs() {
         replyTo: { email: job.reply_to_email, name: job.submitter_name },
       })
 
-      const { error: sentError } = await (admin as any)
-        .from('local_unit_public_contact_message_jobs')
+      const { error: sentError } = await publicContactJobFrom(admin, 'local_unit_public_contact_message_jobs')
         .update({
           status_code: 'sent',
           sent_at: new Date().toISOString(),
@@ -90,8 +113,7 @@ async function processPublicContactMessageJobs() {
       results.push({ id: job.id, status: 'sent' })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown public contact email failure'
-      await (admin as any)
-        .from('local_unit_public_contact_message_jobs')
+      await publicContactJobFrom(admin, 'local_unit_public_contact_message_jobs')
         .update({
           status_code: 'failed',
           failed_at: new Date().toISOString(),

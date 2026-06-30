@@ -259,14 +259,6 @@ function revalidateCouncilSurfaces() {
   revalidatePath('/super-admin/organization-claims')
 }
 
-function formatYearRange(startYear: number, endYear: number | null) {
-  if (endYear == null || endYear === startYear) {
-    return `${startYear}`
-  }
-
-  return `${startYear} to ${endYear}`
-}
-
 function rangesOverlap(
   left: { start: number; end: number | null },
   right: { start: number; end: number | null }
@@ -722,7 +714,7 @@ export async function addOfficerTermAction(formData: FormData) {
     return await redirectToCouncilPage({ error: 'This member already has that officer role for an overlapping service year.' })
   }
 
-  const { data: insertedTerm, error } = await admin
+  const { error } = await admin
     .from('person_officer_terms')
     .insert(termPayload)
     .select('id')

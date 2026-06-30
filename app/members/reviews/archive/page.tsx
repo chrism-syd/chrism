@@ -67,6 +67,31 @@ type PublicContactPayloadSnapshot = {
   captured_person_id?: string | null
 }
 
+type ArchivedPublicInquiryDbError = {
+  message: string
+}
+
+type ArchivedPublicInquiryQueryResult<TData = unknown> = {
+  data: TData | null
+  error: ArchivedPublicInquiryDbError | null
+}
+
+type ArchivedPublicInquiryQueryBuilder<TData = unknown> = PromiseLike<ArchivedPublicInquiryQueryResult<TData>> & {
+  select(columns: string): ArchivedPublicInquiryQueryBuilder<TData>
+  eq(column: string, value: unknown): ArchivedPublicInquiryQueryBuilder<TData>
+  filter(column: string, operator: string, value: unknown): ArchivedPublicInquiryQueryBuilder<TData>
+  order(column: string, options: { ascending: boolean }): ArchivedPublicInquiryQueryBuilder<TData>
+  limit(count: number): ArchivedPublicInquiryQueryBuilder<TData>
+}
+
+function archivedPublicInquiryFrom<TData = unknown>(admin: Awaited<ReturnType<typeof getCurrentActingCouncilContext>>['admin'], table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => ArchivedPublicInquiryQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 type ArchivedPublicInquiryRow = {
   id: string
   inquiry_type_code: string | null
@@ -93,14 +118,13 @@ export default async function ReviewDecisionArchivePage() {
   })
 
   const archivedPublicInquiryPromise = localUnitId
-    ? (admin as any)
-        .from('local_unit_public_contact_message_jobs')
+    ? archivedPublicInquiryFrom<ArchivedPublicInquiryRow[]>(admin, 'local_unit_public_contact_message_jobs')
         .select('id, inquiry_type_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, cleared_at, payload_snapshot')
         .eq('local_unit_id', localUnitId)
         .filter('cleared_at', 'not.is', 'null')
         .order('cleared_at', { ascending: false })
         .limit(200)
-    : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[] })
+    : Promise.resolve({ data: [] as ArchivedPublicInquiryRow[], error: null })
 
   const [archivedDecisions, organizationData, archivedPublicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
