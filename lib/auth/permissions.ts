@@ -93,7 +93,8 @@ type OrganizationProfileRow = {
 }
 
 type OfficerRoleEmailRow = {
-  council_id: string
+  council_id: string | null
+  local_unit_id: string | null
   office_scope_code: string
   office_code: string
   office_rank: number | null
@@ -708,7 +709,7 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   if (normalizedEmail) {
     const { data: officerRoleEmailData } = await admin
       .from('officer_role_emails')
-      .select('council_id, office_scope_code, office_code, office_rank')
+      .select('council_id, local_unit_id, office_scope_code, office_code, office_rank')
       .eq('is_active', true)
       .eq('login_enabled', true)
       .ilike('email', normalizedEmail)
