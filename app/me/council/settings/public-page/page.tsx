@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
@@ -422,7 +423,7 @@ export default async function PublicPageSettingsPage() {
                   >
                     <div style={{ aspectRatio: '4 / 3', overflow: 'hidden', borderRadius: 12, background: 'var(--bg-sunken)', border: '1px solid var(--divider)' }}>
                       {image.signedUrl ? (
-                        <img src={image.signedUrl} alt={image.title ?? `Gallery image ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                          <img src={image.signedUrl} alt={image.title ?? `Gallery image ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       ) : null}
                     </div>
                     <label className="qv-control">

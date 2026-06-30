@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type PublicGalleryImage = {
@@ -87,7 +89,7 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
         aria-label={`Open gallery, image ${galleryPositionLabel}`}
       >
         {galleryImages.map((image, index) => (
-          <img
+              <img
             key={image.id}
             src={image.url}
             alt=""
@@ -138,7 +140,7 @@ export default function PublicGallerySlideshow({ images }: PublicGallerySlidesho
               </button>
             ) : null}
             <div className="local-page-gallery-modal-image-wrap">
-              <img src={activeImage.url} alt={activeImage.title ?? 'Gallery image'} />
+                      <img src={activeImage.url} alt={activeImage.title ?? 'Gallery image'} />
             </div>
             {galleryImages.length > 1 ? (
               <button
