@@ -249,11 +249,13 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .eq('council_id', council.id)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
-    admin
-      .from('person_officer_terms')
-      .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
-      .eq('council_id', council.id)
-      .order('service_start_year', { ascending: false }),
+    localUnitId
+      ? admin
+          .from('person_officer_terms')
+          .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
+          .eq('local_unit_id', localUnitId)
+          .order('service_start_year', { ascending: false })
+      : Promise.resolve({ data: [] as OfficerTermRow[] }),
     admin
       .from('officer_role_emails')
       .select('id, council_id, office_scope_code, office_code, office_rank, email')
