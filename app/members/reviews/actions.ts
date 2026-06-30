@@ -203,6 +203,29 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
   revalidatePath('/me')
 }
 
+type MemberReviewDbError = {
+  message: string
+}
+
+type MemberReviewQueryResult<TData = unknown> = {
+  data: TData | null
+  error: MemberReviewDbError | null
+}
+
+type MemberReviewQueryBuilder<TData = unknown> = PromiseLike<MemberReviewQueryResult<TData>> & {
+  update(values: unknown): MemberReviewQueryBuilder<TData>
+  eq(column: string, value: unknown): MemberReviewQueryBuilder<TData>
+  is(column: string, value: unknown): MemberReviewQueryBuilder<TData>
+}
+
+function memberReviewFrom<TData = unknown>(admin: Awaited<ReturnType<typeof getCurrentActingCouncilContext>>['admin'], table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => MemberReviewQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 export async function clearPublicContactInquiryAction(formData: FormData) {
   const inquiryId = normalizeText(formData.get('inquiry_id'))
 
@@ -225,8 +248,7 @@ export async function clearPublicContactInquiryAction(formData: FormData) {
     throw new Error('Could not identify the active local organization.')
   }
 
-  const { error } = await (admin as any)
-    .from('local_unit_public_contact_message_jobs')
+  const { error } = await memberReviewFrom(admin, 'local_unit_public_contact_message_jobs')
     .update({
       cleared_at: new Date().toISOString(),
       cleared_by_auth_user_id: permissions.authUser.id,

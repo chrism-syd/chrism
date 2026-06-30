@@ -107,13 +107,38 @@ function buildDirectoryData(args: {
   }
 }
 
+type LocalUnitPeopleDirectoryDbError = {
+  message: string
+}
+
+type LocalUnitPeopleDirectoryQueryResult<TData = unknown> = {
+  data: TData | null
+  error: LocalUnitPeopleDirectoryDbError | null
+}
+
+type LocalUnitPeopleDirectoryQueryBuilder<TData = unknown> = PromiseLike<LocalUnitPeopleDirectoryQueryResult<TData>> & {
+  select(columns: string): LocalUnitPeopleDirectoryQueryBuilder<TData>
+  eq(column: string, value: unknown): LocalUnitPeopleDirectoryQueryBuilder<TData>
+  is(column: string, value: unknown): LocalUnitPeopleDirectoryQueryBuilder<TData>
+}
+
+function localUnitPeopleDirectoryFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => LocalUnitPeopleDirectoryQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
+type LocalUnitPersonDirectoryRow = {
+  person_id: string | null
+}
+
 export async function loadLocalUnitMemberDirectoryData(args: {
   admin: ReturnType<typeof createAdminClient>
   localUnitId: string
 }): Promise<DirectoryData> {
   const { admin, localUnitId } = args
-  const untypedAdmin = admin as any
-
   const [
     { data: membershipData, error: membershipError },
     { data: localUnitPeopleData, error: localUnitPeopleError },
@@ -123,8 +148,7 @@ export async function loadLocalUnitMemberDirectoryData(args: {
       .select('legacy_people_id, preferred_display_name')
       .eq('local_unit_id', localUnitId)
       .is('archived_at', null),
-    untypedAdmin
-      .from('local_unit_people')
+    localUnitPeopleDirectoryFrom<LocalUnitPersonDirectoryRow[]>(admin, 'local_unit_people')
       .select('person_id')
       .eq('local_unit_id', localUnitId)
       .is('ended_at', null),

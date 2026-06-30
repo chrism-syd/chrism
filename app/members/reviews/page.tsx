@@ -69,6 +69,31 @@ type PublicContactPayloadSnapshot = {
   recipient_source?: string | null
 }
 
+type PublicInquiryDbError = {
+  message: string
+}
+
+type PublicInquiryQueryResult<TData = unknown> = {
+  data: TData | null
+  error: PublicInquiryDbError | null
+}
+
+type PublicInquiryQueryBuilder<TData = unknown> = PromiseLike<PublicInquiryQueryResult<TData>> & {
+  select(columns: string): PublicInquiryQueryBuilder<TData>
+  eq(column: string, value: unknown): PublicInquiryQueryBuilder<TData>
+  is(column: string, value: unknown): PublicInquiryQueryBuilder<TData>
+  order(column: string, options: { ascending: boolean }): PublicInquiryQueryBuilder<TData>
+  limit(count: number): PublicInquiryQueryBuilder<TData>
+}
+
+function publicInquiryFrom<TData = unknown>(admin: Awaited<ReturnType<typeof getCurrentActingCouncilContext>>['admin'], table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicInquiryQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 type PublicInquiryRow = {
   id: string
   inquiry_type_code: string | null
@@ -121,14 +146,13 @@ export default async function MemberReviewsPage() {
           .maybeSingle<Exclude<OrganizationRow, null>>()
       : Promise.resolve({ data: null as OrganizationRow }),
     localUnitId
-      ? (admin as any)
-          .from('local_unit_public_contact_message_jobs')
+      ? publicInquiryFrom<PublicInquiryRow[]>(admin, 'local_unit_public_contact_message_jobs')
           .select('id, inquiry_type_code, status_code, submitter_name, reply_to_email, submitter_phone, subject, created_at, sent_at, failed_at, failure_message, payload_snapshot')
           .eq('local_unit_id', localUnitId)
           .is('cleared_at', null)
           .order('created_at', { ascending: false })
           .limit(12)
-      : Promise.resolve({ data: [] as PublicInquiryRow[] }),
+      : Promise.resolve({ data: [] as PublicInquiryRow[], error: null }),
   ])
 
   const organization = organizationData.data ?? null
