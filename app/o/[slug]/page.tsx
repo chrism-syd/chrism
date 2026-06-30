@@ -242,7 +242,14 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     redirect(`/o/${canonicalSlug}`)
   }
 
-  const [organizationResponse, eventsResponse, localUnitResponse] = await Promise.all([
+  const localUnitResponse = await publicOrgPageReadFrom<LocalUnitRow>(admin, 'local_units')
+    .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
+    .eq('legacy_council_id', council.id)
+    .maybeSingle()
+
+  if (!localUnitResponse.data?.id) notFound()
+
+  const [organizationResponse, eventsResponse] = await Promise.all([
     council.organization_id
       ? publicOrgPageReadFrom(admin, 'organizations')
           .select('display_name, preferred_name, organization_type_code, public_page_enabled, public_description, public_contact_form_enabled, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
@@ -252,17 +259,13 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
     admin
       .from('events')
       .select('id, title, location_name, location_address, starts_at, ends_at, status_code, event_kind_code')
-      .eq('council_id', council.id)
+      .eq('local_unit_id', localUnitResponse.data.id)
       .eq('status_code', 'scheduled')
       .in('event_kind_code', ['standard', 'general_meeting', 'executive_meeting'])
       .gte('ends_at', new Date().toISOString())
       .order('starts_at', { ascending: true })
       .limit(4)
       .returns<EventRow[]>(),
-    publicOrgPageReadFrom<LocalUnitRow>(admin, 'local_units')
-      .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
-      .eq('legacy_council_id', council.id)
-      .maybeSingle(),
   ])
 
   const organization = organizationResponse.data as {

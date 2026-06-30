@@ -162,10 +162,18 @@ export default async function PublicOrgEventsPage({ params, searchParams }: Even
     redirect(`/o/${canonicalSlug}/events`)
   }
 
+  const { data: localUnit } = await supabase
+    .from('local_units')
+    .select('id')
+    .eq('legacy_council_id', council.id)
+    .maybeSingle<{ id: string }>()
+
+  if (!localUnit?.id) notFound()
+
   const meetingsQuery = supabase
     .from('events')
     .select('id, title, description, location_name, location_address, starts_at, ends_at, event_kind_code, updated_at, requires_rsvp, needs_volunteers, rsvp_deadline_at, status_code')
-    .eq('council_id', council.id)
+    .eq('local_unit_id', localUnit.id)
     .eq('status_code', 'scheduled')
     .in('event_kind_code', ['standard', 'general_meeting', 'executive_meeting'])
     .gte('ends_at', new Date().toISOString())

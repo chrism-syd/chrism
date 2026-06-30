@@ -47,10 +47,20 @@ export async function GET(_request: Request, { params }: RouteProps) {
     return NextResponse.redirect(new URL(`/o/${encodeURIComponent(canonicalSlug)}/calendar.ics`, _request.url), 308)
   }
 
+  const { data: localUnit } = await supabase
+    .from('local_units')
+    .select('id')
+    .eq('legacy_council_id', council.id)
+    .maybeSingle<{ id: string }>()
+
+  if (!localUnit?.id) {
+    return new NextResponse('Calendar not found', { status: 404 })
+  }
+
   const { data: meetings } = await supabase
     .from('events')
     .select('id, title, description, location_name, location_address, starts_at, ends_at, event_kind_code, updated_at')
-    .eq('council_id', council.id)
+    .eq('local_unit_id', localUnit.id)
     .in('event_kind_code', ['standard', 'general_meeting', 'executive_meeting'])
     .gte('starts_at', new Date(Date.now() - 1000 * 60 * 60 * 24 * 180).toISOString())
     .order('starts_at', { ascending: true })
