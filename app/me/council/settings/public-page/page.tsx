@@ -64,6 +64,31 @@ type GalleryImageView = GalleryImageRow & {
   signedUrl: string | null
 }
 
+type PublicPageSettingsReadError = {
+  message: string
+}
+
+type PublicPageSettingsReadResult<TData = unknown> = {
+  data: TData | null
+  error: PublicPageSettingsReadError | null
+}
+
+type PublicPageSettingsReadBuilder<TData = unknown> = PromiseLike<PublicPageSettingsReadResult<TData>> & {
+  select(columns: string): PublicPageSettingsReadBuilder<TData>
+  eq(column: string, value: unknown): PublicPageSettingsReadBuilder<TData>
+  order(column: string, options: { ascending: boolean }): PublicPageSettingsReadBuilder<TData>
+  limit(count: number): PublicPageSettingsReadBuilder<TData>
+  maybeSingle(): Promise<PublicPageSettingsReadResult<TData>>
+}
+
+function publicPageSettingsReadFrom<TData = unknown>(admin: Awaited<ReturnType<typeof getCurrentActingCouncilContext>>['admin'], table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicPageSettingsReadBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 const DEFAULT_PUBLIC_INTRO = 'Empowering Catholic men to live out their faith through charity, unity, and fraternity.'
 const PUBLIC_GALLERY_MAX_IMAGES = 12
 
@@ -91,7 +116,6 @@ export default async function PublicPageSettingsPage() {
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
   if (!localUnitId) redirect('/me/council')
 
-  const untypedAdmin = admin as any
   const [
     { data: organizationData },
     { data: localUnitData },
@@ -99,33 +123,28 @@ export default async function PublicPageSettingsPage() {
     { data: messageRouteData },
     { data: galleryData },
   ] = await Promise.all([
-    untypedAdmin
-      .from('organizations')
+    publicPageSettingsReadFrom<OrganizationPublicSettingsRow>(admin, 'organizations')
       .select('id, display_name, preferred_name, public_page_enabled, public_description, public_contact_form_enabled')
       .eq('id', permissions.organizationId)
       .maybeSingle(),
-    untypedAdmin
-      .from('local_units')
+    publicPageSettingsReadFrom<LocalUnitContactDetailsRow>(admin, 'local_units')
       .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
       .eq('id', localUnitId)
       .maybeSingle(),
-    untypedAdmin
-      .from('local_unit_external_links')
+    publicPageSettingsReadFrom<ExternalLinkRow[]>(admin, 'local_unit_external_links')
       .select('id, label, url, sort_order, is_active')
       .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
-    untypedAdmin
-      .from('local_unit_message_routes')
+    publicPageSettingsReadFrom<MessageRouteRow[]>(admin, 'local_unit_message_routes')
       .select('id, recipient_email, recipient_label')
       .eq('local_unit_id', localUnitId)
       .eq('route_key', 'public_contact')
       .eq('is_active', true)
       .order('updated_at', { ascending: false })
       .limit(1),
-    untypedAdmin
-      .from('local_unit_public_gallery_images')
+    publicPageSettingsReadFrom<GalleryImageRow[]>(admin, 'local_unit_public_gallery_images')
       .select('id, title, storage_bucket, storage_path, sort_order, is_active')
       .eq('local_unit_id', localUnitId)
       .eq('is_active', true)

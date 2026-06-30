@@ -66,6 +66,31 @@ type PublicGalleryImage = {
   url: string
 }
 
+type PublicOrgPageReadError = {
+  message: string
+}
+
+type PublicOrgPageReadResult<TData = unknown> = {
+  data: TData | null
+  error: PublicOrgPageReadError | null
+}
+
+type PublicOrgPageReadBuilder<TData = unknown> = PromiseLike<PublicOrgPageReadResult<TData>> & {
+  select(columns: string): PublicOrgPageReadBuilder<TData>
+  eq(column: string, value: unknown): PublicOrgPageReadBuilder<TData>
+  order(column: string, options: { ascending: boolean }): PublicOrgPageReadBuilder<TData>
+  limit(count: number): PublicOrgPageReadBuilder<TData>
+  maybeSingle(): Promise<PublicOrgPageReadResult<TData>>
+}
+
+function publicOrgPageReadFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicOrgPageReadBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 const PUBLIC_GALLERY_MAX_IMAGES = 12
 
 export const dynamic = 'force-dynamic'
@@ -204,8 +229,6 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   if (!councilNumber) notFound()
 
   const admin = createAdminClient()
-  const untypedAdmin = admin as any
-
   const { data: council } = await admin
     .from('councils')
     .select('id, name, council_number, organization_id')
@@ -221,8 +244,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
 
   const [organizationResponse, eventsResponse, localUnitResponse] = await Promise.all([
     council.organization_id
-      ? untypedAdmin
-          .from('organizations')
+      ? publicOrgPageReadFrom(admin, 'organizations')
           .select('display_name, preferred_name, organization_type_code, public_page_enabled, public_description, public_contact_form_enabled, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
           .eq('id', council.organization_id)
           .maybeSingle()
@@ -237,8 +259,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
       .order('starts_at', { ascending: true })
       .limit(4)
       .returns<EventRow[]>(),
-    untypedAdmin
-      .from('local_units')
+    publicOrgPageReadFrom<LocalUnitRow>(admin, 'local_units')
       .select('id, public_email, public_location_name, public_address_line1, public_address_line2, public_city, public_region, public_postal_code, public_country, public_location_url')
       .eq('legacy_council_id', council.id)
       .maybeSingle(),
@@ -267,16 +288,14 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
   const localUnit = (localUnitResponse.data as LocalUnitRow | null) ?? null
   const [externalLinksResponse, contactRouteResponse, adminRecipientResponse, galleryResponse] = localUnit?.id
     ? await Promise.all([
-        untypedAdmin
-          .from('local_unit_external_links')
+        publicOrgPageReadFrom<ExternalLinkRow[]>(admin, 'local_unit_external_links')
           .select('id, label, url, sort_order')
           .eq('local_unit_id', localUnit.id)
           .eq('is_active', true)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true })
           .limit(3),
-        untypedAdmin
-          .from('local_unit_message_routes')
+        publicOrgPageReadFrom<MessageRouteRow[]>(admin, 'local_unit_message_routes')
           .select('recipient_email, recipient_label')
           .eq('local_unit_id', localUnit.id)
           .eq('route_key', 'public_contact')
@@ -291,8 +310,7 @@ export default async function PublicLocalOrganizationPage({ params, searchParams
               .eq('is_active', true)
               .limit(1)
           : Promise.resolve({ data: [] }),
-        untypedAdmin
-          .from('local_unit_public_gallery_images')
+        publicOrgPageReadFrom<GalleryImageRow[]>(admin, 'local_unit_public_gallery_images')
           .select('id, title, storage_bucket, storage_path, sort_order')
           .eq('local_unit_id', localUnit.id)
           .eq('is_active', true)
