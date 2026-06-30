@@ -100,12 +100,12 @@ async function loadCandidatesByIds(args: {
 export async function listClaimablePersonRsvps(args: {
   supabase: SupabaseClient<any, 'public', any>;
   eventId: string;
-  hostCouncilId: string;
+  hostLocalUnitId?: string | null;
   userId: string;
   email: string | null;
   submissionId?: string | null;
 }) {
-  const { supabase, eventId, hostCouncilId, userId, email, submissionId } = args;
+  const { supabase, eventId, hostLocalUnitId = null, userId, email, submissionId } = args;
   const normalizedEmail = normalizeEmail(email);
   const ids = new Map<string, ClaimReason>();
 
@@ -176,22 +176,39 @@ export async function listClaimablePersonRsvps(args: {
     }
 
     const peopleEmailHash = buildHashForField('email', normalizedEmail);
+    let personIds: string[] = [];
 
-    const { data: personRows, error: personError } = peopleEmailHash
-      ? await supabase
+    if (peopleEmailHash && hostLocalUnitId) {
+      const { data: scopedRows, error: scopedError } = await supabase
+        .from('local_unit_people')
+        .select('person_id')
+        .eq('local_unit_id', hostLocalUnitId)
+        .is('ended_at', null);
+
+      if (scopedError) {
+        throw new Error(`Could not check local-unit member matches: ${scopedError.message}`);
+      }
+
+      const scopedPersonIds = ((scopedRows ?? []) as Array<{ person_id: string | null }>)
+        .map((row) => row.person_id)
+        .filter((value): value is string => Boolean(value));
+
+      if (scopedPersonIds.length > 0) {
+        const { data: personRows, error: personError } = await supabase
           .from('people')
           .select('id')
-          .eq('council_id', hostCouncilId)
+          .in('id', scopedPersonIds)
           .or(`email_hash.eq.${peopleEmailHash},email.ilike.${normalizedEmail}`)
           .is('merged_into_person_id', null)
-          .is('archived_at', null)
-      : { data: [], error: null };
+          .is('archived_at', null);
 
-    if (personError) {
-      throw new Error(`Could not check member email matches: ${personError.message}`);
+        if (personError) {
+          throw new Error(`Could not check member email matches: ${personError.message}`);
+        }
+
+        personIds = (personRows ?? []).map((row) => row.id as string);
+      }
     }
-
-    const personIds = (personRows ?? []).map((row) => row.id as string);
 
     if (personIds.length > 0) {
       const [{ data: matchedSubmissionRows, error: matchedSubmissionError }, { data: matchedAttendeeRows, error: matchedAttendeeError }] = await Promise.all([

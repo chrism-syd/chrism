@@ -114,7 +114,7 @@ export async function claimPersonRsvpAction(token: string, submissionId: string)
   const candidates = await listClaimablePersonRsvps({
     supabase,
     eventId: context.event.id,
-    hostCouncilId: context.event.host_council_id,
+    hostLocalUnitId: context.event.host_local_unit_id,
     userId: user.id,
     email: user.email ?? null,
     submissionId,
@@ -155,7 +155,7 @@ export async function saveClaimedPersonRsvpAction(token: string, submissionId: s
   const candidates = await listClaimablePersonRsvps({
     supabase,
     eventId: context.event.id,
-    hostCouncilId: context.event.host_council_id,
+    hostLocalUnitId: context.event.host_local_unit_id,
     userId: user.id,
     email: user.email ?? null,
     submissionId,
@@ -194,7 +194,7 @@ export async function saveClaimedPersonRsvpAction(token: string, submissionId: s
   const result = await savePersonRsvpSubmission({
     supabase,
     eventId: context.event.id,
-    hostCouncilId: context.event.host_council_id,
+    localUnitId: context.event.host_local_unit_id,
     primaryName,
     primaryEmail,
     primaryPhone,

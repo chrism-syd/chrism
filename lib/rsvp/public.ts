@@ -15,6 +15,7 @@ export type PublicInviteContext = {
   event: {
     id: string;
     host_council_id: string;
+    host_local_unit_id: string | null;
     title: string;
     description: string | null;
     location_name: string | null;
@@ -50,12 +51,12 @@ export async function loadPublicInviteContext(
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, council_id, title, description, location_name, location_address, starts_at, ends_at, requires_rsvp, needs_volunteers, rsvp_deadline_at, status_code, scope_code'
+      'id, council_id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, requires_rsvp, needs_volunteers, rsvp_deadline_at, status_code, scope_code'
     )
     .eq('id', invite.event_id)
     .maybeSingle();
 
-  const rawEvent = eventData as ({ council_id: string } & Omit<PublicInviteContext['event'], 'host_council_id'>) | null;
+  const rawEvent = eventData as ({ council_id: string; local_unit_id: string | null } & Omit<PublicInviteContext['event'], 'host_council_id' | 'host_local_unit_id'>) | null;
 
   if (eventError || !rawEvent) {
     return null;
@@ -64,6 +65,7 @@ export async function loadPublicInviteContext(
   const event: PublicInviteContext['event'] = {
     id: rawEvent.id,
     host_council_id: rawEvent.council_id,
+    host_local_unit_id: rawEvent.local_unit_id,
     title: rawEvent.title,
     description: rawEvent.description,
     location_name: rawEvent.location_name,
