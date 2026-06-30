@@ -10,7 +10,6 @@ type RouteContext = {
 type EventRow = {
   id: string;
   local_unit_id: string | null;
-  council_id: string;
   title: string;
   starts_at: string;
   ends_at: string | null;
@@ -178,7 +177,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const eventSelect =
-    'id, local_unit_id, council_id, title, starts_at, ends_at, location_name, location_address, scope_code';
+    'id, local_unit_id, title, starts_at, ends_at, location_name, location_address, scope_code';
 
   const { data: eventData, error: eventError } = await admin
     .from('events')

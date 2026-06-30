@@ -52,7 +52,6 @@ type ExternalInviteeRow = {
 type EventRow = {
   id: string
   local_unit_id: string | null
-  council_id: string
   title: string
   description: string | null
   location_name: string | null
@@ -114,7 +113,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   const { data: eventData, error: eventError } = await supabase
     .from('events')
     .select(
-      'id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
+      'id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for'
     )
     .eq('id', id)
     .eq('local_unit_id', localUnitId)
