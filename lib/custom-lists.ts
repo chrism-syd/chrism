@@ -6,7 +6,6 @@ import { decryptPeopleRecords } from '@/lib/security/pii'
 
 export type CustomListRow = {
   id: string
-  council_id: string | null
   local_unit_id: string | null
   name: string
   description: string | null

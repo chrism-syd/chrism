@@ -33,7 +33,7 @@ async function loadCustomListForAction(customListId: string) {
 
   const { data, error } = await admin
     .from('custom_lists')
-    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .select('id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .eq('id', customListId)
     .maybeSingle<CustomListRow>()
 
@@ -67,7 +67,7 @@ async function loadCustomListForLifecycleAction(args: {
 
   const { data, error } = await admin
     .from('custom_lists')
-    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .select('id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .eq('id', args.customListId)
     .maybeSingle<CustomListRow>()
 
@@ -272,7 +272,6 @@ export async function createCustomListFromMembersAction(
   const { data: customListData, error: createError } = await admin
     .from('custom_lists')
     .insert({
-      council_id: null,
       local_unit_id: localUnitId,
       name,
       description: descriptionValue || null,
