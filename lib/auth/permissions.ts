@@ -103,6 +103,7 @@ type OfficerRoleEmailRow = {
 type OfficerEmailTermRow = {
   person_id: string
   council_id: string | null
+  local_unit_id: string | null
   office_scope_code: string
   office_code: string
   office_rank: number | null
@@ -718,19 +719,31 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
 
     if (officerRoleEmails.length > 0) {
-      const councilIds = [...new Set(officerRoleEmails.map((row) => row.council_id))]
-      const { data: officerTermData } = await admin
+      const localUnitIds = [
+        ...new Set(officerRoleEmails.map((row) => row.local_unit_id).filter((id): id is string => Boolean(id))),
+      ]
+      const legacyCouncilIds = [
+        ...new Set(officerRoleEmails.map((row) => row.council_id).filter((id): id is string => Boolean(id))),
+      ]
+
+      const officerTermQuery = admin
         .from('person_officer_terms')
-        .select('person_id, council_id, office_scope_code, office_code, office_rank, service_end_year')
-        .in('council_id', councilIds)
+        .select('person_id, council_id, local_unit_id, office_scope_code, office_code, office_rank, service_end_year')
         .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
         .limit(50)
+
+      const { data: officerTermData } =
+        localUnitIds.length > 0
+          ? await officerTermQuery.in('local_unit_id', localUnitIds)
+          : await officerTermQuery.in('council_id', legacyCouncilIds)
 
       const officerTerms = (officerTermData as OfficerEmailTermRow[] | null) ?? []
       const matchingTerm = officerTerms.find((term) =>
         officerRoleEmails.some(
           (emailRow) =>
-            emailRow.council_id === term.council_id &&
+            (emailRow.local_unit_id
+              ? emailRow.local_unit_id === term.local_unit_id
+              : emailRow.council_id === term.council_id) &&
             emailRow.office_scope_code === term.office_scope_code &&
             emailRow.office_code === term.office_code &&
             (emailRow.office_rank ?? null) === (term.office_rank ?? null)
