@@ -37,6 +37,10 @@ type PersonRow = {
   primary_relationship_code: string
 }
 
+type LocalUnitPersonRow = {
+  person_id: string | null
+}
+
 type AdminAssignmentRow = {
   id: string
   grantee_email: string | null
@@ -55,6 +59,36 @@ type PublicContactRecipient = {
   name: string | null
   source: 'custom_route' | 'admin_default'
 }
+
+type PublicContactDbError = {
+  message: string
+  code?: string | null
+}
+
+type PublicContactQueryResult<TData = unknown> = {
+  data: TData | null
+  error: PublicContactDbError | null
+}
+
+type PublicContactQueryBuilder<TData = unknown> = {
+  select(columns: string): PublicContactQueryBuilder<TData>
+  eq(column: string, value: unknown): PublicContactQueryBuilder<TData>
+  gte(column: string, value: unknown): PublicContactQueryBuilder<TData>
+  is(column: string, value: unknown): PublicContactQueryBuilder<TData>
+  order(column: string, options: { ascending: boolean }): PublicContactQueryBuilder<TData>
+  limit(count: number): PublicContactQueryBuilder<TData> & PromiseLike<PublicContactQueryResult<TData>>
+  maybeSingle(): Promise<PublicContactQueryResult<TData>>
+  insert(values: unknown): PublicContactQueryBuilder<TData> & PromiseLike<PublicContactQueryResult<TData>>
+}
+
+function adminCompatFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicContactQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
 
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -111,8 +145,7 @@ async function loadCustomContactRecipient(args: {
   admin: ReturnType<typeof createAdminClient>
   localUnitId: string
 }): Promise<PublicContactRecipient | null> {
-  const { data, error } = await (args.admin as any)
-    .from('local_unit_message_routes')
+  const { data, error } = await adminCompatFrom<MessageRouteRow[]>(args.admin, 'local_unit_message_routes')
     .select('recipient_email, recipient_label')
     .eq('local_unit_id', args.localUnitId)
     .eq('route_key', 'public_contact')
@@ -195,7 +228,6 @@ async function loadPublicContext(args: { slug: string }) {
   if (!councilNumber) return null
 
   const admin = createAdminClient()
-  const untypedAdmin = admin as any
   const { data: councilData } = await admin
     .from('councils')
     .select('id, name, council_number, organization_id')
@@ -210,8 +242,7 @@ async function loadPublicContext(args: { slug: string }) {
 
   const [{ data: organizationData }, { data: localUnitData }] = await Promise.all([
     council.organization_id
-      ? untypedAdmin
-          .from('organizations')
+      ? adminCompatFrom<OrganizationRow>(admin, 'organizations')
           .select('display_name, preferred_name, public_page_enabled, public_contact_form_enabled')
           .eq('id', council.organization_id)
           .maybeSingle()
@@ -241,6 +272,46 @@ async function loadPublicContext(args: { slug: string }) {
   return { admin, council, organization, localUnit, recipients, canonicalSlug }
 }
 
+async function findExistingLocalUnitDirectoryPerson(args: {
+  admin: ReturnType<typeof createAdminClient>
+  localUnitId: string
+  submitterEmail: string
+}) {
+  const emailHash = buildHashForField('email', args.submitterEmail)
+  if (!emailHash) return null
+
+  const { data: localUnitPeopleData, error: localUnitPeopleError } = await args.admin
+    .from('local_unit_people')
+    .select('person_id')
+    .eq('local_unit_id', args.localUnitId)
+    .is('ended_at', null)
+
+  if (localUnitPeopleError) {
+    throw new Error(localUnitPeopleError.message)
+  }
+
+  const personIds = ((localUnitPeopleData as LocalUnitPersonRow[] | null) ?? [])
+    .map((row) => row.person_id)
+    .filter((value): value is string => Boolean(value))
+
+  if (personIds.length === 0) return null
+
+  const { data, error } = await args.admin
+    .from('people')
+    .select('id, primary_relationship_code')
+    .in('id', personIds)
+    .eq('email_hash', emailHash)
+    .is('archived_at', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data as PersonRow | null
+}
+
 async function findOrCreateDirectoryPerson(args: {
   admin: ReturnType<typeof createAdminClient>
   councilId: string
@@ -252,22 +323,11 @@ async function findOrCreateDirectoryPerson(args: {
 }) {
   if (args.inquiryType !== 'volunteer' && args.inquiryType !== 'membership') return null
 
-  const untypedAdmin = args.admin as any
-  const emailHash = buildHashForField('email', args.submitterEmail)
-  let existingPerson: PersonRow | null = null
-
-  if (emailHash) {
-    const { data } = await args.admin
-      .from('people')
-      .select('id, primary_relationship_code')
-      .eq('council_id', args.councilId)
-      .eq('email_hash', emailHash)
-      .is('archived_at', null)
-      .limit(1)
-      .maybeSingle()
-
-    existingPerson = data as PersonRow | null
-  }
+  const existingPerson = await findExistingLocalUnitDirectoryPerson({
+    admin: args.admin,
+    localUnitId: args.localUnitId,
+    submitterEmail: args.submitterEmail,
+  })
 
   const personId = existingPerson?.id ?? await createDirectoryPerson(args)
 
@@ -280,8 +340,7 @@ async function findOrCreateDirectoryPerson(args: {
     .maybeSingle()
 
   if (!existingLocalUnitPerson?.id) {
-    const { error } = await untypedAdmin
-      .from('local_unit_people')
+    const { error } = await adminCompatFrom(args.admin, 'local_unit_people')
       .insert({
         local_unit_id: args.localUnitId,
         person_id: personId,
@@ -368,8 +427,7 @@ async function hasRecentPublicContactSubmission(args: {
   submitterEmail: string
 }) {
   const since = new Date(Date.now() - PUBLIC_CONTACT_COOLDOWN_MS).toISOString()
-  const { data, error } = await (args.admin as any)
-    .from('local_unit_public_contact_message_jobs')
+  const { data, error } = await adminCompatFrom<{ id: string }[]>(args.admin, 'local_unit_public_contact_message_jobs')
     .select('id')
     .eq('local_unit_id', args.localUnitId)
     .eq('reply_to_email', args.submitterEmail)
@@ -465,8 +523,7 @@ export async function submitPublicContactFormAction(formData: FormData) {
       scheduled_for: new Date().toISOString(),
     }))
 
-    const { error: jobError } = await (context.admin as any)
-      .from('local_unit_public_contact_message_jobs')
+    const { error: jobError } = await adminCompatFrom(context.admin, 'local_unit_public_contact_message_jobs')
       .insert(jobs)
 
     if (jobError) throw new Error(jobError.message)
