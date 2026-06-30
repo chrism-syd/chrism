@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppHeader from '@/app/app-header'
 import OrganizationAvatar from '@/app/components/organization-avatar'
@@ -122,17 +123,21 @@ export default async function MemberReviewsPage() {
     minimumAccessLevel: 'edit_manage',
   })
 
+  if (!localUnitId) {
+    notFound()
+  }
+
   const [pendingReviews, recentDecisions, organizationData, publicInquiryData] = await Promise.all([
     listProfileChangeReviewSummaries({
       admin,
-      councilId: council.id,
+      localUnitId,
       organizationId: council.organization_id ?? null,
       statusCodes: ['pending'],
       limit: 40,
     }),
     listProfileChangeReviewSummaries({
       admin,
-      councilId: council.id,
+      localUnitId,
       organizationId: council.organization_id ?? null,
       statusCodes: ['approved', 'rejected'],
       decisionNoticeState: 'uncleared',
