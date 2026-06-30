@@ -137,7 +137,7 @@ export default async function ManagePage({ params, searchParams }: ManagePagePro
   const candidates = await listClaimablePersonRsvps({
     supabase: adminSupabase,
     eventId: context.event.id,
-    hostCouncilId: context.event.host_council_id,
+    hostLocalUnitId: context.event.host_local_unit_id,
     userId: user.id,
     email: user.email ?? null,
     submissionId: requestedSubmissionId || null,

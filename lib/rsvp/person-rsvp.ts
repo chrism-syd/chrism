@@ -18,11 +18,10 @@ function normalizeEmail(value?: string | null) {
 
 async function findScopedPersonIdByEmail(args: {
   supabase: SupabaseClient<any, 'public', any>;
-  hostCouncilId: string;
   localUnitId?: string | null;
   email: string | null;
 }) {
-  const { supabase, hostCouncilId, localUnitId, email } = args;
+  const { supabase, localUnitId, email } = args;
 
   if (!email) {
     return null;
@@ -34,8 +33,11 @@ async function findScopedPersonIdByEmail(args: {
     return null;
   }
 
-  if (localUnitId) {
-    const { data: scopedRows, error: scopedError } = await supabase
+  if (!localUnitId) {
+    return null;
+  }
+
+  const { data: scopedRows, error: scopedError } = await supabase
       .from('local_unit_people')
       .select('person_id')
       .eq('local_unit_id', localUnitId)
@@ -62,24 +64,8 @@ async function findScopedPersonIdByEmail(args: {
       .is('archived_at', null)
       .maybeSingle();
 
-    if (error) {
-      throw new Error(`Could not resolve RSVP person by scoped email: ${error.message}`);
-    }
-
-    return data?.id ?? null;
-  }
-
-  const { data, error } = await supabase
-    .from('people')
-    .select('id')
-    .eq('council_id', hostCouncilId)
-    .or(`email_hash.eq.${emailHash},email.ilike.${email}`)
-    .is('merged_into_person_id', null)
-    .is('archived_at', null)
-    .maybeSingle();
-
   if (error) {
-    throw new Error(`Could not resolve RSVP person by council email: ${error.message}`);
+    throw new Error(`Could not resolve RSVP person by scoped email: ${error.message}`);
   }
 
   return data?.id ?? null;
@@ -175,7 +161,6 @@ async function ensureNoDuplicateActiveSubmission(args: {
 export async function savePersonRsvpSubmission(args: {
   supabase: SupabaseClient<any, 'public', any>;
   eventId: string;
-  hostCouncilId: string;
   localUnitId?: string | null;
   primaryName: string;
   primaryEmail: string | null;
@@ -191,7 +176,6 @@ export async function savePersonRsvpSubmission(args: {
   const {
     supabase,
     eventId,
-    hostCouncilId,
     localUnitId = null,
     primaryName,
     primaryEmail,
@@ -211,7 +195,6 @@ export async function savePersonRsvpSubmission(args: {
     explicitMatchedPersonId ??
     (await findScopedPersonIdByEmail({
       supabase,
-      hostCouncilId,
       localUnitId,
       email: normalizedPrimaryEmail,
     }));
@@ -329,7 +312,6 @@ export async function savePersonRsvpSubmission(args: {
       return {
         matched_person_id: await findScopedPersonIdByEmail({
           supabase,
-          hostCouncilId,
           localUnitId,
           email: attendeeEmail,
         }),

@@ -1221,7 +1221,7 @@ async function submitPersonRsvpByToken(args: {
   const result = await savePersonRsvpSubmission({
     supabase,
     eventId: event.id,
-    hostCouncilId: event.council_id,
+    localUnitId: event.local_unit_id,
     primaryName,
     primaryEmail,
     primaryPhone,
@@ -1591,7 +1591,7 @@ export async function addHostManualVolunteer(
   returnTo: 'detail' | 'volunteers' = 'detail',
   formData: FormData
 ) {
-  const { supabase, council, appUser, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
+  const { supabase, appUser, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
   const event = await loadOwnedEvent({
     supabase,
     eventId,
@@ -1696,7 +1696,7 @@ export async function addHostManualVolunteer(
   await savePersonRsvpSubmission({
     supabase,
     eventId: event.id,
-    hostCouncilId: council.id,
+    localUnitId: event.local_unit_id,
     primaryName,
     primaryEmail,
     primaryPhone,
@@ -1740,7 +1740,7 @@ export async function updateHostManualVolunteer(
   submissionId: string,
   formData: FormData
 ) {
-  const { supabase, council, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
+  const { supabase, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
@@ -1837,7 +1837,7 @@ export async function updateHostManualVolunteer(
   await savePersonRsvpSubmission({
     supabase,
     eventId: event.id,
-    hostCouncilId: council.id,
+    localUnitId: event.local_unit_id,
     primaryName,
     primaryEmail,
     primaryPhone,
