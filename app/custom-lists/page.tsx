@@ -177,7 +177,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
 
   let query = admin
     .from('custom_lists')
-    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .select('id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .is('archived_at', null)
     .order('updated_at', { ascending: false })
 

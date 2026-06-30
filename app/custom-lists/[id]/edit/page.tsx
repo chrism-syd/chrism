@@ -21,7 +21,7 @@ export default async function EditCustomListPage({ params }: PageProps) {
   const admin = createAdminClient()
   const { data: listData, error: listError } = await admin
     .from('custom_lists')
-    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .select('id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .eq('id', id)
     .maybeSingle<CustomListRow>()
 

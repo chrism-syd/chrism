@@ -90,7 +90,7 @@ export default async function ArchivedCustomListsPage() {
 
   let query = admin
     .from('custom_lists')
-    .select('id, council_id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
+    .select('id, local_unit_id, name, description, archived_at, created_at, updated_at, created_by_auth_user_id, updated_by_auth_user_id')
     .not('archived_at', 'is', null)
     .order('archived_at', { ascending: false })
 
