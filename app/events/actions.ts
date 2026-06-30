@@ -513,7 +513,6 @@ async function loadOwnedEvent(args: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   eventId: string;
   localUnitId: string | null;
-  councilId: string;
 }) {
   const { supabase, eventId, localUnitId } = args;
 
@@ -1354,7 +1353,7 @@ export async function createEvent(formData: FormData) {
 
 export async function updateEvent(eventId: string, formData: FormData) {
   const { supabase, appUser, council, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-  const existingEvent = await loadOwnedEvent({ supabase, eventId, localUnitId, councilId: council.id });
+  const existingEvent = await loadOwnedEvent({ supabase, eventId, localUnitId });
   const eventInput = buildEventPayload(formData);
   const invitedCouncils = eventInput.scope_code === 'multi_council' ? parseInvitedCouncils(formData) : [];
   const externalInvitees = parseExternalInvitees(formData);
@@ -1431,7 +1430,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
 
 export async function duplicateEventAsDraft(eventId: string) {
   const { supabase, appUser, council, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-  const event = await loadOwnedEvent({ supabase, eventId, localUnitId, councilId: council.id });
+  const event = await loadOwnedEvent({ supabase, eventId, localUnitId });
 
   const { data: invitedCouncilsData, error: invitedCouncilsError } = await supabase
     .from('event_invited_councils')
@@ -1542,8 +1541,8 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
 }
 
 export async function deleteEvent(eventId: string) {
-  const { supabase, appUser, council, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
-  const event = await loadOwnedEvent({ supabase, eventId, localUnitId, councilId: council.id });
+  const { supabase, appUser, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
+  const event = await loadOwnedEvent({ supabase, eventId, localUnitId });
 
   const { error: archiveError } = await supabase.from('event_archives').insert({
     original_event_id: event.id,
@@ -1597,7 +1596,6 @@ export async function addHostManualVolunteer(
     supabase,
     eventId,
     localUnitId,
-    councilId: council.id,
   });
 
   if (event.scope_code !== 'home_council_only') {
@@ -1748,7 +1746,6 @@ export async function updateHostManualVolunteer(
     supabase,
     eventId,
     localUnitId,
-    councilId: council.id,
   });
 
   if (event.scope_code !== 'home_council_only') {
@@ -1865,13 +1862,12 @@ export async function removeVolunteerSubmission(
   submissionId: string,
   returnTo: 'detail' | 'volunteers' = 'volunteers'
 ) {
-  const { supabase, council, appUser, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
+  const { supabase, appUser, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
 
   const event = await loadOwnedEvent({
     supabase,
     eventId,
     localUnitId,
-    councilId: council.id,
   });
 
   if (event.scope_code !== 'home_council_only') {
@@ -2151,12 +2147,11 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
 }
 
 export async function addEventExternalInvitee(eventId: string, formData: FormData) {
-  const { supabase, user, council, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
+  const { supabase, user, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
   const event = await loadOwnedEvent({
     supabase,
     eventId,
     localUnitId,
-    councilId: council.id,
   });
 
   const inviteeName = normalizeString(formData.get('invitee_name'));
@@ -2191,12 +2186,11 @@ export async function addEventExternalInvitee(eventId: string, formData: FormDat
 }
 
 export async function removeEventExternalInvitee(eventId: string, formData: FormData) {
-  const { supabase, council, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
+  const { supabase, localUnitId } = await getCurrentAppContext({ eventId, redirectTo: '/events' });
   const event = await loadOwnedEvent({
     supabase,
     eventId,
     localUnitId,
-    councilId: council.id,
   });
   const inviteeId = nullableString(formData.get('invitee_id'));
 
