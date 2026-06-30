@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import ClearFlashMessageCookie from '@/app/components/clear-flash-message-cookie'
 import { getFlashMessage } from '@/lib/flash-messages'
 import { redirect } from 'next/navigation'
