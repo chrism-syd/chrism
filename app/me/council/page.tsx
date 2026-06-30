@@ -99,7 +99,7 @@ type OfficerTermRow = {
 
 type OfficerRoleEmailRow = {
   id: string
-  council_id: string
+  local_unit_id: string
   office_scope_code: OfficerScopeCode
   office_code: string
   office_rank: number | null
@@ -213,6 +213,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   if (!permissions.organizationId) redirect('/me')
   if (!permissions.canAccessOrganizationSettings) redirect('/me')
+  if (!localUnitId) redirect('/me')
 
   const isPreviewAdminMode = permissions.isSuperAdmin && permissions.actingMode === 'admin'
   const localUnitDirectoryData = localUnitId
@@ -253,12 +254,12 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     admin
       .from('person_officer_terms')
       .select('id, person_id, office_scope_code, office_code, office_rank, service_start_year, service_end_year, manual_end_effective_date, office_label')
-      .eq('council_id', council.id)
+      .eq('local_unit_id', localUnitId)
       .order('service_start_year', { ascending: false }),
     admin
       .from('officer_role_emails')
-      .select('id, council_id, office_scope_code, office_code, office_rank, email')
-      .eq('council_id', council.id)
+      .select('id, local_unit_id, office_scope_code, office_code, office_rank, email')
+      .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
       .order('office_scope_code', { ascending: true }),
     admin
