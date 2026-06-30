@@ -44,7 +44,7 @@ async function readFlashMessageCookie() {
   return null
 }
 
-export async function setFlashMessage(kind: FlashMessageKind, message: string | null | undefined, path?: string | null) {
+export async function setFlashMessage(kind: FlashMessageKind, message?: string | null, path?: string | null) {
   const normalizedMessage = normalizeFlashMessage(message)
   if (!normalizedMessage) return
 
