@@ -117,7 +117,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
   const [{ data: scopedPersonData, error }, { data: officerTerms }, { data: customListMembershipsData }, { data: memberRecordData, error: memberRecordError }] = await Promise.all([
     scopedPersonPromise,
-    supabase.from('person_officer_terms').select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes').eq('person_id', id).eq('council_id', council.id).returns<OfficerTermRow[]>(),
+    supabase.from('person_officer_terms').select('id, office_scope_code, office_code, office_label, office_rank, service_start_year, service_end_year, manual_end_effective_date, notes').eq('person_id', id).eq('local_unit_id', localUnitId).returns<OfficerTermRow[]>(),
     supabase.from('custom_list_members').select('id, custom_list_id, claimed_by_person_id, last_contact_at, last_contact_by_person_id').eq('person_id', id).returns<MemberCustomListMembershipRow[]>(),
     supabase.from('member_records').select('preferred_display_name').eq('local_unit_id', localUnitId).eq('legacy_people_id', id).is('archived_at', null).maybeSingle<{ preferred_display_name: string | null }>(),
   ])
