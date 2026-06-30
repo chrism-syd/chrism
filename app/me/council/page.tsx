@@ -98,7 +98,7 @@ type OfficerTermRow = {
 
 type OfficerRoleEmailRow = {
   id: string
-  council_id: string
+  local_unit_id: string | null
   office_scope_code: OfficerScopeCode
   office_code: string
   office_rank: number | null
@@ -258,8 +258,8 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       : Promise.resolve({ data: [] as OfficerTermRow[] }),
     admin
       .from('officer_role_emails')
-      .select('id, council_id, office_scope_code, office_code, office_rank, email')
-      .eq('council_id', council.id)
+      .select('id, local_unit_id, office_scope_code, office_code, office_rank, email')
+      .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
       .order('office_scope_code', { ascending: true }),
     admin
