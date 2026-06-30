@@ -40,7 +40,7 @@ async function redirectToCouncilPage(args: { error?: string | null; notice?: str
   if (args.error) {
     await setFlashMessage('error', args.error)
   } else if (args.notice) {
-    await setFlashMessage('notice', args.notice)
+    await setFlashMessage('notice')
   }
 
   redirect('/me/council')
@@ -142,7 +142,6 @@ function buildAbsoluteInviteUrl(args: { origin: string | null; invitePath: strin
 
 async function saveOfficerRoleEmail(args: {
   localUnitId: string
-  councilId: string
   officeScopeCode: string
   officeCode: string
   officeRank: number | null
@@ -184,7 +183,6 @@ async function saveOfficerRoleEmail(args: {
 
   const payload = {
     local_unit_id: args.localUnitId,
-    council_id: args.councilId,
     office_scope_code: args.officeScopeCode,
     office_code: args.officeCode,
     office_rank: args.officeRank,
@@ -322,7 +320,6 @@ export async function saveOfficerRoleEmailAction(formData: FormData) {
   try {
     await saveOfficerRoleEmail({
       localUnitId: context.localUnitId,
-      councilId: context.council.id,
       officeScopeCode: term.office_scope_code,
       officeCode: term.office_code,
       officeRank: term.office_rank ?? null,
@@ -679,7 +676,6 @@ export async function addOfficerTermAction(formData: FormData) {
 
   const termPayload = {
     local_unit_id: context.localUnitId,
-    council_id: context.council.id,
     person_id: resolvedPersonId,
     office_scope_code: resolvedOfficeScopeCode,
     office_code: resolvedOfficeCode,
@@ -761,7 +757,6 @@ export async function addOfficerTermAction(formData: FormData) {
     try {
       await saveOfficerRoleEmail({
         localUnitId: context.localUnitId,
-        councilId: context.council.id,
         officeScopeCode: resolvedOfficeScopeCode,
         officeCode: resolvedOfficeCode,
         officeRank: option.supportsRank ? rank : null,
