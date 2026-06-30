@@ -14,6 +14,65 @@ const PUBLIC_GALLERY_MAX_IMAGES = 12
 const PUBLIC_GALLERY_MAX_FILE_SIZE = 5 * 1024 * 1024
 const PUBLIC_GALLERY_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
+type PublicPageSettingsDbError = {
+  message: string
+}
+
+type PublicPageSettingsQueryResult<TData = unknown> = {
+  data: TData | null
+  error: PublicPageSettingsDbError | null
+  count?: number | null
+}
+
+type PublicPageSettingsQueryBuilder<TData = unknown> = PromiseLike<PublicPageSettingsQueryResult<TData>> & {
+  select(columns: string, options?: { count?: 'exact'; head?: boolean }): PublicPageSettingsQueryBuilder<TData>
+  update(values: unknown): PublicPageSettingsQueryBuilder<TData>
+  insert(values: unknown): PublicPageSettingsQueryBuilder<TData>
+  delete(): PublicPageSettingsQueryBuilder<TData>
+  eq(column: string, value: unknown): PublicPageSettingsQueryBuilder<TData>
+  neq(column: string, value: unknown): PublicPageSettingsQueryBuilder<TData>
+  order(column: string, options: { ascending: boolean }): PublicPageSettingsQueryBuilder<TData>
+  limit(count: number): PublicPageSettingsQueryBuilder<TData>
+}
+
+function publicPageSettingsFrom<TData = unknown>(admin: ReturnType<typeof createAdminClient>, table: string) {
+  const compatAdmin = admin as unknown as {
+    from: (table: string) => PublicPageSettingsQueryBuilder<TData>
+  }
+
+  return compatAdmin.from(table)
+}
+
+type PublicMessageRouteRow = {
+  id: string
+  is_active: boolean | null
+  updated_at: string | null
+}
+
+type PublicGalleryImageIdRow = {
+  id: string
+}
+
+type PublicGalleryInsertRow = {
+  local_unit_id: string
+  storage_bucket: string
+  storage_path: string
+  sort_order: number
+  is_active: boolean
+  created_by_auth_user_id: string
+  updated_by_auth_user_id: string
+}
+
+type PublicExternalLinkInsertRow = {
+  local_unit_id: string
+  label: string
+  url: string
+  sort_order: number
+  is_active: boolean
+  created_by_auth_user_id: string
+  updated_by_auth_user_id: string
+}
+
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key)
   if (typeof value !== 'string') return null
@@ -142,9 +201,8 @@ export async function updatePublicPageSettingsAction(formData: FormData) {
   const publicPageEnabled = formData.get('public_page_enabled') === 'true'
   const publicContactFormEnabled = formData.get('public_contact_form_enabled') === 'true'
 
-  const admin = createAdminClient() as any
-  const { error } = await admin
-    .from('organizations')
+  const admin = createAdminClient()
+  const { error } = await publicPageSettingsFrom(admin, 'organizations')
     .update({
       public_page_enabled: publicPageEnabled,
       public_description: publicDescription,
@@ -162,7 +220,7 @@ export async function updatePublicPageSettingsAction(formData: FormData) {
 
 export async function savePublicContactRouteAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
   const recipientEmailValue = textValue(formData, 'public_contact_recipient_email')
@@ -170,8 +228,7 @@ export async function savePublicContactRouteAction(formData: FormData) {
   const recipientEmail = normalizeEmail(recipientEmailValue)
 
   try {
-    const { data: existingRoutes, error: existingError } = await admin
-      .from('local_unit_message_routes')
+    const { data: existingRoutes, error: existingError } = await publicPageSettingsFrom<PublicMessageRouteRow[]>(admin, 'local_unit_message_routes')
       .select('id, is_active, updated_at')
       .eq('local_unit_id', localUnitId)
       .eq('route_key', PUBLIC_CONTACT_ROUTE_KEY)
@@ -186,8 +243,7 @@ export async function savePublicContactRouteAction(formData: FormData) {
     const existingRouteId = existingRoutes?.[0]?.id as string | undefined
 
     if (!recipientEmailValue) {
-      const { error: clearError } = await admin
-        .from('local_unit_message_routes')
+      const { error: clearError } = await publicPageSettingsFrom(admin, 'local_unit_message_routes')
         .update({
           is_active: false,
           updated_by_auth_user_id: authUserId,
@@ -209,8 +265,7 @@ export async function savePublicContactRouteAction(formData: FormData) {
     }
 
     if (existingRouteId) {
-      await admin
-        .from('local_unit_message_routes')
+      await publicPageSettingsFrom(admin, 'local_unit_message_routes')
         .update({
           is_active: false,
           updated_by_auth_user_id: authUserId,
@@ -219,8 +274,7 @@ export async function savePublicContactRouteAction(formData: FormData) {
         .eq('route_key', PUBLIC_CONTACT_ROUTE_KEY)
         .neq('id', existingRouteId)
 
-      const { error: updateError } = await admin
-        .from('local_unit_message_routes')
+      const { error: updateError } = await publicPageSettingsFrom(admin, 'local_unit_message_routes')
         .update({
           recipient_person_id: null,
           recipient_email: recipientEmail,
@@ -234,8 +288,7 @@ export async function savePublicContactRouteAction(formData: FormData) {
         throw new Error(updateError.message)
       }
     } else {
-      const { error: insertError } = await admin
-        .from('local_unit_message_routes')
+      const { error: insertError } = await publicPageSettingsFrom(admin, 'local_unit_message_routes')
         .insert({
           local_unit_id: localUnitId,
           route_key: PUBLIC_CONTACT_ROUTE_KEY,
@@ -262,14 +315,13 @@ export async function savePublicContactRouteAction(formData: FormData) {
 
 export async function savePublicExternalLinksAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
 
   try {
     const links = buildExternalLinksPayload({ formData, localUnitId, authUserId })
-    const { error: deleteError } = await admin
-      .from('local_unit_external_links')
+    const { error: deleteError } = await publicPageSettingsFrom(admin, 'local_unit_external_links')
       .delete()
       .eq('local_unit_id', localUnitId)
 
@@ -278,8 +330,7 @@ export async function savePublicExternalLinksAction(formData: FormData) {
     }
 
     if (links.length > 0) {
-      const { error: insertError } = await admin
-        .from('local_unit_external_links')
+      const { error: insertError } = await publicPageSettingsFrom<PublicExternalLinkInsertRow[]>(admin, 'local_unit_external_links')
         .insert(links)
 
       if (insertError) {
@@ -297,7 +348,7 @@ export async function savePublicExternalLinksAction(formData: FormData) {
 
 export async function uploadPublicGalleryImagesAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
   const files = getUploadFiles(formData)
@@ -307,8 +358,7 @@ export async function uploadPublicGalleryImagesAction(formData: FormData) {
   }
 
   try {
-    const { count, error: countError } = await admin
-      .from('local_unit_public_gallery_images')
+    const { count, error: countError } = await publicPageSettingsFrom(admin, 'local_unit_public_gallery_images')
       .select('id', { count: 'exact', head: true })
       .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
@@ -328,7 +378,7 @@ export async function uploadPublicGalleryImagesAction(formData: FormData) {
       throw new Error(`You can upload ${availableSlots} more image${availableSlots === 1 ? '' : 's'} to this gallery.`)
     }
 
-    const rows = []
+    const rows: PublicGalleryInsertRow[] = []
 
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index]
@@ -367,8 +417,7 @@ export async function uploadPublicGalleryImagesAction(formData: FormData) {
       })
     }
 
-    const { error: insertError } = await admin
-      .from('local_unit_public_gallery_images')
+    const { error: insertError } = await publicPageSettingsFrom<PublicGalleryInsertRow[]>(admin, 'local_unit_public_gallery_images')
       .insert(rows)
 
     if (insertError) {
@@ -385,13 +434,12 @@ export async function uploadPublicGalleryImagesAction(formData: FormData) {
 
 export async function savePublicGalleryImagesAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
 
   try {
-    const { data: existingRows, error: existingError } = await admin
-      .from('local_unit_public_gallery_images')
+    const { data: existingRows, error: existingError } = await publicPageSettingsFrom<PublicGalleryImageIdRow[]>(admin, 'local_unit_public_gallery_images')
       .select('id')
       .eq('local_unit_id', localUnitId)
       .eq('is_active', true)
@@ -410,8 +458,7 @@ export async function savePublicGalleryImagesAction(formData: FormData) {
       const parsedSortOrder = Number.parseInt(sortOrderValue ?? '', 10)
       const sortOrder = Number.isFinite(parsedSortOrder) && parsedSortOrder >= 0 ? parsedSortOrder : 0
 
-      const { error: updateError } = await admin
-        .from('local_unit_public_gallery_images')
+      const { error: updateError } = await publicPageSettingsFrom(admin, 'local_unit_public_gallery_images')
         .update({
           title,
           sort_order: sortOrder,
@@ -435,7 +482,7 @@ export async function savePublicGalleryImagesAction(formData: FormData) {
 
 export async function deletePublicGalleryImageAction(formData: FormData) {
   const context = await requirePublicPageSettingsAccess()
-  const admin = createAdminClient() as any
+  const admin = createAdminClient()
   const localUnitId = context.localUnitId!
   const authUserId = context.permissions.authUser!.id
   const imageId = textValue(formData, 'gallery_image_id')
@@ -445,8 +492,7 @@ export async function deletePublicGalleryImageAction(formData: FormData) {
   }
 
   try {
-    const { error: updateError } = await admin
-      .from('local_unit_public_gallery_images')
+    const { error: updateError } = await publicPageSettingsFrom(admin, 'local_unit_public_gallery_images')
       .update({
         is_active: false,
         updated_by_auth_user_id: authUserId,
