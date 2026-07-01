@@ -23,7 +23,7 @@ type PersonRow = {
 export default async function MemberOfficerTermsPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const resolvedSearchParams = searchParams ? await searchParams : {}
-  const routePath = `/members/${id}/officers`
+  const routePath = `/people/${id}/officers`
   const queryErrorMessage = typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null
   const queryNoticeMessage = typeof resolvedSearchParams.notice === 'string' ? resolvedSearchParams.notice : null
   const flashMessage = await consumeFlashMessage(routePath)
@@ -33,7 +33,7 @@ export default async function MemberOfficerTermsPage({ params, searchParams }: P
 
   const { admin: supabase, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -96,7 +96,7 @@ export default async function MemberOfficerTermsPage({ params, searchParams }: P
               </p>
             </div>
             <div className="qv-top-actions">
-              <Link href={`/members/${person.id}`} className="qv-link-button qv-button-secondary">
+              <Link href={`/people/${person.id}`} className="qv-link-button qv-button-secondary">
                 Back to member
               </Link>
             </div>
