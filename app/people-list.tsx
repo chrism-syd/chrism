@@ -186,9 +186,9 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((member) => member.id), [filteredAndSortedPeople])
   const selectedCount = selectedPeople.length
-  const allFilteredMembersSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedPersonIdSet.has(memberId))
-  const someFilteredMembersSelected = filteredPersonIds.some((memberId) => selectedPersonIdSet.has(memberId))
-  useEffect(() => { if (selectionRef.current) selectionRef.current.indeterminate = someFilteredMembersSelected && !allFilteredMembersSelected }, [allFilteredMembersSelected, someFilteredMembersSelected])
+  const allFilteredPeopleSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedPersonIdSet.has(memberId))
+  const someFilteredPeopleSelected = filteredPersonIds.some((memberId) => selectedPersonIdSet.has(memberId))
+  useEffect(() => { if (selectionRef.current) selectionRef.current.indeterminate = someFilteredPeopleSelected && !allFilteredPeopleSelected }, [allFilteredPeopleSelected, someFilteredPeopleSelected])
 
   const hasActiveControls = search.trim() !== '' || relationshipFilter !== 'all' || quickFilter !== 'all' || sortBy !== 'last_name_asc' || rowsPerPage !== DEFAULT_ROWS_PER_PAGE
   function getDisplayedRole(memberId: string, relationshipCode: string) {
@@ -225,7 +225,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
     if (filteredPersonIds.length === 0) return
     setSelectedPersonIds((current) => {
       const next = new Set(current)
-      if (allFilteredMembersSelected) for (const memberId of filteredPersonIds) next.delete(memberId)
+      if (allFilteredPeopleSelected) for (const memberId of filteredPersonIds) next.delete(memberId)
       else for (const memberId of filteredPersonIds) next.add(memberId)
       return [...next]
     })
@@ -272,8 +272,8 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
         </div>
         <div className="qv-pagination-right">
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: filteredPersonIds.length > 0 ? 'pointer' : 'default' }}>
-            <input ref={selectionRef} type="checkbox" checked={allFilteredMembersSelected} onChange={handleToggleAllSelection} disabled={filteredPersonIds.length === 0} style={{ width: 16, height: 16 }} />
-            <span className="qv-inline-message" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{allFilteredMembersSelected ? 'Clear all' : 'Select all'}</span>
+            <input ref={selectionRef} type="checkbox" checked={allFilteredPeopleSelected} onChange={handleToggleAllSelection} disabled={filteredPersonIds.length === 0} style={{ width: 16, height: 16 }} />
+            <span className="qv-inline-message" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{allFilteredPeopleSelected ? 'Clear all' : 'Select all'}</span>
           </label>
           {selectedCount > 0 ? <span className="qv-badge">{selectedCount} selected</span> : null}
           {hasActiveControls ? <button type="button" className="qv-text-toggle qv-text-toggle-secondary" onClick={resetControls}><span>Reset filters</span></button> : null}
