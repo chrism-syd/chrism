@@ -111,7 +111,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   const [notice, setNotice] = useState<NoticeState>(null)
   const [showFieldPicker, setShowFieldPicker] = useState(false)
   const [createListDraft, setCreateListDraft] = useState<CreateListDraft | null>(null)
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
+  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([])
   const actionMenuRef = useRef<HTMLDetailsElement | null>(null)
   const selectionRef = useRef<HTMLInputElement | null>(null)
 
@@ -164,7 +164,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   const safeCurrentPage = Math.min(currentPage, totalPages)
   useEffect(() => { setPageInput(String(safeCurrentPage)) }, [safeCurrentPage])
   useEffect(() => { const fn = (event: MouseEvent) => { const target = event.target as Node; if (!actionMenuRef.current?.contains(target)) actionMenuRef.current?.removeAttribute('open') }; document.addEventListener('mousedown', fn); return () => document.removeEventListener('mousedown', fn) }, [])
-  useEffect(() => { setSelectedMemberIds((current) => current.filter((memberId) => members.some((member) => member.id === memberId))) }, [members])
+  useEffect(() => { setSelectedPersonIds((current) => current.filter((memberId) => members.some((member) => member.id === memberId))) }, [members])
   useEffect(() => {
     if (!notice) return
 
@@ -182,8 +182,8 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   }, [notice])
   const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedMembers : filteredAndSortedMembers.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedMembers, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
-  const selectedMembers = useMemo(() => selectedMemberIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedMemberIds])
-  const selectedMemberIdSet = useMemo(() => new Set(selectedMemberIds), [selectedMemberIds])
+  const selectedMembers = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
+  const selectedMemberIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredMemberIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
   const selectedCount = selectedMembers.length
   const allFilteredMembersSelected = filteredMemberIds.length > 0 && filteredMemberIds.every((memberId) => selectedMemberIdSet.has(memberId))
@@ -220,10 +220,10 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
     if (list.length === 0) return setNotice({ tone: 'error', text: `There are no people in ${sourceLabel} to save into a custom list.` })
     closeMenu(); setNotice(null); setCreateListDraft({ memberIds: list.map((member) => member.id), previewNames: list.slice(0, 12).map((member) => displayFullName(member)), sourceLabel, sourceBadge })
   }
-  function toggleMemberSelection(memberId: string) { setSelectedMemberIds((current) => current.includes(memberId) ? current.filter((value) => value !== memberId) : [...current, memberId]) }
+  function toggleMemberSelection(memberId: string) { setSelectedPersonIds((current) => current.includes(memberId) ? current.filter((value) => value !== memberId) : [...current, memberId]) }
   function handleToggleAllSelection() {
     if (filteredMemberIds.length === 0) return
-    setSelectedMemberIds((current) => {
+    setSelectedPersonIds((current) => {
       const next = new Set(current)
       if (allFilteredMembersSelected) for (const memberId of filteredMemberIds) next.delete(memberId)
       else for (const memberId of filteredMemberIds) next.add(memberId)
