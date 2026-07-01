@@ -270,7 +270,7 @@ async function OperationsHomePage({ permissions }: { permissions: CurrentUserPer
 
   if (!council?.id) {
     if (permissions.canManageEvents) redirect('/events')
-    if (permissions.canAccessMemberData) redirect('/members')
+    if (permissions.canAccessMemberData) redirect('/people')
     if (permissions.canManageCustomLists) redirect('/custom-lists')
     if (permissions.canAccessOrganizationSettings || permissions.canManageAdmins) redirect('/me/council')
     redirect('/me')
@@ -369,7 +369,7 @@ async function OperationsHomePage({ permissions }: { permissions: CurrentUserPer
                 {permissions.canAccessMemberData ? (
                   <div className={homeStyles.cardSection}>
                     <p className={homeStyles.cardSectionTitle}>Your members&apos; contact details always at hand.</p>
-                    <Link href="/members" className={`qv-button-secondary qv-link-button ${homeStyles.cardButton}`}>
+                    <Link href="/people" className={`qv-button-secondary qv-link-button ${homeStyles.cardButton}`}>
                       Member Directory
                     </Link>
                   </div>
