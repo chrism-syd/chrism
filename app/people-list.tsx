@@ -202,9 +202,9 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   function commitPageInput() { if (rowsPerPage === 'all') return setPageInput('1'); const parsed = Number(pageInput); if (!Number.isFinite(parsed)) return setPageInput(String(safeCurrentPage)); const nextPage = Math.min(Math.max(1, Math.trunc(parsed)), totalPages); setCurrentPage(nextPage); setPageInput(String(nextPage)) }
   async function exportPeopleAsExcel(list: PersonListItem[], scopeLabel: string, filePrefix: string) {
     const selectedColumnOptions = COLUMN_OPTIONS.filter((option) => visibleColumns.includes(option.key))
-    const exportRows = list.map((member) => {
-      const baseRow: Record<string, string> = { 'Display name': displayFullName(member), 'Legal name': legalFullName(member), 'Directory role': getDisplayedRole(member.id, member.primary_relationship_code) }
-      for (const option of selectedColumnOptions) baseRow[option.label] = getColumnValue(member, option.key)
+    const exportRows = list.map((person) => {
+      const baseRow: Record<string, string> = { 'Display name': displayFullName(person), 'Legal name': legalFullName(person), 'Directory role': getDisplayedRole(person.id, person.primary_relationship_code) }
+      for (const option of selectedColumnOptions) baseRow[option.label] = getColumnValue(person, option.key)
       return baseRow
     })
     const XLSX = await import('xlsx'); const worksheet = XLSX.utils.json_to_sheet(exportRows); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, 'People')
