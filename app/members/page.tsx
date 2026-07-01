@@ -169,7 +169,7 @@ export default async function MembersPage() {
                           <input type="hidden" name="areaCode" value="members" />
                           <input type="hidden" name="minimumAccessLevel" value="edit_manage" />
                           <input type="hidden" name="localUnitId" value={unit.local_unit_id} />
-                          <input type="hidden" name="next" value="/members" />
+                          <input type="hidden" name="next" value="/people" />
                           <button
                             type="submit"
                             className="qv-view-menu-item"
@@ -217,9 +217,9 @@ export default async function MembersPage() {
 
         <SectionMenuBar
           items={[
-            { label: 'Add person', href: '/members/new' },
+            { label: 'Add person', href: '/people/new' },
             { label: 'Import Supreme list', href: '/imports/supreme' },
-            { label: 'Archived people', href: '/members/archive' },
+            { label: 'Archived people', href: '/people/archive' },
           ]}
         />
 
