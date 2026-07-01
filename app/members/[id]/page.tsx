@@ -68,7 +68,7 @@ function isWithinRange(date: string, startDate: string, endDate: string) { retur
 
 export default async function MemberDetailPage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({ redirectTo: '/members', areaCode: 'members', minimumAccessLevel: 'edit_manage' })
+  const { admin: supabase, council, permissions, localUnitId } = await getCurrentActingCouncilContext({ redirectTo: '/people', areaCode: 'members', minimumAccessLevel: 'edit_manage' })
   if (!localUnitId) notFound()
 
   const validLocalUnitPersonIds = await listValidDirectoryPersonIdsForLocalUnit({ admin: supabase, localUnitId, personIds: [id] }).catch((): string[] => [])
@@ -183,7 +183,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 18, flex: '1 1 560px', minWidth: 0 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <Link href="/members" aria-label="Back to people" className="qv-link-button" style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--divider-strong)', background: 'var(--bg-card)', color: 'var(--interactive)', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>‹</Link>
+                <Link href="/people" aria-label="Back to people" className="qv-link-button" style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--divider-strong)', background: 'var(--bg-card)', color: 'var(--interactive)', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>‹</Link>
                 <p className="qv-eyebrow" style={{ margin: 0 }}>People Directory</p>
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
@@ -212,7 +212,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
       <div className="qv-section-menu-shell" style={{ marginTop: -22 }}>
         <div style={{ position: 'relative', minHeight: 58, paddingInline: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Link href={`/members/${person.id}/edit`} className="qv-button-secondary qv-link-button">Edit person</Link>
+          <Link href={`/people/${person.id}/edit`} className="qv-button-secondary qv-link-button">Edit person</Link>
           {permissions.isCouncilAdmin ? <div style={{ position: 'absolute', right: 28, top: 0, bottom: 0, display: 'flex', alignItems: 'center' }}><DeleteMemberIconButton memberId={person.id} memberName={personName} /></div> : null}
         </div>
       </div>

@@ -60,7 +60,7 @@ export default async function EditMemberPage({ params }: PageProps) {
   const { id } = await params
   const actingContext = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -159,7 +159,7 @@ export default async function EditMemberPage({ params }: PageProps) {
         <section className="qv-card">
           <MemberForm
             mode="edit"
-            cancelHref={`/members/${person.id}`}
+            cancelHref={`/people/${person.id}`}
             initialValues={{
               member_id: person.id,
               primary_relationship_code: person.primary_relationship_code ?? 'member',
