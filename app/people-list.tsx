@@ -184,10 +184,10 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
   const selectedMembers = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
   const selectedMemberIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
-  const filteredMemberIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
+  const filteredPersonIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
   const selectedCount = selectedMembers.length
-  const allFilteredMembersSelected = filteredMemberIds.length > 0 && filteredMemberIds.every((memberId) => selectedMemberIdSet.has(memberId))
-  const someFilteredMembersSelected = filteredMemberIds.some((memberId) => selectedMemberIdSet.has(memberId))
+  const allFilteredMembersSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedMemberIdSet.has(memberId))
+  const someFilteredMembersSelected = filteredPersonIds.some((memberId) => selectedMemberIdSet.has(memberId))
   useEffect(() => { if (selectionRef.current) selectionRef.current.indeterminate = someFilteredMembersSelected && !allFilteredMembersSelected }, [allFilteredMembersSelected, someFilteredMembersSelected])
 
   const hasActiveControls = search.trim() !== '' || relationshipFilter !== 'all' || quickFilter !== 'all' || sortBy !== 'last_name_asc' || rowsPerPage !== DEFAULT_ROWS_PER_PAGE
@@ -222,11 +222,11 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   }
   function toggleMemberSelection(memberId: string) { setSelectedPersonIds((current) => current.includes(memberId) ? current.filter((value) => value !== memberId) : [...current, memberId]) }
   function handleToggleAllSelection() {
-    if (filteredMemberIds.length === 0) return
+    if (filteredPersonIds.length === 0) return
     setSelectedPersonIds((current) => {
       const next = new Set(current)
-      if (allFilteredMembersSelected) for (const memberId of filteredMemberIds) next.delete(memberId)
-      else for (const memberId of filteredMemberIds) next.add(memberId)
+      if (allFilteredMembersSelected) for (const memberId of filteredPersonIds) next.delete(memberId)
+      else for (const memberId of filteredPersonIds) next.add(memberId)
       return [...next]
     })
   }
@@ -271,8 +271,8 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
           {rowsPerPage !== 'all' && totalPages > 1 ? <><div className="qv-pagination-divider" aria-hidden="true" /><div className="qv-pagination-controls"><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage(1)} disabled={safeCurrentPage === 1} aria-label="First page">|‹</button><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safeCurrentPage === 1} aria-label="Previous page">‹</button><label className="qv-pagination-page-input-wrap"><span className="sr-only">Current page</span><input aria-label="Current page" className="qv-pagination-page-input" inputMode="numeric" value={pageInput} onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, '') || '1')} onBlur={commitPageInput} onKeyDown={handlePageInputKeyDown} /></label><span className="qv-pagination-page-total">/ {totalPages}</span><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={safeCurrentPage === totalPages} aria-label="Next page">›</button><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage(totalPages)} disabled={safeCurrentPage === totalPages} aria-label="Last page">›|</button></div></> : null}
         </div>
         <div className="qv-pagination-right">
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: filteredMemberIds.length > 0 ? 'pointer' : 'default' }}>
-            <input ref={selectionRef} type="checkbox" checked={allFilteredMembersSelected} onChange={handleToggleAllSelection} disabled={filteredMemberIds.length === 0} style={{ width: 16, height: 16 }} />
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: filteredPersonIds.length > 0 ? 'pointer' : 'default' }}>
+            <input ref={selectionRef} type="checkbox" checked={allFilteredMembersSelected} onChange={handleToggleAllSelection} disabled={filteredPersonIds.length === 0} style={{ width: 16, height: 16 }} />
             <span className="qv-inline-message" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{allFilteredMembersSelected ? 'Clear all' : 'Select all'}</span>
           </label>
           {selectedCount > 0 ? <span className="qv-badge">{selectedCount} selected</span> : null}
