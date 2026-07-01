@@ -211,7 +211,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
     const today = new Date().toISOString().slice(0, 10); XLSX.writeFile(workbook, `${fileSafe(`${filePrefix}-${today}`)}.xlsx`)
     setNotice({ tone: 'success', text: `Exported ${exportRows.length} ${scopeLabel} to Excel.` })
   }
-  async function copyEmailsFromMembers(list: PersonListItem[], scopeLabel: string) {
+  async function copyEmailsFromPeople(list: PersonListItem[], scopeLabel: string) {
     const recipients = getUniqueEmailRecipients(list)
     if (recipients.length === 0) return setNotice({ tone: 'error', text: `No email addresses are available in ${scopeLabel}.` })
     try { await navigator.clipboard.writeText(recipients.join('; ')); setNotice({ tone: 'success', text: `Copied ${recipients.length} email address${recipients.length === 1 ? '' : 'es'} from ${scopeLabel}.` }) } catch { setNotice({ tone: 'error', text: 'Could not copy the email list. Please try again.' }) }
@@ -232,8 +232,8 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   }
   async function handleExportCurrentView() { closeMenu(); if (filteredAndSortedPeople.length === 0) return setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' }); await exportPeopleAsExcel(filteredAndSortedPeople, 'people from the current filtered view', 'people') }
   async function handleExportSelectedRows() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before exporting.' }); await exportPeopleAsExcel(selectedPeople, 'selected people', 'selected-people') }
-  async function handleCopyCurrentViewEmails() { closeMenu(); await copyEmailsFromMembers(filteredAndSortedPeople, 'the current filtered view') }
-  async function handleCopySelectedRowEmails() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' }); await copyEmailsFromMembers(selectedPeople, 'the selected rows') }
+  async function handleCopyCurrentViewEmails() { closeMenu(); await copyEmailsFromPeople(filteredAndSortedPeople, 'the current filtered view') }
+  async function handleCopySelectedRowEmails() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' }); await copyEmailsFromPeople(selectedPeople, 'the selected rows') }
   function handleRowsPerPageChange(value: string) { if (value === 'all') { setRowsPerPage('all'); setCurrentPage(1); return } const parsed = Number(value); setRowsPerPage(parsed === 20 ? 20 : parsed === 50 ? 50 : 10); setCurrentPage(1) }
   function handlePageInputKeyDown(event: KeyboardEvent<HTMLInputElement>) { if (event.key === 'Enter') { event.preventDefault(); commitPageInput() } }
 
