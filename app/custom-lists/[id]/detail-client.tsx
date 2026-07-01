@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
 import MemberSearchField from '@/app/components/member-search-field'
 import {
-  addCustomListMemberAction,
+  addCustomListPersonAction,
   claimCustomListMemberAction,
   logCustomListContactAction,
   releaseCustomListClaimAction,
@@ -558,7 +558,7 @@ export default function CustomListDetailClient({
                 </button>
               </div>
 
-              <form action={addCustomListMemberAction} className="qv-member-inline-form">
+              <form action={addCustomListPersonAction} className="qv-member-inline-form">
                 <input type="hidden" name="custom_list_id" value={listId} />
                 <MemberSearchField
                   name="person_id"

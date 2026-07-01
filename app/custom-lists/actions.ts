@@ -1063,7 +1063,7 @@ export async function removeCustomListMemberAction(formData: FormData) {
   redirect(`/custom-lists/${customListId}`)
 }
 
-export async function addCustomListMemberAction(formData: FormData) {
+export async function addCustomListPersonAction(formData: FormData) {
   const customListId = String(formData.get('custom_list_id') ?? '')
   const personId = String(formData.get('person_id') ?? '').trim()
 
