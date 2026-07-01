@@ -61,10 +61,10 @@ const COLUMN_OPTIONS: Array<{ key: ColumnKey; label: string }> = [
 
 function normalize(value: string | null | undefined) { return (value ?? '').trim().toLowerCase() }
 function legalFullName(person: Pick<PersonListItem, 'first_name' | 'last_name'>) { return `${person.first_name} ${person.last_name}`.trim() }
-function displayFullName(member: Pick<PersonListItem, 'first_name' | 'last_name' | 'preferred_display_name'>) {
-  const preferred = member.preferred_display_name?.trim()
-  if (!preferred) return legalFullName(member)
-  const legalLastName = member.last_name?.trim() ?? ''
+function displayFullName(person: Pick<PersonListItem, 'first_name' | 'last_name' | 'preferred_display_name'>) {
+  const preferred = person.preferred_display_name?.trim()
+  if (!preferred) return legalFullName(person)
+  const legalLastName = person.last_name?.trim() ?? ''
   if (!legalLastName) return preferred
   if (normalize(preferred).endsWith(normalize(legalLastName))) return preferred
   return `${preferred} ${legalLastName}`.trim()
