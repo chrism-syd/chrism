@@ -234,9 +234,9 @@ export async function createCustomListFromMembersAction(
 
   const authUserId = permissions.authUser.id
 
-  let scopedMemberIds: string[] = []
+  let scopedPersonIds: string[] = []
   try {
-    scopedMemberIds = await listValidDirectoryPersonIdsForLocalUnit({
+    scopedPersonIds = await listValidDirectoryPersonIdsForLocalUnit({
       admin,
       localUnitId,
       personIds: personIds,
@@ -246,19 +246,19 @@ export async function createCustomListFromMembersAction(
     return { error: `Could not load the people for this list. ${message}` }
   }
 
-  if (scopedMemberIds.length === 0) {
+  if (scopedPersonIds.length === 0) {
     return { error: 'The selected people are no longer available in the active directory.' }
   }
 
   const identityIdByPersonId = await listIdentityIdsByPersonIds({
     admin,
-    personIds: scopedMemberIds,
+    personIds: scopedPersonIds,
   })
 
   const seenIdentityIds = new Set<string>()
   const dedupedScopedMemberIds: string[] = []
 
-  for (const personId of scopedMemberIds) {
+  for (const personId of scopedPersonIds) {
     const identityId = identityIdByPersonId.get(personId)
     if (identityId) {
       if (seenIdentityIds.has(identityId)) {
