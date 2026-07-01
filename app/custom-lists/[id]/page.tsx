@@ -394,12 +394,12 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   const sharedPersonIds = new Set(
     sharedAccess.flatMap((row) => row.personIds ?? (row.person_id ? [row.person_id] : []))
   )
-  const listMemberIds = new Set(members.map((member) => member.person_id))
+  const listedPersonIds = new Set(members.map((member) => member.person_id))
 
   const personOptions = eligiblePeople.map(buildPersonOption)
 
   const shareCandidates = personOptions.filter((person) => !sharedPersonIds.has(person.id))
-  const addCandidates = personOptions.filter((person) => !listMemberIds.has(person.id))
+  const addCandidates = personOptions.filter((person) => !listedPersonIds.has(person.id))
 
   const claimedCount = members.filter((member) => Boolean(member.claimed_by_person_id)).length
   const contactedCount = members.filter((member) => Boolean(member.last_contact_at)).length
