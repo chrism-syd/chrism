@@ -79,17 +79,17 @@ function formatAddress(person: PersonListItem) {
   const line2 = [person.city, person.state_province, person.postal_code].filter(Boolean).join(' • ')
   return [line1, line2].filter(Boolean).join(' • ') || 'No address on file'
 }
-function getColumnValue(member: PersonListItem, key: ColumnKey) {
+function getColumnValue(person: PersonListItem, key: ColumnKey) {
   switch (key) {
-    case 'email': return member.email || 'No email on file'
-    case 'cell_phone': return member.cell_phone || 'Not set'
-    case 'home_phone': return member.home_phone || 'Not set'
-    case 'other_phone': return member.other_phone || 'Not set'
-    case 'address': return formatAddress(member)
-    case 'relationship': return labelize(member.primary_relationship_code)
-    case 'activity_level': return labelize(member.council_activity_level_code)
-    case 'activity_context': return labelize(member.council_activity_context_code)
-    case 'reengagement_status': return labelize(member.council_reengagement_status_code)
+    case 'email': return person.email || 'No email on file'
+    case 'cell_phone': return person.cell_phone || 'Not set'
+    case 'home_phone': return person.home_phone || 'Not set'
+    case 'other_phone': return person.other_phone || 'Not set'
+    case 'address': return formatAddress(person)
+    case 'relationship': return labelize(person.primary_relationship_code)
+    case 'activity_level': return labelize(person.council_activity_level_code)
+    case 'activity_context': return labelize(person.council_activity_context_code)
+    case 'reengagement_status': return labelize(person.council_reengagement_status_code)
     default: return ''
   }
 }
