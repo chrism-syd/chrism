@@ -256,7 +256,7 @@ export async function createCustomListFromMembersAction(
   })
 
   const seenIdentityIds = new Set<string>()
-  const dedupedScopedMemberIds: string[] = []
+  const dedupedScopedPersonIds: string[] = []
 
   for (const personId of scopedPersonIds) {
     const identityId = identityIdByPersonId.get(personId)
@@ -266,7 +266,7 @@ export async function createCustomListFromMembersAction(
       }
       seenIdentityIds.add(identityId)
     }
-    dedupedScopedMemberIds.push(personId)
+    dedupedScopedPersonIds.push(personId)
   }
 
   const { data: customListData, error: createError } = await admin
@@ -286,7 +286,7 @@ export async function createCustomListFromMembersAction(
   }
 
   const { error: memberInsertError } = await admin.from('custom_list_members').insert(
-    dedupedScopedMemberIds.map((personId) => ({
+    dedupedScopedPersonIds.map((personId) => ({
       custom_list_id: customListData.id,
       person_id: personId,
       added_by_auth_user_id: authUserId,
