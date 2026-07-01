@@ -193,7 +193,7 @@ export async function createCustomListFromMembersAction(
 ): Promise<CreateCustomListState> {
   const name = String(formData.get('name') ?? '').trim()
   const descriptionValue = String(formData.get('description') ?? '').trim()
-  const selectedMemberIds = String(formData.get('member_ids') ?? '[]')
+  const selectedPersonIds = String(formData.get('member_ids') ?? '[]')
 
   if (!name) {
     return { error: 'Give this custom list a name before saving it.' }
@@ -201,15 +201,15 @@ export async function createCustomListFromMembersAction(
 
   let parsedIds: string[] = []
   try {
-    const decoded = JSON.parse(selectedMemberIds)
+    const decoded = JSON.parse(selectedPersonIds)
     parsedIds = Array.isArray(decoded) ? decoded.filter((value): value is string => typeof value === 'string') : []
   } catch {
-    return { error: 'We could not read the members in this filtered view. Please try again.' }
+    return { error: 'We could not read the people in this filtered view. Please try again.' }
   }
 
   const memberIds = [...new Set(parsedIds)]
   if (memberIds.length === 0) {
-    return { error: 'There are no members in this filtered view to save into a custom list.' }
+    return { error: 'There are no people in this filtered view to save into a custom list.' }
   }
 
   const admin = createAdminClient()
