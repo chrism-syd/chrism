@@ -182,10 +182,10 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   }, [notice])
   const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedMembers : filteredAndSortedMembers.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedMembers, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
-  const selectedMembers = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
+  const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredPersonIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
-  const selectedCount = selectedMembers.length
+  const selectedCount = selectedPeople.length
   const allFilteredMembersSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedPersonIdSet.has(memberId))
   const someFilteredMembersSelected = filteredPersonIds.some((memberId) => selectedPersonIdSet.has(memberId))
   useEffect(() => { if (selectionRef.current) selectionRef.current.indeterminate = someFilteredMembersSelected && !allFilteredMembersSelected }, [allFilteredMembersSelected, someFilteredMembersSelected])
@@ -231,9 +231,9 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
     })
   }
   async function handleExportCurrentView() { closeMenu(); if (filteredAndSortedMembers.length === 0) return setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' }); await exportMembersAsExcel(filteredAndSortedMembers, 'people from the current filtered view', 'people') }
-  async function handleExportSelectedRows() { closeMenu(); if (selectedMembers.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before exporting.' }); await exportMembersAsExcel(selectedMembers, 'selected people', 'selected-people') }
+  async function handleExportSelectedRows() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before exporting.' }); await exportMembersAsExcel(selectedPeople, 'selected people', 'selected-people') }
   async function handleCopyCurrentViewEmails() { closeMenu(); await copyEmailsFromMembers(filteredAndSortedMembers, 'the current filtered view') }
-  async function handleCopySelectedRowEmails() { closeMenu(); if (selectedMembers.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' }); await copyEmailsFromMembers(selectedMembers, 'the selected rows') }
+  async function handleCopySelectedRowEmails() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' }); await copyEmailsFromMembers(selectedPeople, 'the selected rows') }
   function handleRowsPerPageChange(value: string) { if (value === 'all') { setRowsPerPage('all'); setCurrentPage(1); return } const parsed = Number(value); setRowsPerPage(parsed === 20 ? 20 : parsed === 50 ? 50 : 10); setCurrentPage(1) }
   function handlePageInputKeyDown(event: KeyboardEvent<HTMLInputElement>) { if (event.key === 'Enter') { event.preventDefault(); commitPageInput() } }
 
@@ -245,7 +245,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
       <div className="qv-directory-section-head">
         <div><h2 className="qv-section-title">{sectionTitle}</h2><p className="qv-section-subtitle">{sectionSubtitle}</p></div>
         <div className="qv-view-menu-stack">
-          {currentViewControlMode === 'button' ? <button type="button" className="qv-button-secondary qv-view-action-button" onClick={() => usingSelectedRows ? openCreateListFromMembers(selectedMembers, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')}>{actionMenuLabel}</button> : <ActionMenu label={actionMenuLabel} menuRef={actionMenuRef} onCreateList={() => usingSelectedRows ? openCreateListFromMembers(selectedMembers, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')} onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView} onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails} />}
+          {currentViewControlMode === 'button' ? <button type="button" className="qv-button-secondary qv-view-action-button" onClick={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')}>{actionMenuLabel}</button> : <ActionMenu label={actionMenuLabel} menuRef={actionMenuRef} onCreateList={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')} onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView} onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails} />}
           {notice ? <p className={notice.tone === 'error' ? 'qv-view-menu-notice qv-inline-error' : 'qv-view-menu-notice qv-inline-message'}>{notice.text}</p> : null}
         </div>
       </div>
