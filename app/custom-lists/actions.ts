@@ -285,7 +285,7 @@ export async function createCustomListFromMembersAction(
     return { error: `Could not create this custom list. ${createError?.message ?? 'Please try again.'}` }
   }
 
-  const { error: memberInsertError } = await admin.from('custom_list_members').insert(
+  const { error: personInsertError } = await admin.from('custom_list_members').insert(
     dedupedScopedPersonIds.map((personId) => ({
       custom_list_id: customListData.id,
       person_id: personId,
@@ -293,8 +293,8 @@ export async function createCustomListFromMembersAction(
     }))
   )
 
-  if (memberInsertError) {
-    return { error: `The custom list was created, but we could not add the people. ${memberInsertError.message}` }
+  if (personInsertError) {
+    return { error: `The custom list was created, but we could not add the people. ${personInsertError.message}` }
   }
 
   revalidatePath('/people')
