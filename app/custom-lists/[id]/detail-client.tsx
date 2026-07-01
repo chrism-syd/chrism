@@ -239,7 +239,7 @@ function BootstrapIcon({
   )
 }
 
-function ReviewMemberRow({
+function ReviewPersonRow({
   member,
   listId,
   listName,
@@ -586,7 +586,7 @@ export default function CustomListDetailClient({
               style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
             >
               {sortedMembers.map((member) => (
-                <ReviewMemberRow
+                <ReviewPersonRow
                   key={member.id}
                   member={member}
                   listId={listId}
@@ -626,7 +626,7 @@ export default function CustomListDetailClient({
               style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
             >
               {recentContactMembers.map((member) => (
-                <ReviewMemberRow
+                <ReviewPersonRow
                   key={`recent-${member.id}`}
                   member={member}
                   listId={listId}
