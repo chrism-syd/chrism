@@ -118,7 +118,7 @@ function capturedPersonIdForInquiry(inquiry: PublicInquiryRow) {
 export default async function MemberReviewsPage() {
   const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -236,7 +236,7 @@ export default async function MemberReviewsPage() {
                     </div>
                     <div className="qv-list-row-actions">
                       <span className={statusClassName(item.request.status_code)}>{statusLabel(item.request.status_code)}</span>
-                      <Link href={`/members/reviews/${item.request.id}`} className="qv-link-button qv-button-primary">
+                      <Link href={`/people/reviews/${item.request.id}`} className="qv-link-button qv-button-primary">
                         Review request
                       </Link>
                     </div>
@@ -304,7 +304,7 @@ export default async function MemberReviewsPage() {
                       </div>
                       <div className="qv-list-row-actions">
                         {capturedPersonId ? (
-                          <Link href={`/members/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
+                          <Link href={`/people/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
                             View person
                           </Link>
                         ) : null}
@@ -349,7 +349,7 @@ export default async function MemberReviewsPage() {
                     </div>
                     <div className="qv-list-row-actions">
                       <span className={statusClassName(item.request.status_code)}>{statusLabel(item.request.status_code)}</span>
-                      <Link href={`/members/reviews/${item.request.id}`} className="qv-link-button qv-button-secondary">
+                      <Link href={`/people/reviews/${item.request.id}`} className="qv-link-button qv-button-secondary">
                         View details
                       </Link>
                       <form action={clearReviewDecisionNoticeAction}>

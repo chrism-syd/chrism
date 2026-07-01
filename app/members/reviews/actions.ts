@@ -39,7 +39,7 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
 
   const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members/reviews',
+    redirectTo: '/people/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -151,10 +151,10 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
   revalidatePath('/me')
   revalidatePath('/members/reviews')
   revalidatePath('/members/reviews/archive')
-  revalidatePath(`/members/reviews/${summary.request.id}`)
-  revalidatePath(`/members/${summary.person.id}`)
+  revalidatePath(`/people/reviews/${summary.request.id}`)
+  revalidatePath(`/people/${summary.person.id}`)
 
-  redirect('/members/reviews')
+  redirect('/people/reviews')
 }
 
 export async function clearReviewDecisionNoticeAction(formData: FormData) {
@@ -166,7 +166,7 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
 
   const { admin, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members/reviews',
+    redirectTo: '/people/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -207,7 +207,7 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
 
   revalidatePath('/members/reviews')
   revalidatePath('/members/reviews/archive')
-  revalidatePath(`/members/reviews/${requestId}`)
+  revalidatePath(`/people/reviews/${requestId}`)
   revalidatePath('/me')
 }
 
@@ -243,7 +243,7 @@ export async function clearPublicContactInquiryAction(formData: FormData) {
 
   const { admin, permissions, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members/reviews',
+    redirectTo: '/people/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
