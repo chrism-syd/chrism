@@ -224,7 +224,7 @@ export default async function MembersPage() {
         />
 
         <PeopleList
-          members={allPeople}
+          people={allPeople}
           currentOfficerLabelsById={currentOfficerLabelsById}
           executiveOfficerLabelsById={executiveOfficerLabelsById}
           honorificLabelsById={honorificLabelsById}
