@@ -183,11 +183,11 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedMembers : filteredAndSortedMembers.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedMembers, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
   const selectedMembers = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
-  const selectedMemberIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
+  const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredPersonIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
   const selectedCount = selectedMembers.length
-  const allFilteredMembersSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedMemberIdSet.has(memberId))
-  const someFilteredMembersSelected = filteredPersonIds.some((memberId) => selectedMemberIdSet.has(memberId))
+  const allFilteredMembersSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedPersonIdSet.has(memberId))
+  const someFilteredMembersSelected = filteredPersonIds.some((memberId) => selectedPersonIdSet.has(memberId))
   useEffect(() => { if (selectionRef.current) selectionRef.current.indeterminate = someFilteredMembersSelected && !allFilteredMembersSelected }, [allFilteredMembersSelected, someFilteredMembersSelected])
 
   const hasActiveControls = search.trim() !== '' || relationshipFilter !== 'all' || quickFilter !== 'all' || sortBy !== 'last_name_asc' || rowsPerPage !== DEFAULT_ROWS_PER_PAGE
@@ -292,7 +292,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
         const columnCount = Math.max(visibleColumns.length, 1)
         const gridTemplateColumns = `minmax(180px, 1.2fr) repeat(${columnCount}, minmax(104px, 0.9fr)) auto`
         const rowMinWidth = 280 + columnCount * 148 + 28
-        const isSelected = selectedMemberIdSet.has(person.id)
+        const isSelected = selectedPersonIdSet.has(person.id)
         const displayName = displayFullName(person)
         const legalName = legalFullName(person)
         const showLegalName = normalize(displayName) !== normalize(legalName)
