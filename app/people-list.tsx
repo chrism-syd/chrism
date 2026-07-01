@@ -27,7 +27,7 @@ type PersonListItem = {
 
 type CurrentViewControlMode = 'menu' | 'button'
 type Props = {
-  members: PersonListItem[]
+  people: PersonListItem[]
   currentOfficerLabelsById?: Record<string, string[]>
   executiveOfficerLabelsById?: Record<string, string[]>
   honorificLabelsById?: Record<string, string[]>
@@ -99,7 +99,7 @@ function ActionMenu({ label, menuRef, onCreateList, onExport, onCopyEmails }: Ac
   return <details className="qv-view-menu" ref={menuRef}><summary><span>{label}</span><span aria-hidden="true" className="qv-view-menu-chevron">▾</span></summary><div className="qv-view-menu-panel"><button type="button" className="qv-view-menu-item" onClick={onCreateList}>Create Custom List</button><button type="button" className="qv-view-menu-item" onClick={onExport}>Export as Excel</button><button type="button" className="qv-view-menu-item" onClick={onCopyEmails}>Copy Email addresses</button></div></details>
 }
 
-export default function PeopleList({ members, currentOfficerLabelsById = {}, executiveOfficerLabelsById = {}, honorificLabelsById = {}, sectionTitle = 'People listing', sectionSubtitle = 'Search, sort, and manage people records.', currentViewControlMode = 'menu' }: Props) {
+export default function PeopleList({ people: members, currentOfficerLabelsById = {}, executiveOfficerLabelsById = {}, honorificLabelsById = {}, sectionTitle = 'People listing', sectionSubtitle = 'Search, sort, and manage people records.', currentViewControlMode = 'menu' }: Props) {
   const [search, setSearch] = useState('')
   const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilter>('all')
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
