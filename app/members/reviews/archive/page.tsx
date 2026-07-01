@@ -113,7 +113,7 @@ function capturedPersonIdForInquiry(inquiry: ArchivedPublicInquiryRow) {
 export default async function ReviewDecisionArchivePage() {
   const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members/reviews',
+    redirectTo: '/people/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -214,7 +214,7 @@ export default async function ReviewDecisionArchivePage() {
                     </div>
                     <div className="qv-list-row-actions">
                       <span className={statusClassName(item.request.status_code)}>{statusLabel(item.request.status_code)}</span>
-                      <Link href={`/members/reviews/${item.request.id}`} className="qv-link-button qv-button-secondary">
+                      <Link href={`/people/reviews/${item.request.id}`} className="qv-link-button qv-button-secondary">
                         View details
                       </Link>
                     </div>
@@ -267,7 +267,7 @@ export default async function ReviewDecisionArchivePage() {
                       </div>
                       <div className="qv-list-row-actions">
                         {capturedPersonId ? (
-                          <Link href={`/members/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
+                          <Link href={`/people/${capturedPersonId}`} className="qv-link-button qv-button-secondary">
                             View person
                           </Link>
                         ) : null}

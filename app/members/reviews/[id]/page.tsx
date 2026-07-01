@@ -43,7 +43,7 @@ export default async function ProfileChangeReviewDetailPage({
   const { id } = await params
   const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members/reviews',
+    redirectTo: '/people/reviews',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   })
@@ -163,7 +163,7 @@ export default async function ProfileChangeReviewDetailPage({
                 <div className="qv-detail-value">{summary.request.review_notes?.trim() || 'No notes were left on this review.'}</div>
               </div>
               <div className="qv-form-actions" style={{ marginTop: 8 }}>
-                <Link href="/members/reviews" className="qv-link-button qv-button-primary">
+                <Link href="/people/reviews" className="qv-link-button qv-button-primary">
                   Back to review queue
                 </Link>
               </div>
