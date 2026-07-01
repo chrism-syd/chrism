@@ -115,7 +115,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
   const actionMenuRef = useRef<HTMLDetailsElement | null>(null)
   const selectionRef = useRef<HTMLInputElement | null>(null)
 
-  const filteredAndSortedMembers = useMemo(() => {
+  const filteredAndSortedPeople = useMemo(() => {
     const query = normalize(search)
     const filtered = members.filter((member) => {
       const firstName = normalize(member.first_name)
@@ -160,7 +160,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
     })
   }, [currentOfficerLabelsById, executiveOfficerLabelsById, honorificLabelsById, quickFilter, members, relationshipFilter, search, sortBy])
 
-  const totalPages = useMemo(() => rowsPerPage === 'all' ? 1 : Math.max(1, Math.ceil(filteredAndSortedMembers.length / rowsPerPage)), [filteredAndSortedMembers.length, rowsPerPage])
+  const totalPages = useMemo(() => rowsPerPage === 'all' ? 1 : Math.max(1, Math.ceil(filteredAndSortedPeople.length / rowsPerPage)), [filteredAndSortedPeople.length, rowsPerPage])
   const safeCurrentPage = Math.min(currentPage, totalPages)
   useEffect(() => { setPageInput(String(safeCurrentPage)) }, [safeCurrentPage])
   useEffect(() => { const fn = (event: MouseEvent) => { const target = event.target as Node; if (!actionMenuRef.current?.contains(target)) actionMenuRef.current?.removeAttribute('open') }; document.addEventListener('mousedown', fn); return () => document.removeEventListener('mousedown', fn) }, [])
@@ -180,11 +180,11 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
       document.removeEventListener('pointerdown', dismissNotice)
     }
   }, [notice])
-  const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedMembers : filteredAndSortedMembers.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedMembers, rowsPerPage, safeCurrentPage])
+  const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedPeople : filteredAndSortedPeople.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedPeople, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
   const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
-  const filteredPersonIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
+  const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((member) => member.id), [filteredAndSortedPeople])
   const selectedCount = selectedPeople.length
   const allFilteredMembersSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedPersonIdSet.has(memberId))
   const someFilteredMembersSelected = filteredPersonIds.some((memberId) => selectedPersonIdSet.has(memberId))
@@ -230,9 +230,9 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
       return [...next]
     })
   }
-  async function handleExportCurrentView() { closeMenu(); if (filteredAndSortedMembers.length === 0) return setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' }); await exportMembersAsExcel(filteredAndSortedMembers, 'people from the current filtered view', 'people') }
+  async function handleExportCurrentView() { closeMenu(); if (filteredAndSortedPeople.length === 0) return setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' }); await exportMembersAsExcel(filteredAndSortedPeople, 'people from the current filtered view', 'people') }
   async function handleExportSelectedRows() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before exporting.' }); await exportMembersAsExcel(selectedPeople, 'selected people', 'selected-people') }
-  async function handleCopyCurrentViewEmails() { closeMenu(); await copyEmailsFromMembers(filteredAndSortedMembers, 'the current filtered view') }
+  async function handleCopyCurrentViewEmails() { closeMenu(); await copyEmailsFromMembers(filteredAndSortedPeople, 'the current filtered view') }
   async function handleCopySelectedRowEmails() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' }); await copyEmailsFromMembers(selectedPeople, 'the selected rows') }
   function handleRowsPerPageChange(value: string) { if (value === 'all') { setRowsPerPage('all'); setCurrentPage(1); return } const parsed = Number(value); setRowsPerPage(parsed === 20 ? 20 : parsed === 50 ? 50 : 10); setCurrentPage(1) }
   function handlePageInputKeyDown(event: KeyboardEvent<HTMLInputElement>) { if (event.key === 'Enter') { event.preventDefault(); commitPageInput() } }
@@ -245,7 +245,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
       <div className="qv-directory-section-head">
         <div><h2 className="qv-section-title">{sectionTitle}</h2><p className="qv-section-subtitle">{sectionSubtitle}</p></div>
         <div className="qv-view-menu-stack">
-          {currentViewControlMode === 'button' ? <button type="button" className="qv-button-secondary qv-view-action-button" onClick={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')}>{actionMenuLabel}</button> : <ActionMenu label={actionMenuLabel} menuRef={actionMenuRef} onCreateList={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedMembers, 'the current filtered view', 'Current filters applied')} onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView} onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails} />}
+          {currentViewControlMode === 'button' ? <button type="button" className="qv-button-secondary qv-view-action-button" onClick={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedPeople, 'the current filtered view', 'Current filters applied')}>{actionMenuLabel}</button> : <ActionMenu label={actionMenuLabel} menuRef={actionMenuRef} onCreateList={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedPeople, 'the current filtered view', 'Current filters applied')} onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView} onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails} />}
           {notice ? <p className={notice.tone === 'error' ? 'qv-view-menu-notice qv-inline-error' : 'qv-view-menu-notice qv-inline-message'}>{notice.text}</p> : null}
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
         <div className="qv-pagination-left">
           <label className="qv-pagination-meta-group"><span className="qv-pagination-meta-label">People per page</span><select aria-label="People per page" className="qv-pagination-inline-select" value={rowsPerPage} onChange={(event) => handleRowsPerPageChange(event.target.value)}><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value="all">All</option></select></label>
           <div className="qv-pagination-divider" aria-hidden="true" />
-          <p className="qv-pagination-total">{filteredAndSortedMembers.length.toLocaleString()} people</p>
+          <p className="qv-pagination-total">{filteredAndSortedPeople.length.toLocaleString()} people</p>
           {rowsPerPage !== 'all' && totalPages > 1 ? <><div className="qv-pagination-divider" aria-hidden="true" /><div className="qv-pagination-controls"><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage(1)} disabled={safeCurrentPage === 1} aria-label="First page">|‹</button><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safeCurrentPage === 1} aria-label="Previous page">‹</button><label className="qv-pagination-page-input-wrap"><span className="sr-only">Current page</span><input aria-label="Current page" className="qv-pagination-page-input" inputMode="numeric" value={pageInput} onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, '') || '1')} onBlur={commitPageInput} onKeyDown={handlePageInputKeyDown} /></label><span className="qv-pagination-page-total">/ {totalPages}</span><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={safeCurrentPage === totalPages} aria-label="Next page">›</button><button type="button" className="qv-pagination-icon-button" onClick={() => setCurrentPage(totalPages)} disabled={safeCurrentPage === totalPages} aria-label="Last page">›|</button></div></> : null}
         </div>
         <div className="qv-pagination-right">
