@@ -44,13 +44,13 @@ This area handles profile, organization/account status, claimed RSVP history, an
 Authenticated operations workflows include:
 
 ```text
-/members
+/people
 /events
 /custom-lists
 /me/council
 ```
 
-These areas handle people/member management, event planning, RSVP and volunteer coordination, custom lists, organization settings, admin invitations, and future organization profile/officer management.
+These areas handle people/member management, event planning, RSVP and volunteer coordination, custom lists, organization settings, admin invitations, and future organization profile/officer management. Legacy `/members` routes remain as compatibility routes during migration.
 
 ## Current architectural direction
 
