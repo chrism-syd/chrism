@@ -396,10 +396,10 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   )
   const listMemberIds = new Set(members.map((member) => member.person_id))
 
-  const optionList = eligiblePeople.map(buildPersonOption)
+  const personOptions = eligiblePeople.map(buildPersonOption)
 
-  const shareCandidates = optionList.filter((person) => !sharedPersonIds.has(person.id))
-  const addCandidates = optionList.filter((person) => !listMemberIds.has(person.id))
+  const shareCandidates = personOptions.filter((person) => !sharedPersonIds.has(person.id))
+  const addCandidates = personOptions.filter((person) => !listMemberIds.has(person.id))
 
   const claimedCount = members.filter((member) => Boolean(member.claimed_by_person_id)).length
   const contactedCount = members.filter((member) => Boolean(member.last_contact_at)).length
