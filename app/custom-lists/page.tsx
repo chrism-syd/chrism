@@ -436,7 +436,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
           <div id="member-directory-section" style={{ marginTop: 20 }}>
             {memberDirectoryData ? (
               <PeopleList
-                members={memberDirectoryData.members}
+                people={memberDirectoryData.members}
                 currentOfficerLabelsById={memberDirectoryData.currentOfficerLabelsById}
                 executiveOfficerLabelsById={memberDirectoryData.executiveOfficerLabelsById}
                 sectionTitle="Member directory"
