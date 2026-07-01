@@ -25,7 +25,7 @@ const SECTION_META: Array<{ match: RegExp; key: string; label: string }> = [
   { match: /^\/auth(\/|$)/, key: 'auth', label: 'Auth' },
   { match: /^\/(claim-organization|me\/claim-organization|admin-invite)(\/|$)/, key: 'onboarding', label: 'Onboarding and claims' },
   { match: /^\/me(\/|$)/, key: 'workspace', label: 'Signed-in workspace' },
-  { match: /^\/members(\/|$)/, key: 'members', label: 'Members and officers' },
+  { match: /^\/(people|members)(\/|$)/, key: 'members', label: 'People and officers' },
   { match: /^\/(events|rsvp)(\/|$)/, key: 'events', label: 'Events and RSVP' },
   { match: /^\/custom-lists(\/|$)/, key: 'lists', label: 'Custom lists' },
   { match: /^\/imports(\/|$)/, key: 'imports', label: 'Imports and operations' },
