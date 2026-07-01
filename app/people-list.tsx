@@ -180,7 +180,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
       document.removeEventListener('pointerdown', dismissNotice)
     }
   }, [notice])
-  const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedPeople : filteredAndSortedPeople.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedPeople, rowsPerPage, safeCurrentPage])
+  const paginatedPeople = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedPeople : filteredAndSortedPeople.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedPeople, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
   const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
@@ -283,7 +283,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
 
       {showFieldPicker ? <div className="qv-inline-field-panel" role="region" aria-label="Choose which person details appear"><p className="qv-inline-message" style={{ margin: 0 }}>Choose which person details appear in this session.</p><div className="qv-field-picker-grid">{COLUMN_OPTIONS.map((option) => <label key={option.key} className="qv-field-picker-option"><input type="checkbox" checked={visibleColumns.includes(option.key)} onChange={() => toggleColumn(option.key)} style={{ width: 16, height: 16 }} /><span>{option.label}</span></label>)}</div></div> : null}
 
-      {paginatedMembers.length === 0 ? <div className="qv-empty"><p className="qv-empty-title">No people match your search.</p><p className="qv-empty-text">Try a different search, filter, or reset the controls.</p></div> : <div className="qv-person-table-scroll" style={{ overflowY: 'visible', paddingTop: 6, paddingBottom: 6 }}><div className="qv-member-list" style={{ gap: 10, paddingTop: 2 }}>{paginatedMembers.map((person) => {
+      {paginatedPeople.length === 0 ? <div className="qv-empty"><p className="qv-empty-title">No people match your search.</p><p className="qv-empty-text">Try a different search, filter, or reset the controls.</p></div> : <div className="qv-person-table-scroll" style={{ overflowY: 'visible', paddingTop: 6, paddingBottom: 6 }}><div className="qv-member-list" style={{ gap: 10, paddingTop: 2 }}>{paginatedPeople.map((person) => {
         const currentOfficerLabels = currentOfficerLabelsById[person.id] ?? []
         const executiveOfficerLabels = executiveOfficerLabelsById[person.id] ?? []
         const honorificLabels = honorificLabelsById[person.id] ?? []
