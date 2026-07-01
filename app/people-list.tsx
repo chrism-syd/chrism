@@ -200,7 +200,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   function closeMenu() { actionMenuRef.current?.removeAttribute('open') }
   function resetControls() { setSearch(''); setRelationshipFilter('all'); setQuickFilter('all'); setSortBy('last_name_asc'); setRowsPerPage(DEFAULT_ROWS_PER_PAGE); setCurrentPage(1); setNotice(null) }
   function commitPageInput() { if (rowsPerPage === 'all') return setPageInput('1'); const parsed = Number(pageInput); if (!Number.isFinite(parsed)) return setPageInput(String(safeCurrentPage)); const nextPage = Math.min(Math.max(1, Math.trunc(parsed)), totalPages); setCurrentPage(nextPage); setPageInput(String(nextPage)) }
-  async function exportMembersAsExcel(list: PersonListItem[], scopeLabel: string, filePrefix: string) {
+  async function exportPeopleAsExcel(list: PersonListItem[], scopeLabel: string, filePrefix: string) {
     const selectedColumnOptions = COLUMN_OPTIONS.filter((option) => visibleColumns.includes(option.key))
     const exportRows = list.map((member) => {
       const baseRow: Record<string, string> = { 'Display name': displayFullName(member), 'Legal name': legalFullName(member), 'Directory role': getDisplayedRole(member.id, member.primary_relationship_code) }
@@ -230,8 +230,8 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
       return [...next]
     })
   }
-  async function handleExportCurrentView() { closeMenu(); if (filteredAndSortedPeople.length === 0) return setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' }); await exportMembersAsExcel(filteredAndSortedPeople, 'people from the current filtered view', 'people') }
-  async function handleExportSelectedRows() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before exporting.' }); await exportMembersAsExcel(selectedPeople, 'selected people', 'selected-people') }
+  async function handleExportCurrentView() { closeMenu(); if (filteredAndSortedPeople.length === 0) return setNotice({ tone: 'error', text: 'There are no people in this filtered view to export.' }); await exportPeopleAsExcel(filteredAndSortedPeople, 'people from the current filtered view', 'people') }
+  async function handleExportSelectedRows() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before exporting.' }); await exportPeopleAsExcel(selectedPeople, 'selected people', 'selected-people') }
   async function handleCopyCurrentViewEmails() { closeMenu(); await copyEmailsFromMembers(filteredAndSortedPeople, 'the current filtered view') }
   async function handleCopySelectedRowEmails() { closeMenu(); if (selectedPeople.length === 0) return setNotice({ tone: 'error', text: 'Select at least one person before copying email addresses.' }); await copyEmailsFromMembers(selectedPeople, 'the selected rows') }
   function handleRowsPerPageChange(value: string) { if (value === 'all') { setRowsPerPage('all'); setCurrentPage(1); return } const parsed = Number(value); setRowsPerPage(parsed === 20 ? 20 : parsed === 50 ? 50 : 10); setCurrentPage(1) }
