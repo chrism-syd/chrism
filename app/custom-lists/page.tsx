@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
-import MembersList from '@/app/members-list'
+import PeopleList from '@/app/members-list'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import SectionMenuBar from '@/app/components/section-menu-bar'
 import { getCurrentUserPermissions } from '@/lib/auth/permissions'
@@ -435,7 +435,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
         {showMemberDirectory ? (
           <div id="member-directory-section" style={{ marginTop: 20 }}>
             {memberDirectoryData ? (
-              <MembersList
+              <PeopleList
                 members={memberDirectoryData.members}
                 currentOfficerLabelsById={memberDirectoryData.currentOfficerLabelsById}
                 executiveOfficerLabelsById={memberDirectoryData.executiveOfficerLabelsById}
