@@ -117,33 +117,33 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
 
   const filteredAndSortedPeople = useMemo(() => {
     const query = normalize(search)
-    const filtered = people.filter((member) => {
-      const firstName = normalize(member.first_name)
-      const lastName = normalize(member.last_name)
-      const preferredName = normalize(member.preferred_display_name)
-      const legalName = normalize(legalFullName(member))
-      const shownName = normalize(displayFullName(member))
+    const filtered = people.filter((person) => {
+      const firstName = normalize(person.first_name)
+      const lastName = normalize(person.last_name)
+      const preferredName = normalize(person.preferred_display_name)
+      const legalName = normalize(legalFullName(person))
+      const shownName = normalize(displayFullName(person))
       const reverseName = `${lastName}, ${firstName}`.trim()
-      const officerLabels = currentOfficerLabelsById[member.id] ?? []
-      const executiveOfficerLabels = executiveOfficerLabelsById[member.id] ?? []
-      const honorificLabels = honorificLabelsById[member.id] ?? []
+      const officerLabels = currentOfficerLabelsById[person.id] ?? []
+      const executiveOfficerLabels = executiveOfficerLabelsById[person.id] ?? []
+      const honorificLabels = honorificLabelsById[person.id] ?? []
       const isExecutiveOfficer = executiveOfficerLabels.length > 0
       const searchableValues = [
-        member.email,
-        member.cell_phone,
-        member.home_phone,
-        member.other_phone,
-        labelize(member.primary_relationship_code),
-        labelize(member.council_activity_level_code),
-        labelize(member.council_activity_context_code),
-        labelize(member.council_reengagement_status_code),
+        person.email,
+        person.cell_phone,
+        person.home_phone,
+        person.other_phone,
+        labelize(person.primary_relationship_code),
+        labelize(person.council_activity_level_code),
+        labelize(person.council_activity_context_code),
+        labelize(person.council_reengagement_status_code),
         ...officerLabels,
         ...executiveOfficerLabels,
         ...honorificLabels,
       ].map((value) => normalize(value)).filter(Boolean)
       const matchesSearch = query === '' || firstName.includes(query) || lastName.includes(query) || preferredName.includes(query) || legalName.includes(query) || shownName.includes(query) || reverseName.includes(query) || searchableValues.some((value) => value.includes(query))
-      const matchesRelationshipFilter = relationshipFilter === 'all' || member.primary_relationship_code === relationshipFilter
-      const matchesQuickFilter = quickFilter === 'all' || (quickFilter === 'with_email' && Boolean(member.email)) || (quickFilter === 'missing_email' && !member.email) || (quickFilter === 'executive_officers' && isExecutiveOfficer)
+      const matchesRelationshipFilter = relationshipFilter === 'all' || person.primary_relationship_code === relationshipFilter
+      const matchesQuickFilter = quickFilter === 'all' || (quickFilter === 'with_email' && Boolean(person.email)) || (quickFilter === 'missing_email' && !person.email) || (quickFilter === 'executive_officers' && isExecutiveOfficer)
       return matchesSearch && matchesRelationshipFilter && matchesQuickFilter
     })
     return [...filtered].sort((left, right) => {
