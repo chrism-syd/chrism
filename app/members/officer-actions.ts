@@ -34,7 +34,7 @@ function textEntry(formData: FormData, key: string) {
 function normalizeInternalRedirectPath(path: string | null | undefined) {
   const trimmed = path?.trim() ?? '';
   if (!trimmed || !trimmed.startsWith('/') || trimmed.startsWith('//')) {
-    return '/members';
+    return '/people';
   }
 
   return trimmed;
