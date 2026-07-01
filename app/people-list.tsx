@@ -184,7 +184,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   const peopleById = useMemo(() => new Map(people.map((person) => [person.id, person] as const)), [people])
   const selectedPeople = useMemo(() => selectedPersonIds.map((personId) => peopleById.get(personId)).filter((person): person is PersonListItem => Boolean(person)), [peopleById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
-  const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((member) => member.id), [filteredAndSortedPeople])
+  const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((person) => person.id), [filteredAndSortedPeople])
   const selectedCount = selectedPeople.length
   const allFilteredPeopleSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((personId) => selectedPersonIdSet.has(personId))
   const someFilteredPeopleSelected = filteredPersonIds.some((personId) => selectedPersonIdSet.has(personId))
