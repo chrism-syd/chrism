@@ -225,7 +225,7 @@ export async function applySupremeImportAction(payload: ApplyImportPayload) {
   }
 
   revalidatePath('/');
-  revalidatePath('/members');
+  revalidatePath('/people');
   revalidatePath('/imports/supreme');
 
   return {
