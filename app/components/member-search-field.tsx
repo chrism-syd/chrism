@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-type MemberOption = {
+type PersonOption = {
   id: string;
   name: string;
   email: string | null;
@@ -10,10 +10,10 @@ type MemberOption = {
   searchTokens?: string[];
 };
 
-type MemberSearchFieldProps = {
+type PersonSearchFieldProps = {
   name: string;
   label: string;
-  members: MemberOption[];
+  members: PersonOption[];
   placeholder?: string;
   required?: boolean;
   labelHidden?: boolean;
@@ -23,12 +23,12 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function buildSearchHaystack(member: MemberOption) {
+function buildSearchHaystack(person: PersonOption) {
   return normalize(
     [
-      member.name,
-      member.email ?? '',
-      ...(member.searchTokens ?? []),
+      person.name,
+      person.email ?? '',
+      ...(person.searchTokens ?? []),
     ].join(' ')
   );
 }
@@ -36,11 +36,11 @@ function buildSearchHaystack(member: MemberOption) {
 export default function MemberSearchField({
   name,
   label,
-  members,
-  placeholder = 'Type a member name',
+  members: people,
+  placeholder = 'Type a person name',
   required = false,
   labelHidden = false,
-}: MemberSearchFieldProps) {
+}: PersonSearchFieldProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const resultRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,15 +48,15 @@ export default function MemberSearchField({
   const [showResults, setShowResults] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  const filteredMembers = useMemo(() => {
+  const filteredPeople = useMemo(() => {
     const query = normalize(searchQuery);
 
     const list = !query
-      ? members
-      : members.filter((member) => buildSearchHaystack(member).includes(query));
+      ? people
+      : people.filter((person) => buildSearchHaystack(person).includes(query));
 
     return list.slice(0, 12);
-  }, [members, searchQuery]);
+  }, [people, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -78,14 +78,14 @@ export default function MemberSearchField({
     resultRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
   }, [highlightedIndex]);
 
-  function selectMember(member: MemberOption) {
-    setSelectedPersonId(member.id);
-    setSearchQuery(member.name);
+  function selectPerson(person: PersonOption) {
+    setSelectedPersonId(person.id);
+    setSearchQuery(person.name);
     setShowResults(false);
     setHighlightedIndex(-1);
   }
 
-  function clearSelectedMember() {
+  function clearSelectedPerson() {
     setSelectedPersonId('');
   }
 
@@ -96,22 +96,22 @@ export default function MemberSearchField({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      if (filteredMembers.length === 0) return;
-      setHighlightedIndex((current) => (current < filteredMembers.length - 1 ? current + 1 : 0));
+      if (filteredPeople.length === 0) return;
+      setHighlightedIndex((current) => (current < filteredPeople.length - 1 ? current + 1 : 0));
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      if (filteredMembers.length === 0) return;
-      setHighlightedIndex((current) => (current > 0 ? current - 1 : filteredMembers.length - 1));
+      if (filteredPeople.length === 0) return;
+      setHighlightedIndex((current) => (current > 0 ? current - 1 : filteredPeople.length - 1));
       return;
     }
 
     if (event.key === 'Enter') {
-      if (showResults && highlightedIndex >= 0 && filteredMembers[highlightedIndex]) {
+      if (showResults && highlightedIndex >= 0 && filteredPeople[highlightedIndex]) {
         event.preventDefault();
-        selectMember(filteredMembers[highlightedIndex]);
+        selectPerson(filteredPeople[highlightedIndex]);
       }
       return;
     }
@@ -135,11 +135,11 @@ export default function MemberSearchField({
             setSearchQuery(event.target.value);
             setShowResults(true);
             setHighlightedIndex(0);
-            clearSelectedMember();
+            clearSelectedPerson();
           }}
           onFocus={() => {
             setShowResults(true);
-            setHighlightedIndex(filteredMembers.length > 0 ? 0 : -1);
+            setHighlightedIndex(filteredPeople.length > 0 ? 0 : -1);
           }}
           onKeyDown={handleSearchKeyDown}
           placeholder={placeholder}
@@ -168,23 +168,23 @@ export default function MemberSearchField({
             boxShadow: '0 10px 24px rgba(0, 0, 0, 0.08)',
           }}
         >
-          {filteredMembers.length === 0 ? (
+          {filteredPeople.length === 0 ? (
             <div style={{ padding: 12, fontSize: 14, color: 'var(--text-secondary)' }}>
-              No matching members found.
+              No matching people found.
             </div>
           ) : (
-            filteredMembers.map((member, index) => {
+            filteredPeople.map((person, index) => {
               const isHighlighted = index === highlightedIndex;
               return (
                 <button
-                  key={member.id}
+                  key={person.id}
                   ref={(node) => {
                     resultRefs.current[index] = node;
                   }}
                   type="button"
                   onMouseDown={(event) => {
                     event.preventDefault();
-                    selectMember(member);
+                    selectPerson(person);
                   }}
                   className="qv-link-button qv-button-secondary"
                   style={{
@@ -193,14 +193,14 @@ export default function MemberSearchField({
                     width: '100%',
                     borderColor: isHighlighted ? 'var(--text-primary)' : undefined,
                     background: isHighlighted ? 'var(--bg-sunken)' : undefined,
-                    paddingBlock: member.subtitle ? 10 : undefined,
+                    paddingBlock: person.subtitle ? 10 : undefined,
                   }}
                 >
-                  <span style={{ display: 'grid', gap: member.subtitle ? 3 : 0 }}>
-                    <span>{member.name}</span>
-                    {member.subtitle ? (
+                  <span style={{ display: 'grid', gap: person.subtitle ? 3 : 0 }}>
+                    <span>{person.name}</span>
+                    {person.subtitle ? (
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
-                        {member.subtitle}
+                        {person.subtitle}
                       </span>
                     ) : null}
                   </span>
