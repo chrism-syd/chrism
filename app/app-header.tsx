@@ -76,9 +76,9 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
   }
 
   const peopleNavChildren = [
-    ...(permissions.canAccessMemberData ? [{ label: 'People directory', href: '/members' }] : []),
+    ...(permissions.canAccessMemberData ? [{ label: 'People directory', href: '/people' }] : []),
     ...(permissions.canManageCustomLists ? [{ label: 'Custom lists', href: '/custom-lists' }] : []),
-    ...(permissions.canReviewMemberChanges ? [{ label: 'Reviews', href: '/members/reviews' }] : []),
+    ...(permissions.canReviewMemberChanges ? [{ label: 'Reviews', href: '/people/reviews' }] : []),
     ...(permissions.canImportMembers ? [{ label: 'Imports', href: '/imports/supreme' }] : []),
   ]
 
@@ -92,7 +92,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
         ...(peopleNavChildren.length > 0
           ? [{
               label: 'People',
-              href: peopleNavChildren[0]?.href ?? '/members',
+              href: peopleNavChildren[0]?.href ?? '/people',
               items: peopleNavChildren.length > 1 ? peopleNavChildren : undefined,
             }]
           : []),
@@ -165,7 +165,7 @@ export default async function AppHeader({ brandVariant = 'auto', permissions: pr
               ...(permissions.canAccessOrganizationSettings || permissions.canManageAdmins
                 ? [{ href: '/me/council', label: 'Organization settings' }]
                 : []),
-              ...(permissions.canAccessOfficerDirectory ? [{ href: '/members/officers', label: 'Officers' }] : []),
+              ...(permissions.canAccessOfficerDirectory ? [{ href: '/people/officers', label: 'Officers' }] : []),
             ]}
             email={permissions.email}
             accessContext={{
