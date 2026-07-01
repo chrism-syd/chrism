@@ -509,7 +509,7 @@ export default function CustomListDetailClient({
 
   const sortedMembers = useMemo(() => sortPeople(members, peopleSort), [members, peopleSort])
   const recentContactMembers = useMemo(
-    () => sortRecentPeople(members.filter((member) => Boolean(listPerson.last_contact_at)), recentSort),
+    () => sortRecentPeople(members.filter((listPerson) => Boolean(listPerson.last_contact_at)), recentSort),
     [members, recentSort]
   )
 
@@ -585,10 +585,10 @@ export default function CustomListDetailClient({
               className="qv-simple-list qv-simple-list-review"
               style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
             >
-              {sortedMembers.map((member) => (
+              {sortedMembers.map((listPerson) => (
                 <ReviewPersonRow
                   key={listPerson.id}
-                  listPerson={member}
+                  listPerson={listPerson}
                   listId={listId}
                   listName={listName}
                   currentPersonId={currentPersonId}
@@ -625,10 +625,10 @@ export default function CustomListDetailClient({
               className="qv-simple-list qv-simple-list-review"
               style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
             >
-              {recentContactMembers.map((member) => (
+              {recentContactMembers.map((listPerson) => (
                 <ReviewPersonRow
                   key={`recent-${listPerson.id}`}
-                  listPerson={member}
+                  listPerson={listPerson}
                   listId={listId}
                   listName={listName}
                   currentPersonId={currentPersonId}
