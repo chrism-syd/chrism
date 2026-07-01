@@ -7,7 +7,7 @@ const INITIAL_STATE: CreateCustomListState = { error: null }
 
 type Props = {
   open: boolean
-  memberIds: string[]
+  personIds: string[]
   previewNames: string[]
   onClose: () => void
   sourceLabel?: string
@@ -72,7 +72,7 @@ function CreateCustomListFormStep({ personIds, personCount, onBack, onCancel }: 
 
 export default function CreateCustomListDialog({
   open,
-  memberIds,
+  personIds,
   previewNames,
   onClose,
   sourceLabel = 'the current filtered view',
@@ -99,7 +99,7 @@ export default function CreateCustomListDialog({
   }, [handleClose, open])
 
 
-  if (!open || memberIds.length === 0) {
+  if (!open || personIds.length === 0) {
     return null
   }
 
@@ -119,14 +119,14 @@ export default function CreateCustomListDialog({
                 <p className="qv-inline-message">Step 1 of 2</p>
                 <h2 id="create-custom-list-title" className="qv-section-title">Review this list</h2>
                 <p className="qv-section-subtitle">
-                  The custom list will include <strong>{memberIds.length}</strong> {memberIds.length === 1 ? 'person' : 'people'} from <strong>{sourceLabel}</strong>.
+                  The custom list will include <strong>{personIds.length}</strong> {personIds.length === 1 ? 'person' : 'people'} from <strong>{sourceLabel}</strong>.
                 </p>
               </div>
             </div>
 
             <div className="qv-custom-list-review-box">
               <div className="qv-detail-badges">
-                <span className="qv-badge">{memberIds.length} selected</span>
+                <span className="qv-badge">{personIds.length} selected</span>
                 <span className="qv-badge qv-badge-soft">{sourceBadge}</span>
               </div>
               <div className="qv-custom-list-preview-grid">
@@ -135,8 +135,8 @@ export default function CreateCustomListDialog({
                     {name}
                   </span>
                 ))}
-                {memberIds.length > previewNames.length ? (
-                  <span className="qv-badge qv-badge-soft">+{memberIds.length - previewNames.length} more</span>
+                {personIds.length > previewNames.length ? (
+                  <span className="qv-badge qv-badge-soft">+{personIds.length - previewNames.length} more</span>
                 ) : null}
               </div>
             </div>
@@ -155,8 +155,8 @@ export default function CreateCustomListDialog({
         {step === 'details' ? (
           <CreateCustomListFormStep
             key="details"
-            personIds={memberIds}
-            personCount={memberIds.length}
+            personIds={personIds}
+            personCount={personIds.length}
             onBack={() => setStep('review')}
             onCancel={handleClose}
           />
