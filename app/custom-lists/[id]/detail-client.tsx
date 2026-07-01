@@ -77,7 +77,7 @@ type Props = {
   addCandidates: PersonOption[]
 }
 
-type MembersSort = 'attention' | 'name_az' | 'name_za' | 'contact_newest' | 'contact_oldest'
+type PeopleSort = 'attention' | 'name_az' | 'name_za' | 'contact_newest' | 'contact_oldest'
 type RecentSort = 'newest' | 'oldest' | 'name_az' | 'name_za'
 
 function fullName(person?: PersonSummaryRow | null) {
@@ -136,7 +136,7 @@ function contactTime(value?: string | null) {
   return value ? new Date(value).getTime() : 0
 }
 
-function sortMembers(list: CustomListMemberView[], sortBy: MembersSort) {
+function sortPeople(list: CustomListMemberView[], sortBy: PeopleSort) {
   const rows = [...list]
 
   if (sortBy === 'name_az') {
@@ -503,11 +503,11 @@ export default function CustomListDetailClient({
   shareCandidates,
   addCandidates,
 }: Props) {
-  const [membersSort, setMembersSort] = useState<MembersSort>('attention')
+  const [peopleSort, setPeopleSort] = useState<PeopleSort>('attention')
   const [recentSort, setRecentSort] = useState<RecentSort>('newest')
   const [isAddMemberExpanded, setIsAddMemberExpanded] = useState(false)
 
-  const sortedMembers = useMemo(() => sortMembers(members, membersSort), [members, membersSort])
+  const sortedMembers = useMemo(() => sortPeople(members, peopleSort), [members, peopleSort])
   const recentContactMembers = useMemo(
     () => sortRecentMembers(members.filter((member) => Boolean(member.last_contact_at)), recentSort),
     [members, recentSort]
@@ -525,7 +525,7 @@ export default function CustomListDetailClient({
             <div className="qv-section-controls">
               <SortSelect
                 label="Sort by"
-                value={membersSort}
+                value={peopleSort}
                 onChange={(value) => setMembersSort(value as MembersSort)}
                 options={[
                   { value: 'attention', label: 'Needs contact first' },
