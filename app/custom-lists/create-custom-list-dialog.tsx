@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useCallback, useEffect, useState } from 'react'
-import { createCustomListFromMembersAction as createCustomListFromPeopleAction, type CreateCustomListState } from './actions'
+import { createCustomListFromPeopleAction, type CreateCustomListState } from './actions'
 
 const INITIAL_STATE: CreateCustomListState = { error: null }
 
