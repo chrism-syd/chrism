@@ -126,7 +126,7 @@ function getContent(variant: WelcomePageVariant) {
       noteBody:
         'Review the member directory first. Events and volunteer hours are here when you need them, but good member information is the foundation everything else rests on.',
       actions: [],
-      primaryHref: '/members',
+      primaryHref: '/people',
       primaryLabel: 'Start with members',
       secondaryHref: '/me/council',
       secondaryLabel: 'Organization settings',
