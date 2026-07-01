@@ -207,8 +207,8 @@ export async function createCustomListFromMembersAction(
     return { error: 'We could not read the people in this filtered view. Please try again.' }
   }
 
-  const memberIds = [...new Set(parsedIds)]
-  if (memberIds.length === 0) {
+  const personIds = [...new Set(parsedIds)]
+  if (personIds.length === 0) {
     return { error: 'There are no people in this filtered view to save into a custom list.' }
   }
 
@@ -239,7 +239,7 @@ export async function createCustomListFromMembersAction(
     scopedMemberIds = await listValidDirectoryPersonIdsForLocalUnit({
       admin,
       localUnitId,
-      personIds: memberIds,
+      personIds: personIds,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Please try again.'
