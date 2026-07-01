@@ -283,7 +283,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
 
       {showFieldPicker ? <div className="qv-inline-field-panel" role="region" aria-label="Choose which person details appear"><p className="qv-inline-message" style={{ margin: 0 }}>Choose which person details appear in this session.</p><div className="qv-field-picker-grid">{COLUMN_OPTIONS.map((option) => <label key={option.key} className="qv-field-picker-option"><input type="checkbox" checked={visibleColumns.includes(option.key)} onChange={() => toggleColumn(option.key)} style={{ width: 16, height: 16 }} /><span>{option.label}</span></label>)}</div></div> : null}
 
-      {paginatedMembers.length === 0 ? <div className="qv-empty"><p className="qv-empty-title">No people match your search.</p><p className="qv-empty-text">Try a different search, filter, or reset the controls.</p></div> : <div className="qv-member-table-scroll" style={{ overflowY: 'visible', paddingTop: 6, paddingBottom: 6 }}><div className="qv-member-list" style={{ gap: 10, paddingTop: 2 }}>{paginatedMembers.map((person) => {
+      {paginatedMembers.length === 0 ? <div className="qv-empty"><p className="qv-empty-title">No people match your search.</p><p className="qv-empty-text">Try a different search, filter, or reset the controls.</p></div> : <div className="qv-person-table-scroll" style={{ overflowY: 'visible', paddingTop: 6, paddingBottom: 6 }}><div className="qv-member-list" style={{ gap: 10, paddingTop: 2 }}>{paginatedMembers.map((person) => {
         const currentOfficerLabels = currentOfficerLabelsById[person.id] ?? []
         const executiveOfficerLabels = executiveOfficerLabelsById[person.id] ?? []
         const honorificLabels = honorificLabelsById[person.id] ?? []
