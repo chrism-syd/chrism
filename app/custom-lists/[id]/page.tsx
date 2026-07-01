@@ -52,7 +52,7 @@ type SharedAccessView = CustomListShareGrantRow & {
   profileHref?: string | null
 }
 
-type MemberOption = {
+type PersonOption = {
   id: string
   name: string
   email: string | null
@@ -77,14 +77,14 @@ function displayFullName(person?: PersonSummaryRow | null) {
   return `${preferred} ${legalLastName}`.trim()
 }
 
-function memberSubtitle(person?: PersonSummaryRow | null) {
+function personSubtitle(person?: PersonSummaryRow | null) {
   if (!person) return null
   const shownName = displayFullName(person).trim().toLowerCase()
   const legalName = fullName(person).trim().toLowerCase()
   return shownName === legalName ? null : fullName(person)
 }
 
-function buildMemberOption(person: PersonSummaryRow): MemberOption {
+function buildPersonOption(person: PersonSummaryRow): PersonOption {
   const shownName = displayFullName(person)
   const legalName = fullName(person)
   const preferredName = person.preferred_display_name?.trim() ?? ''
@@ -94,7 +94,7 @@ function buildMemberOption(person: PersonSummaryRow): MemberOption {
     id: person.id,
     name: shownName,
     email: person.email,
-    subtitle: memberSubtitle(person),
+    subtitle: personSubtitle(person),
     searchTokens: [
       person.first_name,
       person.last_name,
@@ -396,7 +396,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
   )
   const listMemberIds = new Set(members.map((member) => member.person_id))
 
-  const optionList = eligiblePeople.map(buildMemberOption)
+  const optionList = eligiblePeople.map(buildPersonOption)
 
   const shareCandidates = optionList.filter((person) => !sharedPersonIds.has(person.id))
   const addCandidates = optionList.filter((person) => !listMemberIds.has(person.id))
