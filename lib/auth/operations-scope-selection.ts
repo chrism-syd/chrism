@@ -111,7 +111,12 @@ export function inferAreaSelectionFromPath(pathname: string | null | undefined):
   const path = clean(pathname)
   if (!path) return null
 
-  if (path === '/members' || path.startsWith('/members/')) {
+  if (
+    path === '/people' ||
+    path.startsWith('/people/') ||
+    path === '/members' ||
+    path.startsWith('/members/')
+  ) {
     return {
       areaCode: 'members',
       minimumAccessLevel: 'edit_manage',
