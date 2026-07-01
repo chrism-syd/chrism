@@ -120,7 +120,7 @@ export async function addVolunteerHourAdjustment(formData: FormData) {
   }
 
   revalidatePath('/events/volunteer-hours')
-  revalidatePath(`/members/${personId}`)
+  revalidatePath(`/people/${personId}`)
   redirect('/events/volunteer-hours')
 }
 
@@ -162,6 +162,6 @@ export async function voidVolunteerHourAdjustment(formData: FormData) {
   }
 
   revalidatePath('/events/volunteer-hours')
-  revalidatePath(`/members/${personId}`)
+  revalidatePath(`/people/${personId}`)
   redirect('/events/volunteer-hours')
 }

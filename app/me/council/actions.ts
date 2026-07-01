@@ -255,7 +255,7 @@ function revalidateCouncilSurfaces() {
   revalidatePath('/me')
   revalidatePath('/me/council')
   revalidatePath('/me/claim-organization')
-  revalidatePath('/members/officers')
+  revalidatePath('/people/officers')
   revalidatePath('/super-admin/organization-claims')
 }
 
@@ -271,12 +271,12 @@ function rangesOverlap(
 
 function revalidateOfficerSurfaces(personId: string | null) {
   revalidateCouncilSurfaces()
-  revalidatePath('/members')
+  revalidatePath('/people')
 
   if (personId) {
-    revalidatePath(`/members/${personId}`)
-    revalidatePath(`/members/${personId}/edit`)
-    revalidatePath(`/members/${personId}/officers`)
+    revalidatePath(`/people/${personId}`)
+    revalidatePath(`/people/${personId}/edit`)
+    revalidatePath(`/people/${personId}/officers`)
   }
 }
 

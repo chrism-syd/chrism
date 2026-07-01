@@ -242,8 +242,8 @@ export async function createMemberAction(
   }
 
   revalidatePath('/');
-  revalidatePath('/members');
-  revalidatePath('/members/archive');
+  revalidatePath('/people');
+  revalidatePath('/people/archive');
   revalidatePath('/custom-lists');
   redirect(`/people/${insertedPerson.id}`);
 }
@@ -313,7 +313,7 @@ export async function updateMemberAction(
   }
 
   revalidatePath('/');
-  revalidatePath('/members');
+  revalidatePath('/people');
   revalidatePath(`/people/${personId}`);
   redirect(`/people/${personId}`);
 }
@@ -347,8 +347,8 @@ export async function restoreMemberAction(formData: FormData) {
   }
 
   revalidatePath('/')
-  revalidatePath('/members')
-  revalidatePath('/members/archive')
+  revalidatePath('/people')
+  revalidatePath('/people/archive')
   redirect('/people')
 }
 
@@ -396,7 +396,7 @@ export async function deleteMemberAction(
   }
 
   revalidatePath('/');
-  revalidatePath('/members');
-  revalidatePath('/members/archive');
+  revalidatePath('/people');
+  revalidatePath('/people/archive');
   redirect('/people');
 }
