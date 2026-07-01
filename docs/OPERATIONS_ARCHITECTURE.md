@@ -53,9 +53,9 @@ Responsibilities include:
 
 This area is evolving toward a broader Council Profile or Local Organization Profile surface. Information that describes the organization itself should generally live here, not inside a narrow public page settings silo.
 
-### `/members`
+### `/people`
 
-Directory and people-management surface.
+Directory and people-management surface. Legacy `/members` routes remain as compatibility routes during migration.
 
 Current terminology still says members in places, but the product model is broadening toward People because the system may include:
 
