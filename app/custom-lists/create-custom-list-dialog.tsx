@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useCallback, useEffect, useState } from 'react'
-import { createCustomListFromMembersAction, type CreateCustomListState } from './actions'
+import { createCustomListFromMembersAction as createCustomListFromPeopleAction, type CreateCustomListState } from './actions'
 
 const INITIAL_STATE: CreateCustomListState = { error: null }
 
@@ -15,24 +15,24 @@ type Props = {
 }
 
 type CreateFormStepProps = {
-  memberIds: string[]
-  memberCount: number
+  personIds: string[]
+  personCount: number
   onBack: () => void
   onCancel: () => void
 }
 
-function CreateCustomListFormStep({ memberIds, memberCount, onBack, onCancel }: CreateFormStepProps) {
-  const [state, formAction, isPending] = useActionState(createCustomListFromMembersAction, INITIAL_STATE)
+function CreateCustomListFormStep({ personIds, personCount, onBack, onCancel }: CreateFormStepProps) {
+  const [state, formAction, isPending] = useActionState(createCustomListFromPeopleAction, INITIAL_STATE)
 
   return (
     <form action={formAction} className="qv-form-grid qv-custom-list-create-form">
-      <input type="hidden" name="member_ids" value={JSON.stringify(memberIds)} />
+      <input type="hidden" name="member_ids" value={JSON.stringify(personIds)} />
       <div className="qv-directory-section-head">
         <div>
           <p className="qv-inline-message">Step 2 of 2</p>
           <h2 className="qv-section-title">Name this custom list</h2>
           <p className="qv-section-subtitle">
-            This will save <strong>{memberCount}</strong> member{memberCount === 1 ? '' : 's'} into a list you can share later.
+            This will save <strong>{personCount}</strong> {personCount === 1 ? 'person' : 'people'} into a list you can share later.
           </p>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function CreateCustomListDialog({
                 <p className="qv-inline-message">Step 1 of 2</p>
                 <h2 id="create-custom-list-title" className="qv-section-title">Review this list</h2>
                 <p className="qv-section-subtitle">
-                  The custom list will include <strong>{memberIds.length}</strong> member{memberIds.length === 1 ? '' : 's'} from <strong>{sourceLabel}</strong>.
+                  The custom list will include <strong>{memberIds.length}</strong> {memberIds.length === 1 ? 'person' : 'people'} from <strong>{sourceLabel}</strong>.
                 </p>
               </div>
             </div>
@@ -155,8 +155,8 @@ export default function CreateCustomListDialog({
         {step === 'details' ? (
           <CreateCustomListFormStep
             key="details"
-            memberIds={memberIds}
-            memberCount={memberIds.length}
+            personIds={memberIds}
+            personCount={memberIds.length}
             onBack={() => setStep('review')}
             onCancel={handleClose}
           />
