@@ -164,7 +164,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   const safeCurrentPage = Math.min(currentPage, totalPages)
   useEffect(() => { setPageInput(String(safeCurrentPage)) }, [safeCurrentPage])
   useEffect(() => { const fn = (event: MouseEvent) => { const target = event.target as Node; if (!actionMenuRef.current?.contains(target)) actionMenuRef.current?.removeAttribute('open') }; document.addEventListener('mousedown', fn); return () => document.removeEventListener('mousedown', fn) }, [])
-  useEffect(() => { setSelectedPersonIds((current) => current.filter((memberId) => people.some((member) => member.id === memberId))) }, [people])
+  useEffect(() => { setSelectedPersonIds((current) => current.filter((personId) => people.some((member) => member.id === personId))) }, [people])
   useEffect(() => {
     if (!notice) return
 
@@ -182,18 +182,18 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   }, [notice])
   const paginatedPeople = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedPeople : filteredAndSortedPeople.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedPeople, rowsPerPage, safeCurrentPage])
   const peopleById = useMemo(() => new Map(people.map((member) => [member.id, member] as const)), [people])
-  const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => peopleById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [peopleById, selectedPersonIds])
+  const selectedPeople = useMemo(() => selectedPersonIds.map((personId) => peopleById.get(personId)).filter((member): member is PersonListItem => Boolean(member)), [peopleById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((member) => member.id), [filteredAndSortedPeople])
   const selectedCount = selectedPeople.length
-  const allFilteredPeopleSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((memberId) => selectedPersonIdSet.has(memberId))
-  const someFilteredPeopleSelected = filteredPersonIds.some((memberId) => selectedPersonIdSet.has(memberId))
+  const allFilteredPeopleSelected = filteredPersonIds.length > 0 && filteredPersonIds.every((personId) => selectedPersonIdSet.has(personId))
+  const someFilteredPeopleSelected = filteredPersonIds.some((personId) => selectedPersonIdSet.has(personId))
   useEffect(() => { if (selectionRef.current) selectionRef.current.indeterminate = someFilteredPeopleSelected && !allFilteredPeopleSelected }, [allFilteredPeopleSelected, someFilteredPeopleSelected])
 
   const hasActiveControls = search.trim() !== '' || relationshipFilter !== 'all' || quickFilter !== 'all' || sortBy !== 'last_name_asc' || rowsPerPage !== DEFAULT_ROWS_PER_PAGE
-  function getDisplayedRole(memberId: string, relationshipCode: string) {
-    const executiveOfficerLabels = executiveOfficerLabelsById[memberId] ?? []
-    const currentOfficerLabels = currentOfficerLabelsById[memberId] ?? []
+  function getDisplayedRole(personId: string, relationshipCode: string) {
+    const executiveOfficerLabels = executiveOfficerLabelsById[personId] ?? []
+    const currentOfficerLabels = currentOfficerLabelsById[personId] ?? []
     return executiveOfficerLabels[0] ?? (currentOfficerLabels.length > 0 ? currentOfficerLabels.join(', ') : labelize(relationshipCode))
   }
   function toggleColumn(columnKey: ColumnKey) { setVisibleColumns((current) => current.includes(columnKey) ? current.filter((value) => value !== columnKey) : [...current, columnKey]) }
@@ -220,13 +220,13 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
     if (list.length === 0) return setNotice({ tone: 'error', text: `There are no people in ${sourceLabel} to save into a custom list.` })
     closeMenu(); setNotice(null); setCreateListDraft({ memberIds: list.map((member) => member.id), previewNames: list.slice(0, 12).map((member) => displayFullName(member)), sourceLabel, sourceBadge })
   }
-  function togglePersonSelection(memberId: string) { setSelectedPersonIds((current) => current.includes(memberId) ? current.filter((value) => value !== memberId) : [...current, memberId]) }
+  function togglePersonSelection(personId: string) { setSelectedPersonIds((current) => current.includes(personId) ? current.filter((value) => value !== personId) : [...current, personId]) }
   function handleToggleAllSelection() {
     if (filteredPersonIds.length === 0) return
     setSelectedPersonIds((current) => {
       const next = new Set(current)
-      if (allFilteredPeopleSelected) for (const memberId of filteredPersonIds) next.delete(memberId)
-      else for (const memberId of filteredPersonIds) next.add(memberId)
+      if (allFilteredPeopleSelected) for (const personId of filteredPersonIds) next.delete(personId)
+      else for (const personId of filteredPersonIds) next.add(personId)
       return [...next]
     })
   }
