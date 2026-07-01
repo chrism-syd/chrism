@@ -164,7 +164,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   const safeCurrentPage = Math.min(currentPage, totalPages)
   useEffect(() => { setPageInput(String(safeCurrentPage)) }, [safeCurrentPage])
   useEffect(() => { const fn = (event: MouseEvent) => { const target = event.target as Node; if (!actionMenuRef.current?.contains(target)) actionMenuRef.current?.removeAttribute('open') }; document.addEventListener('mousedown', fn); return () => document.removeEventListener('mousedown', fn) }, [])
-  useEffect(() => { setSelectedPersonIds((current) => current.filter((personId) => people.some((member) => member.id === personId))) }, [people])
+  useEffect(() => { setSelectedPersonIds((current) => current.filter((personId) => people.some((person) => person.id === personId))) }, [people])
   useEffect(() => {
     if (!notice) return
 
