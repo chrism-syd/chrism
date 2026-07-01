@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from 'react'
 import CreateCustomListDialog from '@/app/custom-lists/create-custom-list-dialog'
 
-type Member = {
+type PersonListItem = {
   id: string
   first_name: string
   last_name: string
@@ -27,7 +27,7 @@ type Member = {
 
 type CurrentViewControlMode = 'menu' | 'button'
 type Props = {
-  members: Member[]
+  members: PersonListItem[]
   currentOfficerLabelsById?: Record<string, string[]>
   executiveOfficerLabelsById?: Record<string, string[]>
   honorificLabelsById?: Record<string, string[]>
@@ -60,8 +60,8 @@ const COLUMN_OPTIONS: Array<{ key: ColumnKey; label: string }> = [
 ]
 
 function normalize(value: string | null | undefined) { return (value ?? '').trim().toLowerCase() }
-function legalFullName(member: Pick<Member, 'first_name' | 'last_name'>) { return `${member.first_name} ${member.last_name}`.trim() }
-function displayFullName(member: Pick<Member, 'first_name' | 'last_name' | 'preferred_display_name'>) {
+function legalFullName(member: Pick<PersonListItem, 'first_name' | 'last_name'>) { return `${member.first_name} ${member.last_name}`.trim() }
+function displayFullName(member: Pick<PersonListItem, 'first_name' | 'last_name' | 'preferred_display_name'>) {
   const preferred = member.preferred_display_name?.trim()
   if (!preferred) return legalFullName(member)
   const legalLastName = member.last_name?.trim() ?? ''
@@ -74,12 +74,12 @@ function labelize(value: string | null | undefined) {
   if (value === 'volunteer_only') return 'Volunteer'
   return value.replaceAll('_', ' ').split(' ').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
 }
-function formatAddress(member: Member) {
+function formatAddress(member: PersonListItem) {
   const line1 = [member.address_line_1, member.address_line_2].filter(Boolean).join(', ')
   const line2 = [member.city, member.state_province, member.postal_code].filter(Boolean).join(' • ')
   return [line1, line2].filter(Boolean).join(' • ') || 'No address on file'
 }
-function getColumnValue(member: Member, key: ColumnKey) {
+function getColumnValue(member: PersonListItem, key: ColumnKey) {
   switch (key) {
     case 'email': return member.email || 'No email on file'
     case 'cell_phone': return member.cell_phone || 'Not set'
@@ -94,7 +94,7 @@ function getColumnValue(member: Member, key: ColumnKey) {
   }
 }
 function fileSafe(value: string) { return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'people' }
-function getUniqueEmailRecipients(list: Member[]) { return [...new Set(list.map((member) => member.email?.trim()).filter((value): value is string => Boolean(value)))] }
+function getUniqueEmailRecipients(list: PersonListItem[]) { return [...new Set(list.map((member) => member.email?.trim()).filter((value): value is string => Boolean(value)))] }
 function ActionMenu({ label, menuRef, onCreateList, onExport, onCopyEmails }: ActionMenuProps) {
   return <details className="qv-view-menu" ref={menuRef}><summary><span>{label}</span><span aria-hidden="true" className="qv-view-menu-chevron">▾</span></summary><div className="qv-view-menu-panel"><button type="button" className="qv-view-menu-item" onClick={onCreateList}>Create Custom List</button><button type="button" className="qv-view-menu-item" onClick={onExport}>Export as Excel</button><button type="button" className="qv-view-menu-item" onClick={onCopyEmails}>Copy Email addresses</button></div></details>
 }
@@ -182,7 +182,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   }, [notice])
   const paginatedMembers = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedMembers : filteredAndSortedMembers.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedMembers, rowsPerPage, safeCurrentPage])
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
-  const selectedMembers = useMemo(() => selectedMemberIds.map((memberId) => membersById.get(memberId)).filter((member): member is Member => Boolean(member)), [membersById, selectedMemberIds])
+  const selectedMembers = useMemo(() => selectedMemberIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedMemberIds])
   const selectedMemberIdSet = useMemo(() => new Set(selectedMemberIds), [selectedMemberIds])
   const filteredMemberIds = useMemo(() => filteredAndSortedMembers.map((member) => member.id), [filteredAndSortedMembers])
   const selectedCount = selectedMembers.length
@@ -200,7 +200,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
   function closeMenu() { actionMenuRef.current?.removeAttribute('open') }
   function resetControls() { setSearch(''); setRelationshipFilter('all'); setQuickFilter('all'); setSortBy('last_name_asc'); setRowsPerPage(DEFAULT_ROWS_PER_PAGE); setCurrentPage(1); setNotice(null) }
   function commitPageInput() { if (rowsPerPage === 'all') return setPageInput('1'); const parsed = Number(pageInput); if (!Number.isFinite(parsed)) return setPageInput(String(safeCurrentPage)); const nextPage = Math.min(Math.max(1, Math.trunc(parsed)), totalPages); setCurrentPage(nextPage); setPageInput(String(nextPage)) }
-  async function exportMembersAsExcel(list: Member[], scopeLabel: string, filePrefix: string) {
+  async function exportMembersAsExcel(list: PersonListItem[], scopeLabel: string, filePrefix: string) {
     const selectedColumnOptions = COLUMN_OPTIONS.filter((option) => visibleColumns.includes(option.key))
     const exportRows = list.map((member) => {
       const baseRow: Record<string, string> = { 'Display name': displayFullName(member), 'Legal name': legalFullName(member), 'Directory role': getDisplayedRole(member.id, member.primary_relationship_code) }
@@ -211,12 +211,12 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
     const today = new Date().toISOString().slice(0, 10); XLSX.writeFile(workbook, `${fileSafe(`${filePrefix}-${today}`)}.xlsx`)
     setNotice({ tone: 'success', text: `Exported ${exportRows.length} ${scopeLabel} to Excel.` })
   }
-  async function copyEmailsFromMembers(list: Member[], scopeLabel: string) {
+  async function copyEmailsFromMembers(list: PersonListItem[], scopeLabel: string) {
     const recipients = getUniqueEmailRecipients(list)
     if (recipients.length === 0) return setNotice({ tone: 'error', text: `No email addresses are available in ${scopeLabel}.` })
     try { await navigator.clipboard.writeText(recipients.join('; ')); setNotice({ tone: 'success', text: `Copied ${recipients.length} email address${recipients.length === 1 ? '' : 'es'} from ${scopeLabel}.` }) } catch { setNotice({ tone: 'error', text: 'Could not copy the email list. Please try again.' }) }
   }
-  function openCreateListFromMembers(list: Member[], sourceLabel: string, sourceBadge: string) {
+  function openCreateListFromMembers(list: PersonListItem[], sourceLabel: string, sourceBadge: string) {
     if (list.length === 0) return setNotice({ tone: 'error', text: `There are no people in ${sourceLabel} to save into a custom list.` })
     closeMenu(); setNotice(null); setCreateListDraft({ memberIds: list.map((member) => member.id), previewNames: list.slice(0, 12).map((member) => displayFullName(member)), sourceLabel, sourceBadge })
   }
