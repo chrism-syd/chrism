@@ -55,13 +55,13 @@ async function redirectToPath(path: string, args: { error?: string | null; notic
 async function requireCouncilAdmin() {
   const { permissions, council, admin, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   });
 
   if (!localUnitId) {
-    await redirectToPath('/members', {
+    await redirectToPath('/people', {
       error: 'This view is missing its active local organization context. Refresh and try again.',
     });
   }
@@ -108,9 +108,9 @@ function formatYearRange(startYear: number, endYear: number | null) {
 function revalidateOfficerSurfaces(personId: string) {
   revalidatePath('/members');
   revalidatePath('/members/officers');
-  revalidatePath(`/members/${personId}`);
-  revalidatePath(`/members/${personId}/edit`);
-  revalidatePath(`/members/${personId}/officers`);
+  revalidatePath(`/people/${personId}`);
+  revalidatePath(`/people/${personId}/edit`);
+  revalidatePath(`/people/${personId}/officers`);
   revalidatePath('/me/council');
 }
 
@@ -225,7 +225,7 @@ export async function deleteOfficerTermAction(formData: FormData) {
   const { admin, localUnitId } = await requireCouncilAdmin();
   const termId = textEntry(formData, 'term_id');
   const personId = textEntry(formData, 'person_id');
-  const returnTo = textEntry(formData, 'return_to') ?? (personId ? `/members/${personId}/edit` : '/members');
+  const returnTo = textEntry(formData, 'return_to') ?? (personId ? `/people/${personId}/edit` : '/people');
 
   if (!termId || !personId) {
     return await redirectToPath(returnTo, { error: 'We could not tell which officer term to remove.' });

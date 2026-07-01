@@ -208,7 +208,7 @@ export default async function OfficersPage() {
                 const showLegalName = person ? normalize(displayName) !== normalize(legalName) : false;
 
                 return (
-                  <Link key={term.id} href={person ? `/members/${person.id}` : '#'} className="qv-member-link">
+                  <Link key={term.id} href={person ? `/people/${person.id}` : '#'} className="qv-member-link">
                     <div className="qv-member-row">
                       <div className="qv-member-main">
                         <div className="qv-member-text">
@@ -255,7 +255,7 @@ export default async function OfficersPage() {
                 const showLegalName = person ? normalize(displayName) !== normalize(legalName) : false;
 
                 return (
-                  <Link key={`${group.person_id}-${group.label}-${group.start_year}-${group.end_year}`} href={person ? `/members/${person.id}` : '#'} className="qv-member-link">
+                  <Link key={`${group.person_id}-${group.label}-${group.start_year}-${group.end_year}`} href={person ? `/people/${person.id}` : '#'} className="qv-member-link">
                     <div className="qv-member-row">
                       <div className="qv-member-main">
                         <div className="qv-member-text">
