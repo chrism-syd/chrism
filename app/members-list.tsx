@@ -241,7 +241,7 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
   const actionMenuLabel = usingSelectedRows ? 'Use Selected Rows' : 'Use Current View'
 
   return <>
-    <section className="qv-card qv-members-list-card">
+    <section className="qv-card qv-people-list-card">
       <div className="qv-directory-section-head">
         <div><h2 className="qv-section-title">{sectionTitle}</h2><p className="qv-section-subtitle">{sectionSubtitle}</p></div>
         <div className="qv-view-menu-stack">

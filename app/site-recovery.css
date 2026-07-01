@@ -235,7 +235,7 @@
   background: var(--bg-sunken);
 }
 
-.qv-members-list-card {
+.qv-people-list-card {
   min-width: 0;
   overflow: visible;
 }
@@ -335,7 +335,7 @@
 }
 
 .qv-custom-list-card,
-.qv-members-list-card {
+.qv-people-list-card {
   min-width: 0;
 }
 
