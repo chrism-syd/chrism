@@ -88,8 +88,8 @@ export default async function ProfileChangeReviewDetailPage({
 
         <SectionMenuBar
           items={[
-            { label: 'Back to review queue', href: '/members/reviews' },
-            { label: 'Review decisions archive', href: '/members/reviews/archive' },
+            { label: 'Back to review queue', href: '/people/reviews' },
+            { label: 'Review decisions archive', href: '/people/reviews/archive' },
           ]}
         />
 
