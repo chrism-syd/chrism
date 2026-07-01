@@ -303,7 +303,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
             : honorificLabels.length > 0
               ? honorificLabels.join(', ')
               : fallbackRoleLabel
-        const rowStyle = { ['--qv-member-row-template' as const]: gridTemplateColumns, ['--qv-member-row-min-width' as const]: `${rowMinWidth}px` } as CSSProperties
+        const rowStyle = { ['--qv-person-row-template' as const]: gridTemplateColumns, ['--qv-person-row-min-width' as const]: `${rowMinWidth}px` } as CSSProperties
         return <div key={person.id} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: 12, alignItems: 'center' }}>
           <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 }} aria-label={`Select ${displayName}`}><input type="checkbox" checked={isSelected} onChange={() => toggleMemberSelection(person.id)} style={{ width: 16, height: 16 }} /></label>
           <Link href={`/people/${person.id}`} className="qv-member-link">
