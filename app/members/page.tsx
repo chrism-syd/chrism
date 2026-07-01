@@ -1,5 +1,5 @@
 import AppHeader from '@/app/app-header';
-import PeopleList from '@/app/members-list';
+import PeopleList from '@/app/people-list';
 import OrganizationAvatar from '@/app/components/organization-avatar';
 import SectionMenuBar from '@/app/components/section-menu-bar';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
