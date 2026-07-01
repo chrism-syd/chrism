@@ -297,7 +297,7 @@ export async function createCustomListFromMembersAction(
     return { error: `The custom list was created, but we could not add the people. ${memberInsertError.message}` }
   }
 
-  revalidatePath('/members')
+  revalidatePath('/people')
   revalidatePath('/custom-lists')
   redirect(`/custom-lists/${customListData.id}`)
 }
@@ -925,7 +925,7 @@ export async function claimCustomListMemberAction(formData: FormData) {
   revalidatePath('/custom-lists')
   revalidatePath(`/custom-lists/${customListId}`)
   if (canManage) {
-    revalidatePath('/members')
+    revalidatePath('/people')
   }
   redirect(`/custom-lists/${customListId}`)
 }
@@ -1030,7 +1030,7 @@ export async function logCustomListContactAction(formData: FormData) {
 
   revalidatePath('/custom-lists')
   revalidatePath(`/custom-lists/${customListId}`)
-  revalidatePath('/members')
+  revalidatePath('/people')
   redirect(`/custom-lists/${customListId}`)
 }
 
@@ -1059,7 +1059,7 @@ export async function removeCustomListMemberAction(formData: FormData) {
 
   revalidatePath('/custom-lists')
   revalidatePath(`/custom-lists/${customListId}`)
-  revalidatePath('/members')
+  revalidatePath('/people')
   redirect(`/custom-lists/${customListId}`)
 }
 
@@ -1113,7 +1113,7 @@ export async function addCustomListMemberAction(formData: FormData) {
   if (existingPersonIds.includes(scopedPersonId)) {
     revalidatePath('/custom-lists')
     revalidatePath(`/custom-lists/${customListId}`)
-    revalidatePath('/members')
+    revalidatePath('/people')
     redirect(`/custom-lists/${customListId}`)
   }
 
@@ -1130,7 +1130,7 @@ export async function addCustomListMemberAction(formData: FormData) {
     if (alreadyPresentByIdentity) {
       revalidatePath('/custom-lists')
       revalidatePath(`/custom-lists/${customListId}`)
-      revalidatePath('/members')
+      revalidatePath('/people')
       redirect(`/custom-lists/${customListId}`)
     }
   }
@@ -1147,6 +1147,6 @@ export async function addCustomListMemberAction(formData: FormData) {
 
   revalidatePath('/custom-lists')
   revalidatePath(`/custom-lists/${customListId}`)
-  revalidatePath('/members')
+  revalidatePath('/people')
   redirect(`/custom-lists/${customListId}`)
 }
