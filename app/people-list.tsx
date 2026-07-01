@@ -308,7 +308,7 @@ export default function PeopleList({ members, currentOfficerLabelsById = {}, exe
           <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 }} aria-label={`Select ${displayName}`}><input type="checkbox" checked={isSelected} onChange={() => toggleMemberSelection(person.id)} style={{ width: 16, height: 16 }} /></label>
           <Link href={`/people/${person.id}`} className="qv-member-link">
             <div className="qv-member-row qv-member-row-compact" style={isSelected ? { borderColor: 'rgba(92, 74, 114, 0.34)', boxShadow: '0 0 0 1px rgba(92, 74, 114, 0.16)' } : undefined}>
-              <div className="qv-member-row-grid" style={rowStyle}>
+              <div className="qv-person-row-grid" style={rowStyle}>
                 <div style={{ minWidth: 0 }}>
                   <div className="qv-member-name qv-member-name-tight">{displayName}</div>
                   <div className="qv-member-meta qv-member-meta-tight">{showLegalName ? legalName : roleText}</div>
