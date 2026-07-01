@@ -20,7 +20,7 @@ type SwitcherAreaConfig = {
 }
 
 const SWITCHABLE_AREA_CONFIG: SwitcherAreaConfig[] = [
-  { areaCode: 'members', minimumAccessLevel: 'edit_manage', defaultPath: '/members' },
+  { areaCode: 'members', minimumAccessLevel: 'edit_manage', defaultPath: '/people' },
   { areaCode: 'events', minimumAccessLevel: 'manage', defaultPath: '/events' },
   { areaCode: 'custom_lists', minimumAccessLevel: 'interact', defaultPath: '/custom-lists' },
   { areaCode: 'local_unit_settings', minimumAccessLevel: 'manage', defaultPath: '/me/council' },
