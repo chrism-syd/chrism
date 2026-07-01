@@ -541,7 +541,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     const profilePerson = adminRow.personId ? personById.get(adminRow.personId) ?? null : null
     const profileHref = profilePerson
       ? isLocalUnitMemberProfile(profilePerson.id, visibleLocalUnitMemberIds)
-        ? `/members/${adminRow.personId}`
+        ? `/people/${adminRow.personId}`
         : `/me/council/admins/${adminRow.personId}`
       : null
 

@@ -306,7 +306,7 @@ export default function MembersList({ members, currentOfficerLabelsById = {}, ex
         const rowStyle = { ['--qv-member-row-template' as const]: gridTemplateColumns, ['--qv-member-row-min-width' as const]: `${rowMinWidth}px` } as CSSProperties
         return <div key={person.id} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: 12, alignItems: 'center' }}>
           <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 2 }} aria-label={`Select ${displayName}`}><input type="checkbox" checked={isSelected} onChange={() => toggleMemberSelection(person.id)} style={{ width: 16, height: 16 }} /></label>
-          <Link href={`/members/${person.id}`} className="qv-member-link">
+          <Link href={`/people/${person.id}`} className="qv-member-link">
             <div className="qv-member-row qv-member-row-compact" style={isSelected ? { borderColor: 'rgba(92, 74, 114, 0.34)', boxShadow: '0 0 0 1px rgba(92, 74, 114, 0.16)' } : undefined}>
               <div className="qv-member-row-grid" style={rowStyle}>
                 <div style={{ minWidth: 0 }}>

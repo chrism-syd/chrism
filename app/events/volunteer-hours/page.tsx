@@ -333,7 +333,7 @@ export default async function VolunteerHoursPage() {
                     <div className="qv-member-main">
                       <div className="qv-member-text">
                         <div className="qv-member-name">
-                          <Link href={`/members/${summary.personId}`} className="qv-inline-link">{summary.displayName}</Link>
+                          <Link href={`/people/${summary.personId}`} className="qv-inline-link">{summary.displayName}</Link>
                         </div>
                         <div className="qv-member-meta">{summary.email || 'No email on file'}</div>
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
