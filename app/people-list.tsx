@@ -94,7 +94,7 @@ function getColumnValue(person: PersonListItem, key: ColumnKey) {
   }
 }
 function fileSafe(value: string) { return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'people' }
-function getUniqueEmailRecipients(list: PersonListItem[]) { return [...new Set(list.map((member) => member.email?.trim()).filter((value): value is string => Boolean(value)))] }
+function getUniqueEmailRecipients(list: PersonListItem[]) { return [...new Set(list.map((person) => person.email?.trim()).filter((value): value is string => Boolean(value)))] }
 function ActionMenu({ label, menuRef, onCreateList, onExport, onCopyEmails }: ActionMenuProps) {
   return <details className="qv-view-menu" ref={menuRef}><summary><span>{label}</span><span aria-hidden="true" className="qv-view-menu-chevron">▾</span></summary><div className="qv-view-menu-panel"><button type="button" className="qv-view-menu-item" onClick={onCreateList}>Create Custom List</button><button type="button" className="qv-view-menu-item" onClick={onExport}>Export as Excel</button><button type="button" className="qv-view-menu-item" onClick={onCopyEmails}>Copy Email addresses</button></div></details>
 }
