@@ -181,8 +181,8 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
     }
   }, [notice])
   const paginatedPeople = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedPeople : filteredAndSortedPeople.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedPeople, rowsPerPage, safeCurrentPage])
-  const membersById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
-  const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => membersById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [membersById, selectedPersonIds])
+  const peopleById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
+  const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => peopleById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [peopleById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((member) => member.id), [filteredAndSortedPeople])
   const selectedCount = selectedPeople.length
