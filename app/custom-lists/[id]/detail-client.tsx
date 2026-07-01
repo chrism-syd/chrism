@@ -175,7 +175,7 @@ function sortPeople(list: CustomListMemberView[], sortBy: PeopleSort) {
   })
 }
 
-function sortRecentMembers(list: CustomListMemberView[], sortBy: RecentSort) {
+function sortRecentPeople(list: CustomListMemberView[], sortBy: RecentSort) {
   const rows = [...list]
   if (sortBy === 'oldest') {
     return rows.sort((left, right) => {
@@ -509,7 +509,7 @@ export default function CustomListDetailClient({
 
   const sortedMembers = useMemo(() => sortPeople(members, peopleSort), [members, peopleSort])
   const recentContactMembers = useMemo(
-    () => sortRecentMembers(members.filter((member) => Boolean(member.last_contact_at)), recentSort),
+    () => sortRecentPeople(members.filter((member) => Boolean(member.last_contact_at)), recentSort),
     [members, recentSort]
   )
 
@@ -526,7 +526,7 @@ export default function CustomListDetailClient({
               <SortSelect
                 label="Sort by"
                 value={peopleSort}
-                onChange={(value) => setMembersSort(value as MembersSort)}
+                onChange={(value) => setPeopleSort(value as PeopleSort)}
                 options={[
                   { value: 'attention', label: 'Needs contact first' },
                   { value: 'name_az', label: 'Last name A-Z' },
