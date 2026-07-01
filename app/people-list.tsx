@@ -74,9 +74,9 @@ function labelize(value: string | null | undefined) {
   if (value === 'volunteer_only') return 'Volunteer'
   return value.replaceAll('_', ' ').split(' ').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
 }
-function formatAddress(member: PersonListItem) {
-  const line1 = [member.address_line_1, member.address_line_2].filter(Boolean).join(', ')
-  const line2 = [member.city, member.state_province, member.postal_code].filter(Boolean).join(' • ')
+function formatAddress(person: PersonListItem) {
+  const line1 = [person.address_line_1, person.address_line_2].filter(Boolean).join(', ')
+  const line2 = [person.city, person.state_province, person.postal_code].filter(Boolean).join(' • ')
   return [line1, line2].filter(Boolean).join(' • ') || 'No address on file'
 }
 function getColumnValue(member: PersonListItem, key: ColumnKey) {
