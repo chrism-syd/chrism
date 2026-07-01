@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useCallback, useEffect, useState } from 'react'
-import { createCustomListFromMembersAction, type CreateCustomListState } from './actions'
+import { createCustomListFromMembersAction as createCustomListFromPeopleAction, type CreateCustomListState } from './actions'
 
 const INITIAL_STATE: CreateCustomListState = { error: null }
 
@@ -22,7 +22,7 @@ type CreateFormStepProps = {
 }
 
 function CreateCustomListFormStep({ personIds, personCount, onBack, onCancel }: CreateFormStepProps) {
-  const [state, formAction, isPending] = useActionState(createCustomListFromMembersAction, INITIAL_STATE)
+  const [state, formAction, isPending] = useActionState(createCustomListFromPeopleAction, INITIAL_STATE)
 
   return (
     <form action={formAction} className="qv-form-grid qv-custom-list-create-form">
