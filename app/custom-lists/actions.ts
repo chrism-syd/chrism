@@ -187,7 +187,7 @@ async function listIdentityIdsByPersonIds(args: {
   return identityIdByPersonId
 }
 
-export async function createCustomListFromMembersAction(
+export async function createCustomListFromPeopleAction(
   _previousState: CreateCustomListState,
   formData: FormData
 ): Promise<CreateCustomListState> {
