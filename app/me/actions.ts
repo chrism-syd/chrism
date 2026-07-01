@@ -389,8 +389,8 @@ export async function submitProfileChangeRequest(
 
   if (!profileChanges && !stalePendingRequest) {
     revalidatePath('/me');
-    revalidatePath('/members');
-    revalidatePath(`/members/${personId}`);
+    revalidatePath('/people');
+    revalidatePath(`/people/${personId}`);
     return {
       status: preferredNameChanged ? 'success' : 'error',
       message: preferredNameChanged
@@ -443,9 +443,9 @@ export async function submitProfileChangeRequest(
   }
 
   revalidatePath('/me');
-  revalidatePath('/members');
-  revalidatePath(`/members/${personId}`);
-  if (profileChanges) revalidatePath('/members/reviews');
+  revalidatePath('/people');
+  revalidatePath(`/people/${personId}`);
+  if (profileChanges) revalidatePath('/people/reviews');
 
   if (profileChanges && preferredNameChanged) {
     return { status: 'success', message: 'Your preferred name has been saved, and your other profile changes were sent for review.' };
@@ -481,7 +481,7 @@ export async function dismissProfileChangeReviewNoticeAction(formData: FormData)
   if (error) return;
 
   revalidatePath('/me');
-  revalidatePath('/members/reviews');
+  revalidatePath('/people/reviews');
 }
 
 export async function dismissOrganizationClaimNoticeAction(formData: FormData) {

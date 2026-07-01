@@ -106,8 +106,8 @@ function formatYearRange(startYear: number, endYear: number | null) {
 }
 
 function revalidateOfficerSurfaces(personId: string) {
-  revalidatePath('/members');
-  revalidatePath('/members/officers');
+  revalidatePath('/people');
+  revalidatePath('/people/officers');
   revalidatePath(`/people/${personId}`);
   revalidatePath(`/people/${personId}/edit`);
   revalidatePath(`/people/${personId}/officers`);

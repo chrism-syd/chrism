@@ -149,8 +149,8 @@ export async function reviewProfileChangeRequestAction(formData: FormData) {
   }
 
   revalidatePath('/me')
-  revalidatePath('/members/reviews')
-  revalidatePath('/members/reviews/archive')
+  revalidatePath('/people/reviews')
+  revalidatePath('/people/reviews/archive')
   revalidatePath(`/people/reviews/${summary.request.id}`)
   revalidatePath(`/people/${summary.person.id}`)
 
@@ -205,8 +205,8 @@ export async function clearReviewDecisionNoticeAction(formData: FormData) {
     throw new Error(`Could not clear that review notification: ${error.message}`)
   }
 
-  revalidatePath('/members/reviews')
-  revalidatePath('/members/reviews/archive')
+  revalidatePath('/people/reviews')
+  revalidatePath('/people/reviews/archive')
   revalidatePath(`/people/reviews/${requestId}`)
   revalidatePath('/me')
 }
@@ -269,7 +269,7 @@ export async function clearPublicContactInquiryAction(formData: FormData) {
     throw new Error(`Could not dismiss that public inquiry: ${error.message}`)
   }
 
-  revalidatePath('/members/reviews')
-  revalidatePath('/members/reviews/archive')
+  revalidatePath('/people/reviews')
+  revalidatePath('/people/reviews/archive')
   revalidatePath('/me')
 }
