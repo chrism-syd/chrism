@@ -99,7 +99,7 @@ function ActionMenu({ label, menuRef, onCreateList, onExport, onCopyEmails }: Ac
   return <details className="qv-view-menu" ref={menuRef}><summary><span>{label}</span><span aria-hidden="true" className="qv-view-menu-chevron">▾</span></summary><div className="qv-view-menu-panel"><button type="button" className="qv-view-menu-item" onClick={onCreateList}>Create Custom List</button><button type="button" className="qv-view-menu-item" onClick={onExport}>Export as Excel</button><button type="button" className="qv-view-menu-item" onClick={onCopyEmails}>Copy Email addresses</button></div></details>
 }
 
-export default function PeopleList({ people: members, currentOfficerLabelsById = {}, executiveOfficerLabelsById = {}, honorificLabelsById = {}, sectionTitle = 'People listing', sectionSubtitle = 'Search, sort, and manage people records.', currentViewControlMode = 'menu' }: Props) {
+export default function PeopleList({ people, currentOfficerLabelsById = {}, executiveOfficerLabelsById = {}, honorificLabelsById = {}, sectionTitle = 'People listing', sectionSubtitle = 'Search, sort, and manage people records.', currentViewControlMode = 'menu' }: Props) {
   const [search, setSearch] = useState('')
   const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilter>('all')
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
@@ -117,7 +117,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
 
   const filteredAndSortedPeople = useMemo(() => {
     const query = normalize(search)
-    const filtered = members.filter((member) => {
+    const filtered = people.filter((member) => {
       const firstName = normalize(member.first_name)
       const lastName = normalize(member.last_name)
       const preferredName = normalize(member.preferred_display_name)
@@ -158,13 +158,13 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
         default: { const byLast = leftLast.localeCompare(rightLast); return byLast !== 0 ? byLast : leftFirst.localeCompare(rightFirst) }
       }
     })
-  }, [currentOfficerLabelsById, executiveOfficerLabelsById, honorificLabelsById, quickFilter, members, relationshipFilter, search, sortBy])
+  }, [currentOfficerLabelsById, executiveOfficerLabelsById, honorificLabelsById, quickFilter, people, relationshipFilter, search, sortBy])
 
   const totalPages = useMemo(() => rowsPerPage === 'all' ? 1 : Math.max(1, Math.ceil(filteredAndSortedPeople.length / rowsPerPage)), [filteredAndSortedPeople.length, rowsPerPage])
   const safeCurrentPage = Math.min(currentPage, totalPages)
   useEffect(() => { setPageInput(String(safeCurrentPage)) }, [safeCurrentPage])
   useEffect(() => { const fn = (event: MouseEvent) => { const target = event.target as Node; if (!actionMenuRef.current?.contains(target)) actionMenuRef.current?.removeAttribute('open') }; document.addEventListener('mousedown', fn); return () => document.removeEventListener('mousedown', fn) }, [])
-  useEffect(() => { setSelectedPersonIds((current) => current.filter((memberId) => members.some((member) => member.id === memberId))) }, [members])
+  useEffect(() => { setSelectedPersonIds((current) => current.filter((memberId) => people.some((member) => member.id === memberId))) }, [people])
   useEffect(() => {
     if (!notice) return
 
@@ -181,7 +181,7 @@ export default function PeopleList({ people: members, currentOfficerLabelsById =
     }
   }, [notice])
   const paginatedPeople = useMemo(() => rowsPerPage === 'all' ? filteredAndSortedPeople : filteredAndSortedPeople.slice((safeCurrentPage - 1) * rowsPerPage, (safeCurrentPage - 1) * rowsPerPage + rowsPerPage), [filteredAndSortedPeople, rowsPerPage, safeCurrentPage])
-  const peopleById = useMemo(() => new Map(members.map((member) => [member.id, member] as const)), [members])
+  const peopleById = useMemo(() => new Map(people.map((member) => [member.id, member] as const)), [people])
   const selectedPeople = useMemo(() => selectedPersonIds.map((memberId) => peopleById.get(memberId)).filter((member): member is PersonListItem => Boolean(member)), [peopleById, selectedPersonIds])
   const selectedPersonIdSet = useMemo(() => new Set(selectedPersonIds), [selectedPersonIds])
   const filteredPersonIds = useMemo(() => filteredAndSortedPeople.map((member) => member.id), [filteredAndSortedPeople])
