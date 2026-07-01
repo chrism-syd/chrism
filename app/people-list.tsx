@@ -218,7 +218,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
   }
   function openCreateListFromPeople(list: PersonListItem[], sourceLabel: string, sourceBadge: string) {
     if (list.length === 0) return setNotice({ tone: 'error', text: `There are no people in ${sourceLabel} to save into a custom list.` })
-    closeMenu(); setNotice(null); setCreateListDraft({ memberIds: list.map((person) => person.id), previewNames: list.slice(0, 12).map((member) => displayFullName(member)), sourceLabel, sourceBadge })
+    closeMenu(); setNotice(null); setCreateListDraft({ memberIds: list.map((person) => person.id), previewNames: list.slice(0, 12).map((person) => displayFullName(person)), sourceLabel, sourceBadge })
   }
   function togglePersonSelection(personId: string) { setSelectedPersonIds((current) => current.includes(personId) ? current.filter((value) => value !== personId) : [...current, personId]) }
   function handleToggleAllSelection() {
