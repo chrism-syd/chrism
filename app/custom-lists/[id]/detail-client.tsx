@@ -58,7 +58,7 @@ type SharedAccessView = {
   profileHref?: string | null
 }
 
-type MemberOption = {
+type PersonOption = {
   id: string
   name: string
   email: string | null
@@ -73,8 +73,8 @@ type Props = {
   currentPersonId: string | null
   members: CustomListMemberView[]
   sharedAccess: SharedAccessView[]
-  shareCandidates: MemberOption[]
-  addCandidates: MemberOption[]
+  shareCandidates: PersonOption[]
+  addCandidates: PersonOption[]
 }
 
 type MembersSort = 'attention' | 'name_az' | 'name_za' | 'contact_newest' | 'contact_oldest'
@@ -410,7 +410,7 @@ function ShareListCard({
 }: {
   listId: string
   sharedAccess: SharedAccessView[]
-  shareCandidates: MemberOption[]
+  shareCandidates: PersonOption[]
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
