@@ -186,7 +186,7 @@ export default async function ReviewDecisionArchivePage() {
           </div>
         </section>
 
-        <SectionMenuBar items={[{ label: 'Back to review queue', href: '/members/reviews' }]} />
+        <SectionMenuBar items={[{ label: 'Back to review queue', href: '/people/reviews' }]} />
 
         <section className="qv-card">
           <div className="qv-directory-section-head">
