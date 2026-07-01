@@ -207,7 +207,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
     throw new Error('This custom list is missing its local organization link.')
   }
 
-  const [membersResult, accessRows, pendingAccessRowsResult, eligiblePeople] = await Promise.all([
+  const [listPeopleResult, accessRows, pendingAccessRowsResult, eligiblePeople] = await Promise.all([
     admin
       .from('custom_list_members')
       .select('id, custom_list_id, person_id, claimed_by_person_id, claimed_at, last_contact_at, last_contact_by_person_id, added_at')
@@ -236,23 +236,23 @@ export default async function CustomListDetailPage({ params }: PageProps) {
       : Promise.resolve([] as PersonSummaryRow[]),
   ])
 
-  if (membersResult.error) {
-    throw new Error(`Could not load the members on this custom list. ${membersResult.error.message}`)
+  if (listPeopleResult.error) {
+    throw new Error(`Could not load the people on this custom list. ${listPeopleResult.error.message}`)
   }
 
   if (pendingAccessRowsResult.error) {
     throw new Error(`Could not load the saved shares for this custom list. ${pendingAccessRowsResult.error.message}`)
   }
 
-  const memberRows = membersResult.data ?? []
+  const listPersonRows = listPeopleResult.data ?? []
   const pendingAccessRows = pendingAccessRowsResult.data ?? []
   const validScopedPersonIds = new Set(eligiblePeople.map((person) => person.id))
 
   const peopleIds = [
     ...new Set([
-      ...memberRows.map((row) => row.person_id),
-      ...memberRows.map((row) => row.claimed_by_person_id).filter((value): value is string => Boolean(value)),
-      ...memberRows.map((row) => row.last_contact_by_person_id).filter((value): value is string => Boolean(value)),
+      ...listPersonRows.map((row) => row.person_id),
+      ...listPersonRows.map((row) => row.claimed_by_person_id).filter((value): value is string => Boolean(value)),
+      ...listPersonRows.map((row) => row.last_contact_by_person_id).filter((value): value is string => Boolean(value)),
       ...accessRows.map((row) => row.person_id).filter((value): value is string => Boolean(value)),
       ...pendingAccessRows.map((row) => row.person_id).filter((value): value is string => Boolean(value)),
       ...eligiblePeople.map((row) => row.id),
@@ -332,7 +332,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
 
   const currentUserIdentityId = currentUserIdentityResult.data?.id ?? null
 
-  const members: CustomListMemberView[] = memberRows.map((row) => ({
+  const members: CustomListMemberView[] = listPersonRows.map((row) => ({
     ...row,
     person: peopleById.get(row.person_id) ?? null,
     claimedBy: row.claimed_by_person_id ? peopleById.get(row.claimed_by_person_id) ?? null : null,
