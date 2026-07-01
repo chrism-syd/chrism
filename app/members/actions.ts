@@ -112,7 +112,7 @@ function friendlyPeopleConstraintMessage(message: string) {
 async function getCurrentMemberAdminContext() {
   const { admin: supabase, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   });
@@ -245,7 +245,7 @@ export async function createMemberAction(
   revalidatePath('/members');
   revalidatePath('/members/archive');
   revalidatePath('/custom-lists');
-  redirect(`/members/${insertedPerson.id}`);
+  redirect(`/people/${insertedPerson.id}`);
 }
 
 export async function updateMemberAction(
@@ -314,8 +314,8 @@ export async function updateMemberAction(
 
   revalidatePath('/');
   revalidatePath('/members');
-  revalidatePath(`/members/${personId}`);
-  redirect(`/members/${personId}`);
+  revalidatePath(`/people/${personId}`);
+  redirect(`/people/${personId}`);
 }
 
 
@@ -323,13 +323,13 @@ export async function restoreMemberAction(formData: FormData) {
   const personId = formData.get('member_id')
 
   if (typeof personId !== 'string' || !personId) {
-    redirect('/members/archive?error=We%20could%20not%20tell%20which%20person%20to%20restore.')
+    redirect('/people/archive?error=We%20could%20not%20tell%20which%20person%20to%20restore.')
   }
 
   const { supabase, user, localUnitId } = await getCurrentMemberAdminContext()
 
   if (!localUnitId) {
-    redirect('/members/archive?error=We%20could%20not%20tell%20which%20local%20organization%20is%20active.')
+    redirect('/people/archive?error=We%20could%20not%20tell%20which%20local%20organization%20is%20active.')
   }
 
   const { error } = await supabase.rpc('restore_local_unit_member_record', {
@@ -340,7 +340,7 @@ export async function restoreMemberAction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/members/archive?error=${encodeURIComponent(
+      `/people/archive?error=${encodeURIComponent(
         `We could not restore this person to the active local organization. ${friendlyPeopleConstraintMessage(error.message)}`
       )}`
     )
@@ -349,7 +349,7 @@ export async function restoreMemberAction(formData: FormData) {
   revalidatePath('/')
   revalidatePath('/members')
   revalidatePath('/members/archive')
-  redirect('/members')
+  redirect('/people')
 }
 
 export async function deleteMemberAction(
@@ -398,5 +398,5 @@ export async function deleteMemberAction(
   revalidatePath('/');
   revalidatePath('/members');
   revalidatePath('/members/archive');
-  redirect('/members');
+  redirect('/people');
 }

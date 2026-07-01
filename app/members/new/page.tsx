@@ -5,7 +5,7 @@ import MemberForm from '../member-form';
 export default async function NewMemberPage() {
   await getCurrentActingCouncilContext({
     requireAdmin: true,
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   });
@@ -25,7 +25,7 @@ export default async function NewMemberPage() {
         </section>
 
         <section className="qv-card">
-          <MemberForm mode="create" initialValues={{ primary_relationship_code: 'member' }} cancelHref="/members" />
+          <MemberForm mode="create" initialValues={{ primary_relationship_code: 'member' }} cancelHref="/people" />
         </section>
       </div>
     </main>

@@ -75,7 +75,7 @@ export default async function ArchivedMembersPage({
     typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : null;
 
   const { admin: supabase, council, localUnitId } = await getCurrentActingCouncilContext({
-    redirectTo: '/members',
+    redirectTo: '/people',
     areaCode: 'members',
     minimumAccessLevel: 'edit_manage',
   });
@@ -140,7 +140,7 @@ export default async function ArchivedMembersPage({
             </div>
 
             <div className="qv-directory-actions">
-              <Link href="/members" className="qv-link-button qv-button-secondary">
+              <Link href="/people" className="qv-link-button qv-button-secondary">
                 Back to people
               </Link>
             </div>
