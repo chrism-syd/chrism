@@ -216,7 +216,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
     if (recipients.length === 0) return setNotice({ tone: 'error', text: `No email addresses are available in ${scopeLabel}.` })
     try { await navigator.clipboard.writeText(recipients.join('; ')); setNotice({ tone: 'success', text: `Copied ${recipients.length} email address${recipients.length === 1 ? '' : 'es'} from ${scopeLabel}.` }) } catch { setNotice({ tone: 'error', text: 'Could not copy the email list. Please try again.' }) }
   }
-  function openCreateListFromMembers(list: PersonListItem[], sourceLabel: string, sourceBadge: string) {
+  function openCreateListFromPeople(list: PersonListItem[], sourceLabel: string, sourceBadge: string) {
     if (list.length === 0) return setNotice({ tone: 'error', text: `There are no people in ${sourceLabel} to save into a custom list.` })
     closeMenu(); setNotice(null); setCreateListDraft({ memberIds: list.map((member) => member.id), previewNames: list.slice(0, 12).map((member) => displayFullName(member)), sourceLabel, sourceBadge })
   }
@@ -245,7 +245,7 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
       <div className="qv-directory-section-head">
         <div><h2 className="qv-section-title">{sectionTitle}</h2><p className="qv-section-subtitle">{sectionSubtitle}</p></div>
         <div className="qv-view-menu-stack">
-          {currentViewControlMode === 'button' ? <button type="button" className="qv-button-secondary qv-view-action-button" onClick={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedPeople, 'the current filtered view', 'Current filters applied')}>{actionMenuLabel}</button> : <ActionMenu label={actionMenuLabel} menuRef={actionMenuRef} onCreateList={() => usingSelectedRows ? openCreateListFromMembers(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromMembers(filteredAndSortedPeople, 'the current filtered view', 'Current filters applied')} onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView} onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails} />}
+          {currentViewControlMode === 'button' ? <button type="button" className="qv-button-secondary qv-view-action-button" onClick={() => usingSelectedRows ? openCreateListFromPeople(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromPeople(filteredAndSortedPeople, 'the current filtered view', 'Current filters applied')}>{actionMenuLabel}</button> : <ActionMenu label={actionMenuLabel} menuRef={actionMenuRef} onCreateList={() => usingSelectedRows ? openCreateListFromPeople(selectedPeople, 'the selected rows', 'Selected rows') : openCreateListFromPeople(filteredAndSortedPeople, 'the current filtered view', 'Current filters applied')} onExport={usingSelectedRows ? handleExportSelectedRows : handleExportCurrentView} onCopyEmails={usingSelectedRows ? handleCopySelectedRowEmails : handleCopyCurrentViewEmails} />}
           {notice ? <p className={notice.tone === 'error' ? 'qv-view-menu-notice qv-inline-error' : 'qv-view-menu-notice qv-inline-message'}>{notice.text}</p> : null}
         </div>
       </div>
