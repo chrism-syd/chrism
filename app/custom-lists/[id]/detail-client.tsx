@@ -240,13 +240,13 @@ function BootstrapIcon({
 }
 
 function ReviewPersonRow({
-  member,
+  listPerson,
   listId,
   listName,
   currentPersonId,
   canManage,
 }: {
-  member: CustomListMemberView
+  listPerson: CustomListMemberView
   listId: string
   listName: string
   currentPersonId: string | null
@@ -254,17 +254,17 @@ function ReviewPersonRow({
 }) {
   const [showContactForm, setShowContactForm] = useState(false)
   const [contactDate, setContactDate] = useState(todayInputValue())
-  const isClaimedByCurrentUser = Boolean(currentPersonId && member.claimed_by_person_id === currentPersonId)
-  const isClaimedBySomeoneElse = Boolean(member.claimed_by_person_id && member.claimed_by_person_id !== currentPersonId)
-  const phone = bestPhone(member.person)
+  const isClaimedByCurrentUser = Boolean(currentPersonId && listPerson.claimed_by_person_id === currentPersonId)
+  const isClaimedBySomeoneElse = Boolean(listPerson.claimed_by_person_id && listPerson.claimed_by_person_id !== currentPersonId)
+  const phone = bestPhone(listPerson.person)
 
   let summaryMeta = 'No contact logged yet'
-  if (member.last_contact_at) {
-    const lastContactByName = member.lastContactBy ? fullName(member.lastContactBy) : 'Unknown person'
-    summaryMeta = `Last contact ${formatDate(member.last_contact_at)} by ${lastContactByName}`
+  if (listPerson.last_contact_at) {
+    const lastContactByName = listPerson.lastContactBy ? fullName(listPerson.lastContactBy) : 'Unknown person'
+    summaryMeta = `Last contact ${formatDate(listPerson.last_contact_at)} by ${lastContactByName}`
   }
-  if (member.claimedBy) {
-    summaryMeta += ` • Claimed by ${fullName(member.claimedBy)}`
+  if (listPerson.claimedBy) {
+    summaryMeta += ` • Claimed by ${fullName(listPerson.claimedBy)}`
   }
 
   return (
@@ -275,7 +275,7 @@ function ReviewPersonRow({
       <summary className="qv-review-row-summary">
         <div className="qv-review-row-headline">
           <div className="qv-review-row-main">
-            <div className="qv-review-row-name">{combinedDisplayName(member.person)}</div>
+            <div className="qv-review-row-name">{combinedDisplayName(listPerson.person)}</div>
             <div className="qv-review-row-meta">{summaryMeta}</div>
           </div>
           <span className="qv-review-row-arrow" aria-hidden="true">
@@ -288,7 +288,7 @@ function ReviewPersonRow({
         <div className="qv-detail-list">
           <div className="qv-detail-item">
             <div className="qv-detail-label">Email</div>
-            <div className="qv-detail-value">{member.person?.email || 'No email on file'}</div>
+            <div className="qv-detail-value">{listPerson.person?.email || 'No email on file'}</div>
           </div>
           <div className="qv-detail-item">
             <div className="qv-detail-label">Phone</div>
@@ -296,15 +296,15 @@ function ReviewPersonRow({
           </div>
           <div className="qv-detail-item">
             <div className="qv-detail-label">Claimed by</div>
-            <div className="qv-detail-value">{member.claimedBy ? fullName(member.claimedBy) : 'Not claimed yet'}</div>
+            <div className="qv-detail-value">{listPerson.claimedBy ? fullName(listPerson.claimedBy) : 'Not claimed yet'}</div>
           </div>
           <div className="qv-detail-item">
             <div className="qv-detail-label">Most recent contact</div>
-            <div className="qv-detail-value">{member.last_contact_at ? formatDate(member.last_contact_at) : 'No contact logged yet'}</div>
+            <div className="qv-detail-value">{listPerson.last_contact_at ? formatDate(listPerson.last_contact_at) : 'No contact logged yet'}</div>
           </div>
           <div className="qv-detail-item">
             <div className="qv-detail-label">Contacted by</div>
-            <div className="qv-detail-value">{member.lastContactBy ? fullName(member.lastContactBy) : '—'}</div>
+            <div className="qv-detail-value">{listPerson.lastContactBy ? fullName(listPerson.lastContactBy) : '—'}</div>
           </div>
         </div>
 
@@ -313,7 +313,7 @@ function ReviewPersonRow({
             isClaimedByCurrentUser ? (
               <form action={releaseCustomListClaimAction}>
                 <input type="hidden" name="custom_list_id" value={listId} />
-                <input type="hidden" name="custom_list_member_id" value={member.id} />
+                <input type="hidden" name="custom_list_member_id" value={listPerson.id} />
                 <button type="submit" className="qv-button-secondary">
                   Release claim
                 </button>
@@ -321,7 +321,7 @@ function ReviewPersonRow({
             ) : isClaimedBySomeoneElse ? null : (
               <form action={claimCustomListMemberAction}>
                 <input type="hidden" name="custom_list_id" value={listId} />
-                <input type="hidden" name="custom_list_member_id" value={member.id} />
+                <input type="hidden" name="custom_list_member_id" value={listPerson.id} />
                 <button type="submit" className="qv-button-primary">
                   Claim person
                 </button>
@@ -333,7 +333,7 @@ function ReviewPersonRow({
             showContactForm ? (
               <form action={logCustomListContactAction} className="qv-inline-date-form">
                 <input type="hidden" name="custom_list_id" value={listId} />
-                <input type="hidden" name="custom_list_member_id" value={member.id} />
+                <input type="hidden" name="custom_list_member_id" value={listPerson.id} />
                 <label className="qv-inline-date-picker qv-inline-date-picker-compact" aria-label="Contact date">
                   <input type="date" name="contact_date" value={contactDate} onChange={(event) => setContactDate(event.target.value)} />
                   <span className="qv-inline-date-picker-icon" aria-hidden="true">
@@ -359,7 +359,7 @@ function ReviewPersonRow({
               action={removeCustomListMemberAction}
               hiddenFields={[
                 { name: 'custom_list_id', value: listId },
-                { name: 'custom_list_member_id', value: member.id },
+                { name: 'custom_list_member_id', value: listPerson.id },
               ]}
               triggerLabel={<BootstrapIcon name="trash" className="qv-bi-icon" />}
               triggerClassName="qv-icon-button qv-icon-button-danger"
@@ -509,7 +509,7 @@ export default function CustomListDetailClient({
 
   const sortedMembers = useMemo(() => sortPeople(members, peopleSort), [members, peopleSort])
   const recentContactMembers = useMemo(
-    () => sortRecentPeople(members.filter((member) => Boolean(member.last_contact_at)), recentSort),
+    () => sortRecentPeople(members.filter((member) => Boolean(listPerson.last_contact_at)), recentSort),
     [members, recentSort]
   )
 
@@ -587,8 +587,8 @@ export default function CustomListDetailClient({
             >
               {sortedMembers.map((member) => (
                 <ReviewPersonRow
-                  key={member.id}
-                  member={member}
+                  key={listPerson.id}
+                  listPerson={member}
                   listId={listId}
                   listName={listName}
                   currentPersonId={currentPersonId}
@@ -627,8 +627,8 @@ export default function CustomListDetailClient({
             >
               {recentContactMembers.map((member) => (
                 <ReviewPersonRow
-                  key={`recent-${member.id}`}
-                  member={member}
+                  key={`recent-${listPerson.id}`}
+                  listPerson={member}
                   listId={listId}
                   listName={listName}
                   currentPersonId={currentPersonId}
