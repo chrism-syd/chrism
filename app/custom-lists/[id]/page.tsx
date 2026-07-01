@@ -141,7 +141,7 @@ function collapseSharedAccessByIdentity(
         personIds: uniqueStrings([row.person_id]),
         accessIds: uniqueStrings([row.id]),
         userIds: uniqueStrings([row.user_id]),
-        profileHref: row.person_id && validScopedPersonIds.has(row.person_id) ? `/members/${row.person_id}` : null,
+        profileHref: row.person_id && validScopedPersonIds.has(row.person_id) ? `/people/${row.person_id}` : null,
       })
       continue
     }
@@ -163,7 +163,7 @@ function collapseSharedAccessByIdentity(
       personIds: mergedPersonIds,
       accessIds: mergedAccessIds,
       userIds: mergedUserIds,
-      profileHref: scopedWinnerPersonId ? `/members/${scopedWinnerPersonId}` : null,
+      profileHref: scopedWinnerPersonId ? `/people/${scopedWinnerPersonId}` : null,
     })
   }
 

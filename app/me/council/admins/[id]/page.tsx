@@ -143,7 +143,7 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
   const person = decryptPeopleRecord(personData)
 
   if (isScopedLocalMember && person.primary_relationship_code === 'member') {
-    redirect(`/members/${person.id}`)
+    redirect(`/people/${person.id}`)
   }
 
   const linkedPersonIds =

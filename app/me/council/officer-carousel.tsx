@@ -49,7 +49,7 @@ export default function OfficerCarousel({
             <div className="qv-detail-label">{item.officeLabel}</div>
             <div className="qv-detail-value">
               {item.personId ? (
-                <Link href={`/members/${item.personId}`} className="qv-member-link" style={{ display: 'inline' }}>
+                <Link href={`/people/${item.personId}`} className="qv-member-link" style={{ display: 'inline' }}>
                   {item.memberLabel}
                 </Link>
               ) : (
