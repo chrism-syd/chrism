@@ -709,7 +709,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 <PersonSearchField
                   name="person_id"
                   label="Member"
-                  members={adminGrantMemberOptions}
+                  people={adminGrantMemberOptions}
                   placeholder="Type a member name"
                   required
                 />
@@ -873,7 +873,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 <PersonSearchField
                   name="person_id"
                   label="Member"
-                  members={officerMemberOptions}
+                  people={officerMemberOptions}
                   placeholder="Type a member name"
                   required
                 />
