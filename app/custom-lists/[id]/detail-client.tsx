@@ -73,8 +73,8 @@ type Props = {
   currentPersonId: string | null
   members: CustomListMemberView[]
   sharedAccess: SharedAccessView[]
-  shareCandidates: PersonOption[]
-  addCandidates: PersonOption[]
+  sharePeople: PersonOption[]
+  addPeople: PersonOption[]
 }
 
 type PeopleSort = 'attention' | 'name_az' | 'name_za' | 'contact_newest' | 'contact_oldest'
@@ -406,11 +406,11 @@ function SortSelect({
 function ShareListCard({
   listId,
   sharedAccess,
-  shareCandidates,
+  sharePeople,
 }: {
   listId: string
   sharedAccess: SharedAccessView[]
-  shareCandidates: PersonOption[]
+  sharePeople: PersonOption[]
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -429,7 +429,7 @@ function ShareListCard({
       {isExpanded ? (
         <form action={shareCustomListAction} className="qv-form-grid qv-inline-panel" style={{ marginTop: 16 }}>
           <input type="hidden" name="custom_list_id" value={listId} />
-          <PersonSearchField name="person_id" label="Person" people={shareCandidates} placeholder="Type a person name" required />
+          <PersonSearchField name="person_id" label="Person" people={sharePeople} placeholder="Type a person name" required />
           <div className="qv-form-actions">
             <button type="button" className="qv-button-secondary" onClick={() => setIsExpanded(false)}>
               Cancel
@@ -500,8 +500,8 @@ export default function CustomListDetailClient({
   currentPersonId,
   members,
   sharedAccess,
-  shareCandidates,
-  addCandidates,
+  sharePeople,
+  addPeople,
 }: Props) {
   const [peopleSort, setPeopleSort] = useState<PeopleSort>('attention')
   const [recentSort, setRecentSort] = useState<RecentSort>('newest')
@@ -564,7 +564,7 @@ export default function CustomListDetailClient({
                   name="person_id"
                   label="Add person"
                   labelHidden
-                  people={addCandidates}
+                  people={addPeople}
                   placeholder="Type a person name"
                   required
                 />
@@ -641,7 +641,7 @@ export default function CustomListDetailClient({
       </div>
 
       <div className="qv-detail-stack">
-        {canManage ? <ShareListCard listId={listId} sharedAccess={sharedAccess} shareCandidates={shareCandidates} /> : null}
+        {canManage ? <ShareListCard listId={listId} sharedAccess={sharedAccess} sharePeople={sharePeople} /> : null}
       </div>
     </section>
   )
