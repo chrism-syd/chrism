@@ -3,7 +3,7 @@ import { getFlashMessage } from '@/lib/flash-messages'
 import { redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
-import MemberSearchField from '@/app/components/member-search-field'
+import PersonSearchField from '@/app/components/member-search-field'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
 import { listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
@@ -706,7 +706,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                   <h2 className="qv-section-title" style={{ fontSize: 20 }}>Internal member lookup</h2>
                   <p className="qv-section-subtitle">Grant admin access to an existing member.</p>
                 </div>
-                <MemberSearchField
+                <PersonSearchField
                   name="person_id"
                   label="Member"
                   members={adminGrantMemberOptions}
@@ -870,7 +870,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                   gap: 16,
                 }}
               >
-                <MemberSearchField
+                <PersonSearchField
                   name="person_id"
                   label="Member"
                   members={officerMemberOptions}

@@ -323,6 +323,6 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
       })}</div></div>}
     </section>
 
-    {createListDraft ? <CreateCustomListDialog open onClose={() => setCreateListDraft(null)} memberIds={createListDraft.memberIds} previewNames={createListDraft.previewNames} sourceLabel={createListDraft.sourceLabel} sourceBadge={createListDraft.sourceBadge} /> : null}
+    {createListDraft ? <CreateCustomListDialog open onClose={() => setCreateListDraft(null)} personIds={createListDraft.memberIds} previewNames={createListDraft.previewNames} sourceLabel={createListDraft.sourceLabel} sourceBadge={createListDraft.sourceBadge} /> : null}
   </>
 }
