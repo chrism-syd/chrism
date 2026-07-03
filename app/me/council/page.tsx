@@ -56,7 +56,6 @@ type PersonRow = {
   nickname: string | null
   email: string | null
   primary_relationship_code: string
-  council_id: string | null
 }
 
 type AdminAssignmentRow = {
@@ -261,7 +260,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     visibleLocalUnitMemberIds.size > 0
       ? admin
           .from('people')
-          .select('id, first_name, last_name, nickname, email, primary_relationship_code, council_id')
+          .select('id, first_name, last_name, nickname, email, primary_relationship_code')
           .in('id', [...visibleLocalUnitMemberIds])
           .is('archived_at', null)
       : Promise.resolve({ data: [] as PersonRow[] }),
@@ -297,7 +296,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
   const assignmentLinkedPeopleResult = assignmentLinkedPersonIds.length > 0
     ? await admin
         .from('people')
-        .select('id, first_name, last_name, nickname, email, primary_relationship_code, council_id')
+        .select('id, first_name, last_name, nickname, email, primary_relationship_code')
         .in('id', assignmentLinkedPersonIds)
         .is('archived_at', null)
     : { data: [] as PersonRow[] }
@@ -541,7 +540,6 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     last_name: 'Member',
     nickname: null,
     primary_relationship_code: 'member',
-    council_id: council.id,
     email: null,
   }
 
