@@ -24,7 +24,6 @@ type PersonRow = {
   state_province: string | null
   postal_code: string | null
   primary_relationship_code: string | null
-  council_id: string | null
 }
 
 type LinkedMemberRecordRow = {
@@ -70,7 +69,7 @@ function displayFullName(args: {
 
 export default async function ExternalAdminProfilePage({ params }: PageProps) {
   const { id } = await params
-  const { admin: supabase, permissions, council, localUnitId } = await getCurrentActingCouncilContext({
+  const { admin: supabase, permissions, localUnitId } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/me',
     areaCode: 'admins',
@@ -93,13 +92,12 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
   const [
     { data: personData, error: personError },
     { data: orgAdminRow },
-    { data: councilAdminRow },
     { data: identityRow, error: identityError },
   ] = await Promise.all([
     supabase
       .from('people')
       .select(
-        'id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code, council_id'
+        'id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, primary_relationship_code'
       )
       .eq('id', id)
       .is('archived_at', null)
@@ -108,14 +106,6 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
       .from('organization_admin_assignments')
       .select('id')
       .eq('organization_id', permissions.organizationId)
-      .eq('person_id', id)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('council_admin_assignments')
-      .select('id')
-      .eq('council_id', council.id)
       .eq('person_id', id)
       .eq('is_active', true)
       .limit(1)
@@ -136,7 +126,7 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
     throw new Error(`Could not load linked identity context for this admin contact. ${identityError.message}`)
   }
 
-  if (!personData || (!orgAdminRow && !councilAdminRow)) {
+  if (!personData || !orgAdminRow) {
     notFound()
   }
 
@@ -235,7 +225,6 @@ export default async function ExternalAdminProfilePage({ params }: PageProps) {
               <div className="qv-detail-badges">
                 <span className="qv-badge">Admin contact</span>
                 {orgAdminRow ? <span className="qv-badge qv-badge-soft">Organization assignment</span> : null}
-                {councilAdminRow ? <span className="qv-badge qv-badge-soft">Council assignment</span> : null}
               </div>
             </div>
           </div>
