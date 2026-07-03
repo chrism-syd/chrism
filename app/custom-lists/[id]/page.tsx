@@ -500,7 +500,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           listName={listData.name}
           canManage={canManage}
           currentPersonId={permissions.personId}
-          members={members}
+          listPeople={members}
           sharedAccess={sharedAccess}
           sharePeople={sharePeople}
           addPeople={addPeople}

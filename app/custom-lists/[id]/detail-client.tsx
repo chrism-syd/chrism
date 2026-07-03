@@ -71,7 +71,7 @@ type Props = {
   listName: string
   canManage: boolean
   currentPersonId: string | null
-  members: CustomListMemberView[]
+  listPeople: CustomListMemberView[]
   sharedAccess: SharedAccessView[]
   sharePeople: PersonOption[]
   addPeople: PersonOption[]
@@ -498,7 +498,7 @@ export default function CustomListDetailClient({
   listName,
   canManage,
   currentPersonId,
-  members,
+  listPeople,
   sharedAccess,
   sharePeople,
   addPeople,
@@ -507,10 +507,10 @@ export default function CustomListDetailClient({
   const [recentSort, setRecentSort] = useState<RecentSort>('newest')
   const [isAddPersonExpanded, setIsAddPersonExpanded] = useState(false)
 
-  const sortedMembers = useMemo(() => sortPeople(members, peopleSort), [members, peopleSort])
-  const recentContactMembers = useMemo(
-    () => sortRecentPeople(members.filter((listPerson) => Boolean(listPerson.last_contact_at)), recentSort),
-    [members, recentSort]
+  const sortedPeople = useMemo(() => sortPeople(listPeople, peopleSort), [listPeople, peopleSort])
+  const recentContactPeople = useMemo(
+    () => sortRecentPeople(listPeople.filter((listPerson) => Boolean(listPerson.last_contact_at)), recentSort),
+    [listPeople, recentSort]
   )
 
   return (
@@ -575,7 +575,7 @@ export default function CustomListDetailClient({
             </div>
           ) : null}
 
-          {sortedMembers.length === 0 ? (
+          {sortedPeople.length === 0 ? (
             <div className="qv-empty">
               <p className="qv-empty-title">This custom list has no people yet.</p>
               <p className="qv-empty-text">Add people from the directory or use the Add person button here.</p>
@@ -585,7 +585,7 @@ export default function CustomListDetailClient({
               className="qv-simple-list qv-simple-list-review"
               style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
             >
-              {sortedMembers.map((listPerson) => (
+              {sortedPeople.map((listPerson) => (
                 <ReviewPersonRow
                   key={listPerson.id}
                   listPerson={listPerson}
@@ -618,14 +618,14 @@ export default function CustomListDetailClient({
             />
           </div>
 
-          {recentContactMembers.length === 0 ? (
+          {recentContactPeople.length === 0 ? (
             <p className="qv-inline-message" style={{ marginTop: 16 }}>No contact has been logged on this list yet.</p>
           ) : (
             <div
               className="qv-simple-list qv-simple-list-review"
               style={{ marginTop: 16, display: 'grid', rowGap: 14, paddingBottom: 12 }}
             >
-              {recentContactMembers.map((listPerson) => (
+              {recentContactPeople.map((listPerson) => (
                 <ReviewPersonRow
                   key={`recent-${listPerson.id}`}
                   listPerson={listPerson}
