@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
-import MemberSearchField from '@/app/components/member-search-field'
+import PersonSearchField from '@/app/components/person-search-field'
 import {
   addCustomListPersonAction,
   claimCustomListMemberAction,
@@ -429,7 +429,7 @@ function ShareListCard({
       {isExpanded ? (
         <form action={shareCustomListAction} className="qv-form-grid qv-inline-panel" style={{ marginTop: 16 }}>
           <input type="hidden" name="custom_list_id" value={listId} />
-          <MemberSearchField name="person_id" label="Person" members={shareCandidates} placeholder="Type a person name" required />
+          <PersonSearchField name="person_id" label="Person" members={shareCandidates} placeholder="Type a person name" required />
           <div className="qv-form-actions">
             <button type="button" className="qv-button-secondary" onClick={() => setIsExpanded(false)}>
               Cancel
@@ -560,7 +560,7 @@ export default function CustomListDetailClient({
 
               <form action={addCustomListPersonAction} className="qv-member-inline-form">
                 <input type="hidden" name="custom_list_id" value={listId} />
-                <MemberSearchField
+                <PersonSearchField
                   name="person_id"
                   label="Add person"
                   labelHidden
