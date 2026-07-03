@@ -502,8 +502,8 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           currentPersonId={permissions.personId}
           members={members}
           sharedAccess={sharedAccess}
-          shareCandidates={shareCandidates}
-          addCandidates={addCandidates}
+          sharePeople={shareCandidates}
+          addPeople={addCandidates}
         />
       </div>
     </main>
