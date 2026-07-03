@@ -892,7 +892,6 @@ export type Database = {
       }
       event_archives: {
         Row: {
-          council_id: string
           created_at: string
           deleted_at: string
           deleted_by_user_id: string | null
@@ -900,7 +899,7 @@ export type Database = {
           ends_at: string | null
           event_kind_code: string | null
           id: string
-          local_unit_id: string | null
+          local_unit_id: string
           location_address: string | null
           location_name: string | null
           needs_volunteers: boolean
@@ -917,7 +916,6 @@ export type Database = {
           volunteer_deadline_at: string | null
         }
         Insert: {
-          council_id: string
           created_at?: string
           deleted_at?: string
           deleted_by_user_id?: string | null
@@ -925,7 +923,7 @@ export type Database = {
           ends_at?: string | null
           event_kind_code?: string | null
           id?: string
-          local_unit_id?: string | null
+          local_unit_id: string
           location_address?: string | null
           location_name?: string | null
           needs_volunteers?: boolean
@@ -942,7 +940,6 @@ export type Database = {
           volunteer_deadline_at?: string | null
         }
         Update: {
-          council_id?: string
           created_at?: string
           deleted_at?: string
           deleted_by_user_id?: string | null
@@ -950,7 +947,7 @@ export type Database = {
           ends_at?: string | null
           event_kind_code?: string | null
           id?: string
-          local_unit_id?: string | null
+          local_unit_id?: string
           location_address?: string | null
           location_name?: string | null
           needs_volunteers?: boolean
@@ -967,13 +964,6 @@ export type Database = {
           volunteer_deadline_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "event_archives_council_id_fkey"
-            columns: ["council_id"]
-            isOneToOne: false
-            referencedRelation: "councils"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "event_archives_deleted_by_user_id_fkey"
             columns: ["deleted_by_user_id"]
@@ -1788,7 +1778,6 @@ export type Database = {
       }
       events: {
         Row: {
-          council_id: string
           created_at: string
           created_by_user_id: string
           description: string | null
@@ -1796,7 +1785,7 @@ export type Database = {
           ends_at: string | null
           event_kind_code: string
           id: string
-          local_unit_id: string | null
+          local_unit_id: string
           location_address: string | null
           location_name: string | null
           needs_volunteers: boolean
@@ -1814,7 +1803,6 @@ export type Database = {
           volunteer_deadline_at: string | null
         }
         Insert: {
-          council_id: string
           created_at?: string
           created_by_user_id: string
           description?: string | null
@@ -1822,7 +1810,7 @@ export type Database = {
           ends_at?: string | null
           event_kind_code?: string
           id?: string
-          local_unit_id?: string | null
+          local_unit_id: string
           location_address?: string | null
           location_name?: string | null
           needs_volunteers?: boolean
@@ -1840,7 +1828,6 @@ export type Database = {
           volunteer_deadline_at?: string | null
         }
         Update: {
-          council_id?: string
           created_at?: string
           created_by_user_id?: string
           description?: string | null
@@ -1848,7 +1835,7 @@ export type Database = {
           ends_at?: string | null
           event_kind_code?: string
           id?: string
-          local_unit_id?: string | null
+          local_unit_id?: string
           location_address?: string | null
           location_name?: string | null
           needs_volunteers?: boolean
@@ -1866,13 +1853,6 @@ export type Database = {
           volunteer_deadline_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "events_council_id_fkey"
-            columns: ["council_id"]
-            isOneToOne: false
-            referencedRelation: "councils"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "events_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
@@ -5903,18 +5883,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "event_invited_councils_invited_council_id_fkey"
+            columns: ["host_council_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "event_invited_councils_invited_council_type_code_fkey"
             columns: ["invited_council_type_code"]
             isOneToOne: false
             referencedRelation: "event_invited_council_types"
             referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "events_council_id_fkey"
-            columns: ["host_council_id"]
-            isOneToOne: false
-            referencedRelation: "councils"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -5928,7 +5908,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "events_council_id_fkey"
+            foreignKeyName: "event_invited_councils_invited_council_id_fkey"
             columns: ["host_council_id"]
             isOneToOne: false
             referencedRelation: "councils"

@@ -3516,26 +3516,6 @@ $$;
 ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."sync_event_local_unit_from_council"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-begin
-  if new.local_unit_id is null and new.council_id is not null then
-    select lu.id
-      into new.local_unit_id
-    from public.local_units lu
-    where lu.legacy_council_id = new.council_id
-    limit 1;
-  end if;
-
-  return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."sync_event_local_unit_from_council"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."sync_local_unit_id_from_legacy_council"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'app', 'pg_temp'
@@ -4523,7 +4503,6 @@ ALTER TABLE "public"."distinction_types" OWNER TO "postgres";
 CREATE TABLE IF NOT EXISTS "public"."event_archives" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "original_event_id" "uuid",
-    "council_id" "uuid" NOT NULL,
     "title" "text" NOT NULL,
     "description" "text",
     "location_name" "text",
@@ -4541,13 +4520,17 @@ CREATE TABLE IF NOT EXISTS "public"."event_archives" (
     "deleted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "deleted_by_user_id" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "local_unit_id" "uuid",
+    "local_unit_id" "uuid" NOT NULL,
     "needs_volunteers" boolean DEFAULT false NOT NULL,
     "volunteer_deadline_at" timestamp with time zone
 );
 
 
 ALTER TABLE "public"."event_archives" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."event_archives"."local_unit_id" IS 'Required operational owner local unit for this archived event.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_assignment_roles" (
@@ -4639,7 +4622,6 @@ ALTER TABLE "public"."event_rsvp_volunteers" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."events" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "council_id" "uuid" NOT NULL,
     "title" "text" NOT NULL,
     "description" "text",
     "location_name" "text",
@@ -4659,7 +4641,7 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "event_kind_code" "text" DEFAULT 'standard'::"text" NOT NULL,
     "reminder_days_before" integer,
-    "local_unit_id" "uuid",
+    "local_unit_id" "uuid" NOT NULL,
     "needs_volunteers" boolean DEFAULT false NOT NULL,
     "volunteer_deadline_at" timestamp with time zone,
     CONSTRAINT "events_event_kind_code_check" CHECK (("event_kind_code" = ANY (ARRAY['standard'::"text", 'general_meeting'::"text", 'executive_meeting'::"text"]))),
@@ -4674,9 +4656,13 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
 ALTER TABLE "public"."events" OWNER TO "postgres";
 
 
+COMMENT ON COLUMN "public"."events"."local_unit_id" IS 'Required operational owner local unit for this event.';
+
+
+
 CREATE OR REPLACE VIEW "public"."event_council_rsvp_rollups" WITH ("security_invoker"='true') AS
  SELECT "e"."id" AS "event_id",
-    "e"."council_id" AS "host_council_id",
+    "host_ic"."invited_council_id" AS "host_council_id",
     "ic"."id" AS "event_invited_council_id",
     "ic"."is_host",
     "ic"."invited_council_type_code",
@@ -4689,11 +4675,12 @@ CREATE OR REPLACE VIEW "public"."event_council_rsvp_rollups" WITH ("security_inv
     "r"."first_responded_at",
     "r"."last_responded_at",
     (COALESCE("count"("v"."id"), (0)::bigint))::integer AS "volunteer_count"
-   FROM ((("public"."events" "e"
+   FROM (((("public"."events" "e"
      JOIN "public"."event_invited_councils" "ic" ON (("ic"."event_id" = "e"."id")))
+     LEFT JOIN "public"."event_invited_councils" "host_ic" ON ((("host_ic"."event_id" = "e"."id") AND ("host_ic"."is_host" = true))))
      LEFT JOIN "public"."event_council_rsvps" "r" ON (("r"."event_invited_council_id" = "ic"."id")))
      LEFT JOIN "public"."event_rsvp_volunteers" "v" ON (("v"."event_council_rsvp_id" = "r"."id")))
-  GROUP BY "e"."id", "e"."council_id", "ic"."id", "ic"."is_host", "ic"."invited_council_type_code", "ic"."invited_council_id", "ic"."invited_council_name", "ic"."invited_council_number", "ic"."invite_email", "r"."id", "r"."first_responded_at", "r"."last_responded_at";
+  GROUP BY "e"."id", "host_ic"."invited_council_id", "ic"."id", "ic"."is_host", "ic"."invited_council_type_code", "ic"."invited_council_id", "ic"."invited_council_name", "ic"."invited_council_number", "ic"."invite_email", "r"."id", "r"."first_responded_at", "r"."last_responded_at";
 
 
 ALTER VIEW "public"."event_council_rsvp_rollups" OWNER TO "postgres";
@@ -7463,10 +7450,6 @@ CREATE INDEX "custom_lists_council_active_idx" ON "public"."custom_lists" USING 
 
 
 
-CREATE INDEX "event_archives_council_deleted_idx" ON "public"."event_archives" USING "btree" ("council_id", "deleted_at" DESC);
-
-
-
 CREATE INDEX "event_external_invitees_email_idx" ON "public"."event_external_invitees" USING "btree" ("lower"("invitee_email")) WHERE ("invitee_email" IS NOT NULL);
 
 
@@ -7512,14 +7495,6 @@ CREATE INDEX "event_person_rsvps_event_id_idx" ON "public"."event_person_rsvps" 
 
 
 CREATE INDEX "event_person_rsvps_matched_person_id_idx" ON "public"."event_person_rsvps" USING "btree" ("matched_person_id");
-
-
-
-CREATE INDEX "events_meeting_kind_starts_idx" ON "public"."events" USING "btree" ("council_id", "event_kind_code", "starts_at");
-
-
-
-CREATE INDEX "events_meeting_upcoming_idx" ON "public"."events" USING "btree" ("council_id", "starts_at") WHERE ("event_kind_code" = ANY (ARRAY['general_meeting'::"text", 'executive_meeting'::"text"]));
 
 
 
@@ -7600,18 +7575,6 @@ CREATE INDEX "idx_event_rsvp_volunteers_event" ON "public"."event_rsvp_volunteer
 
 
 CREATE INDEX "idx_event_rsvp_volunteers_rsvp_sort" ON "public"."event_rsvp_volunteers" USING "btree" ("event_council_rsvp_id", "sort_order");
-
-
-
-CREATE INDEX "idx_events_council_scope_starts_at" ON "public"."events" USING "btree" ("council_id", "scope_code", "starts_at" DESC);
-
-
-
-CREATE INDEX "idx_events_council_starts_at" ON "public"."events" USING "btree" ("council_id", "starts_at" DESC);
-
-
-
-CREATE INDEX "idx_events_council_status_starts_at" ON "public"."events" USING "btree" ("council_id", "status_code", "starts_at" DESC);
 
 
 
@@ -8195,10 +8158,6 @@ CREATE OR REPLACE TRIGGER "custom_lists_sync_local_unit_id_from_legacy_council" 
 
 
 
-CREATE OR REPLACE TRIGGER "event_archives_sync_local_unit_id_from_legacy_council" BEFORE INSERT OR UPDATE OF "council_id", "local_unit_id" ON "public"."event_archives" FOR EACH ROW EXECUTE FUNCTION "public"."sync_local_unit_id_from_legacy_council"();
-
-
-
 CREATE OR REPLACE TRIGGER "event_assignments_set_updated_at" BEFORE UPDATE ON "public"."event_assignments" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
@@ -8208,14 +8167,6 @@ CREATE OR REPLACE TRIGGER "event_person_rsvp_attendees_set_updated_at" BEFORE UP
 
 
 CREATE OR REPLACE TRIGGER "event_person_rsvps_set_updated_at" BEFORE UPDATE ON "public"."event_person_rsvps" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
-
-
-
-CREATE OR REPLACE TRIGGER "events_sync_local_unit_from_council" BEFORE INSERT OR UPDATE ON "public"."events" FOR EACH ROW EXECUTE FUNCTION "public"."sync_event_local_unit_from_council"();
-
-
-
-CREATE OR REPLACE TRIGGER "events_sync_local_unit_id_from_legacy_council" BEFORE INSERT OR UPDATE OF "council_id", "local_unit_id" ON "public"."events" FOR EACH ROW EXECUTE FUNCTION "public"."sync_local_unit_id_from_legacy_council"();
 
 
 
@@ -8508,11 +8459,6 @@ ALTER TABLE ONLY "public"."daily_reading_entries"
 
 
 ALTER TABLE ONLY "public"."event_archives"
-    ADD CONSTRAINT "event_archives_council_id_fkey" FOREIGN KEY ("council_id") REFERENCES "public"."councils"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."event_archives"
     ADD CONSTRAINT "event_archives_deleted_by_user_id_fkey" FOREIGN KEY ("deleted_by_user_id") REFERENCES "public"."users"("id");
 
 
@@ -8649,11 +8595,6 @@ ALTER TABLE ONLY "public"."event_rsvp_volunteers"
 
 ALTER TABLE ONLY "public"."event_rsvp_volunteers"
     ADD CONSTRAINT "event_rsvp_volunteers_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."events"
-    ADD CONSTRAINT "events_council_id_fkey" FOREIGN KEY ("council_id") REFERENCES "public"."councils"("id") ON DELETE RESTRICT;
 
 
 
@@ -11272,12 +11213,6 @@ GRANT ALL ON FUNCTION "public"."set_person_profile_change_requests_updated_at"()
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."sync_event_local_unit_from_council"() TO "anon";
-GRANT ALL ON FUNCTION "public"."sync_event_local_unit_from_council"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."sync_event_local_unit_from_council"() TO "service_role";
 
 
 
