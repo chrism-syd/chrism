@@ -94,7 +94,7 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
     listManagedOrganizationTypeOptions({ admin }),
     admin
       .from('organizations')
-.select('id, display_name, preferred_name, organization_type_code, primary_color_hex, secondary_color_hex, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
+      .select('id, display_name, preferred_name, organization_type_code, primary_color_hex, secondary_color_hex, logo_storage_path, logo_alt_text, brand_profile:brand_profile_id(code, display_name, logo_storage_bucket, logo_storage_path, logo_alt_text)')
       .order('display_name', { ascending: true }),
     admin
       .from('local_units')
@@ -274,8 +274,6 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
                 const rightLabel = right.display_name?.trim() || right.official_name?.trim() || 'Local unit'
                 return leftLabel.localeCompare(rightLabel)
               })
-              const inviteCouncil = units.find((unit) => Boolean(unit.legacy_council_id)) ?? null
-              const inviteCouncilShell = inviteCouncil?.legacy_council_id ? councilsById.get(inviteCouncil.legacy_council_id) ?? null : null
 
               return (
                 <article key={organization.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
@@ -299,9 +297,6 @@ export default async function SuperAdminOrganizationsPage({ searchParams }: Page
 
                   <form action={updateOrganizationAction} className="qv-form-grid">
                     <input type="hidden" name="organization_id" value={organization.id} />
-                    <input type="hidden" name="invite_council_id" value={inviteCouncilShell?.id ?? ''} />
-                    <input type="hidden" name="invite_council_name" value={inviteCouncilShell?.name ?? inviteCouncil?.display_name ?? ''} />
-                    <input type="hidden" name="invite_council_number" value={inviteCouncilShell?.council_number ?? ''} />
 
                     <div className="qv-form-row qv-form-row-2">
                       <label className="qv-field">
