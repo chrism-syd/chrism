@@ -72,7 +72,7 @@ export default function HostManualVolunteerForm({
     });
   }, [highlightedIndex]);
 
-  function selectMember(member: PersonOption) {
+  function selectPerson(member: PersonOption) {
     setSelectedPersonId(member.id);
     setSearchQuery(member.display_name);
     setPrimaryName(member.display_name);
@@ -82,7 +82,7 @@ export default function HostManualVolunteerForm({
     setHighlightedIndex(-1);
   }
 
-  function clearSelectedMember() {
+  function clearSelectedPerson() {
     setSelectedPersonId('');
   }
 
@@ -116,7 +116,7 @@ export default function HostManualVolunteerForm({
     if (event.key === 'Enter') {
       if (showResults && highlightedIndex >= 0 && filteredMembers[highlightedIndex]) {
         event.preventDefault();
-        selectMember(filteredMembers[highlightedIndex]);
+        selectPerson(filteredMembers[highlightedIndex]);
       }
       return;
     }
@@ -141,7 +141,7 @@ export default function HostManualVolunteerForm({
               setSearchQuery(event.target.value);
               setShowResults(true);
               setHighlightedIndex(0);
-              clearSelectedMember();
+              clearSelectedPerson();
             }}
             onFocus={() => {
               setShowResults(true);
@@ -196,7 +196,7 @@ export default function HostManualVolunteerForm({
                     type="button"
                     onMouseDown={(event) => {
                       event.preventDefault();
-                      selectMember(member);
+                      selectPerson(member);
                     }}
                     className="qv-link-button qv-button-secondary"
                     style={{
