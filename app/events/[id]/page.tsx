@@ -157,7 +157,7 @@ type PersonRow = {
   cell_phone: string | null;
 };
 
-type HostVolunteerMember = {
+type HostVolunteerPerson = {
   id: string;
   display_name: string;
   email: string | null;
@@ -338,7 +338,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const removeExternalInviteeAction = removeEventExternalInvitee.bind(null, event.id);
 
   let hostInviteToken: string | null = null;
-  let hostVolunteerMembers: HostVolunteerMember[] = [];
+  let hostVolunteerPeople: HostVolunteerPerson[] = [];
 
   let summaryRows: EventSummaryRow[] = [];
   let invitedCouncils: InvitedCouncilRow[] = [];
@@ -454,7 +454,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     const decryptedPeople = decryptPeopleRecords(peopleData ?? [])
     const scopedPeople = decryptedPeople.filter((person) => scopedPersonIds.has(person.id))
 
-    hostVolunteerMembers = scopedPeople.map((person) => ({
+    hostVolunteerPeople = scopedPeople.map((person) => ({
       id: person.id,
       display_name: personDisplayName(person),
       email: person.email?.trim() ?? null,
@@ -848,7 +848,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
                 <HostManualVolunteerForm
                   action={addHostManualVolunteerAction}
-                  people={hostVolunteerMembers}
+                  people={hostVolunteerPeople}
                 />
               </section>
             ) : isMeeting ? (
