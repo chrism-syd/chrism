@@ -68,14 +68,6 @@ type AdminAssignmentRow = {
   grant_notes: string | null
 }
 
-type LegacyCouncilAdminAssignmentRow = {
-  id: string
-  person_id: string | null
-  user_id: string | null
-  grantee_email: string | null
-  notes: string | null
-}
-
 type PendingInvitationRow = {
   id: string
   invitee_email: string
@@ -108,7 +100,7 @@ type OfficerRoleEmailRow = {
 export type AdminCarouselItem = {
   id: string
   assignmentId: string | null
-  assignmentTable: 'organization' | 'council' | null
+  assignmentTable: 'organization' | null
   personId: string | null
   profileHref: string | null
   label: string
@@ -229,7 +221,6 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   const [
     { data: assignmentData },
-    { data: legacyCouncilAssignmentData },
     { data: officerData },
     { data: officerRoleEmailData },
     { data: pendingInvitationData },
@@ -241,12 +232,6 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       .from('organization_admin_assignments')
       .select('id, person_id, user_id, grantee_email, source_code, grant_notes')
       .eq('organization_id', permissions.organizationId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: true }),
-    admin
-      .from('council_admin_assignments')
-      .select('id, person_id, user_id, grantee_email, notes')
-      .eq('council_id', council.id)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
     localUnitId
@@ -295,7 +280,6 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
   ])
 
   const assignments = (assignmentData as AdminAssignmentRow[] | null) ?? []
-  const legacyCouncilAssignments = (legacyCouncilAssignmentData as LegacyCouncilAdminAssignmentRow[] | null) ?? []
   const officerTerms = ((officerData as OfficerTermRow[] | null) ?? []).filter((term) => isOfficerTermActive(term, { useKnightsOfColumbusFraternalYear: true }))
   const officerRoleEmails = (officerRoleEmailData as OfficerRoleEmailRow[] | null) ?? []
   const pendingInvitations = (pendingInvitationData as PendingInvitationRow[] | null) ?? []
@@ -307,7 +291,6 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
 
   const assignmentLinkedPersonIds = [...new Set([
     ...assignments.map((assignment) => assignment.person_id).filter((value): value is string => Boolean(value)),
-    ...legacyCouncilAssignments.map((assignment) => assignment.person_id).filter((value): value is string => Boolean(value)),
     ...officerTerms.map((term) => term.person_id).filter((value): value is string => Boolean(value)),
   ])].filter((personId) => !localMembers.some((person) => person.id === personId))
 
@@ -387,26 +370,15 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     return null
   }
 
-  const manualAdmins = [
-    ...assignments.map((assignment) => ({
-      id: assignment.id,
-      assignmentId: assignment.id,
-      assignmentTable: 'organization' as const,
-      personId: assignment.person_id,
-      userId: assignment.user_id,
-      granteeEmail: assignment.grantee_email,
-      sourceBadge: assignmentSourceLabel(assignment.source_code),
-    })),
-    ...legacyCouncilAssignments.map((assignment) => ({
-      id: `legacy-${assignment.id}`,
-      assignmentId: assignment.id,
-      assignmentTable: 'council' as const,
-      personId: assignment.person_id,
-      userId: assignment.user_id,
-      granteeEmail: assignment.grantee_email,
-      sourceBadge: 'Manual assignment',
-    })),
-  ]
+  const manualAdmins = assignments.map((assignment) => ({
+    id: assignment.id,
+    assignmentId: assignment.id,
+    assignmentTable: 'organization' as const,
+    personId: assignment.person_id,
+    userId: assignment.user_id,
+    granteeEmail: assignment.grantee_email,
+    sourceBadge: assignmentSourceLabel(assignment.source_code),
+  }))
 
   function manualAdminIdentityKey(assignment: {
     personId: string | null
@@ -430,20 +402,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       continue
     }
 
-    const existing = dedupedManualAdmins.get(identityKey)
-    if (!existing) {
-      dedupedManualAdmins.set(identityKey, assignment)
-      continue
-    }
-
-    if (assignment.assignmentTable === 'council' && existing.assignmentTable !== 'council') {
-      dedupedManualAdmins.set(identityKey, assignment)
-      continue
-    }
-
-    if (assignment.assignmentTable === existing.assignmentTable && assignment.assignmentTable === 'organization') {
-      dedupedManualAdmins.set(identityKey, assignment)
-    }
+    dedupedManualAdmins.set(identityKey, assignment)
   }
 
   const currentAdmins = [...dedupedManualAdmins.values(), ...unkeyedManualAdmins]
@@ -481,7 +440,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     .filter((adminRow): adminRow is NonNullable<typeof adminRow> => Boolean(adminRow))
 
   const manuallyAssignedIdentityKeys = new Set<string>()
-  for (const assignment of [...assignments, ...legacyCouncilAssignments]) {
+  for (const assignment of assignments) {
     if (assignment.person_id) manuallyAssignedIdentityKeys.add(`person:${assignment.person_id}`)
     if (assignment.user_id) manuallyAssignedIdentityKeys.add(`user:${assignment.user_id}`)
 
