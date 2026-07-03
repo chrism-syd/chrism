@@ -20,7 +20,6 @@ type CouncilRow = {
 type EventRow = {
   id: string;
   local_unit_id: string | null;
-  council_id: string;
   status_code: 'draft' | 'scheduled' | 'completed' | 'cancelled';
   title: string;
   description: string | null;
@@ -521,7 +520,7 @@ async function loadOwnedEvent(args: {
   }
 
   const selectClause =
-    'id, local_unit_id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before';
+    'id, local_unit_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before';
 
   const { data, error } = await supabase
     .from('events')
@@ -990,7 +989,6 @@ async function createDraftEventFromSeed(args: {
   const { error } = await supabase.from('events').insert({
     id: eventId,
     local_unit_id: localUnitId,
-    council_id: council.id,
     title: seed.title,
     description: seed.description,
     location_name: seed.location_name,
@@ -1282,7 +1280,6 @@ export async function createEvent(formData: FormData) {
   const createdEvent: EventRow = {
     id: eventId,
     local_unit_id: localUnitId,
-    council_id: council.id,
     status_code: statusCode,
     title: eventInput.title,
     description: eventInput.description,
@@ -1304,7 +1301,6 @@ export async function createEvent(formData: FormData) {
   const { error: insertError } = await supabase.from('events').insert({
     id: eventId,
     local_unit_id: localUnitId,
-    council_id: council.id,
     title: eventInput.title,
     description: eventInput.description,
     location_name: eventInput.location_name,
@@ -1394,7 +1390,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
     .eq('id', eventId)
     .eq('local_unit_id', localUnitId)
     .select(
-      'id, local_unit_id, council_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, local_unit_id, status_code, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .single();
 
@@ -1504,13 +1500,13 @@ export async function duplicateArchivedEventAsDraft(archiveId: string) {
   const { data, error } = await supabase
     .from('event_archives')
     .select(
-      'id, council_id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
+      'id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, volunteer_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before'
     )
     .eq('id', archiveId)
     .eq('local_unit_id', localUnitId)
     .single();
 
-  const archive = data as Omit<EventRow, 'id' | 'status_code'> & { id: string; council_id: string; local_unit_id: string | null } | null;
+  const archive = data as Omit<EventRow, 'id' | 'status_code'> & { id: string; local_unit_id: string | null } | null;
   if (error || !archive) throw new Error('Could not load that archived event.');
 
   const duplicatedEventId = await createDraftEventFromSeed({
@@ -1547,7 +1543,6 @@ export async function deleteEvent(eventId: string) {
   const { error: archiveError } = await supabase.from('event_archives').insert({
     original_event_id: event.id,
     local_unit_id: event.local_unit_id ?? localUnitId,
-    council_id: event.council_id,
     title: event.title,
     description: event.description,
     location_name: event.location_name,
@@ -1944,14 +1939,13 @@ export async function revokePersonRsvpByToken(token: string, submissionId: strin
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
-    .select('id, local_unit_id, council_id, scope_code, rsvp_deadline_at')
+    .select('id, local_unit_id, scope_code, rsvp_deadline_at')
     .eq('id', invite.event_id)
     .single();
 
   const event = eventData as {
     id: string;
     local_unit_id: string | null;
-    council_id: string;
     scope_code: 'home_council_only' | 'multi_council';
     rsvp_deadline_at: string | null;
   } | null;
@@ -2028,7 +2022,7 @@ export async function submitCouncilRsvpByToken(formData: FormData) {
 
   const { data: eventData, error: eventError } = await supabase
     .from('events')
-    .select('id, local_unit_id, council_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before')
+    .select('id, local_unit_id, title, description, location_name, location_address, starts_at, ends_at, status_code, scope_code, event_kind_code, requires_rsvp, needs_volunteers, rsvp_deadline_at, reminder_enabled, reminder_scheduled_for, reminder_days_before')
     .eq('id', invite.event_id)
     .single();
 
