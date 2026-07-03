@@ -4,6 +4,11 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const ENV_PATH = path.join(ROOT, '.env.local');
 const OUTPUT_DIR = path.join(ROOT, 'supabase', 'reference');
+
+// This script fetches the REST OpenAPI document from NEXT_PUBLIC_SUPABASE_URL.
+// It reflects the configured hosted Supabase project, not the local DB created
+// by `supabase db reset`. Do not use it to refresh reference docs for local-only
+// migration replay repairs until the hosted database has the same migrations.
 const OPENAPI_PATH = path.join(OUTPUT_DIR, 'public-openapi.json');
 const SUMMARY_PATH = path.join(OUTPUT_DIR, 'public-schema-summary.json');
 const MARKDOWN_PATH = path.join(OUTPUT_DIR, 'public-schema-reference.md');
