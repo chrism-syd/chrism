@@ -34,7 +34,7 @@ export default function HostManualVolunteerForm({
   const [showResults, setShowResults] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  const filteredMembers = useMemo(() => {
+  const filteredPeople = useMemo(() => {
     const query = normalize(searchQuery);
 
     const list = !query
@@ -93,30 +93,30 @@ export default function HostManualVolunteerForm({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      if (filteredMembers.length === 0) {
+      if (filteredPeople.length === 0) {
         return;
       }
       setHighlightedIndex((current) =>
-        current < filteredMembers.length - 1 ? current + 1 : 0
+        current < filteredPeople.length - 1 ? current + 1 : 0
       );
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      if (filteredMembers.length === 0) {
+      if (filteredPeople.length === 0) {
         return;
       }
       setHighlightedIndex((current) =>
-        current > 0 ? current - 1 : filteredMembers.length - 1
+        current > 0 ? current - 1 : filteredPeople.length - 1
       );
       return;
     }
 
     if (event.key === 'Enter') {
-      if (showResults && highlightedIndex >= 0 && filteredMembers[highlightedIndex]) {
+      if (showResults && highlightedIndex >= 0 && filteredPeople[highlightedIndex]) {
         event.preventDefault();
-        selectPerson(filteredMembers[highlightedIndex]);
+        selectPerson(filteredPeople[highlightedIndex]);
       }
       return;
     }
@@ -145,7 +145,7 @@ export default function HostManualVolunteerForm({
             }}
             onFocus={() => {
               setShowResults(true);
-              setHighlightedIndex(filteredMembers.length > 0 ? 0 : -1);
+              setHighlightedIndex(filteredPeople.length > 0 ? 0 : -1);
             }}
             onKeyDown={handleSearchKeyDown}
             placeholder="Start typing a name, email, or phone"
@@ -173,7 +173,7 @@ export default function HostManualVolunteerForm({
               boxShadow: '0 10px 24px rgba(0, 0, 0, 0.08)',
             }}
           >
-            {filteredMembers.length === 0 ? (
+            {filteredPeople.length === 0 ? (
               <div
                 style={{
                   padding: 12,
@@ -184,7 +184,7 @@ export default function HostManualVolunteerForm({
                 No matching members found.
               </div>
             ) : (
-              filteredMembers.map((member, index) => {
+              filteredPeople.map((member, index) => {
                 const isHighlighted = index === highlightedIndex;
 
                 return (
