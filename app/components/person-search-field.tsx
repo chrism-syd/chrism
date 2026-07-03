@@ -33,7 +33,7 @@ function buildSearchHaystack(person: PersonOption) {
   );
 }
 
-export default function MemberSearchField({
+export default function PersonSearchField({
   name,
   label,
   members: people,
