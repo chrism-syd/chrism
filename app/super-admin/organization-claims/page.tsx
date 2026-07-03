@@ -43,13 +43,6 @@ type ActiveOrganizationAdminAssignmentRow = {
   grantee_email: string | null
 }
 
-type ActiveCouncilAdminAssignmentRow = {
-  council_id: string
-  user_id: string | null
-  person_id: string | null
-  grantee_email: string | null
-}
-
 type CouncilOrganizationRow = {
   id: string
   organization_id: string | null
@@ -68,7 +61,6 @@ function normalizeEmail(value: string | null | undefined) {
 function claimHasActiveAdminAccess(
   claim: Pick<ClaimRow, 'organization_id' | 'council_id' | 'requested_by_auth_user_id' | 'requested_by_person_id' | 'requester_email'>,
   organizationAssignments: ActiveOrganizationAdminAssignmentRow[],
-  councilAssignments: ActiveCouncilAdminAssignmentRow[],
   councilOrganizationById: Map<string, string | null>
 ) {
   const requesterEmail = normalizeEmail(claim.requester_email)
@@ -87,15 +79,9 @@ function claimHasActiveAdminAccess(
     return requesterEmail !== null && normalizeEmail(assignment.grantee_email) === requesterEmail
   }
 
-  const hasOrganizationAdminAccess = possibleOrganizationIds.length > 0
+  return possibleOrganizationIds.length > 0
     ? organizationAssignments.some((assignment) => possibleOrganizationIds.includes(assignment.organization_id) && matchesIdentity(assignment))
     : false
-
-  const hasCouncilAdminAccess = claim.council_id
-    ? councilAssignments.some((assignment) => assignment.council_id === claim.council_id && matchesIdentity(assignment))
-    : false
-
-  return hasOrganizationAdminAccess || hasCouncilAdminAccess
 }
 
 function formatWhen(value: string) {
@@ -147,7 +133,7 @@ export default async function OrganizationClaimsQueuePage({ searchParams }: Page
   const organizationIds = [...new Set(claims.map((claim) => claim.organization_id).filter((id): id is string => Boolean(id)))]
   const councilIds = [...new Set(claims.map((claim) => claim.council_id).filter((id): id is string => Boolean(id)))]
 
-  const [organizationAdminData, councilAdminData, councilData] = await Promise.all([
+  const [organizationAdminData, councilData] = await Promise.all([
     organizationIds.length > 0
       ? admin
           .from('organization_admin_assignments')
@@ -157,13 +143,6 @@ export default async function OrganizationClaimsQueuePage({ searchParams }: Page
       : Promise.resolve({ data: [] as ActiveOrganizationAdminAssignmentRow[] | null }),
     councilIds.length > 0
       ? admin
-          .from('council_admin_assignments')
-          .select('council_id, user_id, person_id, grantee_email')
-          .in('council_id', councilIds)
-          .eq('is_active', true)
-      : Promise.resolve({ data: [] as ActiveCouncilAdminAssignmentRow[] | null }),
-    councilIds.length > 0
-      ? admin
           .from('councils')
           .select('id, organization_id')
           .in('id', councilIds)
@@ -171,7 +150,6 @@ export default async function OrganizationClaimsQueuePage({ searchParams }: Page
   ])
 
   const activeOrganizationAssignments = (organizationAdminData.data as ActiveOrganizationAdminAssignmentRow[] | null) ?? []
-  const activeCouncilAssignments = (councilAdminData.data as ActiveCouncilAdminAssignmentRow[] | null) ?? []
   const councilOrganizationById = new Map(
     (((councilData.data as CouncilOrganizationRow[] | null) ?? [])).map((row) => [row.id, row.organization_id])
   )
@@ -179,7 +157,7 @@ export default async function OrganizationClaimsQueuePage({ searchParams }: Page
   const pendingClaims = claims.filter(
     (claim) =>
       claim.status_code === 'pending' &&
-      !claimHasActiveAdminAccess(claim, activeOrganizationAssignments, activeCouncilAssignments, councilOrganizationById)
+      !claimHasActiveAdminAccess(claim, activeOrganizationAssignments, councilOrganizationById)
   )
 
   const recentlyReviewedClaims: ReviewedClaimItem[] = [
@@ -187,7 +165,7 @@ export default async function OrganizationClaimsQueuePage({ searchParams }: Page
       .filter(
         (claim) =>
           claim.status_code === 'pending' &&
-          claimHasActiveAdminAccess(claim, activeOrganizationAssignments, activeCouncilAssignments, councilOrganizationById)
+          claimHasActiveAdminAccess(claim, activeOrganizationAssignments, councilOrganizationById)
       )
       .map((claim) => ({
         ...claim,
