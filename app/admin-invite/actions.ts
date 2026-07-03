@@ -49,39 +49,23 @@ async function redirectToInvite(rawToken: string, error?: string | null, notice?
 }
 
 async function resolveInviteLocalUnitId(args: {
-  councilId?: string | null
   organizationId?: string | null
 }) {
+  if (!args.organizationId) return null
+
   const admin = createAdminClient()
+  const { data } = await admin
+    .from('local_units')
+    .select('id, local_unit_kind')
+    .eq('legacy_organization_id', args.organizationId)
+    .order('local_unit_kind', { ascending: true })
+    .limit(1)
 
-  if (args.councilId) {
-    const { data } = await admin
-      .from('local_units')
-      .select('id')
-      .eq('legacy_council_id', args.councilId)
-      .limit(1)
-      .maybeSingle<{ id: string }>()
-
-    if (data?.id) return data.id
-  }
-
-  if (args.organizationId) {
-    const { data } = await admin
-      .from('local_units')
-      .select('id, local_unit_kind')
-      .eq('legacy_organization_id', args.organizationId)
-      .order('local_unit_kind', { ascending: true })
-      .limit(1)
-
-    const localUnit = (data as Array<{ id: string; local_unit_kind?: string | null }> | null)?.[0] ?? null
-    if (localUnit?.id) return localUnit.id
-  }
-
-  return null
+  const localUnit = (data as Array<{ id: string; local_unit_kind?: string | null }> | null)?.[0] ?? null
+  return localUnit?.id ?? null
 }
 
 async function setAcceptedInviteLocalUnitScope(args: {
-  councilId?: string | null
   organizationId?: string | null
 }) {
   const localUnitId = await resolveInviteLocalUnitId(args)
@@ -138,7 +122,6 @@ export async function acceptAdminInvitationAction(formData: FormData) {
     })
 
     await setAcceptedInviteLocalUnitScope({
-      councilId: invitation.council_id,
       organizationId: invitation.organization_id,
     })
 
