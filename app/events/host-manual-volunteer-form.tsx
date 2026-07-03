@@ -11,7 +11,7 @@ type PersonOption = {
 
 type HostManualVolunteerFormProps = {
   action: (formData: FormData) => void | Promise<void>;
-  members: PersonOption[];
+  people: PersonOption[];
 };
 
 function normalize(value: string) {
@@ -20,7 +20,7 @@ function normalize(value: string) {
 
 export default function HostManualVolunteerForm({
   action,
-  members,
+  people,
 }: HostManualVolunteerFormProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const resultRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -38,17 +38,17 @@ export default function HostManualVolunteerForm({
     const query = normalize(searchQuery);
 
     const list = !query
-      ? members
-      : members.filter((member) => {
+      ? people
+      : people.filter((person) => {
           const haystack = normalize(
-            `${member.display_name} ${member.email ?? ''} ${member.phone ?? ''}`
+            `${person.display_name} ${person.email ?? ''} ${person.phone ?? ''}`
           );
 
           return haystack.includes(query);
         });
 
     return list.slice(0, 12);
-  }, [members, searchQuery]);
+  }, [people, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -72,12 +72,12 @@ export default function HostManualVolunteerForm({
     });
   }, [highlightedIndex]);
 
-  function selectPerson(member: PersonOption) {
-    setSelectedPersonId(member.id);
-    setSearchQuery(member.display_name);
-    setPrimaryName(member.display_name);
-    setPrimaryEmail(member.email ?? '');
-    setPrimaryPhone(member.phone ?? '');
+  function selectPerson(person: PersonOption) {
+    setSelectedPersonId(person.id);
+    setSearchQuery(person.display_name);
+    setPrimaryName(person.display_name);
+    setPrimaryEmail(person.email ?? '');
+    setPrimaryPhone(person.phone ?? '');
     setShowResults(false);
     setHighlightedIndex(-1);
   }
@@ -133,7 +133,7 @@ export default function HostManualVolunteerForm({
 
       <div ref={containerRef} className="qv-form-row" style={{ position: 'relative' }}>
         <label className="qv-control">
-          <span className="qv-label">Find member</span>
+          <span className="qv-label">Find person</span>
           <input
             type="text"
             value={searchQuery}
@@ -181,22 +181,22 @@ export default function HostManualVolunteerForm({
                   color: 'var(--text-secondary)',
                 }}
               >
-                No matching members found.
+                No matching people found.
               </div>
             ) : (
-              filteredPeople.map((member, index) => {
+              filteredPeople.map((person, index) => {
                 const isHighlighted = index === highlightedIndex;
 
                 return (
                   <button
-                    key={member.id}
+                    key={person.id}
                     ref={(node) => {
                       resultRefs.current[index] = node;
                     }}
                     type="button"
                     onMouseDown={(event) => {
                       event.preventDefault();
-                      selectPerson(member);
+                      selectPerson(person);
                     }}
                     className="qv-link-button qv-button-secondary"
                     style={{
@@ -208,7 +208,7 @@ export default function HostManualVolunteerForm({
                     }}
                   >
                     <span style={{ display: 'grid', gap: 4 }}>
-                      <span>{member.display_name}</span>
+                      <span>{person.display_name}</span>
 
                       <span
                         style={{
@@ -219,8 +219,8 @@ export default function HostManualVolunteerForm({
                           flexWrap: 'wrap',
                         }}
                       >
-                        {member.email ? <span>{member.email}</span> : <span>No Email</span>}
-                        {member.phone ? <span>{member.phone}</span> : <span>No phone #</span>}
+                        {person.email ? <span>{person.email}</span> : <span>No Email</span>}
+                        {person.phone ? <span>{person.phone}</span> : <span>No phone #</span>}
                       </span>
                     </span>
                   </button>
