@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-type MemberOption = {
+type PersonOption = {
   id: string;
   display_name: string;
   email: string | null;
@@ -11,7 +11,7 @@ type MemberOption = {
 
 type HostManualVolunteerFormProps = {
   action: (formData: FormData) => void | Promise<void>;
-  members: MemberOption[];
+  members: PersonOption[];
 };
 
 function normalize(value: string) {
@@ -72,7 +72,7 @@ export default function HostManualVolunteerForm({
     });
   }, [highlightedIndex]);
 
-  function selectMember(member: MemberOption) {
+  function selectMember(member: PersonOption) {
     setSelectedPersonId(member.id);
     setSearchQuery(member.display_name);
     setPrimaryName(member.display_name);
