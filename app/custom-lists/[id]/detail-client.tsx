@@ -505,7 +505,7 @@ export default function CustomListDetailClient({
 }: Props) {
   const [peopleSort, setPeopleSort] = useState<PeopleSort>('attention')
   const [recentSort, setRecentSort] = useState<RecentSort>('newest')
-  const [isAddMemberExpanded, setIsAddMemberExpanded] = useState(false)
+  const [isAddPersonExpanded, setIsAddPersonExpanded] = useState(false)
 
   const sortedMembers = useMemo(() => sortPeople(members, peopleSort), [members, peopleSort])
   const recentContactMembers = useMemo(
@@ -536,14 +536,14 @@ export default function CustomListDetailClient({
                 ]}
               />
               {canManage ? (
-                <button type="button" className="qv-button-secondary" onClick={() => setIsAddMemberExpanded((value) => !value)}>
+                <button type="button" className="qv-button-secondary" onClick={() => setIsAddPersonExpanded((value) => !value)}>
                   Add person
                 </button>
               ) : null}
             </div>
           </div>
 
-          {canManage && isAddMemberExpanded ? (
+          {canManage && isAddPersonExpanded ? (
             <div className="qv-inline-panel qv-member-inline-panel qv-custom-list-add-panel" style={{ marginTop: 16 }}>
               <div className="qv-member-inline-panel-head">
                 <span className="qv-member-inline-panel-title">Add person</span>
@@ -552,7 +552,7 @@ export default function CustomListDetailClient({
                   className="qv-icon-button"
                   aria-label="Close add person panel"
                   title="Close"
-                  onClick={() => setIsAddMemberExpanded(false)}
+                  onClick={() => setIsAddPersonExpanded(false)}
                 >
                   <BootstrapIcon name="x" className="qv-bi-icon" />
                 </button>
