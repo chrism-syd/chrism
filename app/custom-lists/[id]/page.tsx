@@ -398,8 +398,8 @@ export default async function CustomListDetailPage({ params }: PageProps) {
 
   const personOptions = eligiblePeople.map(buildPersonOption)
 
-  const shareCandidates = personOptions.filter((person) => !sharedPersonIds.has(person.id))
-  const addCandidates = personOptions.filter((person) => !listedPersonIds.has(person.id))
+  const sharePeople = personOptions.filter((person) => !sharedPersonIds.has(person.id))
+  const addPeople = personOptions.filter((person) => !listedPersonIds.has(person.id))
 
   const claimedCount = members.filter((person) => Boolean(person.claimed_by_person_id)).length
   const contactedCount = members.filter((person) => Boolean(person.last_contact_at)).length
@@ -502,8 +502,8 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           currentPersonId={permissions.personId}
           members={members}
           sharedAccess={sharedAccess}
-          sharePeople={shareCandidates}
-          addPeople={addCandidates}
+          sharePeople={sharePeople}
+          addPeople={addPeople}
         />
       </div>
     </main>
