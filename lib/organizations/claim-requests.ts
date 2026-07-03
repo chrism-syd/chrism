@@ -17,6 +17,7 @@ type CouncilRow = { id: string; name: string; council_number: string; organizati
 type OrganizationRow = { id: string; display_name: string | null; preferred_name: string | null }
 type OrganizationKofcProfileRow = { organization_id: string; lookup_city: string | null; parish_associations: string[] | null }
 type ExistingPendingClaimRow = { id: string }
+type CouncilOrganizationLookupRow = { organization_id: string | null }
 
 export function normalizeClaimText(value: string | null | undefined) {
   const trimmed = value?.trim()
@@ -97,10 +98,37 @@ type InsertClaimRequestArgs = {
   initiatedViaCode: 'signed_in_member' | 'public_request'
 }
 
+async function resolveClaimOrganizationId(args: {
+  councilId?: string | null
+  organizationId?: string | null
+}) {
+  if (!args.councilId) return args.organizationId ?? null
+
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('councils')
+    .select('organization_id')
+    .eq('id', args.councilId)
+    .maybeSingle<CouncilOrganizationLookupRow>()
+
+  if (error) throw new Error(error.message)
+  if (!data?.organization_id) throw new Error('Selected council is not tied to an organization yet.')
+  if (args.organizationId && args.organizationId !== data.organization_id) {
+    throw new Error('Selected council does not match the submitted organization.')
+  }
+
+  return data.organization_id
+}
+
 export async function insertOrganizationClaimRequest(args: InsertClaimRequestArgs) {
   const admin = createAdminClient()
+  const organizationId = await resolveClaimOrganizationId({
+    councilId: args.councilId,
+    organizationId: args.organizationId,
+  })
+
   const payload = {
-    organization_id: args.organizationId ?? null,
+    organization_id: organizationId,
     council_id: args.councilId ?? null,
     requested_by_auth_user_id: args.requestedByAuthUserId ?? null,
     requested_by_person_id: args.requestedByPersonId ?? null,
@@ -115,11 +143,11 @@ export async function insertOrganizationClaimRequest(args: InsertClaimRequestArg
     status_code: 'pending',
   }
 
-  if (args.organizationId && args.requestedByAuthUserId) {
+  if (organizationId && args.requestedByAuthUserId) {
     const { data: existingPending, error: existingPendingError } = await admin
       .from('organization_claim_requests')
       .select('id')
-      .eq('organization_id', args.organizationId)
+      .eq('organization_id', organizationId)
       .eq('requested_by_auth_user_id', args.requestedByAuthUserId)
       .eq('status_code', 'pending')
       .maybeSingle<ExistingPendingClaimRow>()

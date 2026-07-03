@@ -12,7 +12,6 @@ export async function submitPublicOrganizationClaimAction(
   formData: FormData
 ): Promise<ClaimOrganizationActionState> {
   const selectedCouncilId = normalizeClaimText(formData.get('selected_council_id') as string | null)
-  const selectedOrganizationId = normalizeClaimText(formData.get('selected_organization_id') as string | null)
   const requestedCouncilNumber = normalizeClaimText(formData.get('requested_council_number') as string | null)
   const requestedCouncilName = normalizeClaimText(formData.get('requested_council_name') as string | null)
   const requestedCity = normalizeClaimText(formData.get('requested_city') as string | null)
@@ -31,7 +30,6 @@ export async function submitPublicOrganizationClaimAction(
 
   try {
     await insertOrganizationClaimRequest({
-      organizationId: selectedOrganizationId,
       councilId: selectedCouncilId,
       requesterName,
       requesterEmail,
