@@ -520,7 +520,6 @@ export async function revokeCouncilAdminInvitationAction(formData: FormData) {
 export async function revokeCouncilAdminAction(formData: FormData) {
   const context = await requireOrganizationAdminManager()
   const assignmentId = textValue(formData, 'assignment_id')
-  const assignmentTable = textValue(formData, 'assignment_table')
   const personId = textValue(formData, 'person_id')
 
   if (!assignmentId) {
@@ -547,60 +546,43 @@ export async function revokeCouncilAdminAction(formData: FormData) {
   }
 
   try {
-    if (assignmentTable === 'council') {
-      const admin = createAdminClient()
-      const { error } = await admin
-        .from('council_admin_assignments')
-        .update({
-          is_active: false,
-          updated_by_user_id: context.permissions.authUser!.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', assignmentId)
-        .eq('council_id', context.council.id)
+    const admin = createAdminClient()
+    const nowIso = new Date().toISOString()
 
-      if (error) {
-        throw new Error(error.message)
-      }
-    } else {
-      const admin = createAdminClient()
-      const nowIso = new Date().toISOString()
+    const { data: existingAssignment, error: lookupError } = await admin
+      .from('organization_admin_assignments')
+      .select('id, organization_id')
+      .eq('id', assignmentId)
+      .maybeSingle<{ id: string; organization_id: string }>()
 
-      const { data: existingAssignment, error: lookupError } = await admin
-        .from('organization_admin_assignments')
-        .select('id, organization_id')
-        .eq('id', assignmentId)
-        .maybeSingle<{ id: string; organization_id: string }>()
+    if (lookupError) {
+      throw new Error(lookupError.message)
+    }
 
-      if (lookupError) {
-        throw new Error(lookupError.message)
-      }
+    if (!existingAssignment) {
+      throw new Error('That organization admin assignment could not be found.')
+    }
 
-      if (!existingAssignment) {
-        throw new Error('That organization admin assignment could not be found.')
-      }
+    const { data: updatedRows, error } = await admin
+      .from('organization_admin_assignments')
+      .update({
+        is_active: false,
+        revoked_at: nowIso,
+        revoked_by_user_id: context.permissions.authUser!.id,
+        revoked_notes: null,
+        updated_by_user_id: context.permissions.authUser!.id,
+        updated_at: nowIso,
+      })
+      .eq('id', assignmentId)
+      .eq('organization_id', existingAssignment.organization_id)
+      .select('id, is_active, revoked_at, updated_at')
 
-      const { data: updatedRows, error } = await admin
-        .from('organization_admin_assignments')
-        .update({
-          is_active: false,
-          revoked_at: nowIso,
-          revoked_by_user_id: context.permissions.authUser!.id,
-          revoked_notes: null,
-          updated_by_user_id: context.permissions.authUser!.id,
-          updated_at: nowIso,
-        })
-        .eq('id', assignmentId)
-        .eq('organization_id', existingAssignment.organization_id)
-        .select('id, is_active, revoked_at, updated_at')
+    if (error) {
+      throw new Error(error.message)
+    }
 
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      if (!updatedRows || updatedRows.length === 0) {
-        throw new Error('No matching organization admin assignment was updated.')
-      }
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error('No matching organization admin assignment was updated.')
     }
   } catch (error) {
     if (isRedirectError(error)) {
