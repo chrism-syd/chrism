@@ -335,7 +335,7 @@ function buildAdminInvitationEmailCopy(args: {
     </div>
   `.trim()
 
-  const textContent = `Hi ${greetingName}\n\n${inviterLine}${councilText}${notesText}\n\nChrism.app helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.\n\nClick the link below to accept this invite. You will be asked to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For security, that phrase is not included in this email.\n\nReview admin invite:\n${args.acceptUrl}\n\nOnly the invited email address can accept this invite.`
+  const textContent = `Hi ${greetingName},\n\n${inviterLine}${councilText}${notesText}\n\nChrism.app helps ministries and local organizations manage people, events, and volunteer work in one secure workspace.\n\nClick the link below to accept this invite. You will be asked to verify your email with a one-time code and enter the shared verification phrase provided by the person who invited you. For security, that phrase is not included in this email.\n\nReview admin invite:\n${args.acceptUrl}\n\nOnly the invited email address can accept this invite.`
 
   return {
     subject,
