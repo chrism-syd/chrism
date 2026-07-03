@@ -335,7 +335,7 @@ export async function getCurrentActingCouncilContextForEvent(options: {
 
   const { data: eventData } = await admin
     .from('events')
-    .select('id, council_id, local_unit_id')
+    .select('id, local_unit_id')
     .eq('id', options.eventId)
     .maybeSingle<EventContextRow>()
 
@@ -365,32 +365,6 @@ export async function getCurrentActingCouncilContextForEvent(options: {
       localUnitId: event.local_unit_id,
       patchPermissions: {
         activeLocalUnitId: event.local_unit_id,
-        hasStaffAccess: true,
-        canManageEvents: true,
-      },
-    })
-
-    if (eventContext) {
-      return eventContext
-    }
-  }
-
-  const canUseEventCouncil = Boolean(
-    event?.council_id &&
-      !event.local_unit_id &&
-      (
-        (permissions.isSuperAdmin && permissions.actingMode !== 'normal' && event.council_id === permissions.councilId) ||
-        event.council_id === permissions.councilId ||
-        permissions.availableContexts.some((context) => context.councilId === event.council_id)
-      )
-  )
-
-  if (event?.council_id && canUseEventCouncil) {
-    const eventContext = await buildContextFromCouncil({
-      admin,
-      permissions,
-      councilId: event.council_id,
-      patchPermissions: {
         hasStaffAccess: true,
         canManageEvents: true,
       },
