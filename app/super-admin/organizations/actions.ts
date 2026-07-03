@@ -253,7 +253,7 @@ export async function createLocalUnitAction(formData: FormData) {
         : 'Local unit created.',
     })
   } catch (error) {
-    const message = error instanceof Error ? 'Could not create the local unit right now.' : 'Could not create the local unit right now.'
+    const message = error instanceof Error ? error.message : 'Could not create the local unit right now.'
     redirectToOrganizationsPage({ error: message })
   }
 }
