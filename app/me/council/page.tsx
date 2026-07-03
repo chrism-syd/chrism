@@ -562,7 +562,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
     adminCards.map((adminRow) => adminRow.personId).filter((personId): personId is string => Boolean(personId))
   )
 
-  const adminGrantMemberOptions = localMembers
+  const adminGrantPersonOptions = localMembers
     .filter((member) => !adminPersonIds.has(member.id))
     .map((member) => ({
       id: member.id,
@@ -570,7 +570,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
       email: member.email,
     }))
 
-  const officerMemberOptions = localMembers.map((member) => ({
+  const officerPersonOptions = localMembers.map((member) => ({
     id: member.id,
     name: memberName(member),
     email: member.email,
@@ -709,7 +709,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 <PersonSearchField
                   name="person_id"
                   label="Member"
-                  people={adminGrantMemberOptions}
+                  people={adminGrantPersonOptions}
                   placeholder="Type a member name"
                   required
                 />
@@ -873,7 +873,7 @@ export default async function CouncilDetailsPage({ searchParams }: PageProps) {
                 <PersonSearchField
                   name="person_id"
                   label="Member"
-                  people={officerMemberOptions}
+                  people={officerPersonOptions}
                   placeholder="Type a member name"
                   required
                 />
