@@ -848,7 +848,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
                 <HostManualVolunteerForm
                   action={addHostManualVolunteerAction}
-                  members={hostVolunteerMembers}
+                  people={hostVolunteerMembers}
                 />
               </section>
             ) : isMeeting ? (
