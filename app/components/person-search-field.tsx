@@ -13,7 +13,7 @@ type PersonOption = {
 type PersonSearchFieldProps = {
   name: string;
   label: string;
-  members: PersonOption[];
+  people: PersonOption[];
   placeholder?: string;
   required?: boolean;
   labelHidden?: boolean;
@@ -36,7 +36,7 @@ function buildSearchHaystack(person: PersonOption) {
 export default function PersonSearchField({
   name,
   label,
-  members: people,
+  people,
   placeholder = 'Type a person name',
   required = false,
   labelHidden = false,

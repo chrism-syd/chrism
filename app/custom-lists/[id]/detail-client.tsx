@@ -429,7 +429,7 @@ function ShareListCard({
       {isExpanded ? (
         <form action={shareCustomListAction} className="qv-form-grid qv-inline-panel" style={{ marginTop: 16 }}>
           <input type="hidden" name="custom_list_id" value={listId} />
-          <PersonSearchField name="person_id" label="Person" members={shareCandidates} placeholder="Type a person name" required />
+          <PersonSearchField name="person_id" label="Person" people={shareCandidates} placeholder="Type a person name" required />
           <div className="qv-form-actions">
             <button type="button" className="qv-button-secondary" onClick={() => setIsExpanded(false)}>
               Cancel
@@ -564,7 +564,7 @@ export default function CustomListDetailClient({
                   name="person_id"
                   label="Add person"
                   labelHidden
-                  members={addCandidates}
+                  people={addCandidates}
                   placeholder="Type a person name"
                   required
                 />
