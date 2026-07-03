@@ -206,7 +206,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
   const listIds = lists.map((list) => list.id)
   const listLocalUnitIds = [...new Set(lists.map((list) => list.local_unit_id).filter((value): value is string => Boolean(value)))]
 
-  const [memberCountResult, accessCountResult, localUnitsResult, manageableUnitsResult] = await Promise.all([
+  const [peopleCountResult, accessCountResult, localUnitsResult, manageableUnitsResult] = await Promise.all([
     listIds.length > 0
       ? admin.from('custom_list_members').select('custom_list_id').in('custom_list_id', listIds).returns<CountRow[]>()
       : Promise.resolve({ data: [] as CountRow[] }),
@@ -221,9 +221,9 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
       : Promise.resolve({ data: [] as LocalUnitRow[] }),
   ])
 
-  const memberCounts = new Map<string, number>()
-  for (const row of memberCountResult.data ?? []) {
-    memberCounts.set(row.custom_list_id, (memberCounts.get(row.custom_list_id) ?? 0) + 1)
+  const peopleCounts = new Map<string, number>()
+  for (const row of peopleCountResult.data ?? []) {
+    peopleCounts.set(row.custom_list_id, (peopleCounts.get(row.custom_list_id) ?? 0) + 1)
   }
 
   const accessCounts = new Map<string, number>()
@@ -415,7 +415,7 @@ export default async function CustomListsPage({ searchParams }: PageProps) {
                           <div className="qv-member-meta">{list.description || 'No description yet.'}</div>
                           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10 }}>
                             <span className="qv-member-meta">{localUnitName}</span>
-                            <span className="qv-member-meta">Members: {memberCounts.get(list.id) ?? 0}</span>
+                            <span className="qv-member-meta">Members: {peopleCounts.get(list.id) ?? 0}</span>
                             <span className="qv-member-meta">Shared with: {accessCounts.get(list.id) ?? 0}</span>
                             <span className="qv-member-meta">Last updated: {formatDateTime(list.updated_at)}</span>
                           </div>
