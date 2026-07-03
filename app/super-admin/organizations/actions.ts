@@ -181,9 +181,6 @@ export async function updateOrganizationAction(formData: FormData) {
       actorUserId: permissions.authUser!.id,
       organizationId,
       organizationName: textValue(formData, 'preferred_name') ?? textValue(formData, 'display_name') ?? 'Organization',
-      councilId: textValue(formData, 'invite_council_id'),
-      councilName: textValue(formData, 'invite_council_name'),
-      councilNumber: textValue(formData, 'invite_council_number'),
       inviteeEmail: textValue(formData, 'initial_admin_email'),
       inviteeName: textValue(formData, 'initial_admin_name'),
       inviteNotes: textValue(formData, 'initial_admin_notes'),
@@ -256,7 +253,7 @@ export async function createLocalUnitAction(formData: FormData) {
         : 'Local unit created.',
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not create the local unit right now.'
+    const message = error instanceof Error ? 'Could not create the local unit right now.' : 'Could not create the local unit right now.'
     redirectToOrganizationsPage({ error: message })
   }
 }
