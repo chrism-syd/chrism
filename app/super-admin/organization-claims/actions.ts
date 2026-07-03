@@ -70,32 +70,20 @@ export async function approveOrganizationClaimAction(formData: FormData) {
     normalizedEmail ? `grantee_email.eq.${normalizedEmail}` : '',
   ].filter(Boolean)
 
-  const [existingOrganizationAssignments, existingCouncilAssignments] = await Promise.all([
-    identityFilters.length > 0
-      ? admin
-          .from('organization_admin_assignments')
-          .select('id, is_active')
-          .eq('organization_id', effectiveOrganizationId)
-          .or(identityFilters.join(','))
-          .limit(5)
-      : Promise.resolve({ data: [] as { id: string; is_active: boolean }[] | null, error: null }),
-    claim.council_id && identityFilters.length > 0
-      ? admin
-          .from('council_admin_assignments')
-          .select('id, is_active')
-          .eq('council_id', claim.council_id)
-          .or(identityFilters.join(','))
-          .limit(5)
-      : Promise.resolve({ data: [] as { id: string; is_active: boolean }[] | null, error: null }),
-  ])
+  const existingOrganizationAssignments = identityFilters.length > 0
+    ? await admin
+        .from('organization_admin_assignments')
+        .select('id, is_active')
+        .eq('organization_id', effectiveOrganizationId)
+        .or(identityFilters.join(','))
+        .limit(5)
+    : { data: [] as { id: string; is_active: boolean }[] | null, error: null }
 
   if (existingOrganizationAssignments.error) redirectToQueue({ error: existingOrganizationAssignments.error.message })
-  if (existingCouncilAssignments.error) redirectToQueue({ error: existingCouncilAssignments.error.message })
 
   const alreadyHasOrganizationAdmin = (existingOrganizationAssignments.data ?? []).some((assignment) => assignment.is_active)
-  const alreadyHasCouncilAdmin = (existingCouncilAssignments.data ?? []).some((assignment) => assignment.is_active)
 
-  if (alreadyHasOrganizationAdmin || alreadyHasCouncilAdmin) {
+  if (alreadyHasOrganizationAdmin) {
     redirectToQueue({ error: 'This requester already has admin access for that organization.' })
   }
 
