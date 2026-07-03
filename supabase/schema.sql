@@ -13,13 +13,62 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE SCHEMA IF NOT EXISTS "app";
 
 
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
+ALTER SCHEMA "app" OWNER TO "postgres";
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
+
+
+
+
 
 
 COMMENT ON SCHEMA "public" IS 'standard public schema';
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_trgm" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+
+
+
 
 
 
@@ -79,23 +128,11 @@ CREATE TYPE "public"."grant_source_code" AS ENUM (
 ALTER TYPE "public"."grant_source_code" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."intake_item_status_code" AS ENUM (
-    'unread',
-    'read',
-    'in_progress',
-    'complete'
-);
-
-
-ALTER TYPE "public"."intake_item_status_code" OWNER TO "postgres";
-
-
 CREATE TYPE "public"."local_unit_kind" AS ENUM (
-    'council',
     'parish',
+    'council',
     'conference',
     'ministry',
-    'chapter',
     'other'
 );
 
@@ -106,8 +143,7 @@ ALTER TYPE "public"."local_unit_kind" OWNER TO "postgres";
 CREATE TYPE "public"."local_unit_status" AS ENUM (
     'active',
     'inactive',
-    'archived',
-    'quarantine'
+    'archived'
 );
 
 
@@ -158,19 +194,7 @@ CREATE TYPE "public"."prayer_type_code" AS ENUM (
     'blessing',
     'collect',
     'devotion',
-    'other',
-    'common_prayer',
-    'consecration',
-    'devotional_grouping',
-    'discernment_prayer',
-    'doxology',
-    'family_prayer',
-    'intercessory',
-    'marian',
-    'saint_intercession',
-    'work_prayer',
-    'Petition',
-    'Discernment'
+    'other'
 );
 
 
@@ -188,8 +212,7 @@ ALTER TYPE "public"."relationship_kind" OWNER TO "postgres";
 
 CREATE TYPE "public"."relationship_status" AS ENUM (
     'active',
-    'inactive',
-    'archived'
+    'inactive'
 );
 
 
@@ -244,20 +267,1101 @@ CREATE TYPE "public"."spiritual_text_status_code" AS ENUM (
     'review',
     'approved',
     'published',
-    'retired',
-    'normative',
-    'official_devotional_text',
-    'private_devotional_text',
-    'official_group_prayer',
-    'traditional_prayer',
-    'popular_devotional_text',
-    'custom_user_text',
-    'sourced_devotional_text',
-    'editorial_extract'
+    'retired'
 );
 
 
 ALTER TYPE "public"."spiritual_text_status_code" OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."add_person_note"("p_person_id" "uuid", "p_note_type_code" "text", "p_body" "text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_person public.people%rowtype;
+  v_note_id uuid;
+begin
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id
+    and merged_into_person_id is null;
+
+  if v_person.id is null then
+    raise exception 'Person not found';
+  end if;
+
+  if not app.user_can_access_person(v_person.id) then
+    raise exception 'Not allowed to add note to this person';
+  end if;
+
+  if p_note_type_code = 'admin' and not public.auth_can_manage_person(v_person.id) then
+    raise exception 'Only managers can create admin notes';
+  end if;
+
+  insert into public.person_notes (
+    council_id,
+    person_id,
+    note_type_code,
+    body,
+    created_by_auth_user_id,
+    updated_by_auth_user_id
+  )
+  values (
+    v_person.council_id,
+    v_person.id,
+    p_note_type_code,
+    p_body,
+    auth.uid(),
+    auth.uid()
+  )
+  returning id into v_note_id;
+
+  perform app.write_audit_log(
+    v_person.council_id,
+    'person_notes',
+    v_note_id,
+    'add_person_note',
+    jsonb_build_object('person_id', p_person_id)
+  );
+
+  return v_note_id;
+end;
+$$;
+
+
+ALTER FUNCTION "app"."add_person_note"("p_person_id" "uuid", "p_note_type_code" "text", "p_body" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'app'
+    AS $$
+  select app.archive_local_unit_member_record(
+    p_local_unit_id,
+    p_person_id,
+    auth.uid(),
+    p_reason
+  );
+$$;
+
+
+ALTER FUNCTION "app"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'app'
+    AS $$
+declare
+  v_member_record public.member_records%rowtype;
+  v_person public.people%rowtype;
+  v_local_unit public.local_units%rowtype;
+begin
+  if p_actor_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id;
+
+  if not found then
+    raise exception 'Person not found';
+  end if;
+
+  select *
+    into v_local_unit
+  from public.local_units
+  where id = p_local_unit_id;
+
+  if not found then
+    raise exception 'Local unit not found';
+  end if;
+
+  select *
+    into v_member_record
+  from public.member_records
+  where local_unit_id = p_local_unit_id
+    and legacy_people_id = p_person_id
+  limit 1;
+
+  if not found then
+    raise exception 'Local-unit member record not found';
+  end if;
+
+  update public.member_records
+     set lifecycle_state = 'archived'::public.member_record_lifecycle_state,
+         archived_at = coalesce(archived_at, now()),
+         updated_at = now(),
+         updated_by_auth_user_id = p_actor_user_id
+   where id = v_member_record.id;
+
+  update public.local_unit_people
+     set ended_at = coalesce(ended_at, now()),
+         updated_at = now()
+   where local_unit_id = p_local_unit_id
+     and person_id = p_person_id
+     and ended_at is null;
+
+  perform app.write_audit_log(
+    coalesce(v_local_unit.legacy_council_id, v_person.council_id),
+    'member_records',
+    v_member_record.id,
+    'archive_local_unit_member_record',
+    jsonb_build_object(
+      'person_id', p_person_id,
+      'local_unit_id', p_local_unit_id,
+      'actor_user_id', p_actor_user_id,
+      'reason', p_reason
+    )
+  );
+
+  return v_member_record.id;
+end;
+$$;
+
+
+ALTER FUNCTION "app"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."archive_person"("p_person_id" "uuid", "p_reason" "text" DEFAULT NULL::"text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'app'
+    AS $$
+declare
+  v_person public.people%rowtype;
+  v_target_member_record public.member_records%rowtype;
+begin
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id
+    and merged_into_person_id is null;
+
+  if v_person.id is null then
+    raise exception 'Person not found';
+  end if;
+
+  if not public.auth_can_manage_person(v_person.id) then
+    raise exception 'Not allowed to archive this person';
+  end if;
+
+  select mr.*
+    into v_target_member_record
+  from public.member_records mr
+  join public.v_effective_area_access v
+    on v.local_unit_id = mr.local_unit_id
+   and v.area_code = 'members'::public.member_area_code
+   and v.is_effective = true
+  where mr.legacy_people_id = p_person_id
+    and mr.lifecycle_state <> 'archived'::public.member_record_lifecycle_state
+    and v.user_id = auth.uid()
+  order by mr.updated_at desc nulls last, mr.created_at desc nulls last
+  limit 1;
+
+  if v_target_member_record.id is null then
+    raise exception 'No active local-unit member record is available to archive for this person';
+  end if;
+
+  perform app.archive_local_unit_member_record(
+    v_target_member_record.local_unit_id,
+    p_person_id,
+    auth.uid(),
+    p_reason
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "app"."archive_person"("p_person_id" "uuid", "p_reason" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."assign_person"("p_person_id" "uuid", "p_user_id" "uuid", "p_notes" "text" DEFAULT NULL::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_person public.people%rowtype;
+  v_assignment_id uuid;
+begin
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id
+    and merged_into_person_id is null;
+
+  if v_person.id is null then
+    raise exception 'Person not found';
+  end if;
+
+  if not public.auth_can_manage_person_assignments(v_person.id) then
+    raise exception 'Not allowed to assign this person';
+  end if;
+
+  if not app.user_can_access_person_as_user(p_user_id, v_person.id) then
+    raise exception 'Assignment target user cannot access this person';
+  end if;
+
+  insert into public.person_assignments (
+    council_id,
+    person_id,
+    user_id,
+    assigned_by_auth_user_id,
+    notes
+  )
+  values (
+    v_person.council_id,
+    v_person.id,
+    p_user_id,
+    auth.uid(),
+    p_notes
+  )
+  returning id into v_assignment_id;
+
+  perform app.write_audit_log(
+    v_person.council_id,
+    'person_assignments',
+    v_assignment_id,
+    'assign_person',
+    jsonb_build_object('person_id', p_person_id, 'user_id', p_user_id)
+  );
+
+  return v_assignment_id;
+end;
+$$;
+
+
+ALTER FUNCTION "app"."assign_person"("p_person_id" "uuid", "p_user_id" "uuid", "p_notes" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."create_prospect_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text" DEFAULT NULL::"text", "p_cell_phone" "text" DEFAULT NULL::"text", "p_home_phone" "text" DEFAULT NULL::"text", "p_other_phone" "text" DEFAULT NULL::"text", "p_prospect_status_code" "text" DEFAULT 'new'::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_local_unit public.local_units%rowtype;
+  v_person_id uuid;
+  v_member_record_id uuid;
+begin
+  select *
+    into v_local_unit
+  from public.local_units
+  where id = p_local_unit_id;
+
+  if v_local_unit.id is null then
+    raise exception 'Local unit not found';
+  end if;
+
+  if v_local_unit.legacy_council_id is null then
+    raise exception 'Local unit is not linked to a legacy council';
+  end if;
+
+  if not public.auth_has_area_access(
+    p_local_unit_id,
+    'members'::public.member_area_code,
+    'edit_manage'::public.area_access_level
+  ) then
+    raise exception 'Not allowed to create prospects';
+  end if;
+
+  insert into public.people (
+    council_id,
+    first_name,
+    last_name,
+    primary_relationship_code,
+    created_source_code,
+    prospect_status_code,
+    email,
+    cell_phone,
+    home_phone,
+    other_phone,
+    created_by_auth_user_id,
+    updated_by_auth_user_id
+  )
+  values (
+    v_local_unit.legacy_council_id,
+    p_first_name,
+    p_last_name,
+    'prospect',
+    'scoped_manual_prospect',
+    p_prospect_status_code,
+    p_email,
+    p_cell_phone,
+    p_home_phone,
+    p_other_phone,
+    auth.uid(),
+    auth.uid()
+  )
+  returning id into v_person_id;
+
+  begin
+    v_member_record_id := public.ensure_member_record_for_person_local_unit(
+      p_local_unit_id,
+      v_person_id
+    );
+
+    if v_member_record_id is null then
+      raise exception 'Could not link created prospect to local unit';
+    end if;
+  exception
+    when others then
+      delete from public.people
+      where id = v_person_id
+        and primary_relationship_code = 'prospect';
+      raise;
+  end;
+
+  perform app.write_audit_log(
+    v_local_unit.legacy_council_id,
+    'people',
+    v_person_id,
+    'create_prospect',
+    jsonb_build_object(
+      'local_unit_id', p_local_unit_id,
+      'member_record_id', v_member_record_id
+    )
+  );
+
+  return v_person_id;
+end;
+$$;
+
+
+ALTER FUNCTION "app"."create_prospect_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_prospect_status_code" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "app"."create_prospect_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_prospect_status_code" "text") IS 'Service-role-only local-unit-first prospect creation helper. Browser execution intentionally revoked; app code should prefer explicit local_unit_id ownership.';
+
+
+
+CREATE OR REPLACE FUNCTION "app"."create_volunteer_only_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text" DEFAULT NULL::"text", "p_cell_phone" "text" DEFAULT NULL::"text", "p_home_phone" "text" DEFAULT NULL::"text", "p_other_phone" "text" DEFAULT NULL::"text", "p_volunteer_context_code" "text" DEFAULT 'unknown'::"text") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_local_unit public.local_units%rowtype;
+  v_person_id uuid;
+  v_member_record_id uuid;
+begin
+  select *
+    into v_local_unit
+  from public.local_units
+  where id = p_local_unit_id;
+
+  if v_local_unit.id is null then
+    raise exception 'Local unit not found';
+  end if;
+
+  if v_local_unit.legacy_council_id is null then
+    raise exception 'Local unit is not linked to a legacy council';
+  end if;
+
+  if not public.auth_has_area_access(
+    p_local_unit_id,
+    'members'::public.member_area_code,
+    'edit_manage'::public.area_access_level
+  ) then
+    raise exception 'Not allowed to create volunteer-only records';
+  end if;
+
+  insert into public.people (
+    council_id,
+    first_name,
+    last_name,
+    primary_relationship_code,
+    created_source_code,
+    volunteer_context_code,
+    email,
+    cell_phone,
+    home_phone,
+    other_phone,
+    created_by_auth_user_id,
+    updated_by_auth_user_id
+  )
+  values (
+    v_local_unit.legacy_council_id,
+    p_first_name,
+    p_last_name,
+    'volunteer_only',
+    'scoped_manual_volunteer',
+    p_volunteer_context_code,
+    p_email,
+    p_cell_phone,
+    p_home_phone,
+    p_other_phone,
+    auth.uid(),
+    auth.uid()
+  )
+  returning id into v_person_id;
+
+  begin
+    v_member_record_id := public.ensure_member_record_for_person_local_unit(
+      p_local_unit_id,
+      v_person_id
+    );
+
+    if v_member_record_id is null then
+      raise exception 'Could not link created volunteer-only record to local unit';
+    end if;
+  exception
+    when others then
+      delete from public.people
+      where id = v_person_id
+        and primary_relationship_code = 'volunteer_only';
+      raise;
+  end;
+
+  perform app.write_audit_log(
+    v_local_unit.legacy_council_id,
+    'people',
+    v_person_id,
+    'create_volunteer_only',
+    jsonb_build_object(
+      'local_unit_id', p_local_unit_id,
+      'member_record_id', v_member_record_id
+    )
+  );
+
+  return v_person_id;
+end;
+$$;
+
+
+ALTER FUNCTION "app"."create_volunteer_only_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_volunteer_context_code" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "app"."create_volunteer_only_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_volunteer_context_code" "text") IS 'Service-role-only local-unit-first volunteer-only creation helper. Browser execution intentionally revoked; app code should prefer explicit local_unit_id ownership.';
+
+
+
+CREATE OR REPLACE FUNCTION "app"."end_person_assignment"("p_assignment_id" "uuid", "p_notes" "text" DEFAULT NULL::"text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_assignment public.person_assignments%rowtype;
+  v_person public.people%rowtype;
+begin
+  select *
+    into v_assignment
+  from public.person_assignments
+  where id = p_assignment_id;
+
+  if v_assignment.id is null then
+    raise exception 'Assignment not found';
+  end if;
+
+  select *
+    into v_person
+  from public.people
+  where id = v_assignment.person_id
+    and merged_into_person_id is null;
+
+  if v_person.id is null then
+    raise exception 'Assignment person not found';
+  end if;
+
+  if not public.auth_can_manage_person_assignments(v_person.id) then
+    raise exception 'Not allowed to end this assignment';
+  end if;
+
+  update public.person_assignments
+  set ended_at = now(),
+      ended_by_auth_user_id = auth.uid(),
+      notes = coalesce(p_notes, notes)
+  where id = p_assignment_id
+    and ended_at is null;
+
+  perform app.write_audit_log(
+    v_person.council_id,
+    'person_assignments',
+    p_assignment_id,
+    'end_person_assignment'
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "app"."end_person_assignment"("p_assignment_id" "uuid", "p_notes" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."find_person_identity_id"("p_person_id" "uuid") RETURNS "uuid"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select pil.person_identity_id
+  from public.person_identity_links pil
+  where pil.person_id = p_person_id
+    and pil.ended_at is null
+  limit 1;
+$$;
+
+
+ALTER FUNCTION "app"."find_person_identity_id"("p_person_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."find_person_identity_id_for_user"("p_user_id" "uuid") RETURNS "uuid"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select pi.id
+  from public.person_identities pi
+  where pi.primary_user_id = p_user_id
+  limit 1;
+$$;
+
+
+ALTER FUNCTION "app"."find_person_identity_id_for_user"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."fraternal_year_label"("p_start_year" integer) RETURNS "text"
+    LANGUAGE "sql" IMMUTABLE
+    SET "search_path" TO 'app', 'public', 'pg_temp'
+    AS $$
+  select p_start_year::text || '-' || (p_start_year + 1)::text
+$$;
+
+
+ALTER FUNCTION "app"."fraternal_year_label"("p_start_year" integer) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."fraternal_year_start"("p_date" "date") RETURNS integer
+    LANGUAGE "sql" IMMUTABLE
+    SET "search_path" TO 'app', 'public', 'pg_temp'
+    AS $$
+  select case
+    when extract(month from p_date) >= 7 then extract(year from p_date)::integer
+    else extract(year from p_date)::integer - 1
+  end
+$$;
+
+
+ALTER FUNCTION "app"."fraternal_year_start"("p_date" "date") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."list_accessible_member_statuses"() RETURNS TABLE("person_id" "uuid", "official_membership_status_code" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select omr.person_id, omr.official_membership_status_code
+  from public.official_member_records omr
+  join public.people p
+    on p.id = omr.person_id
+  where app.user_can_access_person(p.id)
+$$;
+
+
+ALTER FUNCTION "app"."list_accessible_member_statuses"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."list_active_people_for_identity"("p_person_identity_id" "uuid") RETURNS TABLE("person_id" "uuid")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select pil.person_id
+  from public.person_identity_links pil
+  join public.people p
+    on p.id = pil.person_id
+  where pil.person_identity_id = p_person_identity_id
+    and pil.ended_at is null
+    and p.archived_at is null
+    and p.merged_into_person_id is null
+  order by pil.linked_at, pil.person_id;
+$$;
+
+
+ALTER FUNCTION "app"."list_active_people_for_identity"("p_person_identity_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") RETURNS "uuid"
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'app'
+    AS $$
+  select app.restore_local_unit_member_record(
+    p_local_unit_id,
+    p_person_id,
+    auth.uid()
+  );
+$$;
+
+
+ALTER FUNCTION "app"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'app'
+    AS $$
+declare
+  v_member_record public.member_records%rowtype;
+  v_person public.people%rowtype;
+  v_local_unit public.local_units%rowtype;
+begin
+  if p_actor_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id;
+
+  if not found then
+    raise exception 'Person not found';
+  end if;
+
+  select *
+    into v_local_unit
+  from public.local_units
+  where id = p_local_unit_id;
+
+  if not found then
+    raise exception 'Local unit not found';
+  end if;
+
+  select *
+    into v_member_record
+  from public.member_records
+  where local_unit_id = p_local_unit_id
+    and legacy_people_id = p_person_id
+  limit 1;
+
+  if not found then
+    raise exception 'Local-unit member record not found';
+  end if;
+
+  update public.member_records
+     set lifecycle_state = 'active'::public.member_record_lifecycle_state,
+         archived_at = null,
+         updated_at = now(),
+         updated_by_auth_user_id = p_actor_user_id
+   where id = v_member_record.id;
+
+  update public.people
+     set archived_at = null,
+         updated_at = now(),
+         updated_by_auth_user_id = p_actor_user_id
+   where id = p_person_id
+     and archived_at is not null;
+
+  update public.local_unit_people
+     set ended_at = null,
+         updated_at = now()
+   where local_unit_id = p_local_unit_id
+     and person_id = p_person_id;
+
+  insert into public.local_unit_people (
+    local_unit_id,
+    person_id,
+    created_at,
+    updated_at
+  )
+  select
+    p_local_unit_id,
+    p_person_id,
+    now(),
+    now()
+  where not exists (
+    select 1
+    from public.local_unit_people lup
+    where lup.local_unit_id = p_local_unit_id
+      and lup.person_id = p_person_id
+  );
+
+  perform app.write_audit_log(
+    coalesce(v_local_unit.legacy_council_id, v_person.council_id),
+    'member_records',
+    v_member_record.id,
+    'restore_local_unit_member_record',
+    jsonb_build_object(
+      'person_id', p_person_id,
+      'local_unit_id', p_local_unit_id,
+      'actor_user_id', p_actor_user_id
+    )
+  );
+
+  return v_member_record.id;
+end;
+$$;
+
+
+ALTER FUNCTION "app"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."update_member_local_fields"("p_person_id" "uuid", "p_council_activity_level_code" "text", "p_council_activity_context_code" "text", "p_council_reengagement_status_code" "text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_person public.people%rowtype;
+begin
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id
+    and merged_into_person_id is null;
+
+  if v_person.id is null then
+    raise exception 'Person not found';
+  end if;
+
+  if not public.auth_can_manage_person(v_person.id) then
+    raise exception 'Not allowed to update this person';
+  end if;
+
+  update public.people
+  set council_activity_level_code = p_council_activity_level_code,
+      council_activity_context_code = p_council_activity_context_code,
+      council_reengagement_status_code = p_council_reengagement_status_code,
+      updated_by_auth_user_id = auth.uid()
+  where id = p_person_id;
+
+  perform app.write_audit_log(
+    v_person.council_id,
+    'people',
+    p_person_id,
+    'update_member_local_fields'
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "app"."update_member_local_fields"("p_person_id" "uuid", "p_council_activity_level_code" "text", "p_council_activity_context_code" "text", "p_council_reengagement_status_code" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."update_nonmember_contact_fields"("p_person_id" "uuid", "p_email" "text" DEFAULT NULL::"text", "p_cell_phone" "text" DEFAULT NULL::"text", "p_home_phone" "text" DEFAULT NULL::"text", "p_other_phone" "text" DEFAULT NULL::"text", "p_address_line_1" "text" DEFAULT NULL::"text", "p_address_line_2" "text" DEFAULT NULL::"text", "p_city" "text" DEFAULT NULL::"text", "p_state_province" "text" DEFAULT NULL::"text", "p_postal_code" "text" DEFAULT NULL::"text", "p_country_code" "text" DEFAULT NULL::"text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_person public.people%rowtype;
+begin
+  select *
+    into v_person
+  from public.people
+  where id = p_person_id
+    and merged_into_person_id is null;
+
+  if v_person.id is null then
+    raise exception 'Person not found';
+  end if;
+
+  if not public.auth_can_manage_person(v_person.id) then
+    raise exception 'Not allowed to update this person';
+  end if;
+
+  update public.people
+  set email = p_email,
+      cell_phone = p_cell_phone,
+      home_phone = p_home_phone,
+      other_phone = p_other_phone,
+      address_line_1 = p_address_line_1,
+      address_line_2 = p_address_line_2,
+      city = p_city,
+      state_province = p_state_province,
+      postal_code = p_postal_code,
+      country_code = p_country_code,
+      updated_by_auth_user_id = auth.uid()
+  where id = p_person_id;
+
+  perform app.write_audit_log(
+    v_person.council_id,
+    'people',
+    p_person_id,
+    'update_nonmember_contact_fields'
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "app"."update_nonmember_contact_fields"("p_person_id" "uuid", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_address_line_1" "text", "p_address_line_2" "text", "p_city" "text", "p_state_province" "text", "p_postal_code" "text", "p_country_code" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_can_access_local_person"("p_person_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.local_unit_people lup
+    join public.people p
+      on p.id = lup.person_id
+    join public.v_effective_area_access v
+      on v.local_unit_id = lup.local_unit_id
+     and v.area_code = 'members'::public.member_area_code
+     and v.is_effective = true
+    where lup.person_id = p_person_id
+      and lup.ended_at is null
+      and p.archived_at is null
+      and p.merged_into_person_id is null
+      and v.user_id = auth.uid()
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_can_access_local_person"("p_person_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_can_access_local_person_as_user"("p_user_id" "uuid", "p_person_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.local_unit_people lup
+    join public.people p
+      on p.id = lup.person_id
+    join public.v_effective_area_access v
+      on v.local_unit_id = lup.local_unit_id
+     and v.area_code = 'members'::public.member_area_code
+     and v.is_effective = true
+    where lup.person_id = p_person_id
+      and lup.ended_at is null
+      and p.archived_at is null
+      and p.merged_into_person_id is null
+      and v.user_id = p_user_id
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_can_access_local_person_as_user"("p_user_id" "uuid", "p_person_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_can_access_person"("p_person_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.member_records mr
+    join public.v_effective_area_access v
+      on v.local_unit_id = mr.local_unit_id
+     and v.area_code = 'members'::public.member_area_code
+     and v.is_effective = true
+    where mr.legacy_people_id = p_person_id
+      and mr.lifecycle_state <> 'archived'::public.member_record_lifecycle_state
+      and v.user_id = auth.uid()
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_can_access_person"("p_person_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_can_access_person_as_user"("p_user_id" "uuid", "p_person_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.member_records mr
+    join public.v_effective_area_access v
+      on v.local_unit_id = mr.local_unit_id
+     and v.area_code = 'members'::public.member_area_code
+     and v.is_effective = true
+    where mr.legacy_people_id = p_person_id
+      and mr.lifecycle_state <> 'archived'::public.member_record_lifecycle_state
+      and v.user_id = p_user_id
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_can_access_person_as_user"("p_user_id" "uuid", "p_person_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_has_scope"("p_council_id" "uuid", "p_scope_code" "text") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select case
+    when p_scope_code in ('all_people', 'prospects', 'volunteer_only', 'members_all',
+                          'members_official_active', 'members_official_associate',
+                          'members_activity_active', 'members_activity_occasional',
+                          'members_activity_inactive', 'members_reengagement_monitoring',
+                          'members_reengagement_hardship_support',
+                          'members_reengagement_in_progress',
+                          'members_reengagement_disengaged_no_response')
+      then app.user_is_council_admin(p_council_id)
+    else false
+  end;
+$$;
+
+
+ALTER FUNCTION "app"."user_has_scope"("p_council_id" "uuid", "p_scope_code" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_has_scope_for_user"("p_user_id" "uuid", "p_council_id" "uuid", "p_scope_code" "text") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select case
+    when p_scope_code in ('all_people', 'prospects', 'volunteer_only', 'members_all',
+                          'members_official_active', 'members_official_associate',
+                          'members_activity_active', 'members_activity_occasional',
+                          'members_activity_inactive', 'members_reengagement_monitoring',
+                          'members_reengagement_hardship_support',
+                          'members_reengagement_in_progress',
+                          'members_reengagement_disengaged_no_response')
+      then app.user_is_council_admin_for_user(p_user_id, p_council_id)
+    else false
+  end;
+$$;
+
+
+ALTER FUNCTION "app"."user_has_scope_for_user"("p_user_id" "uuid", "p_council_id" "uuid", "p_scope_code" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_is_council_admin"("p_council_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select coalesce(
+    (
+      select app.user_is_local_unit_admin(lu.id)
+      from public.local_units lu
+      where lu.legacy_council_id = p_council_id
+      order by lu.created_at asc
+      limit 1
+    ),
+    false
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_is_council_admin"("p_council_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "app"."user_is_council_admin"("p_council_id" "uuid") IS 'Compatibility wrapper. Prefer app.user_is_local_unit_admin(uuid); this resolves the council to its local unit and evaluates local-unit-native admin access.';
+
+
+
+CREATE OR REPLACE FUNCTION "app"."user_is_council_admin_for_user"("p_user_id" "uuid", "p_council_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.local_units lu
+    join public.v_effective_area_access v
+      on v.local_unit_id = lu.id
+     and v.area_code = 'members'::public.member_area_code
+     and v.is_effective = true
+    where lu.legacy_council_id = p_council_id
+      and v.user_id = p_user_id
+      and v.access_level in ('edit_manage', 'manage')
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_is_council_admin_for_user"("p_user_id" "uuid", "p_council_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "app"."user_is_local_unit_admin"("p_local_unit_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  with active_app_user as (
+    select
+      u.id,
+      u.person_id,
+      u.is_active,
+      coalesce(u.is_super_admin, false) as is_super_admin,
+      au.email
+    from public.users u
+    left join auth.users au
+      on au.id = u.id
+    where u.id = auth.uid()
+      and u.is_active = true
+    limit 1
+  ),
+  target_local_unit as (
+    select
+      lu.id,
+      lu.legacy_organization_id,
+      c.organization_id as legacy_council_organization_id
+    from public.local_units lu
+    left join public.councils c
+      on c.id = lu.legacy_council_id
+    where lu.id = p_local_unit_id
+    limit 1
+  ),
+  target_organization as (
+    select coalesce(legacy_organization_id, legacy_council_organization_id) as organization_id
+    from target_local_unit
+  )
+  select exists (
+    select 1
+    from active_app_user u
+    where u.is_super_admin = true
+  )
+  or exists (
+    select 1
+    from active_app_user u
+    join target_organization org
+      on org.organization_id is not null
+    join public.organization_admin_assignments oaa
+      on oaa.organization_id = org.organization_id
+    where oaa.is_active = true
+      and (
+        oaa.user_id = u.id
+        or (u.person_id is not null and oaa.person_id = u.person_id)
+        or (
+          u.email is not null
+          and nullif(btrim(coalesce(oaa.grantee_email, '')), '') is not null
+          and lower(oaa.grantee_email) = lower(u.email)
+        )
+      )
+  )
+  or exists (
+    select 1
+    from active_app_user u
+    join public.person_officer_terms pot
+      on pot.person_id = u.person_id
+    where pot.local_unit_id = p_local_unit_id
+      and pot.office_scope_code = 'council'
+      and pot.office_code in ('grand_knight', 'financial_secretary')
+      and (
+        pot.service_end_year is null
+        or pot.service_end_year >= extract(year from current_date)::int
+      )
+  );
+$$;
+
+
+ALTER FUNCTION "app"."user_is_local_unit_admin"("p_local_unit_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "app"."user_is_local_unit_admin"("p_local_unit_id" "uuid") IS 'Returns true when the signed-in user can administer the local unit through super admin status, organization admin assignment, or a current automatic officer role.';
+
+
+
+CREATE OR REPLACE FUNCTION "app"."write_audit_log"("p_council_id" "uuid", "p_entity_table" "text", "p_entity_id" "uuid", "p_action_code" "text", "p_payload" "jsonb" DEFAULT '{}'::"jsonb") RETURNS "void"
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  insert into public.audit_log (
+    council_id,
+    actor_auth_user_id,
+    entity_table,
+    entity_id,
+    action_code,
+    payload
+  )
+  values (
+    p_council_id,
+    auth.uid(),
+    p_entity_table,
+    p_entity_id,
+    p_action_code,
+    coalesce(p_payload, '{}'::jsonb)
+  )
+$$;
+
+
+ALTER FUNCTION "app"."write_audit_log"("p_council_id" "uuid", "p_entity_table" "text", "p_entity_id" "uuid", "p_action_code" "text", "p_payload" "jsonb") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid" DEFAULT NULL::"uuid", "p_council_number" "text" DEFAULT NULL::"text", "p_title" "text" DEFAULT NULL::"text", "p_first_name" "text" DEFAULT NULL::"text", "p_middle_name" "text" DEFAULT NULL::"text", "p_last_name" "text" DEFAULT NULL::"text", "p_suffix" "text" DEFAULT NULL::"text", "p_email" "text" DEFAULT NULL::"text", "p_email_hash" "text" DEFAULT NULL::"text", "p_cell_phone" "text" DEFAULT NULL::"text", "p_cell_phone_hash" "text" DEFAULT NULL::"text", "p_address_line_1" "text" DEFAULT NULL::"text", "p_address_line_1_hash" "text" DEFAULT NULL::"text", "p_city" "text" DEFAULT NULL::"text", "p_city_hash" "text" DEFAULT NULL::"text", "p_state_province" "text" DEFAULT NULL::"text", "p_state_province_hash" "text" DEFAULT NULL::"text", "p_postal_code" "text" DEFAULT NULL::"text", "p_postal_code_hash" "text" DEFAULT NULL::"text", "p_birth_date" "date" DEFAULT NULL::"date", "p_birth_date_hash" "text" DEFAULT NULL::"text", "p_pii_key_version" "text" DEFAULT NULL::"text", "p_council_activity_level_code" "text" DEFAULT NULL::"text", "p_member_number" "text" DEFAULT NULL::"text", "p_first_degree_date" "date" DEFAULT NULL::"date", "p_second_degree_date" "date" DEFAULT NULL::"date", "p_third_degree_date" "date" DEFAULT NULL::"date", "p_years_in_service" integer DEFAULT NULL::integer, "p_member_type" "text" DEFAULT NULL::"text", "p_member_class" "text" DEFAULT NULL::"text", "p_assembly_number" "text" DEFAULT NULL::"text") RETURNS "jsonb"
@@ -781,11 +1885,26 @@ CREATE OR REPLACE FUNCTION "public"."auth_has_event_management_access"("p_event_
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
-  select public.has_event_management_access(auth.uid(), p_event_id);
+  select coalesce(auth.uid() is not null, false)
+    and exists (
+      select 1
+      from public.events e
+      where e.id = p_event_id
+        and e.local_unit_id is not null
+        and public.has_event_management_access(
+          auth.uid(),
+          e.local_unit_id,
+          e.id
+        )
+    );
 $$;
 
 
 ALTER FUNCTION "public"."auth_has_event_management_access"("p_event_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."auth_has_event_management_access"("p_event_id" "uuid") IS 'Compatibility wrapper for event-id-only event management access checks.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."auth_has_event_management_access"("p_local_unit_id" "uuid", "p_event_id" "uuid") RETURNS boolean
@@ -1117,6 +2236,62 @@ $$;
 ALTER FUNCTION "public"."current_user_council_id"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."enforce_local_unit_external_links_active_limit"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_active_count integer;
+begin
+  if new.is_active then
+    select count(*)
+    into v_active_count
+    from public.local_unit_external_links
+    where local_unit_id = new.local_unit_id
+      and is_active = true
+      and id <> new.id;
+
+    if v_active_count >= 3 then
+      raise exception 'A local unit can have at most 3 active public external links.';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."enforce_local_unit_external_links_active_limit"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."enforce_local_unit_public_gallery_images_active_limit"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_active_count integer;
+begin
+  if new.is_active then
+    select count(*)
+    into v_active_count
+    from public.local_unit_public_gallery_images
+    where local_unit_id = new.local_unit_id
+      and is_active = true
+      and id <> new.id;
+
+    if v_active_count >= 12 then
+      raise exception 'A local unit can have at most 12 active public gallery images.';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."enforce_local_unit_public_gallery_images_active_limit"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_unit_id" "uuid", "p_person_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'app', 'pg_temp'
@@ -1230,7 +2405,7 @@ $$;
 ALTER FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_unit_id" "uuid", "p_person_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_fallback_email" "text" DEFAULT NULL::"text", "p_fallback_invitee_name" "text" DEFAULT NULL::"text") RETURNS TABLE("member_record_id" "uuid", "user_unit_relationship_id" "uuid")
+CREATE OR REPLACE FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid") RETURNS TABLE("member_record_id" "uuid", "user_unit_relationship_id" "uuid")
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
@@ -1239,11 +2414,6 @@ declare
   v_local_unit public.local_units%rowtype;
   v_member_record_id uuid;
   v_user_unit_relationship_id uuid;
-  v_person_id uuid;
-  v_email text;
-  v_name_source text;
-  v_first_name text;
-  v_last_name text;
 begin
   select *
     into v_user
@@ -1254,8 +2424,8 @@ begin
     raise exception 'User % not found in public.users', p_user_id;
   end if;
 
-  if v_user.person_id is not null then
-    v_person_id := v_user.person_id;
+  if v_user.person_id is null then
+    raise exception 'User % is not linked to a person record', p_user_id;
   end if;
 
   select *
@@ -1267,70 +2437,11 @@ begin
     raise exception 'Local unit % not found', p_local_unit_id;
   end if;
 
-  if v_person_id is null then
-    v_email := nullif(lower(btrim(coalesce(p_fallback_email, ''))), '');
-
-    if v_email is not null then
-      select p.id
-        into v_person_id
-      from public.people p
-      where lower(btrim(coalesce(p.email, ''))) = v_email
-      order by p.created_at
-      limit 1;
-    end if;
-
-    if v_person_id is null then
-      v_name_source := nullif(btrim(coalesce(p_fallback_invitee_name, '')), '');
-
-      if v_name_source is null then
-        v_name_source := split_part(coalesce(v_email, ''), '@', 1);
-      end if;
-
-      v_first_name := nullif(split_part(coalesce(v_name_source, ''), ' ', 1), '');
-      v_last_name := nullif(btrim(substr(coalesce(v_name_source, ''), length(coalesce(v_first_name, '')) + 1)), '');
-
-      insert into public.people (
-        council_id,
-        first_name,
-        last_name,
-        email,
-        primary_relationship_code,
-        volunteer_context_code,
-        council_activity_level_code,
-        created_source_code,
-        created_by_auth_user_id,
-        updated_by_auth_user_id
-      )
-      values (
-        v_local_unit.legacy_council_id,
-        coalesce(v_first_name, 'Admin'),
-        coalesce(v_last_name, 'Contact'),
-        v_email,
-        'volunteer_only',
-        'admin',
-        'active',
-        'admin_manual_member',
-        p_user_id,
-        p_user_id
-      )
-      returning id into v_person_id;
-    end if;
-
-    update public.users
-       set person_id = v_person_id
-     where id = p_user_id
-       and person_id is null;
-  end if;
-
-  if v_person_id is null then
-    raise exception 'User % is not linked to a person record', p_user_id;
-  end if;
-
   select mr.id
     into v_member_record_id
   from public.member_records mr
   where mr.local_unit_id = p_local_unit_id
-    and mr.legacy_people_id = v_person_id
+    and mr.legacy_people_id = v_user.person_id
   limit 1;
 
   if v_member_record_id is null then
@@ -1384,7 +2495,7 @@ begin
       p.created_by_auth_user_id,
       p.updated_by_auth_user_id
     from public.people p
-    where p.id = v_person_id
+    where p.id = v_user.person_id
     returning id into v_member_record_id;
   end if;
 
@@ -1443,7 +2554,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_fallback_email" "text", "p_fallback_invitee_name" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."ensure_parallel_membership_for_org_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
@@ -1546,7 +2657,7 @@ $$;
 ALTER FUNCTION "public"."generate_rsvp_token"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code", "p_note" "text" DEFAULT NULL::"text", "p_fallback_email" "text" DEFAULT NULL::"text", "p_fallback_invitee_name" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
@@ -1555,12 +2666,7 @@ declare
 begin
   select x.member_record_id
     into v_member_record_id
-  from public.ensure_parallel_member_for_user_and_local_unit(
-    p_target_user_id,
-    p_local_unit_id,
-    p_fallback_email,
-    p_fallback_invitee_name
-  ) x;
+  from public.ensure_parallel_member_for_user_and_local_unit(p_target_user_id, p_local_unit_id) x;
 
   perform public.upsert_parallel_admin_package_for_member(
     p_local_unit_id,
@@ -1597,7 +2703,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text", "p_fallback_email" "text", "p_fallback_invitee_name" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."grant_parallel_custom_list_access_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_custom_list_id" "uuid", "p_access_level" "public"."area_access_level" DEFAULT 'interact'::"public"."area_access_level", "p_source_code" "public"."grant_source_code" DEFAULT 'manual'::"public"."grant_source_code") RETURNS "uuid"
@@ -1677,9 +2783,7 @@ CREATE OR REPLACE FUNCTION "public"."has_area_access"("p_user_id" "uuid", "p_loc
       and v.is_effective = true
       and (
         v.access_level = p_min_access_level
-        or (
-          p_min_access_level = 'read_only'
-        )
+        or p_min_access_level = 'read_only'
         or (
           p_min_access_level = 'edit_manage'
           and v.access_level in ('edit_manage', 'manage')
@@ -1838,9 +2942,7 @@ CREATE OR REPLACE FUNCTION "public"."list_accessible_local_units_for_area"("p_us
     and v.is_effective = true
     and (
       v.access_level = p_min_access_level
-      or (
-        p_min_access_level = 'read_only'
-      )
+      or p_min_access_level = 'read_only'
       or (
         p_min_access_level = 'edit_manage'
         and v.access_level in ('edit_manage', 'manage')
@@ -1880,41 +2982,26 @@ CREATE OR REPLACE FUNCTION "public"."list_manageable_event_ids_for_user"("p_user
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'public', 'app', 'pg_temp'
     AS $$
-  with area_scoped_events as (
-    select
-      e.id as event_id,
-      e.local_unit_id
-    from public.events e
-    where e.local_unit_id is not null
-      and (p_local_unit_id is null or e.local_unit_id = p_local_unit_id)
-      and public.has_area_access(
+  select distinct
+    e.id as event_id,
+    e.local_unit_id
+  from public.events e
+  where e.local_unit_id is not null
+    and (p_local_unit_id is null or e.local_unit_id = p_local_unit_id)
+    and (
+      public.has_area_access(
         p_user_id,
         e.local_unit_id,
         'events'::public.member_area_code,
         'manage'::public.area_access_level
       )
-  ),
-  delegated_events as (
-    select
-      e.id as event_id,
-      e.local_unit_id
-    from public.events e
-    where e.local_unit_id is not null
-      and (p_local_unit_id is null or e.local_unit_id = p_local_unit_id)
-      and public.has_event_management_access(
+      or public.has_event_management_access(
         p_user_id,
         e.local_unit_id,
         e.id
       )
-  )
-  select distinct
-    combined.event_id,
-    combined.local_unit_id
-  from (
-    select * from area_scoped_events
-    union all
-    select * from delegated_events
-  ) as combined;
+    )
+  order by e.local_unit_id, e.id;
 $$;
 
 
@@ -2270,6 +3357,13 @@ begin
 
   get diagnostics v_count = row_count;
 
+  if p_source_code = 'invite_package'::public.grant_source_code then
+    perform public.cleanup_parallel_invite_package_subject(
+      p_target_user_id,
+      p_local_unit_id
+    );
+  end if;
+
   insert into public.migration_review_queue (
     source_table,
     source_row_id,
@@ -2420,6 +3514,26 @@ $$;
 
 
 ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."sync_event_local_unit_from_council"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  if new.local_unit_id is null and new.council_id is not null then
+    select lu.id
+      into new.local_unit_id
+    from public.local_units lu
+    where lu.legacy_council_id = new.council_id
+    limit 1;
+  end if;
+
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."sync_event_local_unit_from_council"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."sync_local_unit_id_from_legacy_council"() RETURNS "trigger"
@@ -3217,10 +4331,7 @@ CREATE TABLE IF NOT EXISTS "public"."catechism_references" (
     "body_excerpt" "text",
     "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "source_1" "text",
-    "source_2" "text",
-    "workbook_catechism_id" "text"
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
 );
 
 
@@ -3280,7 +4391,7 @@ CREATE TABLE IF NOT EXISTS "public"."council_admin_assignments" (
 ALTER TABLE "public"."council_admin_assignments" OWNER TO "postgres";
 
 
-COMMENT ON TABLE "public"."council_admin_assignments" IS 'Legacy council-scoped admin grants retained for compatibility. Active rows are mirrored into organization_admin_assignments, which is the canonical admin relationship source.';
+COMMENT ON TABLE "public"."council_admin_assignments" IS 'LEGACY COMPATIBILITY TABLE. Authority decisions should use area_access_grants / v_effective_area_access. Transitional sync input only.';
 
 
 
@@ -3764,89 +4875,6 @@ CREATE TABLE IF NOT EXISTS "public"."event_status_types" (
 ALTER TABLE "public"."event_status_types" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."import_st_patricks_7689_members" (
-    "council_number" "text",
-    "member_number" "text",
-    "title" "text",
-    "first_name" "text",
-    "middle_name" "text",
-    "last_name" "text",
-    "suffix" "text",
-    "address_line_1" "text",
-    "city" "text",
-    "province_state" "text",
-    "postal_code" "text",
-    "country_code" "text",
-    "birth_date" "text",
-    "member_type" "text",
-    "member_class" "text",
-    "first_degree_date" "text",
-    "second_degree_date" "text",
-    "third_degree_date" "text",
-    "reentry_date" "text",
-    "years_service" "text",
-    "assembly_number" "text",
-    "exempt" "text"
-);
-
-
-ALTER TABLE "public"."import_st_patricks_7689_members" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."intake_assignments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "intake_item_id" "uuid" NOT NULL,
-    "member_record_id" "uuid" NOT NULL,
-    "assigned_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "assigned_by_auth_user_id" "uuid",
-    "resolved_at" timestamp with time zone
-);
-
-
-ALTER TABLE "public"."intake_assignments" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."intake_items" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "local_unit_id" "uuid" NOT NULL,
-    "intake_type_id" "uuid" NOT NULL,
-    "status_code" "public"."intake_item_status_code" DEFAULT 'unread'::"public"."intake_item_status_code" NOT NULL,
-    "sender_name" "text" NOT NULL,
-    "sender_email" "text" NOT NULL,
-    "sender_phone" "text",
-    "subject" "text",
-    "message" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by_auth_user_id" "uuid",
-    "updated_by_auth_user_id" "uuid",
-    CONSTRAINT "intake_items_sender_email_not_blank" CHECK (("btrim"("sender_email") <> ''::"text")),
-    CONSTRAINT "intake_items_sender_name_not_blank" CHECK (("btrim"("sender_name") <> ''::"text"))
-);
-
-
-ALTER TABLE "public"."intake_items" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."intake_types" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "local_unit_id" "uuid" NOT NULL,
-    "type_code" "text" NOT NULL,
-    "display_label" "text" NOT NULL,
-    "is_public" boolean DEFAULT false NOT NULL,
-    "is_active" boolean DEFAULT true NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by_auth_user_id" "uuid",
-    "updated_by_auth_user_id" "uuid",
-    CONSTRAINT "intake_types_display_label_not_blank" CHECK (("btrim"("display_label") <> ''::"text")),
-    CONSTRAINT "intake_types_type_code_not_blank" CHECK (("btrim"("type_code") <> ''::"text"))
-);
-
-
-ALTER TABLE "public"."intake_types" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."legacy_fossil_resolutions" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "source_table" "text" NOT NULL,
@@ -3889,36 +4917,44 @@ CREATE TABLE IF NOT EXISTS "public"."local_role_definitions" (
 ALTER TABLE "public"."local_role_definitions" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."local_unit_custom_fields" (
+CREATE TABLE IF NOT EXISTS "public"."local_unit_external_links" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "local_unit_id" "uuid" NOT NULL,
-    "code" "text",
     "label" "text" NOT NULL,
-    "source_template_code" "text",
+    "url" "text" NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
     "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by_auth_user_id" "uuid",
     "updated_by_auth_user_id" "uuid",
-    CONSTRAINT "local_unit_custom_fields_code_not_blank" CHECK ((("code" IS NULL) OR ("btrim"("code") <> ''::"text"))),
-    CONSTRAINT "local_unit_custom_fields_label_not_blank" CHECK (("btrim"("label") <> ''::"text"))
+    CONSTRAINT "local_unit_external_links_label_not_blank" CHECK (("length"("btrim"("label")) > 0)),
+    CONSTRAINT "local_unit_external_links_sort_order_nonnegative" CHECK (("sort_order" >= 0)),
+    CONSTRAINT "local_unit_external_links_url_not_blank" CHECK (("length"("btrim"("url")) > 0))
 );
 
 
-ALTER TABLE "public"."local_unit_custom_fields" OWNER TO "postgres";
+ALTER TABLE "public"."local_unit_external_links" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."local_unit_parish_affiliations" (
+CREATE TABLE IF NOT EXISTS "public"."local_unit_message_routes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "local_unit_id" "uuid" NOT NULL,
-    "parish_local_unit_id" "uuid" NOT NULL,
+    "route_key" "text" NOT NULL,
+    "recipient_person_id" "uuid",
+    "recipient_email" "text",
+    "recipient_label" "text",
+    "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by_auth_user_id" "uuid",
-    CONSTRAINT "local_unit_parish_affiliations_no_self_ref" CHECK (("local_unit_id" <> "parish_local_unit_id"))
+    "updated_by_auth_user_id" "uuid",
+    CONSTRAINT "local_unit_message_routes_recipient_present" CHECK ((("recipient_person_id" IS NOT NULL) OR ("length"("btrim"(COALESCE("recipient_email", ''::"text"))) > 0))),
+    CONSTRAINT "local_unit_message_routes_route_key_not_blank" CHECK (("length"("btrim"("route_key")) > 0))
 );
 
 
-ALTER TABLE "public"."local_unit_parish_affiliations" OWNER TO "postgres";
+ALTER TABLE "public"."local_unit_message_routes" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."local_unit_people" (
@@ -3937,6 +4973,189 @@ CREATE TABLE IF NOT EXISTS "public"."local_unit_people" (
 
 
 ALTER TABLE "public"."local_unit_people" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."local_unit_public_contact_message_jobs" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "local_unit_id" "uuid" NOT NULL,
+    "route_key" "text" DEFAULT 'public_contact'::"text" NOT NULL,
+    "inquiry_type_code" "text" NOT NULL,
+    "status_code" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "recipient_email" "text" NOT NULL,
+    "recipient_label" "text",
+    "reply_to_email" "text" NOT NULL,
+    "submitter_name" "text" NOT NULL,
+    "submitter_phone" "text",
+    "subject" "text" NOT NULL,
+    "body_text" "text" NOT NULL,
+    "payload_snapshot" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "scheduled_for" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "sent_at" timestamp with time zone,
+    "failed_at" timestamp with time zone,
+    "failure_message" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "cleared_at" timestamp with time zone,
+    "cleared_by_auth_user_id" "uuid",
+    CONSTRAINT "local_unit_public_contact_message_jobs_inquiry_type_valid" CHECK (("inquiry_type_code" = ANY (ARRAY['volunteer'::"text", 'membership'::"text", 'general_question'::"text", 'help_request'::"text", 'other'::"text"]))),
+    CONSTRAINT "local_unit_public_contact_message_jobs_recipient_email_not_blan" CHECK (("length"("btrim"("recipient_email")) > 0)),
+    CONSTRAINT "local_unit_public_contact_message_jobs_reply_to_email_not_blank" CHECK (("length"("btrim"("reply_to_email")) > 0)),
+    CONSTRAINT "local_unit_public_contact_message_jobs_status_valid" CHECK (("status_code" = ANY (ARRAY['pending'::"text", 'sent'::"text", 'failed'::"text", 'cancelled'::"text"]))),
+    CONSTRAINT "local_unit_public_contact_message_jobs_submitter_name_not_blank" CHECK (("length"("btrim"("submitter_name")) > 0))
+);
+
+
+ALTER TABLE "public"."local_unit_public_contact_message_jobs" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."local_unit_public_gallery_images" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "local_unit_id" "uuid" NOT NULL,
+    "storage_bucket" "text" DEFAULT 'local-unit-public-gallery'::"text" NOT NULL,
+    "storage_path" "text" NOT NULL,
+    "title" "text",
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by_auth_user_id" "uuid",
+    "updated_by_auth_user_id" "uuid",
+    CONSTRAINT "local_unit_public_gallery_images_sort_order_nonnegative" CHECK (("sort_order" >= 0)),
+    CONSTRAINT "local_unit_public_gallery_images_storage_path_not_blank" CHECK (("length"("btrim"("storage_path")) > 0)),
+    CONSTRAINT "local_unit_public_gallery_images_title_not_blank" CHECK ((("title" IS NULL) OR ("length"("btrim"("title")) > 0)))
+);
+
+
+ALTER TABLE "public"."local_unit_public_gallery_images" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."local_unit_reporting_year_settings" (
+    "local_unit_id" "uuid" NOT NULL,
+    "year_label" "text" DEFAULT 'Calendar year'::"text" NOT NULL,
+    "year_start_month" integer DEFAULT 1 NOT NULL,
+    "year_start_day" integer DEFAULT 1 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "local_unit_reporting_year_settings_day_check" CHECK ((("year_start_day" >= 1) AND ("year_start_day" <= 31))),
+    CONSTRAINT "local_unit_reporting_year_settings_month_check" CHECK ((("year_start_month" >= 1) AND ("year_start_month" <= 12)))
+);
+
+
+ALTER TABLE "public"."local_unit_reporting_year_settings" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."local_unit_volunteer_hour_adjustments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "local_unit_id" "uuid" NOT NULL,
+    "person_id" "uuid" NOT NULL,
+    "event_id" "uuid",
+    "hours_delta" numeric(7,2) NOT NULL,
+    "credited_on" "date" DEFAULT CURRENT_DATE NOT NULL,
+    "note" "text",
+    "created_by_user_id" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "voided_at" timestamp with time zone,
+    "voided_by_user_id" "uuid",
+    "void_reason" "text",
+    CONSTRAINT "local_unit_volunteer_hour_adjustments_bounds_check" CHECK ((("hours_delta" >= '-999.99'::numeric) AND ("hours_delta" <= 999.99))),
+    CONSTRAINT "local_unit_volunteer_hour_adjustments_nonzero_check" CHECK (("hours_delta" <> (0)::numeric))
+);
+
+
+ALTER TABLE "public"."local_unit_volunteer_hour_adjustments" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."local_unit_volunteer_contribution_entries" WITH ("security_invoker"='true') AS
+ WITH "event_entries" AS (
+         SELECT 'event'::"text" AS "source_type",
+            "concat"('event:', ("event"."id")::"text", ':', ("attendee"."matched_person_id")::"text") AS "source_id",
+            "event"."local_unit_id",
+            "attendee"."matched_person_id" AS "person_id",
+            "event"."id" AS "event_id",
+            "event"."title" AS "event_title",
+            ("event"."starts_at")::"date" AS "credited_on",
+            "round"(
+                CASE
+                    WHEN (("event"."ends_at" IS NOT NULL) AND ("event"."ends_at" > "event"."starts_at")) THEN (EXTRACT(epoch FROM ("event"."ends_at" - "event"."starts_at")) / 3600.0)
+                    ELSE (1)::numeric
+                END, 2) AS "hours",
+            NULL::"text" AS "note",
+            "event"."starts_at" AS "sort_at",
+            NULL::"uuid" AS "adjustment_id",
+            NULL::timestamp with time zone AS "voided_at",
+            NULL::"text" AS "void_reason"
+           FROM (("public"."events" "event"
+             JOIN "public"."event_person_rsvps" "rsvp" ON (("rsvp"."event_id" = "event"."id")))
+             JOIN "public"."event_person_rsvp_attendees" "attendee" ON (("attendee"."event_person_rsvp_id" = "rsvp"."id")))
+          WHERE (("event"."local_unit_id" IS NOT NULL) AND ("event"."status_code" = 'completed'::"text") AND ("event"."event_kind_code" = 'standard'::"text") AND ("rsvp"."status_code" = 'active'::"text") AND ("attendee"."is_volunteer" = true) AND ("attendee"."matched_person_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+                   FROM "public"."local_unit_people" "lup"
+                  WHERE (("lup"."local_unit_id" = "event"."local_unit_id") AND ("lup"."person_id" = "attendee"."matched_person_id")))))
+          GROUP BY "event"."id", "event"."local_unit_id", "event"."title", "event"."starts_at", "event"."ends_at", "attendee"."matched_person_id"
+        ), "manual_entries" AS (
+         SELECT 'manual_adjustment'::"text" AS "source_type",
+            "concat"('manual:', ("adjustment"."id")::"text") AS "source_id",
+            "adjustment"."local_unit_id",
+            "adjustment"."person_id",
+            "adjustment"."event_id",
+            "event"."title" AS "event_title",
+            "adjustment"."credited_on",
+            "adjustment"."hours_delta" AS "hours",
+            "adjustment"."note",
+            "adjustment"."created_at" AS "sort_at",
+            "adjustment"."id" AS "adjustment_id",
+            "adjustment"."voided_at",
+            "adjustment"."void_reason"
+           FROM ("public"."local_unit_volunteer_hour_adjustments" "adjustment"
+             LEFT JOIN "public"."events" "event" ON ((("event"."id" = "adjustment"."event_id") AND ("event"."local_unit_id" = "adjustment"."local_unit_id"))))
+          WHERE ("adjustment"."voided_at" IS NULL)
+        )
+ SELECT "event_entries"."source_type",
+    "event_entries"."source_id",
+    "event_entries"."local_unit_id",
+    "event_entries"."person_id",
+    "event_entries"."event_id",
+    "event_entries"."event_title",
+    "event_entries"."credited_on",
+    "event_entries"."hours",
+    "event_entries"."note",
+    "event_entries"."sort_at",
+    "event_entries"."adjustment_id",
+    "event_entries"."voided_at",
+    "event_entries"."void_reason"
+   FROM "event_entries"
+UNION ALL
+ SELECT "manual_entries"."source_type",
+    "manual_entries"."source_id",
+    "manual_entries"."local_unit_id",
+    "manual_entries"."person_id",
+    "manual_entries"."event_id",
+    "manual_entries"."event_title",
+    "manual_entries"."credited_on",
+    "manual_entries"."hours",
+    "manual_entries"."note",
+    "manual_entries"."sort_at",
+    "manual_entries"."adjustment_id",
+    "manual_entries"."voided_at",
+    "manual_entries"."void_reason"
+   FROM "manual_entries";
+
+
+ALTER VIEW "public"."local_unit_volunteer_contribution_entries" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."local_unit_volunteer_contribution_rollups" WITH ("security_invoker"='true') AS
+ SELECT "local_unit_id",
+    "person_id",
+    "count"(DISTINCT "event_id") FILTER (WHERE ("source_type" = 'event'::"text")) AS "volunteer_event_count",
+    COALESCE("round"("sum"("hours") FILTER (WHERE ("source_type" = 'event'::"text")), 2), (0)::numeric) AS "event_hours",
+    COALESCE("round"("sum"("hours") FILTER (WHERE ("source_type" = 'manual_adjustment'::"text")), 2), (0)::numeric) AS "manual_adjustment_hours",
+    COALESCE("round"("sum"("hours"), 2), (0)::numeric) AS "total_hours",
+    "max"("credited_on") FILTER (WHERE ("source_type" = 'event'::"text")) AS "last_volunteered_on"
+   FROM "public"."local_unit_volunteer_contribution_entries" "entry"
+  GROUP BY "local_unit_id", "person_id";
+
+
+ALTER VIEW "public"."local_unit_volunteer_contribution_rollups" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."local_units" (
@@ -3958,8 +5177,26 @@ CREATE TABLE IF NOT EXISTS "public"."local_units" (
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by_auth_user_id" "uuid",
     "updated_by_auth_user_id" "uuid",
+    "public_email" "text",
+    "public_location_name" "text",
+    "public_address_line1" "text",
+    "public_address_line2" "text",
+    "public_city" "text",
+    "public_region" "text",
+    "public_postal_code" "text",
+    "public_country" "text",
+    "public_location_url" "text",
     CONSTRAINT "local_units_display_name_not_blank" CHECK (("btrim"("display_name") <> ''::"text")),
     CONSTRAINT "local_units_official_name_not_blank" CHECK (("btrim"("official_name") <> ''::"text")),
+    CONSTRAINT "local_units_public_address_line1_not_blank" CHECK ((("public_address_line1" IS NULL) OR ("length"("btrim"("public_address_line1")) > 0))),
+    CONSTRAINT "local_units_public_address_line2_not_blank" CHECK ((("public_address_line2" IS NULL) OR ("length"("btrim"("public_address_line2")) > 0))),
+    CONSTRAINT "local_units_public_city_not_blank" CHECK ((("public_city" IS NULL) OR ("length"("btrim"("public_city")) > 0))),
+    CONSTRAINT "local_units_public_country_not_blank" CHECK ((("public_country" IS NULL) OR ("length"("btrim"("public_country")) > 0))),
+    CONSTRAINT "local_units_public_email_not_blank" CHECK ((("public_email" IS NULL) OR ("length"("btrim"("public_email")) > 0))),
+    CONSTRAINT "local_units_public_location_name_not_blank" CHECK ((("public_location_name" IS NULL) OR ("length"("btrim"("public_location_name")) > 0))),
+    CONSTRAINT "local_units_public_location_url_http" CHECK ((("public_location_url" IS NULL) OR ("public_location_url" ~* '^https?://'::"text"))),
+    CONSTRAINT "local_units_public_postal_code_not_blank" CHECK ((("public_postal_code" IS NULL) OR ("length"("btrim"("public_postal_code")) > 0))),
+    CONSTRAINT "local_units_public_region_not_blank" CHECK ((("public_region" IS NULL) OR ("length"("btrim"("public_region")) > 0))),
     CONSTRAINT "local_units_visibility_not_blank" CHECK (("btrim"("visibility") <> ''::"text"))
 );
 
@@ -4055,7 +5292,6 @@ ALTER TABLE "public"."note_types" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."officer_role_emails" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "council_id" "uuid" NOT NULL,
     "office_scope_code" "text" NOT NULL,
     "office_code" "text" NOT NULL,
     "office_rank" integer,
@@ -4065,11 +5301,16 @@ CREATE TABLE IF NOT EXISTS "public"."officer_role_emails" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_by_auth_user_id" "uuid",
-    "updated_by_auth_user_id" "uuid"
+    "updated_by_auth_user_id" "uuid",
+    "local_unit_id" "uuid" NOT NULL
 );
 
 
 ALTER TABLE "public"."officer_role_emails" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."officer_role_emails" IS 'Officer role login email mapping scoped by local_unit_id.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."official_import_batch_status_types" (
@@ -4253,6 +5494,7 @@ CREATE TABLE IF NOT EXISTS "public"."organization_admin_invitations" (
     "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "updated_by_auth_user_id" "uuid",
     "accepted_assignment_id" "uuid",
+    "challenge_response_hash" "text",
     CONSTRAINT "organization_admin_invitations_status_code_check" CHECK (("status_code" = ANY (ARRAY['pending'::"text", 'accepted'::"text", 'revoked'::"text", 'expired'::"text"])))
 );
 
@@ -4261,6 +5503,10 @@ ALTER TABLE "public"."organization_admin_invitations" OWNER TO "postgres";
 
 
 COMMENT ON TABLE "public"."organization_admin_invitations" IS 'Secure invitation records for intentional organization-admin onboarding.';
+
+
+
+COMMENT ON COLUMN "public"."organization_admin_invitations"."accepted_assignment_id" IS 'Admin assignment created when this invitation is accepted.';
 
 
 
@@ -4290,11 +5536,8 @@ CREATE TABLE IF NOT EXISTS "public"."organization_claim_requests" (
     "requested_council_name" "text",
     "requested_city" "text",
     "initiated_via_code" "text" DEFAULT 'signed_in_member'::"text" NOT NULL,
-    "request_type_code" "text" DEFAULT 'admin_access'::"text" NOT NULL,
-    "decision_notice_dismissed_at" timestamp with time zone,
     "requester_notice_dismissed_at" timestamp with time zone,
     "requester_notice_dismissed_by_auth_user_id" "uuid",
-    CONSTRAINT "organization_claim_requests_request_type_code_check" CHECK (("request_type_code" = ANY (ARRAY['admin_access'::"text", 'member_access'::"text"]))),
     CONSTRAINT "organization_claim_requests_status_code_check" CHECK (("status_code" = ANY (ARRAY['pending'::"text", 'approved'::"text", 'rejected'::"text", 'cancelled'::"text"])))
 );
 
@@ -4330,14 +5573,6 @@ COMMENT ON COLUMN "public"."organization_claim_requests"."initiated_via_code" IS
 
 
 
-COMMENT ON COLUMN "public"."organization_claim_requests"."request_type_code" IS 'Whether the request is for admin access or member access.';
-
-
-
-COMMENT ON COLUMN "public"."organization_claim_requests"."decision_notice_dismissed_at" IS 'Timestamp when the requester dismissed the reviewed decision notice on /me.';
-
-
-
 CREATE TABLE IF NOT EXISTS "public"."organization_families" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "code" "text" NOT NULL,
@@ -4361,21 +5596,11 @@ CREATE TABLE IF NOT EXISTS "public"."organization_kofc_profiles" (
     "organization_id" "uuid" NOT NULL,
     "council_number" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "lookup_city" "text",
-    "parish_associations" "text"[]
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
 ALTER TABLE "public"."organization_kofc_profiles" OWNER TO "postgres";
-
-
-COMMENT ON COLUMN "public"."organization_kofc_profiles"."lookup_city" IS 'Typeable lookup city/area for Knights council claim flows. Used for council discovery without exposing member matching.';
-
-
-
-COMMENT ON COLUMN "public"."organization_kofc_profiles"."parish_associations" IS 'Optional parish names served by the council. Multiple items are stored as a text array because one council can serve more than one parish.';
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."organization_membership_status_types" (
@@ -4466,7 +5691,11 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "created_by_auth_user_id" "uuid",
     "updated_by_auth_user_id" "uuid",
     "brand_profile_id" "uuid" NOT NULL,
-    "preferred_name" "text"
+    "preferred_name" "text",
+    "org_type_code" "text",
+    "public_page_enabled" boolean DEFAULT true NOT NULL,
+    "public_description" "text",
+    "public_contact_form_enabled" boolean DEFAULT true NOT NULL
 );
 
 
@@ -4567,6 +5796,10 @@ CREATE TABLE IF NOT EXISTS "public"."person_contact_change_log" (
 
 
 ALTER TABLE "public"."person_contact_change_log" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."person_contact_change_log"."council_id" IS 'Nullable for profile/contact changes made by organization-scoped external admins who do not belong to a local council.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."person_designations" (
@@ -4692,7 +5925,6 @@ ALTER TABLE "public"."person_notes" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."person_officer_terms" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "council_id" "uuid" NOT NULL,
     "person_id" "uuid" NOT NULL,
     "office_scope_code" "text" NOT NULL,
     "office_code" "text" NOT NULL,
@@ -4708,7 +5940,8 @@ CREATE TABLE IF NOT EXISTS "public"."person_officer_terms" (
     "manual_end_effective_date" "date",
     "ended_by_auth_user_id" "uuid",
     "end_reason" "text",
-    CONSTRAINT "person_officer_terms_check" CHECK ((("service_end_year" IS NULL) OR ((("service_end_year" >= 1900) AND ("service_end_year" <= 2100)) AND ("service_end_year" >= "service_start_year")))),
+    "local_unit_id" "uuid" NOT NULL,
+    CONSTRAINT "person_officer_terms_check" CHECK ((("service_end_year" IS NULL) OR (("service_end_year" >= 1900) AND ("service_end_year" <= 2100) AND ("service_end_year" >= "service_start_year")))),
     CONSTRAINT "person_officer_terms_office_rank_check" CHECK ((("office_rank" IS NULL) OR ("office_rank" > 0))),
     CONSTRAINT "person_officer_terms_office_scope_code_check" CHECK (("office_scope_code" = ANY (ARRAY['council'::"text", 'district'::"text", 'state'::"text"]))),
     CONSTRAINT "person_officer_terms_service_start_year_check" CHECK ((("service_start_year" >= 1900) AND ("service_start_year" <= 2100)))
@@ -4716,6 +5949,10 @@ CREATE TABLE IF NOT EXISTS "public"."person_officer_terms" (
 
 
 ALTER TABLE "public"."person_officer_terms" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."person_officer_terms" IS 'Officer service terms scoped by local_unit_id. Knights council identity is resolved through local_units compatibility data where needed.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."person_profile_change_requests" (
@@ -4789,6 +6026,39 @@ CREATE TABLE IF NOT EXISTS "public"."prospect_status_types" (
 
 
 ALTER TABLE "public"."prospect_status_types" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."public_registration_intakes" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "first_name" "text" NOT NULL,
+    "last_name" "text" NOT NULL,
+    "email" "text" NOT NULL,
+    "normalized_email" "text" NOT NULL,
+    "phone" "text",
+    "consent_version" "text" NOT NULL,
+    "consent_text" "text" NOT NULL,
+    "consent_accepted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "email_verification_status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "matched_person_id" "uuid",
+    "matched_at" timestamp with time zone,
+    "admin_review_status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "public_registration_intakes_admin_review_status_check" CHECK (("admin_review_status" = ANY (ARRAY['pending'::"text", 'matched'::"text", 'needs_review'::"text", 'dismissed'::"text"]))),
+    CONSTRAINT "public_registration_intakes_email_verification_status_check" CHECK (("email_verification_status" = ANY (ARRAY['pending'::"text", 'verified'::"text"])))
+);
+
+
+ALTER TABLE "public"."public_registration_intakes" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."public_registration_intakes" IS 'Public registration intake records collected before email verification and admin/member matching. Written only through server-side service role actions.';
+
+
+
+COMMENT ON COLUMN "public"."public_registration_intakes"."consent_text" IS 'Exact registration consent text accepted by the registrant at submission time.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."resource_access_grants" (
@@ -4869,11 +6139,6 @@ CREATE TABLE IF NOT EXISTS "public"."saints" (
     "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "source_1" "text",
-    "source_2" "text",
-    "review_status" "text",
-    "data_tier" "text",
-    "workbook_saint_id" "text",
     CONSTRAINT "saints_feast_day_check" CHECK ((("feast_day" >= 1) AND ("feast_day" <= 31))),
     CONSTRAINT "saints_feast_month_check" CHECK ((("feast_month" >= 1) AND ("feast_month" <= 12)))
 );
@@ -4936,12 +6201,7 @@ CREATE TABLE IF NOT EXISTS "public"."spiritual_content_items" (
     "is_published" boolean DEFAULT false NOT NULL,
     "published_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "variant_label" "text",
-    "is_primary_variant" boolean,
-    "source_body" "text",
-    "notes" "text",
-    "workbook_prayer_id" "text"
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
 );
 
 
@@ -5018,9 +6278,7 @@ CREATE TABLE IF NOT EXISTS "public"."spiritual_topics" (
     "is_active" boolean DEFAULT true NOT NULL,
     "sort_order" integer DEFAULT 0 NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "source_kind" "text",
-    "source_ref" "text"
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
 );
 
 
@@ -5177,7 +6435,7 @@ COMMENT ON COLUMN "public"."users"."is_super_admin" IS 'Global platform-level ac
 
 
 
-CREATE OR REPLACE VIEW "public"."v_effective_area_access" WITH ("security_invoker"='true') AS
+CREATE OR REPLACE VIEW "public"."v_effective_area_access" AS
  WITH "ranked" AS (
          SELECT "aag"."id" AS "area_access_grant_id",
             "aag"."local_unit_id",
@@ -5234,6 +6492,62 @@ CREATE OR REPLACE VIEW "public"."v_effective_area_access" WITH ("security_invoke
              JOIN "public"."local_units" "lu" ON (("lu"."legacy_organization_id" = "oaa"."organization_id")))
              CROSS JOIN ( VALUES ('members'::"public"."member_area_code"), ('events'::"public"."member_area_code"), ('custom_lists'::"public"."member_area_code"), ('admins'::"public"."member_area_code"), ('local_unit_settings'::"public"."member_area_code")) "area_codes"("area_code"))
           WHERE ("oaa"."user_id" IS NOT NULL)
+        UNION ALL
+         SELECT "pot"."id" AS "area_access_grant_id",
+            "pot"."local_unit_id",
+            "lu"."display_name" AS "local_unit_name",
+            "mr"."id" AS "member_record_id",
+            "pot"."person_id",
+            "uur"."user_id",
+            "area_codes"."area_code",
+            'manage'::"public"."area_access_level" AS "access_level",
+            'title_default'::"public"."grant_source_code" AS "source_code",
+            COALESCE("pot"."created_at", "now"()) AS "granted_at",
+            NULL::timestamp with time zone AS "expires_at",
+            NULL::timestamp with time zone AS "revoked_at",
+            200 AS "precedence_score",
+                CASE
+                    WHEN ("mr"."lifecycle_state" = 'archived'::"public"."member_record_lifecycle_state") THEN false
+                    WHEN ("pot"."office_scope_code" <> 'council'::"text") THEN false
+                    WHEN ("pot"."office_code" <> ALL (ARRAY['grand_knight'::"text", 'financial_secretary'::"text"])) THEN false
+                    WHEN (("pot"."service_end_year" IS NOT NULL) AND ("pot"."service_end_year" < (EXTRACT(year FROM CURRENT_DATE))::integer)) THEN false
+                    ELSE true
+                END AS "is_effective"
+           FROM (((("public"."person_officer_terms" "pot"
+             JOIN "public"."local_units" "lu" ON (("lu"."id" = "pot"."local_unit_id")))
+             JOIN "public"."member_records" "mr" ON ((("mr"."local_unit_id" = "pot"."local_unit_id") AND ("mr"."legacy_people_id" = "pot"."person_id") AND ("mr"."archived_at" IS NULL))))
+             JOIN "public"."user_unit_relationships" "uur" ON ((("uur"."member_record_id" = "mr"."id") AND ("uur"."local_unit_id" = "pot"."local_unit_id") AND ("uur"."status" = 'active'::"public"."relationship_status"))))
+             CROSS JOIN ( VALUES ('members'::"public"."member_area_code"), ('events'::"public"."member_area_code"), ('custom_lists'::"public"."member_area_code"), ('admins'::"public"."member_area_code"), ('local_unit_settings'::"public"."member_area_code")) "area_codes"("area_code"))
+          WHERE ("uur"."user_id" IS NOT NULL)
+        UNION ALL
+         SELECT "ore"."id" AS "area_access_grant_id",
+            "pot"."local_unit_id",
+            "lu"."display_name" AS "local_unit_name",
+            "mr"."id" AS "member_record_id",
+            "pot"."person_id",
+            "au"."id" AS "user_id",
+            "area_codes"."area_code",
+            'manage'::"public"."area_access_level" AS "access_level",
+            'title_default'::"public"."grant_source_code" AS "source_code",
+            COALESCE("ore"."created_at", "pot"."created_at", "now"()) AS "granted_at",
+            NULL::timestamp with time zone AS "expires_at",
+            NULL::timestamp with time zone AS "revoked_at",
+            200 AS "precedence_score",
+                CASE
+                    WHEN ("ore"."is_active" IS NOT TRUE) THEN false
+                    WHEN ("ore"."login_enabled" IS NOT TRUE) THEN false
+                    WHEN ("mr"."lifecycle_state" = 'archived'::"public"."member_record_lifecycle_state") THEN false
+                    WHEN ("pot"."office_scope_code" <> 'council'::"text") THEN false
+                    WHEN ("pot"."office_code" <> ALL (ARRAY['grand_knight'::"text", 'financial_secretary'::"text"])) THEN false
+                    WHEN (("pot"."service_end_year" IS NOT NULL) AND ("pot"."service_end_year" < (EXTRACT(year FROM CURRENT_DATE))::integer)) THEN false
+                    ELSE true
+                END AS "is_effective"
+           FROM ((((("public"."officer_role_emails" "ore"
+             JOIN "auth"."users" "au" ON (("lower"(("au"."email")::"text") = "lower"("ore"."email"))))
+             JOIN "public"."person_officer_terms" "pot" ON ((("pot"."local_unit_id" = "ore"."local_unit_id") AND ("pot"."office_scope_code" = "ore"."office_scope_code") AND ("pot"."office_code" = "ore"."office_code") AND (COALESCE("pot"."office_rank", '-1'::integer) = COALESCE("ore"."office_rank", '-1'::integer)))))
+             JOIN "public"."local_units" "lu" ON (("lu"."id" = "pot"."local_unit_id")))
+             JOIN "public"."member_records" "mr" ON ((("mr"."local_unit_id" = "pot"."local_unit_id") AND ("mr"."legacy_people_id" = "pot"."person_id") AND ("mr"."archived_at" IS NULL))))
+             CROSS JOIN ( VALUES ('members'::"public"."member_area_code"), ('events'::"public"."member_area_code"), ('custom_lists'::"public"."member_area_code"), ('admins'::"public"."member_area_code"), ('local_unit_settings'::"public"."member_area_code")) "area_codes"("area_code"))
         )
  SELECT DISTINCT ON ("user_id", "local_unit_id", "area_code", "access_level") "area_access_grant_id",
     "local_unit_id",
@@ -5606,26 +6920,6 @@ ALTER TABLE ONLY "public"."events"
 
 
 
-ALTER TABLE ONLY "public"."intake_assignments"
-    ADD CONSTRAINT "intake_assignments_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."intake_assignments"
-    ADD CONSTRAINT "intake_assignments_unique_active_pair" UNIQUE ("intake_item_id", "member_record_id");
-
-
-
-ALTER TABLE ONLY "public"."intake_items"
-    ADD CONSTRAINT "intake_items_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."intake_types"
-    ADD CONSTRAINT "intake_types_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."legacy_fossil_resolutions"
     ADD CONSTRAINT "legacy_fossil_resolutions_pkey" PRIMARY KEY ("id");
 
@@ -5641,23 +6935,43 @@ ALTER TABLE ONLY "public"."local_role_definitions"
 
 
 
-ALTER TABLE ONLY "public"."local_unit_custom_fields"
-    ADD CONSTRAINT "local_unit_custom_fields_pkey" PRIMARY KEY ("id");
+ALTER TABLE ONLY "public"."local_unit_external_links"
+    ADD CONSTRAINT "local_unit_external_links_pkey" PRIMARY KEY ("id");
 
 
 
-ALTER TABLE ONLY "public"."local_unit_parish_affiliations"
-    ADD CONSTRAINT "local_unit_parish_affiliations_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."local_unit_parish_affiliations"
-    ADD CONSTRAINT "local_unit_parish_affiliations_unique" UNIQUE ("local_unit_id", "parish_local_unit_id");
+ALTER TABLE ONLY "public"."local_unit_message_routes"
+    ADD CONSTRAINT "local_unit_message_routes_pkey" PRIMARY KEY ("id");
 
 
 
 ALTER TABLE ONLY "public"."local_unit_people"
     ADD CONSTRAINT "local_unit_people_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."local_unit_public_contact_message_jobs"
+    ADD CONSTRAINT "local_unit_public_contact_message_jobs_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."local_unit_public_gallery_images"
+    ADD CONSTRAINT "local_unit_public_gallery_images_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."local_unit_public_gallery_images"
+    ADD CONSTRAINT "local_unit_public_gallery_images_storage_path_unique" UNIQUE ("storage_bucket", "storage_path");
+
+
+
+ALTER TABLE ONLY "public"."local_unit_reporting_year_settings"
+    ADD CONSTRAINT "local_unit_reporting_year_settings_pkey" PRIMARY KEY ("local_unit_id");
+
+
+
+ALTER TABLE ONLY "public"."local_unit_volunteer_hour_adjustments"
+    ADD CONSTRAINT "local_unit_volunteer_hour_adjustments_pkey" PRIMARY KEY ("id");
 
 
 
@@ -5908,6 +7222,11 @@ ALTER TABLE ONLY "public"."primary_relationship_types"
 
 ALTER TABLE ONLY "public"."prospect_status_types"
     ADD CONSTRAINT "prospect_status_types_pkey" PRIMARY KEY ("code");
+
+
+
+ALTER TABLE ONLY "public"."public_registration_intakes"
+    ADD CONSTRAINT "public_registration_intakes_pkey" PRIMARY KEY ("id");
 
 
 
@@ -6304,35 +7623,11 @@ CREATE INDEX "idx_events_local_unit_starts_at" ON "public"."events" USING "btree
 
 
 
-CREATE INDEX "idx_intake_assignments_member_record_id" ON "public"."intake_assignments" USING "btree" ("member_record_id");
-
-
-
-CREATE INDEX "idx_intake_items_intake_type_id" ON "public"."intake_items" USING "btree" ("intake_type_id");
-
-
-
-CREATE INDEX "idx_intake_items_local_unit_status" ON "public"."intake_items" USING "btree" ("local_unit_id", "status_code");
-
-
-
-CREATE INDEX "idx_intake_types_local_unit_active" ON "public"."intake_types" USING "btree" ("local_unit_id", "is_active");
-
-
-
 CREATE INDEX "idx_legacy_fossil_resolutions_resolved_at" ON "public"."legacy_fossil_resolutions" USING "btree" ("resolved_at" DESC);
 
 
 
 CREATE INDEX "idx_local_role_definitions_local_unit_kind_active" ON "public"."local_role_definitions" USING "btree" ("local_unit_id", "role_kind", "is_active");
-
-
-
-CREATE INDEX "idx_local_unit_custom_fields_local_unit_active" ON "public"."local_unit_custom_fields" USING "btree" ("local_unit_id", "is_active");
-
-
-
-CREATE INDEX "idx_local_unit_parish_affiliations_parish_local_unit_id" ON "public"."local_unit_parish_affiliations" USING "btree" ("parish_local_unit_id");
 
 
 
@@ -6420,6 +7715,22 @@ CREATE INDEX "idx_user_unit_relationships_member_record_id" ON "public"."user_un
 
 
 
+CREATE INDEX "local_unit_external_links_active_sort_idx" ON "public"."local_unit_external_links" USING "btree" ("local_unit_id", "sort_order", "created_at") WHERE ("is_active" = true);
+
+
+
+CREATE INDEX "local_unit_external_links_local_unit_id_idx" ON "public"."local_unit_external_links" USING "btree" ("local_unit_id");
+
+
+
+CREATE UNIQUE INDEX "local_unit_message_routes_active_route_unique_idx" ON "public"."local_unit_message_routes" USING "btree" ("local_unit_id", "route_key") WHERE ("is_active" = true);
+
+
+
+CREATE INDEX "local_unit_message_routes_local_unit_id_idx" ON "public"."local_unit_message_routes" USING "btree" ("local_unit_id");
+
+
+
 CREATE UNIQUE INDEX "local_unit_people_active_unique_idx" ON "public"."local_unit_people" USING "btree" ("local_unit_id", "person_id") WHERE ("ended_at" IS NULL);
 
 
@@ -6432,15 +7743,59 @@ CREATE INDEX "local_unit_people_person_id_idx" ON "public"."local_unit_people" U
 
 
 
+CREATE INDEX "local_unit_public_contact_message_jobs_clearance_idx" ON "public"."local_unit_public_contact_message_jobs" USING "btree" ("local_unit_id", "cleared_at", "created_at" DESC);
+
+
+
+CREATE INDEX "local_unit_public_contact_message_jobs_local_unit_id_idx" ON "public"."local_unit_public_contact_message_jobs" USING "btree" ("local_unit_id");
+
+
+
+CREATE INDEX "local_unit_public_contact_message_jobs_pending_idx" ON "public"."local_unit_public_contact_message_jobs" USING "btree" ("scheduled_for", "created_at") WHERE ("status_code" = 'pending'::"text");
+
+
+
+CREATE INDEX "local_unit_public_gallery_images_active_sort_idx" ON "public"."local_unit_public_gallery_images" USING "btree" ("local_unit_id", "sort_order", "created_at") WHERE ("is_active" = true);
+
+
+
+CREATE INDEX "local_unit_public_gallery_images_local_unit_id_idx" ON "public"."local_unit_public_gallery_images" USING "btree" ("local_unit_id");
+
+
+
+CREATE INDEX "local_unit_volunteer_hour_adjustments_active_idx" ON "public"."local_unit_volunteer_hour_adjustments" USING "btree" ("local_unit_id", "credited_on" DESC) WHERE ("voided_at" IS NULL);
+
+
+
+CREATE INDEX "local_unit_volunteer_hour_adjustments_event_idx" ON "public"."local_unit_volunteer_hour_adjustments" USING "btree" ("event_id") WHERE ("event_id" IS NOT NULL);
+
+
+
+CREATE INDEX "local_unit_volunteer_hour_adjustments_local_unit_person_idx" ON "public"."local_unit_volunteer_hour_adjustments" USING "btree" ("local_unit_id", "person_id", "credited_on" DESC);
+
+
+
 CREATE UNIQUE INDEX "officer_role_emails_active_email_idx" ON "public"."officer_role_emails" USING "btree" ("lower"("email")) WHERE (("is_active" = true) AND ("login_enabled" = true));
 
 
 
-CREATE UNIQUE INDEX "officer_role_emails_active_role_key_idx" ON "public"."officer_role_emails" USING "btree" ("council_id", "office_scope_code", "office_code", COALESCE("office_rank", '-1'::integer)) WHERE ("is_active" = true);
+CREATE UNIQUE INDEX "officer_role_emails_active_local_unit_role_key_idx" ON "public"."officer_role_emails" USING "btree" ("local_unit_id", "office_scope_code", "office_code", COALESCE("office_rank", '-1'::integer)) WHERE ("is_active" = true);
 
 
 
 CREATE INDEX "officer_role_emails_email_lookup_idx" ON "public"."officer_role_emails" USING "btree" ("lower"("email"));
+
+
+
+CREATE INDEX "officer_role_emails_local_unit_email_lookup_idx" ON "public"."officer_role_emails" USING "btree" ("local_unit_id", "lower"("email")) WHERE (("is_active" = true) AND ("login_enabled" = true));
+
+
+
+CREATE INDEX "officer_role_emails_local_unit_id_idx" ON "public"."officer_role_emails" USING "btree" ("local_unit_id");
+
+
+
+CREATE INDEX "officer_role_emails_local_unit_office_idx" ON "public"."officer_role_emails" USING "btree" ("local_unit_id", "office_scope_code", "office_code", "office_rank") WHERE ("is_active" = true);
 
 
 
@@ -6652,11 +8007,19 @@ CREATE INDEX "person_notes_person_created_idx" ON "public"."person_notes" USING 
 
 
 
-CREATE INDEX "person_officer_terms_council_idx" ON "public"."person_officer_terms" USING "btree" ("council_id", "office_scope_code", "office_code", "service_start_year" DESC);
+CREATE INDEX "person_officer_terms_local_unit_current_lookup_idx" ON "public"."person_officer_terms" USING "btree" ("local_unit_id", "service_end_year", "office_scope_code", "office_code", "service_start_year" DESC);
 
 
 
-CREATE INDEX "person_officer_terms_current_lookup_idx" ON "public"."person_officer_terms" USING "btree" ("council_id", "service_end_year", "office_scope_code", "office_code", "service_start_year" DESC);
+CREATE INDEX "person_officer_terms_local_unit_id_idx" ON "public"."person_officer_terms" USING "btree" ("local_unit_id");
+
+
+
+CREATE INDEX "person_officer_terms_local_unit_office_idx" ON "public"."person_officer_terms" USING "btree" ("local_unit_id", "office_scope_code", "office_code", "office_rank");
+
+
+
+CREATE INDEX "person_officer_terms_local_unit_person_idx" ON "public"."person_officer_terms" USING "btree" ("local_unit_id", "person_id");
 
 
 
@@ -6685,6 +8048,14 @@ CREATE INDEX "person_profile_change_requests_person_id_idx" ON "public"."person_
 
 
 CREATE INDEX "person_profile_change_requests_status_code_idx" ON "public"."person_profile_change_requests" USING "btree" ("status_code");
+
+
+
+CREATE INDEX "public_registration_intakes_matched_person_id_idx" ON "public"."public_registration_intakes" USING "btree" ("matched_person_id");
+
+
+
+CREATE UNIQUE INDEX "public_registration_intakes_normalized_email_key" ON "public"."public_registration_intakes" USING "btree" ("normalized_email");
 
 
 
@@ -6724,6 +8095,10 @@ CREATE UNIQUE INDEX "uq_event_assignments_event_kind" ON "public"."event_assignm
 
 
 
+CREATE UNIQUE INDEX "uq_event_assignments_event_member_role_conflict" ON "public"."event_assignments" USING "btree" ("event_id", "member_record_id", "role_code");
+
+
+
 CREATE UNIQUE INDEX "uq_event_assignments_scope_v2" ON "public"."event_assignments" USING "btree" ("event_id", "member_record_id", "role_code") WHERE ("event_id" IS NOT NULL);
 
 
@@ -6740,15 +8115,7 @@ CREATE UNIQUE INDEX "uq_event_invited_councils_one_host" ON "public"."event_invi
 
 
 
-CREATE UNIQUE INDEX "uq_intake_types_local_unit_code" ON "public"."intake_types" USING "btree" ("local_unit_id", "lower"("type_code"));
-
-
-
 CREATE UNIQUE INDEX "uq_local_role_definitions_code_per_unit" ON "public"."local_role_definitions" USING "btree" ("local_unit_id", "role_kind", "lower"("code")) WHERE ("code" IS NOT NULL);
-
-
-
-CREATE UNIQUE INDEX "uq_local_unit_custom_fields_code" ON "public"."local_unit_custom_fields" USING "btree" ("local_unit_id", "lower"("code")) WHERE ("code" IS NOT NULL);
 
 
 
@@ -6796,10 +8163,6 @@ CREATE UNIQUE INDEX "users_person_id_unique" ON "public"."users" USING "btree" (
 
 
 
-CREATE UNIQUE INDEX "ux_local_unit_people_one_active_local_unit_per_person" ON "public"."local_unit_people" USING "btree" ("person_id") WHERE ("ended_at" IS NULL);
-
-
-
 CREATE UNIQUE INDEX "ux_member_records_one_active_local_unit_per_legacy_person" ON "public"."member_records" USING "btree" ("legacy_people_id") WHERE (("archived_at" IS NULL) AND ("legacy_people_id" IS NOT NULL));
 
 
@@ -6817,6 +8180,10 @@ CREATE OR REPLACE TRIGGER "council_admin_assignments_sync_org_admin" AFTER INSER
 
 
 CREATE OR REPLACE TRIGGER "council_admin_assignments_sync_parallel_admin_package" AFTER INSERT OR UPDATE ON "public"."council_admin_assignments" FOR EACH ROW EXECUTE FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"();
+
+
+
+COMMENT ON TRIGGER "council_admin_assignments_sync_parallel_admin_package" ON "public"."council_admin_assignments" IS 'DEPRECATED COMPATIBILITY BRIDGE. Legacy writes should be blocked; retained only for emergency/manual admin use.';
 
 
 
@@ -6844,15 +8211,11 @@ CREATE OR REPLACE TRIGGER "event_person_rsvps_set_updated_at" BEFORE UPDATE ON "
 
 
 
+CREATE OR REPLACE TRIGGER "events_sync_local_unit_from_council" BEFORE INSERT OR UPDATE ON "public"."events" FOR EACH ROW EXECUTE FUNCTION "public"."sync_event_local_unit_from_council"();
+
+
+
 CREATE OR REPLACE TRIGGER "events_sync_local_unit_id_from_legacy_council" BEFORE INSERT OR UPDATE OF "council_id", "local_unit_id" ON "public"."events" FOR EACH ROW EXECUTE FUNCTION "public"."sync_local_unit_id_from_legacy_council"();
-
-
-
-CREATE OR REPLACE TRIGGER "intake_items_set_updated_at" BEFORE UPDATE ON "public"."intake_items" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
-
-
-
-CREATE OR REPLACE TRIGGER "intake_types_set_updated_at" BEFORE UPDATE ON "public"."intake_types" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
 
@@ -6860,11 +8223,31 @@ CREATE OR REPLACE TRIGGER "local_role_definitions_set_updated_at" BEFORE UPDATE 
 
 
 
-CREATE OR REPLACE TRIGGER "local_unit_custom_fields_set_updated_at" BEFORE UPDATE ON "public"."local_unit_custom_fields" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+CREATE OR REPLACE TRIGGER "local_unit_external_links_active_limit" BEFORE INSERT OR UPDATE OF "local_unit_id", "is_active" ON "public"."local_unit_external_links" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_local_unit_external_links_active_limit"();
+
+
+
+CREATE OR REPLACE TRIGGER "local_unit_external_links_set_updated_at" BEFORE UPDATE ON "public"."local_unit_external_links" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "local_unit_message_routes_set_updated_at" BEFORE UPDATE ON "public"."local_unit_message_routes" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
 
 CREATE OR REPLACE TRIGGER "local_unit_people_set_updated_at" BEFORE UPDATE ON "public"."local_unit_people" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "local_unit_public_contact_message_jobs_set_updated_at" BEFORE UPDATE ON "public"."local_unit_public_contact_message_jobs" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "local_unit_public_gallery_images_active_limit" BEFORE INSERT OR UPDATE OF "local_unit_id", "is_active" ON "public"."local_unit_public_gallery_images" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_local_unit_public_gallery_images_active_limit"();
+
+
+
+CREATE OR REPLACE TRIGGER "local_unit_public_gallery_images_set_updated_at" BEFORE UPDATE ON "public"."local_unit_public_gallery_images" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
 
@@ -7299,56 +8682,6 @@ ALTER TABLE ONLY "public"."events"
 
 
 
-ALTER TABLE ONLY "public"."intake_assignments"
-    ADD CONSTRAINT "intake_assignments_assigned_by_auth_user_id_fkey" FOREIGN KEY ("assigned_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."intake_assignments"
-    ADD CONSTRAINT "intake_assignments_intake_item_id_fkey" FOREIGN KEY ("intake_item_id") REFERENCES "public"."intake_items"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."intake_assignments"
-    ADD CONSTRAINT "intake_assignments_member_record_id_fkey" FOREIGN KEY ("member_record_id") REFERENCES "public"."member_records"("id") ON DELETE RESTRICT;
-
-
-
-ALTER TABLE ONLY "public"."intake_items"
-    ADD CONSTRAINT "intake_items_created_by_auth_user_id_fkey" FOREIGN KEY ("created_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."intake_items"
-    ADD CONSTRAINT "intake_items_intake_type_id_fkey" FOREIGN KEY ("intake_type_id") REFERENCES "public"."intake_types"("id") ON DELETE RESTRICT;
-
-
-
-ALTER TABLE ONLY "public"."intake_items"
-    ADD CONSTRAINT "intake_items_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."intake_items"
-    ADD CONSTRAINT "intake_items_updated_by_auth_user_id_fkey" FOREIGN KEY ("updated_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."intake_types"
-    ADD CONSTRAINT "intake_types_created_by_auth_user_id_fkey" FOREIGN KEY ("created_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."intake_types"
-    ADD CONSTRAINT "intake_types_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."intake_types"
-    ADD CONSTRAINT "intake_types_updated_by_auth_user_id_fkey" FOREIGN KEY ("updated_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
 ALTER TABLE ONLY "public"."legacy_fossil_resolutions"
     ADD CONSTRAINT "legacy_fossil_resolutions_resolved_by_auth_user_id_fkey" FOREIGN KEY ("resolved_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
@@ -7369,33 +8702,18 @@ ALTER TABLE ONLY "public"."local_role_definitions"
 
 
 
-ALTER TABLE ONLY "public"."local_unit_custom_fields"
-    ADD CONSTRAINT "local_unit_custom_fields_created_by_auth_user_id_fkey" FOREIGN KEY ("created_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+ALTER TABLE ONLY "public"."local_unit_external_links"
+    ADD CONSTRAINT "local_unit_external_links_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."local_unit_custom_fields"
-    ADD CONSTRAINT "local_unit_custom_fields_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."local_unit_message_routes"
+    ADD CONSTRAINT "local_unit_message_routes_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."local_unit_custom_fields"
-    ADD CONSTRAINT "local_unit_custom_fields_updated_by_auth_user_id_fkey" FOREIGN KEY ("updated_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."local_unit_parish_affiliations"
-    ADD CONSTRAINT "local_unit_parish_affiliations_created_by_auth_user_id_fkey" FOREIGN KEY ("created_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."local_unit_parish_affiliations"
-    ADD CONSTRAINT "local_unit_parish_affiliations_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."local_unit_parish_affiliations"
-    ADD CONSTRAINT "local_unit_parish_affiliations_parish_local_unit_id_fkey" FOREIGN KEY ("parish_local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."local_unit_message_routes"
+    ADD CONSTRAINT "local_unit_message_routes_recipient_person_id_fkey" FOREIGN KEY ("recipient_person_id") REFERENCES "public"."people"("id") ON DELETE SET NULL;
 
 
 
@@ -7406,6 +8724,51 @@ ALTER TABLE ONLY "public"."local_unit_people"
 
 ALTER TABLE ONLY "public"."local_unit_people"
     ADD CONSTRAINT "local_unit_people_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_public_contact_message_jobs"
+    ADD CONSTRAINT "local_unit_public_contact_message__cleared_by_auth_user_id_fkey" FOREIGN KEY ("cleared_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_public_contact_message_jobs"
+    ADD CONSTRAINT "local_unit_public_contact_message_jobs_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_public_gallery_images"
+    ADD CONSTRAINT "local_unit_public_gallery_images_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_reporting_year_settings"
+    ADD CONSTRAINT "local_unit_reporting_year_settings_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_volunteer_hour_adjustments"
+    ADD CONSTRAINT "local_unit_volunteer_hour_adjustments_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_volunteer_hour_adjustments"
+    ADD CONSTRAINT "local_unit_volunteer_hour_adjustments_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_volunteer_hour_adjustments"
+    ADD CONSTRAINT "local_unit_volunteer_hour_adjustments_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_volunteer_hour_adjustments"
+    ADD CONSTRAINT "local_unit_volunteer_hour_adjustments_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."local_unit_volunteer_hour_adjustments"
+    ADD CONSTRAINT "local_unit_volunteer_hour_adjustments_voided_by_user_id_fkey" FOREIGN KEY ("voided_by_user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
 
 
 
@@ -7480,7 +8843,7 @@ ALTER TABLE ONLY "public"."migration_review_queue"
 
 
 ALTER TABLE ONLY "public"."officer_role_emails"
-    ADD CONSTRAINT "officer_role_emails_council_id_fkey" FOREIGN KEY ("council_id") REFERENCES "public"."councils"("id") ON DELETE CASCADE;
+    ADD CONSTRAINT "officer_role_emails_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE RESTRICT;
 
 
 
@@ -7970,17 +9333,17 @@ ALTER TABLE ONLY "public"."person_notes"
 
 
 ALTER TABLE ONLY "public"."person_officer_terms"
-    ADD CONSTRAINT "person_officer_terms_council_id_fkey" FOREIGN KEY ("council_id") REFERENCES "public"."councils"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."person_officer_terms"
     ADD CONSTRAINT "person_officer_terms_created_by_auth_user_id_fkey" FOREIGN KEY ("created_by_auth_user_id") REFERENCES "public"."users"("id");
 
 
 
 ALTER TABLE ONLY "public"."person_officer_terms"
     ADD CONSTRAINT "person_officer_terms_ended_by_auth_user_id_fkey" FOREIGN KEY ("ended_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."person_officer_terms"
+    ADD CONSTRAINT "person_officer_terms_local_unit_id_fkey" FOREIGN KEY ("local_unit_id") REFERENCES "public"."local_units"("id") ON DELETE RESTRICT;
 
 
 
@@ -8006,6 +9369,11 @@ ALTER TABLE ONLY "public"."person_profile_change_requests"
 
 ALTER TABLE ONLY "public"."person_profile_change_requests"
     ADD CONSTRAINT "person_profile_change_requests_reviewed_by_auth_user_id_fkey" FOREIGN KEY ("reviewed_by_auth_user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."public_registration_intakes"
+    ADD CONSTRAINT "public_registration_intakes_matched_person_id_fkey" FOREIGN KEY ("matched_person_id") REFERENCES "public"."people"("id") ON DELETE SET NULL;
 
 
 
@@ -8274,15 +9642,6 @@ ALTER TABLE ONLY "public"."users"
 
 
 
-ALTER TABLE "public"."_archive_council_admin_assignments" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."_archive_custom_list_access" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."_archive_organization_admin_assignments" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."access_scope_source_types" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8448,9 +9807,6 @@ CREATE POLICY "custom_lists_parallel_update" ON "public"."custom_lists" FOR UPDA
 
 
 
-ALTER TABLE "public"."daily_reading_entries" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."designation_types" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8466,9 +9822,6 @@ CREATE POLICY "event_archives_delete_event_managers" ON "public"."event_archives
 
 CREATE POLICY "event_archives_select_event_managers" ON "public"."event_archives" FOR SELECT TO "authenticated" USING ((("local_unit_id" IS NOT NULL) AND "public"."auth_has_area_access"("local_unit_id", 'events'::"public"."member_area_code", 'manage'::"public"."area_access_level")));
 
-
-
-ALTER TABLE "public"."event_assignment_roles" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."event_assignments" ENABLE ROW LEVEL SECURITY;
@@ -8692,21 +10045,6 @@ CREATE POLICY "events_update_manageable" ON "public"."events" FOR UPDATE TO "aut
 
 
 
-ALTER TABLE "public"."import_st_patricks_7689_members" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."intake_assignments" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."intake_items" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."intake_types" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."legacy_fossil_resolutions" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."local_role_definitions" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8716,13 +10054,10 @@ CREATE POLICY "local_role_definitions_select_members_or_self" ON "public"."local
 
 
 
-ALTER TABLE "public"."local_unit_custom_fields" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."local_unit_reporting_year_settings" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."local_unit_parish_affiliations" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."local_unit_people" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."local_unit_volunteer_hour_adjustments" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."local_units" ENABLE ROW LEVEL SECURITY;
@@ -8754,9 +10089,6 @@ ALTER TABLE "public"."membership_claim_requests" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "membership_claim_requests_select_claims_or_requester" ON "public"."membership_claim_requests" FOR SELECT TO "authenticated" USING ((("requester_user_id" = "auth"."uid"()) OR "public"."auth_has_area_access"("local_unit_id", 'claims'::"public"."member_area_code", 'manage'::"public"."area_access_level")));
 
-
-
-ALTER TABLE "public"."migration_review_queue" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."note_types" ENABLE ROW LEVEL SECURITY;
@@ -8843,15 +10175,6 @@ CREATE POLICY "organization_admin_assignments_legacy_read" ON "public"."organiza
 
 CREATE POLICY "organization_admin_assignments_legacy_update_block" ON "public"."organization_admin_assignments" FOR UPDATE TO "authenticated" USING (false) WITH CHECK (false);
 
-
-
-ALTER TABLE "public"."organization_admin_invitations" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."organization_claim_requests" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."organization_families" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."organization_kofc_profiles" ENABLE ROW LEVEL SECURITY;
@@ -8981,12 +10304,6 @@ CREATE POLICY "person_distinctions_write_manageable_local_unit" ON "public"."per
 
 
 
-ALTER TABLE "public"."person_identities" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."person_identity_links" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."person_kofc_profiles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -9031,38 +10348,28 @@ ALTER TABLE "public"."person_officer_terms" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "person_officer_terms_delete_manageable_local_unit" ON "public"."person_officer_terms" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM (("public"."people" "p"
-     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
-     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
-  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."local_unit_id" = "person_officer_terms"."local_unit_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
 CREATE POLICY "person_officer_terms_insert_manageable_local_unit" ON "public"."person_officer_terms" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
-   FROM (("public"."people" "p"
-     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
-     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
-  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."local_unit_id" = "person_officer_terms"."local_unit_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
 CREATE POLICY "person_officer_terms_select_accessible_local_unit" ON "public"."person_officer_terms" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM (("public"."people" "p"
-     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
-     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
-  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("app"."user_can_access_person"("person_officer_terms"."person_id") OR (("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))))));
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."local_unit_id" = "person_officer_terms"."local_unit_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("app"."user_can_access_person"("person_officer_terms"."person_id") OR (("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))))));
 
 
 
 CREATE POLICY "person_officer_terms_update_manageable_local_unit" ON "public"."person_officer_terms" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM (("public"."people" "p"
-     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
-     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
-  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM (("public"."people" "p"
-     JOIN "public"."local_units" "lu" ON (("lu"."legacy_council_id" = "p"."council_id")))
-     JOIN "public"."v_effective_area_access" "access" ON (("access"."local_unit_id" = "lu"."id")))
-  WHERE (("p"."id" = "person_officer_terms"."person_id") AND ("p"."council_id" = "person_officer_terms"."council_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."local_unit_id" = "person_officer_terms"."local_unit_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."v_effective_area_access" "access"
+  WHERE (("access"."local_unit_id" = "person_officer_terms"."local_unit_id") AND ("access"."user_id" = "auth"."uid"()) AND ("access"."is_effective" = true) AND ("access"."area_code" = 'members'::"public"."member_area_code") AND ("access"."access_level" = 'manage'::"public"."area_access_level")))));
 
 
 
@@ -9076,6 +10383,9 @@ ALTER TABLE "public"."primary_relationship_types" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."prospect_status_types" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."public_registration_intakes" ENABLE ROW LEVEL SECURITY;
 
 
 CREATE POLICY "read catechism references" ON "public"."catechism_references" FOR SELECT TO "authenticated" USING (true);
@@ -9186,9 +10496,6 @@ ALTER TABLE "public"."spiritual_content_items" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."spiritual_content_relationships" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."spiritual_content_saints" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."spiritual_content_scopes" ENABLE ROW LEVEL SECURITY;
 
 
@@ -9252,15 +10559,6 @@ CREATE POLICY "user_admin_grants_manageable_local_unit" ON "public"."user_admin_
 
 
 
-ALTER TABLE "public"."user_saved_saints" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_saved_spiritual_items" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."user_spiritual_activity" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."user_unit_relationships" ENABLE ROW LEVEL SECURITY;
 
 
@@ -9273,18 +10571,6 @@ CREATE POLICY "user_unit_relationships_select_self_or_admin" ON "public"."user_u
 
 
 ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "users can insert own row" ON "public"."users" FOR INSERT TO "authenticated" WITH CHECK (("id" = "auth"."uid"()));
-
-
-
-CREATE POLICY "users can read own row" ON "public"."users" FOR SELECT TO "authenticated" USING (("id" = "auth"."uid"()));
-
-
-
-CREATE POLICY "users can update own row" ON "public"."users" FOR UPDATE TO "authenticated" USING (("id" = "auth"."uid"())) WITH CHECK (("id" = "auth"."uid"()));
-
 
 
 CREATE POLICY "users_select_self_or_manageable_local_unit" ON "public"."users" FOR SELECT TO "authenticated" USING ((("id" = "auth"."uid"()) OR (EXISTS ( SELECT 1
@@ -9307,10 +10593,398 @@ CREATE POLICY "users_write_manageable_local_unit" ON "public"."users" TO "authen
 ALTER TABLE "public"."volunteer_context_types" ENABLE ROW LEVEL SECURITY;
 
 
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+GRANT USAGE ON SCHEMA "app" TO "authenticated";
+GRANT USAGE ON SCHEMA "app" TO "service_role";
+
+
+
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+GRANT ALL ON FUNCTION "app"."add_person_note"("p_person_id" "uuid", "p_note_type_code" "text", "p_body" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."add_person_note"("p_person_id" "uuid", "p_note_type_code" "text", "p_body" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_reason" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."archive_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid", "p_reason" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."archive_person"("p_person_id" "uuid", "p_reason" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."archive_person"("p_person_id" "uuid", "p_reason" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."assign_person"("p_person_id" "uuid", "p_user_id" "uuid", "p_notes" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."assign_person"("p_person_id" "uuid", "p_user_id" "uuid", "p_notes" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "app"."create_prospect_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_prospect_status_code" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "app"."create_prospect_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_prospect_status_code" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "app"."create_volunteer_only_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_volunteer_context_code" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "app"."create_volunteer_only_for_local_unit"("p_local_unit_id" "uuid", "p_first_name" "text", "p_last_name" "text", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_volunteer_context_code" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."end_person_assignment"("p_assignment_id" "uuid", "p_notes" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."end_person_assignment"("p_assignment_id" "uuid", "p_notes" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."find_person_identity_id"("p_person_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."find_person_identity_id_for_user"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."fraternal_year_label"("p_start_year" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "app"."fraternal_year_label"("p_start_year" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."fraternal_year_start"("p_date" "date") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."fraternal_year_start"("p_date" "date") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."list_accessible_member_statuses"() TO "authenticated";
+GRANT ALL ON FUNCTION "app"."list_accessible_member_statuses"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."list_active_people_for_identity"("p_person_identity_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."restore_local_unit_member_record"("p_local_unit_id" "uuid", "p_person_id" "uuid", "p_actor_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."update_member_local_fields"("p_person_id" "uuid", "p_council_activity_level_code" "text", "p_council_activity_context_code" "text", "p_council_reengagement_status_code" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."update_member_local_fields"("p_person_id" "uuid", "p_council_activity_level_code" "text", "p_council_activity_context_code" "text", "p_council_reengagement_status_code" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."update_nonmember_contact_fields"("p_person_id" "uuid", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_address_line_1" "text", "p_address_line_2" "text", "p_city" "text", "p_state_province" "text", "p_postal_code" "text", "p_country_code" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."update_nonmember_contact_fields"("p_person_id" "uuid", "p_email" "text", "p_cell_phone" "text", "p_home_phone" "text", "p_other_phone" "text", "p_address_line_1" "text", "p_address_line_2" "text", "p_city" "text", "p_state_province" "text", "p_postal_code" "text", "p_country_code" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_can_access_local_person"("p_person_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_can_access_local_person_as_user"("p_user_id" "uuid", "p_person_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_can_access_person"("p_person_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."user_can_access_person"("p_person_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_can_access_person_as_user"("p_user_id" "uuid", "p_person_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_has_scope"("p_council_id" "uuid", "p_scope_code" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."user_has_scope"("p_council_id" "uuid", "p_scope_code" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_has_scope_for_user"("p_user_id" "uuid", "p_council_id" "uuid", "p_scope_code" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_is_council_admin"("p_council_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "app"."user_is_council_admin"("p_council_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_is_council_admin_for_user"("p_user_id" "uuid", "p_council_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."user_is_local_unit_admin"("p_local_unit_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "app"."write_audit_log"("p_council_id" "uuid", "p_entity_table" "text", "p_entity_id" "uuid", "p_action_code" "text", "p_payload" "jsonb") TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9425,15 +11099,27 @@ GRANT ALL ON FUNCTION "public"."current_user_council_id"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."enforce_local_unit_external_links_active_limit"() TO "anon";
+GRANT ALL ON FUNCTION "public"."enforce_local_unit_external_links_active_limit"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."enforce_local_unit_external_links_active_limit"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."enforce_local_unit_public_gallery_images_active_limit"() TO "anon";
+GRANT ALL ON FUNCTION "public"."enforce_local_unit_public_gallery_images_active_limit"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."enforce_local_unit_public_gallery_images_active_limit"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."ensure_member_record_for_person_local_unit"("p_local_unit_id" "uuid", "p_person_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_fallback_email" "text", "p_fallback_invitee_name" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_fallback_email" "text", "p_fallback_invitee_name" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid", "p_fallback_email" "text", "p_fallback_invitee_name" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."ensure_parallel_member_for_user_and_local_unit"("p_user_id" "uuid", "p_local_unit_id" "uuid") TO "service_role";
 
 
 
@@ -9455,9 +11141,9 @@ GRANT ALL ON FUNCTION "public"."generate_rsvp_token"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text", "p_fallback_email" "text", "p_fallback_invitee_name" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text", "p_fallback_email" "text", "p_fallback_invitee_name" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text", "p_fallback_email" "text", "p_fallback_invitee_name" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."grant_parallel_admin_package_to_user"("p_actor_user_id" "uuid", "p_target_user_id" "uuid", "p_local_unit_id" "uuid", "p_source_code" "public"."grant_source_code", "p_note" "text") TO "service_role";
 
 
 
@@ -9589,6 +11275,12 @@ GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."sync_event_local_unit_from_council"() TO "anon";
+GRANT ALL ON FUNCTION "public"."sync_event_local_unit_from_council"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."sync_event_local_unit_from_council"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."sync_local_unit_id_from_legacy_council"() TO "anon";
 GRANT ALL ON FUNCTION "public"."sync_local_unit_id_from_legacy_council"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."sync_local_unit_id_from_legacy_council"() TO "service_role";
@@ -9679,6 +11371,21 @@ GRANT ALL ON FUNCTION "public"."user_can_manage_event"("event_uuid" "uuid") TO "
 GRANT ALL ON FUNCTION "public"."user_is_council_admin"("target_council_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."user_is_council_admin"("target_council_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."user_is_council_admin"("target_council_id" "uuid") TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9924,30 +11631,6 @@ GRANT ALL ON TABLE "public"."event_status_types" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."import_st_patricks_7689_members" TO "anon";
-GRANT ALL ON TABLE "public"."import_st_patricks_7689_members" TO "authenticated";
-GRANT ALL ON TABLE "public"."import_st_patricks_7689_members" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."intake_assignments" TO "anon";
-GRANT ALL ON TABLE "public"."intake_assignments" TO "authenticated";
-GRANT ALL ON TABLE "public"."intake_assignments" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."intake_items" TO "anon";
-GRANT ALL ON TABLE "public"."intake_items" TO "authenticated";
-GRANT ALL ON TABLE "public"."intake_items" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."intake_types" TO "anon";
-GRANT ALL ON TABLE "public"."intake_types" TO "authenticated";
-GRANT ALL ON TABLE "public"."intake_types" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."legacy_fossil_resolutions" TO "service_role";
 
 
@@ -9958,21 +11641,57 @@ GRANT ALL ON TABLE "public"."local_role_definitions" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."local_unit_custom_fields" TO "anon";
-GRANT ALL ON TABLE "public"."local_unit_custom_fields" TO "authenticated";
-GRANT ALL ON TABLE "public"."local_unit_custom_fields" TO "service_role";
+GRANT ALL ON TABLE "public"."local_unit_external_links" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_external_links" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_external_links" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."local_unit_parish_affiliations" TO "anon";
-GRANT ALL ON TABLE "public"."local_unit_parish_affiliations" TO "authenticated";
-GRANT ALL ON TABLE "public"."local_unit_parish_affiliations" TO "service_role";
+GRANT ALL ON TABLE "public"."local_unit_message_routes" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_message_routes" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_message_routes" TO "service_role";
 
 
 
 GRANT ALL ON TABLE "public"."local_unit_people" TO "anon";
 GRANT ALL ON TABLE "public"."local_unit_people" TO "authenticated";
 GRANT ALL ON TABLE "public"."local_unit_people" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."local_unit_public_contact_message_jobs" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_public_contact_message_jobs" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_public_contact_message_jobs" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."local_unit_public_gallery_images" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_public_gallery_images" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_public_gallery_images" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."local_unit_reporting_year_settings" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_reporting_year_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_reporting_year_settings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."local_unit_volunteer_hour_adjustments" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_volunteer_hour_adjustments" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_volunteer_hour_adjustments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."local_unit_volunteer_contribution_entries" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_volunteer_contribution_entries" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_volunteer_contribution_entries" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."local_unit_volunteer_contribution_rollups" TO "anon";
+GRANT ALL ON TABLE "public"."local_unit_volunteer_contribution_rollups" TO "authenticated";
+GRANT ALL ON TABLE "public"."local_unit_volunteer_contribution_rollups" TO "service_role";
 
 
 
@@ -10207,6 +11926,10 @@ GRANT ALL ON TABLE "public"."prospect_status_types" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."public_registration_intakes" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."resource_access_grants" TO "anon";
 GRANT ALL ON TABLE "public"."resource_access_grants" TO "authenticated";
 GRANT ALL ON TABLE "public"."resource_access_grants" TO "service_role";
@@ -10366,6 +12089,24 @@ GRANT ALL ON TABLE "public"."volunteer_context_types" TO "service_role";
 
 
 
+
+
+
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "app" GRANT ALL ON SEQUENCES TO "service_role";
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "app" GRANT ALL ON FUNCTIONS TO "service_role";
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "app" GRANT SELECT,INSERT,DELETE,UPDATE ON TABLES TO "service_role";
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
@@ -10390,6 +12131,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

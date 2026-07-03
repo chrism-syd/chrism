@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
-  }
   public: {
     Tables: {
       _archive_council_admin_assignments: {
@@ -345,12 +340,9 @@ export type Database = {
           is_active: boolean
           reference_code: string
           slug: string
-          source_1: string | null
-          source_2: string | null
           summary: string | null
           title: string | null
           updated_at: string
-          workbook_catechism_id: string | null
         }
         Insert: {
           body_excerpt?: string | null
@@ -359,12 +351,9 @@ export type Database = {
           is_active?: boolean
           reference_code: string
           slug: string
-          source_1?: string | null
-          source_2?: string | null
           summary?: string | null
           title?: string | null
           updated_at?: string
-          workbook_catechism_id?: string | null
         }
         Update: {
           body_excerpt?: string | null
@@ -373,12 +362,9 @@ export type Database = {
           is_active?: boolean
           reference_code?: string
           slug?: string
-          source_1?: string | null
-          source_2?: string | null
           summary?: string | null
           title?: string | null
           updated_at?: string
-          workbook_catechism_id?: string | null
         }
         Relationships: []
       }
@@ -1924,233 +1910,6 @@ export type Database = {
           },
         ]
       }
-      import_st_patricks_7689_members: {
-        Row: {
-          address_line_1: string | null
-          assembly_number: string | null
-          birth_date: string | null
-          city: string | null
-          council_number: string | null
-          country_code: string | null
-          exempt: string | null
-          first_degree_date: string | null
-          first_name: string | null
-          last_name: string | null
-          member_class: string | null
-          member_number: string | null
-          member_type: string | null
-          middle_name: string | null
-          postal_code: string | null
-          province_state: string | null
-          reentry_date: string | null
-          second_degree_date: string | null
-          suffix: string | null
-          third_degree_date: string | null
-          title: string | null
-          years_service: string | null
-        }
-        Insert: {
-          address_line_1?: string | null
-          assembly_number?: string | null
-          birth_date?: string | null
-          city?: string | null
-          council_number?: string | null
-          country_code?: string | null
-          exempt?: string | null
-          first_degree_date?: string | null
-          first_name?: string | null
-          last_name?: string | null
-          member_class?: string | null
-          member_number?: string | null
-          member_type?: string | null
-          middle_name?: string | null
-          postal_code?: string | null
-          province_state?: string | null
-          reentry_date?: string | null
-          second_degree_date?: string | null
-          suffix?: string | null
-          third_degree_date?: string | null
-          title?: string | null
-          years_service?: string | null
-        }
-        Update: {
-          address_line_1?: string | null
-          assembly_number?: string | null
-          birth_date?: string | null
-          city?: string | null
-          council_number?: string | null
-          country_code?: string | null
-          exempt?: string | null
-          first_degree_date?: string | null
-          first_name?: string | null
-          last_name?: string | null
-          member_class?: string | null
-          member_number?: string | null
-          member_type?: string | null
-          middle_name?: string | null
-          postal_code?: string | null
-          province_state?: string | null
-          reentry_date?: string | null
-          second_degree_date?: string | null
-          suffix?: string | null
-          third_degree_date?: string | null
-          title?: string | null
-          years_service?: string | null
-        }
-        Relationships: []
-      }
-      intake_assignments: {
-        Row: {
-          assigned_at: string
-          assigned_by_auth_user_id: string | null
-          id: string
-          intake_item_id: string
-          member_record_id: string
-          resolved_at: string | null
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by_auth_user_id?: string | null
-          id?: string
-          intake_item_id: string
-          member_record_id: string
-          resolved_at?: string | null
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by_auth_user_id?: string | null
-          id?: string
-          intake_item_id?: string
-          member_record_id?: string
-          resolved_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "intake_assignments_intake_item_id_fkey"
-            columns: ["intake_item_id"]
-            isOneToOne: false
-            referencedRelation: "intake_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intake_assignments_member_record_id_fkey"
-            columns: ["member_record_id"]
-            isOneToOne: false
-            referencedRelation: "member_records"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      intake_items: {
-        Row: {
-          created_at: string
-          created_by_auth_user_id: string | null
-          id: string
-          intake_type_id: string
-          local_unit_id: string
-          message: string | null
-          sender_email: string
-          sender_name: string
-          sender_phone: string | null
-          status_code: Database["public"]["Enums"]["intake_item_status_code"]
-          subject: string | null
-          updated_at: string
-          updated_by_auth_user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by_auth_user_id?: string | null
-          id?: string
-          intake_type_id: string
-          local_unit_id: string
-          message?: string | null
-          sender_email: string
-          sender_name: string
-          sender_phone?: string | null
-          status_code?: Database["public"]["Enums"]["intake_item_status_code"]
-          subject?: string | null
-          updated_at?: string
-          updated_by_auth_user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by_auth_user_id?: string | null
-          id?: string
-          intake_type_id?: string
-          local_unit_id?: string
-          message?: string | null
-          sender_email?: string
-          sender_name?: string
-          sender_phone?: string | null
-          status_code?: Database["public"]["Enums"]["intake_item_status_code"]
-          subject?: string | null
-          updated_at?: string
-          updated_by_auth_user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "intake_items_intake_type_id_fkey"
-            columns: ["intake_type_id"]
-            isOneToOne: false
-            referencedRelation: "intake_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intake_items_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "local_units"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      intake_types: {
-        Row: {
-          created_at: string
-          created_by_auth_user_id: string | null
-          display_label: string
-          id: string
-          is_active: boolean
-          is_public: boolean
-          local_unit_id: string
-          type_code: string
-          updated_at: string
-          updated_by_auth_user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by_auth_user_id?: string | null
-          display_label: string
-          id?: string
-          is_active?: boolean
-          is_public?: boolean
-          local_unit_id: string
-          type_code: string
-          updated_at?: string
-          updated_by_auth_user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by_auth_user_id?: string | null
-          display_label?: string
-          id?: string
-          is_active?: boolean
-          is_public?: boolean
-          local_unit_id?: string
-          type_code?: string
-          updated_at?: string
-          updated_by_auth_user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "intake_types_local_unit_id_fkey"
-            columns: ["local_unit_id"]
-            isOneToOne: false
-            referencedRelation: "local_units"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       legacy_fossil_resolutions: {
         Row: {
           id: string
@@ -2237,46 +1996,46 @@ export type Database = {
           },
         ]
       }
-      local_unit_custom_fields: {
+      local_unit_external_links: {
         Row: {
-          code: string | null
           created_at: string
           created_by_auth_user_id: string | null
           id: string
           is_active: boolean
           label: string
           local_unit_id: string
-          source_template_code: string | null
+          sort_order: number
           updated_at: string
           updated_by_auth_user_id: string | null
+          url: string
         }
         Insert: {
-          code?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
           id?: string
           is_active?: boolean
           label: string
           local_unit_id: string
-          source_template_code?: string | null
+          sort_order?: number
           updated_at?: string
           updated_by_auth_user_id?: string | null
+          url: string
         }
         Update: {
-          code?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
           id?: string
           is_active?: boolean
           label?: string
           local_unit_id?: string
-          source_template_code?: string | null
+          sort_order?: number
           updated_at?: string
           updated_by_auth_user_id?: string | null
+          url?: string
         }
         Relationships: [
           {
-            foreignKeyName: "local_unit_custom_fields_local_unit_id_fkey"
+            foreignKeyName: "local_unit_external_links_local_unit_id_fkey"
             columns: ["local_unit_id"]
             isOneToOne: false
             referencedRelation: "local_units"
@@ -2284,41 +2043,59 @@ export type Database = {
           },
         ]
       }
-      local_unit_parish_affiliations: {
+      local_unit_message_routes: {
         Row: {
           created_at: string
           created_by_auth_user_id: string | null
           id: string
+          is_active: boolean
           local_unit_id: string
-          parish_local_unit_id: string
+          recipient_email: string | null
+          recipient_label: string | null
+          recipient_person_id: string | null
+          route_key: string
+          updated_at: string
+          updated_by_auth_user_id: string | null
         }
         Insert: {
           created_at?: string
           created_by_auth_user_id?: string | null
           id?: string
+          is_active?: boolean
           local_unit_id: string
-          parish_local_unit_id: string
+          recipient_email?: string | null
+          recipient_label?: string | null
+          recipient_person_id?: string | null
+          route_key: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
         }
         Update: {
           created_at?: string
           created_by_auth_user_id?: string | null
           id?: string
+          is_active?: boolean
           local_unit_id?: string
-          parish_local_unit_id?: string
+          recipient_email?: string | null
+          recipient_label?: string | null
+          recipient_person_id?: string | null
+          route_key?: string
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "local_unit_parish_affiliations_local_unit_id_fkey"
+            foreignKeyName: "local_unit_message_routes_local_unit_id_fkey"
             columns: ["local_unit_id"]
             isOneToOne: false
             referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "local_unit_parish_affiliations_parish_local_unit_id_fkey"
-            columns: ["parish_local_unit_id"]
+            foreignKeyName: "local_unit_message_routes_recipient_person_id_fkey"
+            columns: ["recipient_person_id"]
             isOneToOne: false
-            referencedRelation: "local_units"
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -2380,6 +2157,266 @@ export type Database = {
           },
         ]
       }
+      local_unit_public_contact_message_jobs: {
+        Row: {
+          body_text: string
+          cleared_at: string | null
+          cleared_by_auth_user_id: string | null
+          created_at: string
+          failed_at: string | null
+          failure_message: string | null
+          id: string
+          inquiry_type_code: string
+          local_unit_id: string
+          payload_snapshot: Json
+          recipient_email: string
+          recipient_label: string | null
+          reply_to_email: string
+          route_key: string
+          scheduled_for: string
+          sent_at: string | null
+          status_code: string
+          subject: string
+          submitter_name: string
+          submitter_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_text: string
+          cleared_at?: string | null
+          cleared_by_auth_user_id?: string | null
+          created_at?: string
+          failed_at?: string | null
+          failure_message?: string | null
+          id?: string
+          inquiry_type_code: string
+          local_unit_id: string
+          payload_snapshot?: Json
+          recipient_email: string
+          recipient_label?: string | null
+          reply_to_email: string
+          route_key?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status_code?: string
+          subject: string
+          submitter_name: string
+          submitter_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_text?: string
+          cleared_at?: string | null
+          cleared_by_auth_user_id?: string | null
+          created_at?: string
+          failed_at?: string | null
+          failure_message?: string | null
+          id?: string
+          inquiry_type_code?: string
+          local_unit_id?: string
+          payload_snapshot?: Json
+          recipient_email?: string
+          recipient_label?: string | null
+          reply_to_email?: string
+          route_key?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status_code?: string
+          subject?: string
+          submitter_name?: string
+          submitter_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_public_contact_message_jobs_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_unit_public_gallery_images: {
+        Row: {
+          created_at: string
+          created_by_auth_user_id: string | null
+          id: string
+          is_active: boolean
+          local_unit_id: string
+          sort_order: number
+          storage_bucket: string
+          storage_path: string
+          title: string | null
+          updated_at: string
+          updated_by_auth_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          local_unit_id: string
+          sort_order?: number
+          storage_bucket?: string
+          storage_path: string
+          title?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_auth_user_id?: string | null
+          id?: string
+          is_active?: boolean
+          local_unit_id?: string
+          sort_order?: number
+          storage_bucket?: string
+          storage_path?: string
+          title?: string | null
+          updated_at?: string
+          updated_by_auth_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_public_gallery_images_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_unit_reporting_year_settings: {
+        Row: {
+          created_at: string
+          local_unit_id: string
+          updated_at: string
+          year_label: string
+          year_start_day: number
+          year_start_month: number
+        }
+        Insert: {
+          created_at?: string
+          local_unit_id: string
+          updated_at?: string
+          year_label?: string
+          year_start_day?: number
+          year_start_month?: number
+        }
+        Update: {
+          created_at?: string
+          local_unit_id?: string
+          updated_at?: string
+          year_label?: string
+          year_start_day?: number
+          year_start_month?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_reporting_year_settings_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: true
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_unit_volunteer_hour_adjustments: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          credited_on: string
+          event_id: string | null
+          hours_delta: number
+          id: string
+          local_unit_id: string
+          note: string | null
+          person_id: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          credited_on?: string
+          event_id?: string | null
+          hours_delta: number
+          id?: string
+          local_unit_id: string
+          note?: string | null
+          person_id: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          credited_on?: string
+          event_id?: string | null
+          hours_delta?: number
+          id?: string
+          local_unit_id?: string
+          note?: string | null
+          person_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_council_rsvp_rollups"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_host_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_unit_volunteer_hour_adjustments_voided_by_user_id_fkey"
+            columns: ["voided_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       local_units: {
         Row: {
           city: string | null
@@ -2395,6 +2432,15 @@ export type Database = {
           organization_family_id: string
           postal_code: string | null
           province_state: string | null
+          public_address_line1: string | null
+          public_address_line2: string | null
+          public_city: string | null
+          public_country: string | null
+          public_email: string | null
+          public_location_name: string | null
+          public_location_url: string | null
+          public_postal_code: string | null
+          public_region: string | null
           status: Database["public"]["Enums"]["local_unit_status"]
           timezone: string | null
           updated_at: string
@@ -2415,6 +2461,15 @@ export type Database = {
           organization_family_id: string
           postal_code?: string | null
           province_state?: string | null
+          public_address_line1?: string | null
+          public_address_line2?: string | null
+          public_city?: string | null
+          public_country?: string | null
+          public_email?: string | null
+          public_location_name?: string | null
+          public_location_url?: string | null
+          public_postal_code?: string | null
+          public_region?: string | null
           status?: Database["public"]["Enums"]["local_unit_status"]
           timezone?: string | null
           updated_at?: string
@@ -2435,6 +2490,15 @@ export type Database = {
           organization_family_id?: string
           postal_code?: string | null
           province_state?: string | null
+          public_address_line1?: string | null
+          public_address_line2?: string | null
+          public_city?: string | null
+          public_country?: string | null
+          public_email?: string | null
+          public_location_name?: string | null
+          public_location_url?: string | null
+          public_postal_code?: string | null
+          public_region?: string | null
           status?: Database["public"]["Enums"]["local_unit_status"]
           timezone?: string | null
           updated_at?: string
@@ -2683,12 +2747,12 @@ export type Database = {
       }
       officer_role_emails: {
         Row: {
-          council_id: string
           created_at: string
           created_by_auth_user_id: string | null
           email: string
           id: string
           is_active: boolean
+          local_unit_id: string
           login_enabled: boolean
           office_code: string
           office_rank: number | null
@@ -2697,12 +2761,12 @@ export type Database = {
           updated_by_auth_user_id: string | null
         }
         Insert: {
-          council_id: string
           created_at?: string
           created_by_auth_user_id?: string | null
           email: string
           id?: string
           is_active?: boolean
+          local_unit_id: string
           login_enabled?: boolean
           office_code: string
           office_rank?: number | null
@@ -2711,12 +2775,12 @@ export type Database = {
           updated_by_auth_user_id?: string | null
         }
         Update: {
-          council_id?: string
           created_at?: string
           created_by_auth_user_id?: string | null
           email?: string
           id?: string
           is_active?: boolean
+          local_unit_id?: string
           login_enabled?: boolean
           office_code?: string
           office_rank?: number | null
@@ -2726,10 +2790,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "officer_role_emails_council_id_fkey"
-            columns: ["council_id"]
+            foreignKeyName: "officer_role_emails_local_unit_id_fkey"
+            columns: ["local_unit_id"]
             isOneToOne: false
-            referencedRelation: "councils"
+            referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
         ]
@@ -3144,6 +3208,7 @@ export type Database = {
           accepted_assignment_id: string | null
           accepted_at: string | null
           accepted_by_auth_user_id: string | null
+          challenge_response_hash: string | null
           council_id: string | null
           created_at: string
           created_by_auth_user_id: string | null
@@ -3167,6 +3232,7 @@ export type Database = {
           accepted_assignment_id?: string | null
           accepted_at?: string | null
           accepted_by_auth_user_id?: string | null
+          challenge_response_hash?: string | null
           council_id?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
@@ -3190,6 +3256,7 @@ export type Database = {
           accepted_assignment_id?: string | null
           accepted_at?: string | null
           accepted_by_auth_user_id?: string | null
+          challenge_response_hash?: string | null
           council_id?: string | null
           created_at?: string
           created_by_auth_user_id?: string | null
@@ -3241,12 +3308,10 @@ export type Database = {
           council_id: string | null
           created_at: string
           created_by_user_id: string | null
-          decision_notice_dismissed_at: string | null
           id: string
           initiated_via_code: string
           organization_id: string | null
           request_notes: string | null
-          request_type_code: string
           requested_at: string
           requested_by_auth_user_id: string | null
           requested_by_person_id: string | null
@@ -3272,12 +3337,10 @@ export type Database = {
           council_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
-          decision_notice_dismissed_at?: string | null
           id?: string
           initiated_via_code?: string
           organization_id?: string | null
           request_notes?: string | null
-          request_type_code?: string
           requested_at?: string
           requested_by_auth_user_id?: string | null
           requested_by_person_id?: string | null
@@ -3303,12 +3366,10 @@ export type Database = {
           council_id?: string | null
           created_at?: string
           created_by_user_id?: string | null
-          decision_notice_dismissed_at?: string | null
           id?: string
           initiated_via_code?: string
           organization_id?: string | null
           request_notes?: string | null
-          request_type_code?: string
           requested_at?: string
           requested_by_auth_user_id?: string | null
           requested_by_person_id?: string | null
@@ -3409,25 +3470,19 @@ export type Database = {
         Row: {
           council_number: string
           created_at: string
-          lookup_city: string | null
           organization_id: string
-          parish_associations: string[] | null
           updated_at: string
         }
         Insert: {
           council_number: string
           created_at?: string
-          lookup_city?: string | null
           organization_id: string
-          parish_associations?: string[] | null
           updated_at?: string
         }
         Update: {
           council_number?: string
           created_at?: string
-          lookup_city?: string | null
           organization_id?: string
-          parish_associations?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -3641,9 +3696,13 @@ export type Database = {
           logo_alt_text: string | null
           logo_storage_bucket: string
           logo_storage_path: string | null
+          org_type_code: string | null
           organization_type_code: string
           preferred_name: string | null
           primary_color_hex: string | null
+          public_contact_form_enabled: boolean
+          public_description: string | null
+          public_page_enabled: boolean
           secondary_color_hex: string | null
           updated_at: string
           updated_by_auth_user_id: string | null
@@ -3657,9 +3716,13 @@ export type Database = {
           logo_alt_text?: string | null
           logo_storage_bucket?: string
           logo_storage_path?: string | null
+          org_type_code?: string | null
           organization_type_code: string
           preferred_name?: string | null
           primary_color_hex?: string | null
+          public_contact_form_enabled?: boolean
+          public_description?: string | null
+          public_page_enabled?: boolean
           secondary_color_hex?: string | null
           updated_at?: string
           updated_by_auth_user_id?: string | null
@@ -3673,9 +3736,13 @@ export type Database = {
           logo_alt_text?: string | null
           logo_storage_bucket?: string
           logo_storage_path?: string | null
+          org_type_code?: string | null
           organization_type_code?: string
           preferred_name?: string | null
           primary_color_hex?: string | null
+          public_contact_form_enabled?: boolean
+          public_description?: string | null
+          public_page_enabled?: boolean
           secondary_color_hex?: string | null
           updated_at?: string
           updated_by_auth_user_id?: string | null
@@ -4408,12 +4475,12 @@ export type Database = {
       }
       person_officer_terms: {
         Row: {
-          council_id: string
           created_at: string
           created_by_auth_user_id: string | null
           end_reason: string | null
           ended_by_auth_user_id: string | null
           id: string
+          local_unit_id: string
           manual_end_effective_date: string | null
           notes: string | null
           office_code: string
@@ -4427,12 +4494,12 @@ export type Database = {
           updated_by_auth_user_id: string | null
         }
         Insert: {
-          council_id: string
           created_at?: string
           created_by_auth_user_id?: string | null
           end_reason?: string | null
           ended_by_auth_user_id?: string | null
           id?: string
+          local_unit_id: string
           manual_end_effective_date?: string | null
           notes?: string | null
           office_code: string
@@ -4446,12 +4513,12 @@ export type Database = {
           updated_by_auth_user_id?: string | null
         }
         Update: {
-          council_id?: string
           created_at?: string
           created_by_auth_user_id?: string | null
           end_reason?: string | null
           ended_by_auth_user_id?: string | null
           id?: string
+          local_unit_id?: string
           manual_end_effective_date?: string | null
           notes?: string | null
           office_code?: string
@@ -4466,17 +4533,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "person_officer_terms_council_id_fkey"
-            columns: ["council_id"]
-            isOneToOne: false
-            referencedRelation: "councils"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "person_officer_terms_created_by_auth_user_id_fkey"
             columns: ["created_by_auth_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_officer_terms_local_unit_id_fkey"
+            columns: ["local_unit_id"]
+            isOneToOne: false
+            referencedRelation: "local_units"
             referencedColumns: ["id"]
           },
           {
@@ -4646,6 +4713,71 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      public_registration_intakes: {
+        Row: {
+          admin_review_status: string
+          consent_accepted_at: string
+          consent_text: string
+          consent_version: string
+          created_at: string
+          email: string
+          email_verification_status: string
+          first_name: string
+          id: string
+          last_name: string
+          matched_at: string | null
+          matched_person_id: string | null
+          metadata: Json
+          normalized_email: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_review_status?: string
+          consent_accepted_at?: string
+          consent_text: string
+          consent_version: string
+          created_at?: string
+          email: string
+          email_verification_status?: string
+          first_name: string
+          id?: string
+          last_name: string
+          matched_at?: string | null
+          matched_person_id?: string | null
+          metadata?: Json
+          normalized_email: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_review_status?: string
+          consent_accepted_at?: string
+          consent_text?: string
+          consent_version?: string
+          created_at?: string
+          email?: string
+          email_verification_status?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          matched_at?: string | null
+          matched_person_id?: string | null
+          metadata?: Json
+          normalized_email?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_registration_intakes_matched_person_id_fkey"
+            columns: ["matched_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_access_grants: {
         Row: {
@@ -4841,60 +4973,45 @@ export type Database = {
           canonization_status: string | null
           common_name: string | null
           created_at: string
-          data_tier: string | null
           era_label: string | null
           feast_day: number | null
           feast_month: number | null
           id: string
           is_active: boolean
           patron_summary: string | null
-          review_status: string | null
           short_bio: string | null
           slug: string
-          source_1: string | null
-          source_2: string | null
           updated_at: string
-          workbook_saint_id: string | null
         }
         Insert: {
           canonical_name: string
           canonization_status?: string | null
           common_name?: string | null
           created_at?: string
-          data_tier?: string | null
           era_label?: string | null
           feast_day?: number | null
           feast_month?: number | null
           id?: string
           is_active?: boolean
           patron_summary?: string | null
-          review_status?: string | null
           short_bio?: string | null
           slug: string
-          source_1?: string | null
-          source_2?: string | null
           updated_at?: string
-          workbook_saint_id?: string | null
         }
         Update: {
           canonical_name?: string
           canonization_status?: string | null
           common_name?: string | null
           created_at?: string
-          data_tier?: string | null
           era_label?: string | null
           feast_day?: number | null
           feast_month?: number | null
           id?: string
           is_active?: boolean
           patron_summary?: string | null
-          review_status?: string | null
           short_bio?: string | null
           slug?: string
-          source_1?: string | null
-          source_2?: string | null
           updated_at?: string
-          workbook_saint_id?: string | null
         }
         Relationships: []
       }
@@ -4994,16 +5111,13 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
-          is_primary_variant: boolean | null
           is_published: boolean
           language_code: string
-          notes: string | null
           prayer_type: Database["public"]["Enums"]["prayer_type_code"] | null
           published_at: string | null
           record_type: string
           slug: string
           sort_order: number
-          source_body: string | null
           source_label: string | null
           source_url: string | null
           summary: string | null
@@ -5011,8 +5125,6 @@ export type Database = {
           text_status: Database["public"]["Enums"]["spiritual_text_status_code"]
           title: string
           updated_at: string
-          variant_label: string | null
-          workbook_prayer_id: string | null
         }
         Insert: {
           authority_level?: string | null
@@ -5022,16 +5134,13 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          is_primary_variant?: boolean | null
           is_published?: boolean
           language_code?: string
-          notes?: string | null
           prayer_type?: Database["public"]["Enums"]["prayer_type_code"] | null
           published_at?: string | null
           record_type?: string
           slug: string
           sort_order?: number
-          source_body?: string | null
           source_label?: string | null
           source_url?: string | null
           summary?: string | null
@@ -5039,8 +5148,6 @@ export type Database = {
           text_status?: Database["public"]["Enums"]["spiritual_text_status_code"]
           title: string
           updated_at?: string
-          variant_label?: string | null
-          workbook_prayer_id?: string | null
         }
         Update: {
           authority_level?: string | null
@@ -5050,16 +5157,13 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          is_primary_variant?: boolean | null
           is_published?: boolean
           language_code?: string
-          notes?: string | null
           prayer_type?: Database["public"]["Enums"]["prayer_type_code"] | null
           published_at?: string | null
           record_type?: string
           slug?: string
           sort_order?: number
-          source_body?: string | null
           source_label?: string | null
           source_url?: string | null
           summary?: string | null
@@ -5067,8 +5171,6 @@ export type Database = {
           text_status?: Database["public"]["Enums"]["spiritual_text_status_code"]
           title?: string
           updated_at?: string
-          variant_label?: string | null
-          workbook_prayer_id?: string | null
         }
         Relationships: []
       }
@@ -5270,8 +5372,6 @@ export type Database = {
           name: string
           slug: string
           sort_order: number
-          source_kind: string | null
-          source_ref: string | null
           topic_group: string | null
           updated_at: string
         }
@@ -5283,8 +5383,6 @@ export type Database = {
           name: string
           slug: string
           sort_order?: number
-          source_kind?: string | null
-          source_ref?: string | null
           topic_group?: string | null
           updated_at?: string
         }
@@ -5296,8 +5394,6 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
-          source_kind?: string | null
-          source_ref?: string | null
           topic_group?: string | null
           updated_at?: string
         }
@@ -5871,6 +5967,36 @@ export type Database = {
           },
         ]
       }
+      local_unit_volunteer_contribution_entries: {
+        Row: {
+          adjustment_id: string | null
+          credited_on: string | null
+          event_id: string | null
+          event_title: string | null
+          hours: number | null
+          local_unit_id: string | null
+          note: string | null
+          person_id: string | null
+          sort_at: string | null
+          source_id: string | null
+          source_type: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Relationships: []
+      }
+      local_unit_volunteer_contribution_rollups: {
+        Row: {
+          event_hours: number | null
+          last_volunteered_on: string | null
+          local_unit_id: string | null
+          manual_adjustment_hours: number | null
+          person_id: string | null
+          total_hours: number | null
+          volunteer_event_count: number | null
+        }
+        Relationships: []
+      }
       v_effective_admin_package_access: {
         Row: {
           can_manage_admins: boolean | null
@@ -6118,12 +6244,7 @@ export type Database = {
         Returns: string
       }
       ensure_parallel_member_for_user_and_local_unit: {
-        Args: {
-          p_fallback_email?: string
-          p_fallback_invitee_name?: string
-          p_local_unit_id: string
-          p_user_id: string
-        }
+        Args: { p_local_unit_id: string; p_user_id: string }
         Returns: {
           member_record_id: string
           user_unit_relationship_id: string
@@ -6146,8 +6267,6 @@ export type Database = {
       grant_parallel_admin_package_to_user: {
         Args: {
           p_actor_user_id: string
-          p_fallback_email?: string
-          p_fallback_invitee_name?: string
           p_local_unit_id: string
           p_note?: string
           p_source_code?: Database["public"]["Enums"]["grant_source_code"]
@@ -6355,15 +6474,13 @@ export type Database = {
         | "invite_package"
         | "legacy_backfill"
         | "system"
-      intake_item_status_code: "unread" | "read" | "in_progress" | "complete"
       local_unit_kind:
-        | "council"
         | "parish"
+        | "council"
         | "conference"
         | "ministry"
-        | "chapter"
         | "other"
-      local_unit_status: "active" | "inactive" | "archived" | "quarantine"
+      local_unit_status: "active" | "inactive" | "archived"
       member_area_code:
         | "members"
         | "events"
@@ -6388,20 +6505,8 @@ export type Database = {
         | "collect"
         | "devotion"
         | "other"
-        | "common_prayer"
-        | "consecration"
-        | "devotional_grouping"
-        | "discernment_prayer"
-        | "doxology"
-        | "family_prayer"
-        | "intercessory"
-        | "marian"
-        | "saint_intercession"
-        | "work_prayer"
-        | "Petition"
-        | "Discernment"
       relationship_kind: "linked_member_record" | "parish_self_claim"
-      relationship_status: "active" | "inactive" | "archived"
+      relationship_status: "active" | "inactive"
       resource_type_code: "custom_list" | "event" | "event_type" | "all_events"
       role_kind: "officer" | "service"
       spiritual_content_kind:
@@ -6418,15 +6523,6 @@ export type Database = {
         | "approved"
         | "published"
         | "retired"
-        | "normative"
-        | "official_devotional_text"
-        | "private_devotional_text"
-        | "official_group_prayer"
-        | "traditional_prayer"
-        | "popular_devotional_text"
-        | "custom_user_text"
-        | "sourced_devotional_text"
-        | "editorial_extract"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6571,16 +6667,8 @@ export const Constants = {
         "legacy_backfill",
         "system",
       ],
-      intake_item_status_code: ["unread", "read", "in_progress", "complete"],
-      local_unit_kind: [
-        "council",
-        "parish",
-        "conference",
-        "ministry",
-        "chapter",
-        "other",
-      ],
-      local_unit_status: ["active", "inactive", "archived", "quarantine"],
+      local_unit_kind: ["parish", "council", "conference", "ministry", "other"],
+      local_unit_status: ["active", "inactive", "archived"],
       member_area_code: [
         "members",
         "events",
@@ -6607,21 +6695,9 @@ export const Constants = {
         "collect",
         "devotion",
         "other",
-        "common_prayer",
-        "consecration",
-        "devotional_grouping",
-        "discernment_prayer",
-        "doxology",
-        "family_prayer",
-        "intercessory",
-        "marian",
-        "saint_intercession",
-        "work_prayer",
-        "Petition",
-        "Discernment",
       ],
       relationship_kind: ["linked_member_record", "parish_self_claim"],
-      relationship_status: ["active", "inactive", "archived"],
+      relationship_status: ["active", "inactive"],
       resource_type_code: ["custom_list", "event", "event_type", "all_events"],
       role_kind: ["officer", "service"],
       spiritual_content_kind: [
@@ -6639,16 +6715,8 @@ export const Constants = {
         "approved",
         "published",
         "retired",
-        "normative",
-        "official_devotional_text",
-        "private_devotional_text",
-        "official_group_prayer",
-        "traditional_prayer",
-        "popular_devotional_text",
-        "custom_user_text",
-        "sourced_devotional_text",
-        "editorial_extract",
       ],
     },
   },
 } as const
+
