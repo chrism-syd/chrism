@@ -215,18 +215,6 @@ async function resolveSenderPersonIdFromAssignments(admin: ReturnType<typeof cre
 
   if (organizationPersonId) return organizationPersonId
 
-  const { data: councilAssignments } = await admin
-    .from('council_admin_assignments')
-    .select('person_id')
-    .eq('user_id', senderUserId)
-    .eq('is_active', true)
-    .limit(10)
-
-  const councilPersonId = ((councilAssignments as Array<{ person_id: string | null }> | null) ?? [])
-    .find((row) => Boolean(row.person_id))?.person_id
-
-  if (councilPersonId) return councilPersonId
-
   const { data: linkedRelationships } = await admin
     .from('user_unit_relationships')
     .select('member_record:member_record_id(legacy_people_id)')
