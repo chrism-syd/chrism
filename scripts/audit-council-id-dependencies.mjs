@@ -108,12 +108,6 @@ const patterns = [
     note: 'council_admin_assignments is a migration target; prefer organization/local-unit admin assignment paths.',
   },
   {
-    id: 'supreme-import-rpc-reference',
-    severity: 'WARN',
-    regex: /\bapply_supreme_import_row\b/g,
-    note: 'Supreme import RPC must be local-unit-native before real imports begin.',
-  },
-  {
     id: 'supreme-import-created-source',
     severity: 'WARN',
     regex: /created_source_code:\s*['"]supreme_import['"]|created_source_code\s*=\s*['"]supreme_import['"]/g,
