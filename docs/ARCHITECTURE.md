@@ -2,108 +2,374 @@
 
 This document is the current high-level map of the Chrism application. Older dated handoff documents may still be useful for history, but this file should be treated as the current architecture reference.
 
+Chrism is now organized around an organization-first, local-unit-aware operating model. Councils remain important for Knights of Columbus identity, public pages, council numbers, and historical compatibility, but they are no longer the universal source of operational authority.
+
+## Architectural invariants
+
+These rules should be treated as the laws of physics for the application.
+
+### Operational truth
+
+Authenticated operations are owned by:
+
+```text
+organization_id
+local_unit_id
+```
+
+These values define the active work context for people, events, lists, settings, imports, admin access, and organization management.
+
+### Identity truth
+
+Authentication and profile identity flow through:
+
+```text
+Supabase auth user
+        |
+        v
+public.users
+        |
+        v
+people
+```
+
+A signed-in user is not automatically a local organization admin. Access must be resolved through server-side permission helpers and active organization/local-unit context.
+
+### Public identity truth
+
+Public Knights identity may still use:
+
+```text
+council_id
+council number
+public council URLs
+Knights-specific slugs and labels
+```
+
+This is intentional product identity. Do not remove it simply because it contains council terminology.
+
+### Compatibility truth
+
+Legacy council-shaped data can remain where it is needed for:
+
+```text
+historical imports
+archived migrations
+public Knights identity
+compatibility during migration
+old route support
+schema history
+```
+
+New work should not deepen these bridges. When a bridge is encountered, classify it before changing it.
+
+## Council reference classification
+
+Every remaining `council_id` reference should be treated as one of three categories.
+
+### 1. Product truth
+
+Keep it.
+
+Examples:
+
+```text
+/councils/7689
+Council number 7689
+Knights public identity
+historical council labels
+```
+
+### 2. Compatibility bridge
+
+Replace it when the local-unit-native seam is ready.
+
+Questions to ask:
+
+- Is this still required by a live route or migration bridge?
+- Can the code now resolve through organization/local-unit context?
+- Is there a safer helper that already does this?
+
+### 3. Dead architecture
+
+Delete it.
+
+Examples:
+
+- obsolete bridge tables
+- retired sync triggers
+- duplicate audit rules
+- council admin assignment fallbacks after organization admin authority exists
+
+Do not feed the compatibility layer. If new code needs a bridge, pause and find the underlying seam.
+
 ## Product model
 
-Chrism is a Next.js application for local organization administration and public presence.
+Chrism supports three major surfaces.
 
-The product has three major surfaces:
+### Public organization pages
 
-1. **Public organization pages**
-   - Public-facing pages under `/o/[slug]`.
-   - Used by councils, ministries, parishes, charities, and other local organizations.
-   - Currently strongest for Knights of Columbus councils, but designed to become organization-type-aware.
+Visitor-facing local organization pages live under:
 
-2. **Member / personal area**
-   - Personal profile and participation flows under `/me`.
-   - Claimed RSVP history, organization/account state, and profile management.
+```text
+/o/[slug]
+```
 
-3. **Operations / admin area**
-   - Directory, events, custom lists, organization settings, admin invitations, and related staff workflows.
-   - Some routes still carry legacy council assumptions while the data model moves toward local-unit-aware organization context.
+They present public-safe projections of operational data, including profile details, public events, gallery images, contact options, external links, and visible leadership.
 
-## Current architectural direction
+### Member and personal area
 
-The app is moving away from one-off council-specific assumptions toward a more general model:
+Personal workflows live under:
 
-- Organization-aware access control.
-- Local-unit-aware public pages and settings.
-- Legacy `council_id` compatibility only where the schema still requires it.
-- Route-scoped CSS and reusable components instead of large route files.
-- GitHub issues as the canonical todo list.
+```text
+/me
+```
+
+This area answers: what can this signed-in person see, update, or participate in?
+
+It includes profile, organization/account status, RSVP history, and entry points into organization settings when the user has access.
+
+### Operations and administration
+
+Authenticated working surfaces include:
+
+```text
+/people
+/events
+/custom-lists
+/me/council
+/imports/supreme
+```
+
+These routes are permission-aware and must resolve access server-side. They should operate in organization/local-unit context, even where labels remain council-flavored for current Knights workflows.
+
+## Domain model
+
+The simplified domain flow is:
+
+```text
+Auth user
+    |
+    v
+Person
+    |
+    v
+Access grants / relationships
+    |
+    v
+Local unit
+    |
+    v
+Organization
+```
+
+Another way to read the product boundary:
+
+```text
+Organization
+    |
+    v
+Local unit
+    |
+    v
+Operational data
+    |
+    v
+Public projections
+```
+
+Key concepts:
+
+- **Organization** is the broader product/account boundary.
+- **Local unit** is the concrete operating body where work happens.
+- **Person** is durable human identity.
+- **User** is authentication/application identity.
+- **Council** is a Knights-specific public and historical identity surface, not the universal operational owner.
+
+## Access architecture
+
+Access is resolved through helper code, not through scattered route-specific assumptions.
+
+Important areas:
+
+```text
+lib/auth/permissions.ts
+lib/auth/acting-context.ts
+lib/auth/parallel-access-summary.ts
+lib/organizations/
+app/app-header.tsx
+app/me/
+```
+
+Preferred flow:
+
+```text
+resolve signed-in user
+        |
+        v
+resolve person identity
+        |
+        v
+resolve active organization/local-unit context
+        |
+        v
+resolve effective access
+        |
+        v
+render or mutate only what is allowed
+```
+
+Server actions must repeat permission checks. UI hiding is never sufficient.
+
+## Parallel Access baseline
+
+The Parallel Access work moved Chrism away from legacy council admin plumbing and toward organization/local-unit authority.
+
+Current baseline:
+
+- Organization/local-unit context is the operational source of truth.
+- Organization admin authority is canonical.
+- Retired council admin assignment bridges should not be reintroduced.
+- Effective access should be resolved through existing helpers.
+- Admin routes should not invent their own access model.
+
+When changing access, inspect the helper stack first. Most bugs in this area come from bypassing an existing helper or reintroducing old council assumptions.
 
 ## Public page architecture
 
-The public local organization page under `app/o/[slug]` has been refactored into a component-based structure.
+Public pages are projections of operational truth.
+
+The public local organization page under `app/o/[slug]` follows a component-based structure.
 
 Key files:
 
-- `app/o/[slug]/page.tsx`
-- `app/o/[slug]/layout.tsx`
-- `app/o/[slug]/public-page.css`
-- `app/o/[slug]/public-gallery.css`
-- `app/o/[slug]/public-contact-expander.css`
-- `app/o/[slug]/public-header.tsx`
-- `app/o/[slug]/public-hero.tsx`
-- `app/o/[slug]/public-events.tsx`
-- `app/o/[slug]/public-story.tsx`
-- `app/o/[slug]/public-contact.tsx`
-- `app/o/[slug]/public-contact-form-expander.tsx`
-- `app/o/[slug]/public-footer.tsx`
+```text
+app/o/[slug]/page.tsx
+app/o/[slug]/layout.tsx
+app/o/[slug]/public-page.css
+app/o/[slug]/public-gallery.css
+app/o/[slug]/public-contact-expander.css
+app/o/[slug]/public-header.tsx
+app/o/[slug]/public-hero.tsx
+app/o/[slug]/public-events.tsx
+app/o/[slug]/public-story.tsx
+app/o/[slug]/public-contact.tsx
+app/o/[slug]/public-contact-form-expander.tsx
+app/o/[slug]/public-footer.tsx
+app/o/[slug]/actions.ts
+```
 
-Current pattern:
+Preferred pattern:
 
-- `page.tsx` loads data, builds view models, and composes section components.
-- Section components own their markup.
-- Route-scoped CSS owns public page presentation.
-- Public contact reveal is React-driven, not DOM-patched after render.
-- Public gallery empty states and contact icons are rendered directly by components.
+```text
+load public-safe data
+        |
+        v
+build view models
+        |
+        v
+compose section components
+        |
+        v
+render route-scoped presentation
+```
 
-This is the preferred model for upcoming public-page work, including the Officers seam.
+Public pages should not become a separate website-builder silo. Operations/settings surfaces own the data. Public pages display it.
+
+## Operations architecture
+
+Operations routes should be understood as work surfaces, not isolated pages.
+
+Primary work surfaces:
+
+```text
+/people          people and directory management
+/events          events, RSVP, volunteer coordination
+/custom-lists    outreach and planning lists
+/me/council      local organization profile/settings/admin area
+/imports/supreme Supreme spreadsheet import review
+```
+
+Legacy `/members` routes remain compatibility routes. New work should prefer People terminology unless the feature is intentionally membership-specific.
+
+## Data ownership
+
+Use this ownership hierarchy when deciding where data belongs.
+
+```text
+Personal data             -> person / user profile
+Operational local data    -> local unit
+Account boundary data     -> organization
+Public presentation data  -> operational data projected through public page settings
+Historical Knights data   -> council compatibility where required
+```
+
+Avoid duplicating data for convenience. The public page should not own a second copy of information that belongs to local organization settings.
+
+## Import architecture
+
+Supreme import is a manual spreadsheet upload and review workflow. It is not the same as admin invitations, access grants, or organization onboarding.
+
+Current expectations:
+
+- Supreme import data should be reviewed before it mutates durable people records.
+- Admin invitations should use the admin/invite access model, not Supreme import assumptions.
+- Import rows may preserve historical council information, but operational ownership should resolve through local-unit context where possible.
+- Spreadsheet import/export must not reintroduce the vulnerable `xlsx` dependency.
 
 ## Styling conventions
 
 Prefer:
 
-- Route-scoped CSS for route-specific presentation.
-- Shared components for stable repeated UI patterns.
-- CSS variables and theme tokens as the design-token layer.
-- Small, named classes over inline style objects.
+- route-scoped CSS for route-specific presentation
+- shared components for stable repeated UI patterns
+- CSS variables and theme tokens as the design-token layer
+- small, named classes over inline style objects
+- React-owned behavior over DOM enhancement scripts
 
 Avoid:
 
-- DOM enhancement scripts that rewrite server-rendered markup after load.
-- Route-specific selectors in global CSS unless truly global.
-- Large monolithic route files that mix data loading, business logic, and full page markup.
+- DOM scripts that rewrite server-rendered markup after load
+- route-specific selectors in global CSS unless truly global
+- large route files that mix data loading, business logic, mutations, and full page markup
+- styling that makes operations workflows slower for administrators
 
 A larger CSS architecture audit is tracked in GitHub issue #80.
 
-## Data and access model
+## Verification baseline
 
-Important concepts:
+Before deployment after architecture work, run:
 
-- Organizations are the long-term product boundary.
-- Local units represent concrete local organization instances.
-- Councils remain important, especially for Knights of Columbus workflows, but should not become the only model.
-- Legacy `council_id` bridges still exist and must be handled carefully.
-- Public slugs are currently derived for some council pages, with a follow-up issue tracking persistent public slugs.
+```bash
+npm run lint
+npm run typecheck
+npm run verify
+node scripts/audit-council-id-dependencies.mjs
+npm audit
+```
 
-When touching permissions, organization context, or member/admin access, inspect the existing helpers before widening behavior.
+Expected council dependency audit posture:
 
-Key areas to understand:
+```text
+BLOCKER: 0
+WARN:    0
+```
 
-- `lib/auth/permissions.ts`
-- `lib/auth/acting-context.ts`
-- `lib/auth/parallel-access-summary.ts`
-- `lib/organizations/`
-- `app/app-header.tsx`
-- `app/me/`
-- `app/o/[slug]/`
+INFO references are acceptable only when they are intentional: documentation, archived migrations, historical imports, public identity, or compatibility seams.
 
 ## Current roadmap
 
 GitHub issues are the canonical todo list.
 
-Important current issues:
+Current architectural priority:
+
+```text
+#103 Add local-unit readiness audit before deleting compatibility fallbacks
+```
+
+Issue #103 should be used as the next broad audit after deployment smoke testing. It should not reopen already-completed council-admin bridge cleanup unless production testing reveals a regression.
+
+Other relevant public-page and refactoring issues include:
 
 - #78 Add Council Officers public page and profile management
 - #79 Public page refactoring follow-up polish
@@ -111,3 +377,11 @@ Important current issues:
 - #81 Public Officers feature (MVP) with reusable portrait positioning
 
 Do not rely on old handoff files as the todo list. If something matters, create or update a GitHub issue.
+
+## Read next
+
+- `docs/OPERATIONS_ARCHITECTURE.md`
+- `docs/PUBLIC_PAGES.md`
+- `docs/DEVELOPMENT.md`
+- `docs/SUPABASE_WORKFLOW.md`
+- `docs/handoff/HANDOFF_2026-07-04_Parallel_Access_Cutover.md`
