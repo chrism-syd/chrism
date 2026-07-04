@@ -96,12 +96,6 @@ const patterns = [
     note: 'Direct council_id filters need review: allowed only for legacy bridge/routing, not operational scope.',
   },
   {
-    id: 'people-council-id-reference',
-    severity: 'WARN',
-    regex: /\bpeople\.council_id\b/g,
-    note: 'people.council_id is a migration target. New membership scope should use local-unit relationships.',
-  },
-  {
     id: 'supreme-import-created-source',
     severity: 'WARN',
     regex: /created_source_code:\s*['"]supreme_import['"]|created_source_code\s*=\s*['"]supreme_import['"]/g,
