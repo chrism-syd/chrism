@@ -479,7 +479,7 @@ async function ensureAcceptedInvitePerson(args: {
     email: normalizedEmail,
     primary_relationship_code: 'volunteer_only',
     volunteer_context_code: 'other',
-    created_source_code: 'supreme_import',
+    created_source_code: 'admin_invitation',
     council_activity_level_code: 'active',
     is_provisional_member: true,
     created_by_auth_user_id: args.authUserId,
