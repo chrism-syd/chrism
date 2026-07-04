@@ -2,7 +2,16 @@
 
 Chrism is a Next.js + Supabase application for local organization administration, public presence, and member belonging.
 
-The current architecture is organization-first and local-unit-aware. Operational ownership is defined by `organization_id` and `local_unit_id`. Council identity remains important for Knights of Columbus public pages, council numbers, historical imports, and compatibility, but it is not the universal source of operational authority.
+The current architecture is organization-first and local-unit-aware. Operational ownership is defined by:
+
+```text
+organization_id
+local_unit_id
+```
+
+Council identity remains important for Knights of Columbus public pages, council numbers, historical imports, public URLs, and compatibility, but it is not the universal source of operational authority.
+
+---
 
 ## Start here
 
@@ -18,6 +27,8 @@ Before making major changes, read the living documentation:
 
 GitHub issues are the canonical todo list. Historical handoff documents are reference material only.
 
+---
+
 ## Product surfaces
 
 ### Public organization pages
@@ -28,7 +39,7 @@ Public local organization pages live under:
 /o/[slug]
 ```
 
-They are visitor-facing projections of operational data: organization profile, public events, contact details, gallery images, external links, and visible leadership.
+They are visitor-facing projections of operational data such as organization profile, public events, contact details, gallery images, external links, and visible leadership.
 
 For Knights of Columbus councils, public council identity remains intentional. A council number or public council URL can still be product truth for visitor-facing identity while operations remain owned by organization/local-unit context.
 
@@ -51,11 +62,14 @@ Authenticated operations workflows include:
 /events
 /custom-lists
 /me/council
+/imports/supreme
 ```
 
 These areas handle people management, event planning, RSVP and volunteer coordination, custom lists, organization settings, admin invitations, Supreme import review, and local-unit administration.
 
-Legacy `/members` routes remain as compatibility routes during migration. New work should prefer people/local-unit terminology unless a feature is intentionally Knights-specific.
+Legacy `/members` routes remain compatibility routes during migration. New work should prefer people/local-unit terminology unless a feature is intentionally membership-specific or council-specific.
+
+---
 
 ## Architectural baseline
 
@@ -99,6 +113,8 @@ Do not remove a `council_id` reference simply because it exists. Classify it fir
 
 New code should not deepen legacy compatibility layers. Find the underlying organization/local-unit seam instead.
 
+---
+
 ## Tech stack
 
 - Next.js App Router
@@ -111,6 +127,8 @@ New code should not deepen legacy compatibility layers. Find the underlying orga
 - `write-excel-file` for spreadsheet export
 
 Security note: the vulnerable `xlsx` dependency was removed during the July 2026 architecture/security cleanup. Do not reintroduce it casually.
+
+---
 
 ## Local development
 
@@ -146,6 +164,8 @@ WARN:    0
 
 INFO findings are expected to include intentional public identity, archived migrations, historical imports, and documentation references.
 
+---
+
 ## Recommended code areas
 
 Start with these areas depending on the work:
@@ -169,6 +189,8 @@ supabase/migrations/
 supabase/schema.sql
 ```
 
+---
+
 ## Development process
 
 Work one seam at a time.
@@ -177,6 +199,8 @@ A good seam starts from a GitHub issue, identifies data ownership and access rul
 
 See `docs/DEVELOPMENT.md` for the full workflow.
 
+---
+
 ## Supabase
 
 Database changes should stay aligned with Git history.
@@ -184,6 +208,8 @@ Database changes should stay aligned with Git history.
 When changing schema, commit migrations, generated types, related application code, and any intentional schema mirror updates together where practical.
 
 See `docs/SUPABASE_WORKFLOW.md` before migration repair, rebaseline, or dashboard-derived schema work.
+
+---
 
 ## Deployment
 
