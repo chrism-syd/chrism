@@ -51,15 +51,7 @@ export async function approveOrganizationClaimAction(formData: FormData) {
   if (!claim) redirectToQueue({ error: 'Claim request not found.' })
   if (claim.status_code !== 'pending') redirectToQueue({ error: 'That claim is no longer pending.' })
 
-  const { data: councilContext, error: councilContextError } = claim.council_id
-    ? await admin.from('councils').select('organization_id').eq('id', claim.council_id).maybeSingle()
-    : { data: null, error: null }
-
-  if (councilContextError) redirectToQueue({ error: councilContextError.message })
-
-  const effectiveOrganizationId = councilContext?.organization_id ?? claim.organization_id ?? null
-
-  if (!effectiveOrganizationId) {
+  if (!claim.organization_id) {
     redirectToQueue({ error: 'This request is not tied to a listed council yet. Seed the council first, then review again.' })
   }
 
@@ -74,7 +66,7 @@ export async function approveOrganizationClaimAction(formData: FormData) {
     ? await admin
         .from('organization_admin_assignments')
         .select('id, is_active')
-        .eq('organization_id', effectiveOrganizationId)
+        .eq('organization_id', claim.organization_id)
         .or(identityFilters.join(','))
         .limit(5)
     : { data: [] as { id: string; is_active: boolean }[] | null, error: null }
@@ -89,7 +81,7 @@ export async function approveOrganizationClaimAction(formData: FormData) {
 
   try {
     await saveOrganizationAdminAssignment({
-      organizationId: effectiveOrganizationId,
+      organizationId: claim.organization_id,
       actorUserId: permissions.authUser!.id,
       personId: claim.requested_by_person_id,
       userId: claim.requested_by_auth_user_id,
