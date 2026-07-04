@@ -148,19 +148,6 @@ async function resolveHomeContext(args: {
   if (args.permissions.isSuperAdmin && args.permissions.actingMode !== 'normal') {
     let activeLocalUnitId = args.permissions.activeLocalUnitId
 
-    if (!activeLocalUnitId && args.permissions.councilId) {
-      const { data } = await args.admin
-        .from('local_units')
-        .select('id, display_name, legacy_council_id, legacy_organization_id, local_unit_kind')
-        .eq('legacy_council_id', args.permissions.councilId)
-        .limit(1)
-        .maybeSingle<LocalUnitRow>()
-
-      if (data?.id) {
-        activeLocalUnitId = data.id
-      }
-    }
-
     if (!activeLocalUnitId && args.permissions.organizationId) {
       const { data } = await args.admin
         .from('local_units')
@@ -218,19 +205,6 @@ async function resolveHomeContext(args: {
     selectedLocalUnitId && accessibleLocalUnits.some((unit) => unit.local_unit_id === selectedLocalUnitId)
       ? selectedLocalUnitId
       : null
-
-  if (!activeLocalUnitId && args.permissions.councilId) {
-    const { data } = await args.admin
-      .from('local_units')
-      .select('id, display_name, legacy_council_id')
-      .eq('legacy_council_id', args.permissions.councilId)
-      .limit(1)
-      .maybeSingle<LocalUnitRow>()
-
-    if (data?.id && accessibleLocalUnits.some((unit) => unit.local_unit_id === data.id)) {
-      activeLocalUnitId = data.id
-    }
-  }
 
   activeLocalUnitId ??= accessibleLocalUnits[0]?.local_unit_id ?? null
 
