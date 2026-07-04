@@ -28,7 +28,6 @@ export type ProfileChangeRequestRow = {
 
 export type ProfileChangeReviewPerson = {
   id: string
-  council_id: string | null
   first_name: string
   last_name: string
   nickname: string | null
@@ -223,7 +222,7 @@ export async function listProfileChangeReviewSummaries(args: {
     personIdsToLoad.length > 0
       ? await admin
           .from('people')
-          .select('id, council_id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
+          .select('id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
           .in('id', personIdsToLoad)
           .is('archived_at', null)
           .is('merged_into_person_id', null)
@@ -306,7 +305,7 @@ export async function getProfileChangeReviewSummary(args: {
   const [personResult, localUnitPersonResult, organizationAdminAccessResult] = await Promise.all([
     admin
       .from('people')
-      .select('id, council_id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
+      .select('id, first_name, last_name, nickname, email, cell_phone, home_phone, other_phone')
       .eq('id', request.person_id)
       .maybeSingle<ProfileChangeReviewPerson>(),
     admin
