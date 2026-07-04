@@ -1,10 +1,14 @@
 # Public pages architecture
 
-This document describes the current architecture and conventions for Chrism public local organization pages.
+This document is the living reference for Chrism public local organization pages.
 
 It focuses on the `/o/[slug]` public surface and its relationship to authenticated operations.
 
-## Purpose
+Public pages are not standalone websites. They are public-safe projections of operational data.
+
+---
+
+## 1. Purpose
 
 Public pages give local organizations a simple, credible public presence without requiring them to build or maintain a separate website.
 
@@ -17,11 +21,13 @@ They should help a visitor understand:
 - what events or meetings are coming up
 - who serves in visible leadership roles
 
-Public pages should feel alive, but lightweight.
+Public pages should feel alive, lightweight, trustworthy, and current.
 
 They are not intended to become a generic website builder.
 
-## Core principle
+---
+
+## 2. Core principle
 
 Public pages are projections of operational truth.
 
@@ -42,7 +48,11 @@ Visitor
 
 Users should not need to maintain public information in multiple places.
 
-## Public identity vs operational ownership
+If public content becomes stale, the fix should usually be to improve the operational source of truth, not to create another public-only data store.
+
+---
+
+## 3. Public identity vs operational ownership
 
 This distinction is central to Chrism.
 
@@ -68,7 +78,9 @@ A council can have public identity as a council while its authenticated operatio
 
 Do not remove public council terminology merely because the operations model is organization-first. Remove council assumptions only when they are incorrectly used for operational authority.
 
-## Current route
+---
+
+## 4. Current route
 
 Primary public local organization route:
 
@@ -94,7 +106,9 @@ app/o/[slug]/public-footer.tsx
 app/o/[slug]/actions.ts
 ```
 
-## Page composition pattern
+---
+
+## 5. Page composition pattern
 
 `page.tsx` should primarily do three jobs:
 
@@ -123,15 +137,17 @@ render section components
 apply route-scoped styling
 ```
 
-## Current section components
+---
 
-### `PublicHeader`
+## 6. Current section components
+
+### 6.1 `PublicHeader`
 
 Public navigation/header for the local organization page.
 
 Should remain simple, public-safe, and clear.
 
-### `PublicHero`
+### 6.2 `PublicHero`
 
 Primary identity and introduction area.
 
@@ -139,7 +155,7 @@ Uses organization display name, theme, hero copy, and public-facing identity lab
 
 For council pages, council identity can appear here when it helps visitors understand the organization.
 
-### `PublicEvents`
+### 6.3 `PublicEvents`
 
 Shows public-facing upcoming events/meetings.
 
@@ -147,31 +163,33 @@ This should remain a projection of event data, not the operational event-managem
 
 Do not show planning state, internal volunteer notes, draft events, or private RSVP context.
 
-### `PublicStory`
+### 6.4 `PublicStory`
 
 Shows organization narrative and gallery/visual content.
 
 Gallery empty states should be rendered by React components, not injected after render.
 
-### `PublicContact`
+### 6.5 `PublicContact`
 
 Shows contact details, external links, and the public contact/get-involved form when enabled.
 
 The public form should remain simple and non-intimidating.
 
-### `PublicContactFormExpander`
+### 6.6 `PublicContactFormExpander`
 
 Client component that controls the contact form reveal.
 
 This should remain React-driven, not DOM-patched by a route-level enhancer.
 
-### `PublicFooter`
+### 6.7 `PublicFooter`
 
 Closing public page footer.
 
 Should reinforce trust, provide simple navigation, and avoid operational/admin language.
 
-## Styling pattern
+---
+
+## 7. Styling pattern
 
 Public page styling is route-scoped.
 
@@ -200,7 +218,9 @@ Avoid:
 - adding one-off styles that should become component classes
 - importing operations/admin styling into public pages
 
-## Theme approach
+---
+
+## 8. Theme approach
 
 Public pages should be theme-aware and organization-type-aware.
 
@@ -216,7 +236,9 @@ Organization-specific tone is good. Organization-specific hard-coding is not.
 
 For future organization types, themes should support distinctive identity without turning the code into one-off branches for every organization.
 
-## Data and view models
+---
+
+## 9. Data and view models
 
 Public pages should load only public-safe data.
 
@@ -232,7 +254,9 @@ load data -> build view model -> render component
 
 Public components should not need to know about raw access grants, internal admin state, unresolved import conflicts, or private member relationships.
 
-## Public-safe data boundary
+---
+
+## 10. Public-safe data boundary
 
 A public page may show:
 
@@ -259,7 +283,9 @@ A public page should not show:
 
 If a visitor action creates operational work, route that work into authenticated operations surfaces.
 
-## Contact form philosophy
+---
+
+## 11. Contact form philosophy
 
 The public contact form should be welcoming and low-friction.
 
@@ -276,7 +302,9 @@ Use plain language. Ask only for what is needed.
 
 Submitted messages should connect to operational review/routing flows rather than disappearing into an inbox with no ownership.
 
-## Gallery philosophy
+---
+
+## 12. Gallery philosophy
 
 Gallery images make a public page feel alive.
 
@@ -292,7 +320,9 @@ Public rendering should handle:
 
 Empty-state content should be clear and helpful for admins without exposing internal setup language to ordinary visitors where inappropriate.
 
-## Leadership seam
+---
+
+## 13. Leadership and officers seam
 
 The public leadership/officers feature should build on the public page architecture rather than bypassing it.
 
@@ -311,7 +341,9 @@ Relevant issue:
 #81 Public Officers feature (MVP) with reusable portrait positioning
 ```
 
-## Portrait positioning
+---
+
+## 14. Portrait positioning
 
 For leadership and future people portraits, prefer lightweight display positioning over destructive cropping.
 
@@ -328,7 +360,9 @@ Render with a fixed frame, object fit, object position, and optional transform/s
 
 Do not build a full image editor for the MVP.
 
-## Public routes and legacy council routes
+---
+
+## 15. Public routes and legacy council routes
 
 The preferred current public surface is:
 
@@ -346,7 +380,9 @@ Classify them before changing them:
 
 Treat public links carefully. Public URLs have a different stability requirement than internal helper code.
 
-## SEO and discoverability
+---
+
+## 16. SEO and discoverability
 
 Public pages should be readable and indexable where appropriate.
 
@@ -365,7 +401,9 @@ Avoid:
 - exposing operational/internal labels in metadata
 - changing public URLs without redirect planning
 
-## Public vs operations boundary
+---
+
+## 17. Public vs operations boundary
 
 Public pages should not become admin tools.
 
@@ -385,7 +423,9 @@ Authorized admin follows up
 
 The public page starts the conversation. Operations owns the follow-up.
 
-## Copy and audience
+---
+
+## 18. Copy and audience
 
 Many visitors and admins are older adults or volunteers.
 
@@ -395,7 +435,9 @@ Avoid jargon. Avoid clever labels that hide meaning. Buttons should make the nex
 
 Council-specific language is appropriate when the audience is looking for a council. Broader language is better when the page should support many organization types.
 
-## Future organization types
+---
+
+## 19. Future organization types
 
 Public pages should support councils well without making every future organization sound like a council.
 
@@ -412,7 +454,9 @@ Future organization types may include:
 - nonprofit boards
 - school groups
 
-## What to avoid
+---
+
+## 20. What to avoid
 
 Avoid turning the public page into:
 
@@ -425,7 +469,9 @@ Avoid turning the public page into:
 
 The best public page work makes the organization look current because the operations data is current.
 
-## Verification checklist for public-page work
+---
+
+## 21. Verification checklist for public-page work
 
 After public-page changes, smoke test:
 
@@ -439,7 +485,9 @@ After public-page changes, smoke test:
 - no operations-only labels appear publicly
 - no permission-sensitive data is loaded into the public view model
 
-## Related docs
+---
+
+## 22. Related docs
 
 Read these before major public-page work:
 
@@ -449,7 +497,9 @@ Read these before major public-page work:
 - `docs/DEVELOPMENT.md`
 - `docs/handoff/HANDOFF_2026-07-04_Parallel_Access_Cutover.md`
 
-## Related issues
+---
+
+## 23. Related issues
 
 Current and recent public-page work is tracked in GitHub issues, including:
 
