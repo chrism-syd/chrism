@@ -1376,7 +1376,6 @@ declare
   v_has_kofc_payload boolean;
   v_action text;
   v_member_record_id uuid;
-  v_legacy_council_id uuid;
   v_resolved_organization_id uuid;
 begin
   if coalesce(trim(p_first_name), '') = '' or coalesce(trim(p_last_name), '') = '' then
@@ -1384,17 +1383,11 @@ begin
   end if;
 
   select
-    lu.legacy_council_id,
-    coalesce(p_organization_id, lu.legacy_organization_id, c.organization_id)
-    into v_legacy_council_id, v_resolved_organization_id
+    coalesce(p_organization_id, lu.legacy_organization_id)
+    into v_resolved_organization_id
   from public.local_units lu
-  left join public.councils c on c.id = lu.legacy_council_id
   where lu.id = p_local_unit_id
     and lu.local_unit_kind = 'council'::public.local_unit_kind;
-
-  if v_legacy_council_id is null then
-    raise exception 'Supreme import requires a Knights council local unit with a legacy council bridge.';
-  end if;
 
   if v_resolved_organization_id is null then
     raise exception 'Supreme import requires an organization scope.';
@@ -1468,11 +1461,16 @@ begin
       primary_relationship_code = 'member',
       updated_by_auth_user_id = p_auth_user_id
     where id = v_member_number_person_id
-      and council_id = v_legacy_council_id
+      and exists (
+        select 1
+        from public.member_records mr
+        where mr.local_unit_id = p_local_unit_id
+          and mr.legacy_people_id = v_member_number_person_id
+      )
     returning id into v_person_id;
 
     if v_person_id is null then
-      raise exception 'Member number % belongs to a person outside this local unit legacy council bridge.', p_member_number;
+      raise exception 'Member number % belongs to a person outside this local unit.', p_member_number;
     end if;
 
     v_action := 'updated';
@@ -1504,7 +1502,12 @@ begin
       primary_relationship_code = 'member',
       updated_by_auth_user_id = p_auth_user_id
     where id = p_existing_person_id
-      and council_id = v_legacy_council_id
+      and exists (
+        select 1
+        from public.member_records mr
+        where mr.local_unit_id = p_local_unit_id
+          and mr.legacy_people_id = p_existing_person_id
+      )
     returning id into v_person_id;
 
     if v_person_id is null then
@@ -1516,7 +1519,6 @@ begin
     raise exception 'Missing existing person id for update_existing row.';
   elsif p_import_mode = 'create_new' then
     insert into public.people (
-      council_id,
       title,
       first_name,
       middle_name,
@@ -1545,7 +1547,6 @@ begin
       primary_relationship_code
     )
     values (
-      v_legacy_council_id,
       p_title,
       p_first_name,
       p_middle_name,
@@ -1684,7 +1685,7 @@ $$;
 ALTER FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") IS 'Applies one Supreme import row atomically using explicit local_unit_id as operational scope, while preserving people.council_id as the Knights legacy compatibility bridge.';
+COMMENT ON FUNCTION "public"."apply_supreme_import_row"("p_local_unit_id" "uuid", "p_organization_id" "uuid", "p_auth_user_id" "uuid", "p_import_mode" "text", "p_existing_person_id" "uuid", "p_council_number" "text", "p_title" "text", "p_first_name" "text", "p_middle_name" "text", "p_last_name" "text", "p_suffix" "text", "p_email" "text", "p_email_hash" "text", "p_cell_phone" "text", "p_cell_phone_hash" "text", "p_address_line_1" "text", "p_address_line_1_hash" "text", "p_city" "text", "p_city_hash" "text", "p_state_province" "text", "p_state_province_hash" "text", "p_postal_code" "text", "p_postal_code_hash" "text", "p_birth_date" "date", "p_birth_date_hash" "text", "p_pii_key_version" "text", "p_council_activity_level_code" "text", "p_member_number" "text", "p_first_degree_date" "date", "p_second_degree_date" "date", "p_third_degree_date" "date", "p_years_in_service" integer, "p_member_type" "text", "p_member_class" "text", "p_assembly_number" "text") IS 'Applies one Supreme import row atomically using explicit local_unit_id as operational scope.';
 
 
 
