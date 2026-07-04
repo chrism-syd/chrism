@@ -48,13 +48,9 @@ const pathInfoOnlyPrefixes = [
 
 const intentionalGuardrailFiles = new Set([
   'scripts/audit-council-id-dependencies.mjs',
-  'scripts/verify-supreme-import-local-unit-cutover-readiness.sql',
   'scripts/patch-event-detail-local-unit-scope.mjs',
   'scripts/patch-event-actions-local-unit-scope.mjs',
-  'scripts/backfill-supreme-import-text-case.mjs',
-  'scripts/repair-sydney-supreme-import-legacy-council.sql',
   'scripts/verify-local-unit-legacy-council-alignment.sql',
-  'scripts/verify-supreme-import-page-local-unit-readiness.sql',
 ])
 
 const intentionalPublicRouteFiles = new Set([
@@ -103,7 +99,25 @@ const patterns = [
     id: 'people-council-id-reference',
     severity: 'WARN',
     regex: /\bpeople\.council_id\b/g,
-    note: 'people.council_id is legacy compatibility only; review for operational dependency.',
+    note: 'people.council_id is a migration target. New membership scope should use local-unit relationships.',
+  },
+  {
+    id: 'council-admin-assignments-reference',
+    severity: 'WARN',
+    regex: /\bcouncil_admin_assignments\b/g,
+    note: 'council_admin_assignments is a migration target; prefer organization/local-unit admin assignment paths.',
+  },
+  {
+    id: 'supreme-import-rpc-reference',
+    severity: 'WARN',
+    regex: /\bapply_supreme_import_row\b/g,
+    note: 'Supreme import RPC must be local-unit-native before real imports begin.',
+  },
+  {
+    id: 'supreme-import-created-source',
+    severity: 'WARN',
+    regex: /created_source_code:\s*['"]supreme_import['"]|created_source_code\s*=\s*['"]supreme_import['"]/g,
+    note: 'Supreme import source paths are migration targets, not protected historical compatibility.',
   },
   {
     id: 'council-id-token',
