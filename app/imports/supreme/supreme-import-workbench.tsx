@@ -97,26 +97,9 @@ async function readSpreadsheetRows(file: File) {
       .map((line) => parseCsvLine(line));
   }
 
-  const workbookBuffer = await file.arrayBuffer();
-  const xlsx = await import('xlsx');
-  const workbook = xlsx.read(workbookBuffer, {
-    type: 'array',
-    cellDates: true,
-    raw: false,
-    dense: true,
-  });
-  const firstSheetName = workbook.SheetNames[0];
-
-  if (!firstSheetName) {
-    return [] as unknown[][];
-  }
-
-  const sheet = workbook.Sheets[firstSheetName];
-  return xlsx.utils.sheet_to_json(sheet, {
-    header: 1,
-    raw: false,
-    defval: '',
-  }) as unknown[][];
+  const readXlsxFile = (await import('read-excel-file')).default;
+  const rows = await readXlsxFile(file);
+  return rows.map((row: unknown[]) => row.map((value: unknown) => (value == null ? '' : String(value))));
 }
 
 function createInitialDecision(reviewRow: ReviewRow): RowDecision {
