@@ -2,9 +2,13 @@
 
 Date: 2026-07-04
 
-This is the current project handoff after the organization/local-unit migration and council-compatibility cleanup. It is written for a future helper or engineer who has not read the working chat.
+This is the current project handoff after the organization/local-unit migration, council-compatibility cleanup, and pre-deployment dependency refresh.
 
-## Executive summary
+It is written for a future helper or engineer who has not read the working chat.
+
+---
+
+## 1. Executive summary
 
 Chrism has completed a major architectural migration away from council-centric operational ownership.
 
@@ -19,18 +23,39 @@ These are the source of truth for authenticated operations, access, people/membe
 
 Council identity still exists intentionally for:
 
-- public council URLs
+- Knights public URLs
 - council numbers
-- public council identity
 - historical imports
 - compatibility during migration
 - archived migrations and schema history
+- public-facing council identity
 
-The rule is not "remove every council reference." The rule is: classify every council reference before changing it.
+A `council_id` reference is not automatically wrong. It must be classified before it is changed.
 
-## Current architecture baseline
+---
 
-Identity:
+## 2. Current project state
+
+The architecture has crossed from "mid-migration" to "organization/local-unit baseline."
+
+Current posture:
+
+- operational authority is organization/local-unit based
+- legacy council admin assignment bridges are retired
+- permissions no longer depend on the retired council-admin bridge
+- Supreme import has been separated from admin invitation/access concepts
+- public pages remain projections of operational data
+- council dependency audit is clean at blocker/warn level
+- npm audit is expected to be clean after the dependency refresh
+- living docs have been updated to describe the current baseline
+
+The next major step is production deployment and full smoke testing.
+
+---
+
+## 3. Architecture baseline
+
+### 3.1 Identity spine
 
 ```text
 Supabase auth user
@@ -42,179 +67,159 @@ public.users
 people
 ```
 
-Operational ownership:
+A signed-in user is not automatically a local admin, member manager, event manager, or officer. Access must be resolved server-side.
+
+### 3.2 Operations spine
 
 ```text
-Organization
+person identity
         |
         v
-Local unit
+active organization/local-unit context
         |
         v
-Operational data
+effective access
+        |
+        v
+permissioned route or server action
 ```
 
-Public projection:
+### 3.3 Public projection spine
 
 ```text
-Operational data
+operations/settings data
         |
         v
-Public-safe view model
+public-safe view model
         |
         v
 /o/[slug]
 ```
 
-Council identity remains part of the product where the context is public identity, public URLs, council numbers, historical import data, or migration history.
+Public pages are not the system of record.
 
-## Architectural invariants
+---
 
-Future work should preserve these rules:
+## 4. Core product rules
 
-1. Operational ownership is organization/local-unit based.
-2. Server-side access checks are required for operations and mutations.
-3. Public pages are projections of operational truth.
-4. Council references must be classified before removal.
-5. New work should not deepen compatibility bridges.
-6. Supreme import and admin invitations are different product workflows.
-7. Public contact/registration should not automatically grant local-unit membership.
-8. GitHub issues are the canonical todo list.
-9. Historical handoffs are reference material, not active architecture.
-10. Vulnerable spreadsheet dependencies must not be reintroduced casually.
+Operational ownership:
 
-## Completed migration work
+```text
+organization_id
+local_unit_id
+```
 
-Recent work completed the main council-compatibility cleanup.
+Public or historical council identity may still use:
 
-Highlights:
+```text
+council_id
+council_number
+public council routes
+historical import references
+```
 
-- Supreme import no longer depends on the old people council bridge for operational ownership.
-- Admin invitation person-source logic was corrected away from Supreme import assumptions.
-- Permissions were cut away from the retired council-admin assignment bridge.
-- Retired council admin assignment tables were dropped.
-- Related sync triggers/functions were removed.
-- Homepage permissions fallback was removed.
-- Stale audit rules and obsolete compatibility scripts were pruned.
-- Generated schema artifacts were refreshed during the migration work.
-- Council dependency audit was brought to clean operational posture.
+Every remaining council reference should be classified as one of:
 
-Current council audit expectation:
+1. Product truth: keep it.
+2. Compatibility bridge: replace it when the local-unit-native seam is ready.
+3. Dead architecture: delete it.
+
+Do not remove a council reference simply because it exists.
+
+Do not add a new compatibility bridge unless the underlying local-unit-native seam is unavailable and the reason is documented.
+
+---
+
+## 5. Work completed in the recent cleanup
+
+### 5.1 Supreme import cleanup
+
+Supreme import is a manual spreadsheet upload and review workflow. It is not an admin invitation flow.
+
+Recent cleanup corrected assumptions around:
+
+- imported people source attribution
+- local-unit-native import behavior
+- separation between import review and organization/admin access
+- avoiding Supreme import as an implicit access path
+
+### 5.2 Permissions cleanup
+
+The permission stack was simplified away from the retired council admin assignment bridge.
+
+Going forward:
+
+- inspect `lib/auth/permissions.ts` first
+- inspect `lib/auth/acting-context.ts` for active context behavior
+- inspect `lib/auth/parallel-access-summary.ts` for access summary behavior
+- do not invent route-local access systems unless an issue documents why
+- server actions must re-check permissions
+
+### 5.3 Council admin bridge retirement
+
+The legacy council admin assignment bridge was removed from the live architecture.
+
+Do not reintroduce:
+
+- retired council admin assignment tables
+- old sync triggers
+- old compatibility fallbacks already cut
+- permission checks through retired council-era structures
+
+### 5.4 Homepage fallback cleanup
+
+The old homepage fallback through `permissions.councilId` was removed.
+
+### 5.5 Audit cleanup
+
+The council dependency audit should currently report:
 
 ```text
 BLOCKER: 0
 WARN:    0
+INFO:    1530
 ```
 
-INFO-level references remain because documentation, public identity, archived migrations, historical imports, and compatibility surfaces still contain intentional council language.
+INFO findings are expected to include documentation, historical migrations, import history, public identity, and intentional compatibility.
 
-## GitHub issue status
+### 5.6 Dependency refresh
 
-Completed or effectively completed during this cutover:
+Before deployment validation, the security dependency findings were addressed.
 
-- #6 Rework Supreme import and official-member workflow before final council-id RLS cut
-- #10 Plan legacy council-id table cleanup after app sweep
-- #15 Complete organization-first data model migration
+Completed:
 
-Still important:
+- removed vulnerable `xlsx` dependency
+- avoided ExcelJS because it introduced a vulnerable transitive dependency in the current audit context
+- added `read-excel-file` for spreadsheet import
+- added `write-excel-file` for spreadsheet export
+- upgraded Next to `16.2.10`
+- forced safe PostCSS resolution through package override
+- npm audit expected result: zero vulnerabilities
 
-- #103 Add local-unit readiness audit before deleting compatibility fallbacks
+Do not reintroduce `xlsx` without deliberate review.
 
-Issue #103 should be treated as the next broad architecture/readiness audit after production deployment and smoke testing.
+---
 
-Public page/refactoring issues still relevant:
+## 6. Important files
 
-- #78 Add Council Officers public page and profile management
-- #79 Public page refactoring follow-up polish
-- #80 Core application refactoring and optimization roadmap
-- #81 Public Officers feature (MVP) with reusable portrait positioning
-
-## Security and dependency cleanup
-
-The vulnerable `xlsx` dependency was removed.
-
-Current spreadsheet approach:
-
-- `read-excel-file` for spreadsheet import
-- `write-excel-file` for spreadsheet export
-
-Next.js was updated to `16.2.10`, and a PostCSS override forces `8.5.16`.
-
-Expected security check:
-
-```bash
-npm audit
-```
-
-Expected result:
+Architecture docs:
 
 ```text
-found 0 vulnerabilities
+README.md
+docs/ARCHITECTURE.md
+docs/OPERATIONS_ARCHITECTURE.md
+docs/PUBLIC_PAGES.md
+docs/CHRISM_PRINCIPLES.md
+docs/DEVELOPMENT.md
+docs/SUPABASE_WORKFLOW.md
 ```
 
-Do not reintroduce `xlsx` without a deliberate security review.
-
-## Current documentation map
-
-Living docs:
-
-- `README.md` - quick orientation and development workflow
-- `docs/ARCHITECTURE.md` - canonical high-level architecture reference
-- `docs/OPERATIONS_ARCHITECTURE.md` - authenticated operations and access architecture
-- `docs/PUBLIC_PAGES.md` - public page architecture and public/operations boundary
-- `docs/CHRISM_PRINCIPLES.md` - durable product and engineering principles
-- `docs/DEVELOPMENT.md` - seam workflow and working conventions
-- `docs/SUPABASE_WORKFLOW.md` - database migration and schema workflow
-
-Current handoff:
-
-- `docs/handoff/HANDOFF_2026-07-04_Parallel_Access_Cutover.md`
-
-Historical handoffs belong in:
-
-- `docs/archive/`
-
-## Current route model
-
-Public:
-
-```text
-/o/[slug]
-```
-
-Personal/member-facing:
-
-```text
-/me
-```
-
-Operations:
-
-```text
-/people
-/events
-/custom-lists
-/me/council
-/imports/supreme
-```
-
-Compatibility:
-
-```text
-/members
-```
-
-The `/me/council` route name remains council-flavored but should be treated as the current local organization settings surface.
-
-## Key code areas
-
-Architecture and access:
+Auth and access:
 
 ```text
 lib/auth/permissions.ts
 lib/auth/acting-context.ts
 lib/auth/parallel-access-summary.ts
-lib/organizations/
 app/app-header.tsx
 ```
 
@@ -237,73 +242,42 @@ app/o/[slug]/
 lib/local-pages/
 ```
 
-Database and generated schema:
+Database artifacts:
 
 ```text
 supabase/migrations/
 supabase/schema.sql
-lib/supabase/database.types.ts
+database.types.ts
 ```
 
-Audit:
+---
 
-```text
-scripts/audit-council-id-dependencies.mjs
-```
+## 7. GitHub issue status
 
-## Supreme import cautions
+Recently completed or substantially addressed:
 
-Supreme import is a manual spreadsheet workflow. It is not the admin invitation system.
+- #6 Rework Supreme import and official-member workflow before final council-id RLS cut
+- #10 Plan legacy council-id table cleanup after app sweep
+- #15 Complete organization-first data model migration
+- PRs #257 through #263 covering import cleanup, permissions cleanup, retired bridge cleanup, stale audit pruning, and homepage fallback cleanup
 
-Preserve this distinction:
+Still important:
 
-- Supreme import reviews and reconciles people/member data.
-- Admin invitations grant operational access.
-- Local-unit ownership should be explicit.
-- Import source codes should remain accurate.
-- Import review should not become an implicit admin-access path.
+- #103 Add local-unit readiness audit before deleting compatibility fallbacks
+- #78 Add Council Officers public page and profile management
+- #79 Public page refactoring follow-up polish
+- #80 Core application refactoring and optimization roadmap
+- #81 Public Officers feature MVP with reusable portrait positioning
 
-## Permission cautions
+GitHub issues are the todo list. Historical handoff documents are reference only.
 
-When touching permissions:
+---
 
-1. Start with `lib/auth/permissions.ts` and related helpers.
-2. Resolve active organization/local-unit context first.
-3. Keep mutation checks server-side.
-4. Avoid route-only permission logic.
-5. Do not revive retired council-admin assignment bridges.
-6. Do not infer current authority from public council identity.
+## 8. Deployment status
 
-## Public page cautions
+The architecture/security cleanup is ready for production validation, but the production smoke test still needs to happen after deployment.
 
-Public pages should show only public-safe data.
-
-They may show:
-
-- public organization profile
-- public council identity where appropriate
-- public events
-- public contact options
-- public gallery images
-- public leadership/officer display
-- external links
-
-They should not show:
-
-- private member details
-- internal planning state
-- unresolved import state
-- raw access grants
-- admin review queues
-- local-unit relationships that are not meant for visitors
-
-Public pages start visitor conversations. Operations owns follow-up.
-
-## Deployment status
-
-At the time of this handoff, production smoke testing still needs to happen after deployment.
-
-Before deployment, run:
+Before deployment or before accepting production fixes, run:
 
 ```bash
 npm run lint
@@ -315,92 +289,118 @@ npm audit
 
 Expected:
 
-- lint passes
-- typecheck passes
-- verify passes
-- council audit shows BLOCKER 0 / WARN 0
-- npm audit reports 0 vulnerabilities
+```text
+Council audit BLOCKER: 0
+Council audit WARN: 0
+npm audit: 0 vulnerabilities
+```
 
-## Smoke test checklist
+---
 
-Authentication:
+## 9. Smoke test checklist
+
+### 9.1 Authentication and personal area
 
 - login
 - logout
 - session persistence
-- redirect behavior for unauthenticated users
+- `/me`
+- profile state
+- organization/account status
 
-Personal area:
+### 9.2 Operations
 
-- `/me` loads for signed-in user
-- profile/account status appears correctly
-- RSVP history does not error
+- `/people` loads for an authorized user
+- people search/filter/sort works
+- people export works with the new spreadsheet export library
+- `/imports/supreme` accepts CSV/XLSX as intended
+- Supreme import review does not grant admin access
+- `/events` loads and respects permissions
+- `/custom-lists` loads and respects permissions
+- `/me/council` loads local organization settings for authorized users
+- admin invitation workflow remains separate from Supreme import
 
-Operations:
+### 9.3 Public pages
 
-- `/people` loads for authorized user
-- people search/filter works
-- people export works with new spreadsheet dependency
-- `/events` loads
-- event visibility/public projection behaves correctly
-- `/custom-lists` loads
-- `/me/council` loads for authorized admin
-- unauthorized users cannot access admin surfaces
-
-Supreme import:
-
-- CSV import still works
-- XLSX import works with `read-excel-file`
-- review flow loads
-- import does not grant admin access
-
-Public pages:
-
-- known `/o/[slug]` loads
-- hero content renders
-- public events render only public-safe events
-- gallery works empty and populated
+- `/o/[slug]` loads for a known public page
+- public events show only public-safe data
+- gallery empty and populated states work
 - contact/get-involved form opens and submits
-- private member data is not exposed
+- no private member data appears publicly
+- public council identity appears only where intended
 
-Security/architecture:
+### 9.4 Access boundaries
+
+- non-admin users cannot access admin-only operations
+- server actions reject unauthorized mutations
+- super admin behavior does not mask normal-user permission bugs
+
+### 9.5 Dependencies
 
 - npm audit remains clean
-- council dependency audit remains BLOCKER 0 / WARN 0
-- server actions reject out-of-scope mutations
+- no `xlsx` dependency is present
+- spreadsheet import/export still works
 
-## Known risks after cutover
+---
 
-- Some route names and UI copy remain council-flavored while architecture is broader.
-- `/me/council` is still the settings surface name even though the concept is local organization settings.
-- Remaining INFO-level council references require ongoing discipline.
-- Production deployment may reveal assumptions not covered by local checks.
-- Public/officer feature work is not complete.
-- Smoke testing has not yet been completed after this documentation refresh.
+## 10. Hidden factors to watch
 
-## Recommended next work
+### 10.1 Route names lag behind architecture
 
-1. Deploy to Vercel.
-2. Run the smoke test checklist above.
-3. Fix real regressions or production blockers first.
-4. Update #103 with deployment findings.
-5. Use #103 to audit remaining compatibility references.
-6. Resume feature work after the core surfaces are verified.
+`/me/council` is still council-flavored, but the surface is becoming local organization settings. Do not infer operational architecture from the route name alone.
 
-## Guidance for the next helper
+### 10.2 Public identity is not operational authority
 
-Do not start by renaming things.
+Council identity can remain correct on public pages while being wrong as an operational permission source.
 
-Start by classifying ownership:
+### 10.3 Super admin can hide bugs
 
-```text
-Is this operational truth?
-Is this public identity?
-Is this compatibility?
-Is this historical?
-Is this dead architecture?
-```
+A workflow that works for a super admin may still fail for a real local admin. Always smoke test with realistic permission levels where possible.
 
-Then inspect existing helpers before writing new logic.
+### 10.4 Imports and invitations are separate
 
-Chrism is not trying to erase councils. Chrism is separating public council identity from operational authority so the product can support councils well and still grow beyond council-only assumptions.
+Supreme import manages people/member data from a spreadsheet. Admin invitations grant operational access. Do not merge their mental models.
+
+### 10.5 Compatibility code attracts regressions
+
+Old bridge concepts can look convenient during a fix. Avoid that convenience unless the bridge is still intentionally active.
+
+### 10.6 Public pages should not become a second CMS
+
+If public content needs better management, improve the operations/settings source of truth rather than creating public-only duplicated state.
+
+---
+
+## 11. Recommended next work
+
+1. Merge the documentation refresh.
+2. Deploy to Vercel.
+3. Run the smoke test checklist above.
+4. Fix production-impacting regressions only.
+5. Use issue #103 for a deliberate local-unit readiness audit after deployment validation.
+6. Resume feature work such as public officers/profile management only after the smoke test is stable.
+
+---
+
+## 12. Instructions for the next helper
+
+Start by reading:
+
+1. `README.md`
+2. `docs/ARCHITECTURE.md`
+3. `docs/OPERATIONS_ARCHITECTURE.md`
+4. `docs/PUBLIC_PAGES.md`
+5. this handoff
+
+Then inspect the relevant GitHub issue before changing code.
+
+Rules:
+
+- classify old council-shaped code before changing it
+- keep public page council identity separate from operations authority
+- keep admin invitations and Supreme imports separate
+- use server-side permission checks
+- do not reintroduce `xlsx`
+- work one seam at a time
+- keep commits reversible
+- update docs or issues when a seam changes architecture
