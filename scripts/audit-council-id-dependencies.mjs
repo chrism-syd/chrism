@@ -102,12 +102,6 @@ const patterns = [
     note: 'people.council_id is a migration target. New membership scope should use local-unit relationships.',
   },
   {
-    id: 'council-admin-assignments-reference',
-    severity: 'WARN',
-    regex: /\bcouncil_admin_assignments\b/g,
-    note: 'council_admin_assignments is a migration target; prefer organization/local-unit admin assignment paths.',
-  },
-  {
     id: 'supreme-import-created-source',
     severity: 'WARN',
     regex: /created_source_code:\s*['"]supreme_import['"]|created_source_code\s*=\s*['"]supreme_import['"]/g,
