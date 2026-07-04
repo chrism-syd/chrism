@@ -1,12 +1,14 @@
 # Chrism operations architecture
 
-This document describes the authenticated operations side of Chrism: the permission-aware work surfaces for administrators, leaders, officers, and signed-in participants.
+This document is the living reference for Chrism's authenticated operations side.
 
-Public pages are visitor-facing projections. Operations pages are where durable organizational work happens.
+Operations pages are permission-aware working surfaces for administrators, leaders, officers, volunteers, and signed-in participants. Public pages are visitor-facing projections. Operations pages are where durable organizational work happens.
 
-## Current baseline
+---
 
-Chrism operations are now organization-first and local-unit-aware.
+## 1. Current baseline
+
+Chrism operations are organization-first and local-unit-aware.
 
 Operational ownership is:
 
@@ -15,9 +17,13 @@ organization_id
 local_unit_id
 ```
 
-Council identity remains meaningful for Knights of Columbus public identity, council numbers, and historical compatibility. It is not the universal operational authority model.
+These identifiers define the active work context for authenticated surfaces such as people, events, custom lists, imports, settings, admin invitations, and public profile management.
 
-## Purpose
+Council identity remains meaningful for Knights of Columbus public identity, council numbers, historical imports, and compatibility. It is not the universal operational authority model.
+
+---
+
+## 2. Purpose
 
 The operations side helps local organizations manage:
 
@@ -28,7 +34,8 @@ The operations side helps local organizations manage:
 - public profile/settings
 - admin invitations
 - Supreme import review
-- continuity between volunteers and leaders
+- leadership continuity
+- public-page readiness
 
 Current strongest use case:
 
@@ -44,7 +51,9 @@ Long-term supported shapes:
 - volunteer organizations
 - other local units that need administration and public presence
 
-## Authority model
+---
+
+## 3. Authority model
 
 Operations authority should resolve through the existing access stack.
 
@@ -71,7 +80,9 @@ server-rendered page or protected mutation
 
 Do not build new route-specific permission models unless there is a clear product reason and a GitHub issue documents it.
 
-## Active operations scope
+---
+
+## 4. Active operations scope
 
 A signed-in person may have access to more than one local unit.
 
@@ -89,17 +100,19 @@ app/me/
 
 The app may still expose council-flavored labels in current Knights workflows, but the authority decision should be local-unit/organization based.
 
-## Access sources
+---
+
+## 5. Access sources
 
 Access may come from several sources.
 
-### Organization administration
+### 5.1 Organization administration
 
 Organization admin assignments are canonical for organization-scoped admin authority.
 
 Legacy council admin assignment tables have been retired. Do not recreate or query that bridge for new work.
 
-### Local-unit access grants
+### 5.2 Local-unit access grants
 
 Local-unit access defines what a person can do in a specific operating unit.
 
@@ -110,28 +123,33 @@ Examples:
 - custom-list access
 - admin management
 - settings/profile management
+- import review access
 
-### Area access grants
+### 5.3 Area access grants
 
 Area access grants define permission by work area and access level.
 
 Use existing effective-access helpers instead of hand-checking raw tables wherever possible.
 
-### Officer-derived access
+### 5.4 Officer-derived access
 
 Some officer roles can imply management capabilities.
 
 This should remain explicit, audited, and resolved through helper logic. Do not assume every officer can manage every area.
 
-### Super admin acting mode
+### 5.5 Super admin acting mode
 
-Super admin behavior is a support/maintenance surface, not the normal product model.
+Super admin behavior is a support and maintenance surface, not the normal product model.
 
 Super admin tools should avoid becoming hidden dependencies for ordinary operations. Where super admin needs to act in a local unit, it should still resolve an active local-unit context.
 
-## Major operations surfaces
+Super admin smoke tests are not enough. Test ordinary local admin access before treating a workflow as production-ready.
 
-### `/me`
+---
+
+## 6. Major operations surfaces
+
+### 6.1 `/me`
 
 Personal and organization-aware member area.
 
@@ -145,7 +163,7 @@ Responsibilities include:
 
 This area is user-centered. It answers: what can this signed-in person do and see?
 
-### `/me/council`
+### 6.2 `/me/council`
 
 Current local organization management surface.
 
@@ -164,7 +182,7 @@ Responsibilities include:
 
 Information that describes the organization itself belongs here, not inside a narrow public-page-only silo.
 
-### `/people`
+### 6.3 `/people`
 
 Directory and people-management surface.
 
@@ -185,7 +203,7 @@ When adding work here, avoid assuming every person record is a formal member unl
 
 Legacy `/members` routes remain compatibility routes.
 
-### `/events`
+### 6.4 `/events`
 
 Event planning and RSVP/volunteer coordination surface.
 
@@ -201,7 +219,7 @@ Responsibilities include:
 
 Events are operational first. Public event display is a projection of selected event data.
 
-### `/custom-lists`
+### 6.5 `/custom-lists`
 
 Outreach, follow-up, and planning lists.
 
@@ -214,7 +232,7 @@ Responsibilities include:
 
 Custom lists should respect organization context and role-aware access.
 
-### `/imports/supreme`
+### 6.6 `/imports/supreme`
 
 Manual Supreme spreadsheet import and review surface.
 
@@ -232,7 +250,9 @@ Current expectations:
 - created people should use the correct source code
 - import should not become an implicit admin-access path
 
-## Public pages vs operations pages
+---
+
+## 7. Public pages vs operations pages
 
 Public pages are for visitors. They should be polished, readable without context, mostly server-rendered, theme-aware, and safe to expose publicly.
 
@@ -240,7 +260,9 @@ Operations pages are for signed-in users doing work. They must be permission-awa
 
 Operations pages may expose review queues, admin controls, internal state, and warnings that would not belong on a public page.
 
-## Data loading pattern
+---
+
+## 8. Data loading pattern
 
 Operations pages often need richer data than public pages.
 
@@ -267,7 +289,9 @@ mutate through server actions
 
 Avoid duplicating organization-loading and access-checking logic in every route. If a pattern appears more than twice, consider a helper.
 
-## Mutation pattern
+---
+
+## 9. Mutation pattern
 
 Server actions should be explicit and defensive.
 
@@ -289,7 +313,9 @@ Avoid:
 - relying on legacy council compatibility to infer operational ownership
 - creating broad service-role paths without a narrow product reason
 
-## Settings philosophy
+---
+
+## 10. Settings philosophy
 
 The settings area is the source of truth for local organization profile data.
 
@@ -306,7 +332,9 @@ Examples of organization/local-unit-owned data:
 
 Public pages consume this data. They should not become a separate website-builder state silo.
 
-## Events philosophy
+---
+
+## 11. Events philosophy
 
 Events are operational first.
 
@@ -323,7 +351,9 @@ An event may have:
 
 Public event display is a projection. Operations pages remain the source of truth.
 
-## People philosophy
+---
+
+## 12. People philosophy
 
 The product is broader than a strict member directory.
 
@@ -336,7 +366,9 @@ Important rules:
 - Do not connect public registration directly to local-unit membership without explicit review or invite context.
 - Prefer durable identity and local-unit relationships over duplicating people rows.
 
-## Compatibility philosophy
+---
+
+## 13. Compatibility philosophy
 
 Council compatibility can exist, but it should be classified.
 
@@ -361,7 +393,9 @@ Delete:
 - dead bridge tables
 - old compatibility checks after their seam is cut
 
-## UI and styling conventions
+---
+
+## 14. UI and styling conventions
 
 Operations pages should prioritize:
 
@@ -375,7 +409,9 @@ Operations pages should prioritize:
 
 Public-page polish should not be forced onto operational tools where it makes work slower.
 
-## Technical debt to watch
+---
+
+## 15. Technical debt to watch
 
 Current watch list:
 
@@ -388,7 +424,9 @@ Current watch list:
 
 These are tracked at a high level in GitHub issue #80 and by more specific feature issues.
 
-## Recommended approach for new operations seams
+---
+
+## 16. Recommended approach for new operations seams
 
 1. Start from the active GitHub issue.
 2. Identify local-unit and organization ownership first.
@@ -399,7 +437,9 @@ These are tracked at a high level in GitHub issue #80 and by more specific featu
 7. Refactor the seam before moving on.
 8. Update docs or issues at the end.
 
-## Verification baseline
+---
+
+## 17. Verification baseline
 
 Before deploying or merging architecture-sensitive operations work:
 
@@ -418,7 +458,9 @@ BLOCKER: 0
 WARN:    0
 ```
 
-## Read next
+---
+
+## 18. Read next
 
 - `docs/ARCHITECTURE.md`
 - `docs/PUBLIC_PAGES.md`
