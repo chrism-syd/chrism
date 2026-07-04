@@ -67,7 +67,6 @@ const intentionalLegacyBridgeFiles = new Set([
   'app/super-admin/organization-claims/actions.ts',
   'app/super-admin/organization-claims/page.tsx',
   'lib/auth/permissions.ts',
-  'lib/profile-change-reviews.ts',
   'lib/rsvp/claim.ts',
   'lib/rsvp/person-rsvp.ts',
 ])
