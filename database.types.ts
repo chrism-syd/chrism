@@ -9,48 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      _archive_council_admin_assignments: {
-        Row: {
-          council_id: string | null
-          created_at: string | null
-          created_by_user_id: string | null
-          grantee_email: string | null
-          id: string | null
-          is_active: boolean | null
-          notes: string | null
-          person_id: string | null
-          updated_at: string | null
-          updated_by_user_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          council_id?: string | null
-          created_at?: string | null
-          created_by_user_id?: string | null
-          grantee_email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          notes?: string | null
-          person_id?: string | null
-          updated_at?: string | null
-          updated_by_user_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          council_id?: string | null
-          created_at?: string | null
-          created_by_user_id?: string | null
-          grantee_email?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          notes?: string | null
-          person_id?: string | null
-          updated_at?: string | null
-          updated_by_user_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       _archive_custom_list_access: {
         Row: {
           created_at: string | null
@@ -445,84 +403,6 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
-      }
-      council_admin_assignments: {
-        Row: {
-          council_id: string
-          created_at: string
-          created_by_user_id: string | null
-          grantee_email: string | null
-          id: string
-          is_active: boolean
-          notes: string | null
-          person_id: string | null
-          updated_at: string
-          updated_by_user_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          council_id: string
-          created_at?: string
-          created_by_user_id?: string | null
-          grantee_email?: string | null
-          id?: string
-          is_active?: boolean
-          notes?: string | null
-          person_id?: string | null
-          updated_at?: string
-          updated_by_user_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          council_id?: string
-          created_at?: string
-          created_by_user_id?: string | null
-          grantee_email?: string | null
-          id?: string
-          is_active?: boolean
-          notes?: string | null
-          person_id?: string | null
-          updated_at?: string
-          updated_by_user_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "council_admin_assignments_council_id_fkey"
-            columns: ["council_id"]
-            isOneToOne: false
-            referencedRelation: "councils"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "council_admin_assignments_created_by_user_id_fkey"
-            columns: ["created_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "council_admin_assignments_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "council_admin_assignments_updated_by_user_id_fkey"
-            columns: ["updated_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "council_admin_assignments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       council_reengagement_status_types: {
         Row: {
@@ -6389,14 +6269,6 @@ export type Database = {
           p_target_user_id: string
         }
         Returns: number
-      }
-      sync_organization_admin_assignment_from_council_admin_assignmen: {
-        Args: { p_council_assignment_id: string }
-        Returns: undefined
-      }
-      sync_parallel_admin_package_from_council_admin_assignment: {
-        Args: { p_assignment_id: string }
-        Returns: undefined
       }
       sync_parallel_admin_package_from_org_admin_assignment: {
         Args: { p_assignment_id: string }

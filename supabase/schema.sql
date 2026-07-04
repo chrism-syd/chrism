@@ -3537,168 +3537,6 @@ $$;
 ALTER FUNCTION "public"."sync_local_unit_id_from_legacy_council"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-declare
-  v_assignment public.council_admin_assignments%rowtype;
-  v_organization_id uuid;
-  v_existing_id uuid;
-  v_normalized_email text;
-begin
-  select *
-    into v_assignment
-  from public.council_admin_assignments
-  where id = p_council_assignment_id
-  limit 1;
-
-  if not found or coalesce(v_assignment.is_active, false) = false then
-    return;
-  end if;
-
-  select organization_id
-    into v_organization_id
-  from public.councils
-  where id = v_assignment.council_id
-  limit 1;
-
-  if v_organization_id is null then
-    return;
-  end if;
-
-  v_normalized_email := nullif(lower(btrim(coalesce(v_assignment.grantee_email, ''))), '');
-
-  if v_assignment.person_id is not null then
-    select id
-      into v_existing_id
-    from public.organization_admin_assignments
-    where organization_id = v_organization_id
-      and is_active = true
-      and person_id = v_assignment.person_id
-    limit 1;
-  end if;
-
-  if v_existing_id is null and v_assignment.user_id is not null then
-    select id
-      into v_existing_id
-    from public.organization_admin_assignments
-    where organization_id = v_organization_id
-      and is_active = true
-      and user_id = v_assignment.user_id
-    limit 1;
-  end if;
-
-  if v_existing_id is null and v_normalized_email is not null then
-    select id
-      into v_existing_id
-    from public.organization_admin_assignments
-    where organization_id = v_organization_id
-      and is_active = true
-      and nullif(lower(btrim(coalesce(grantee_email, ''))), '') = v_normalized_email
-    limit 1;
-  end if;
-
-  if v_existing_id is not null then
-    update public.organization_admin_assignments
-    set
-      person_id = coalesce(public.organization_admin_assignments.person_id, v_assignment.person_id),
-      user_id = coalesce(public.organization_admin_assignments.user_id, v_assignment.user_id),
-      grantee_email = coalesce(nullif(btrim(public.organization_admin_assignments.grantee_email), ''), v_normalized_email),
-      is_active = true,
-      updated_at = now(),
-      updated_by_user_id = coalesce(v_assignment.updated_by_user_id, public.organization_admin_assignments.updated_by_user_id)
-    where id = v_existing_id;
-  else
-    insert into public.organization_admin_assignments (
-      organization_id,
-      person_id,
-      user_id,
-      grantee_email,
-      is_active,
-      created_at,
-      updated_at,
-      created_by_user_id,
-      updated_by_user_id
-    )
-    values (
-      v_organization_id,
-      v_assignment.person_id,
-      v_assignment.user_id,
-      v_normalized_email,
-      true,
-      coalesce(v_assignment.created_at, now()),
-      now(),
-      v_assignment.created_by_user_id,
-      coalesce(v_assignment.updated_by_user_id, v_assignment.created_by_user_id)
-    );
-  end if;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") IS 'Internal legacy organization-admin sync helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'app', 'pg_temp'
-    AS $$
-declare
-  v_row public.council_admin_assignments%rowtype;
-  v_local_unit_id uuid;
-  v_member_record_id uuid;
-begin
-  select * into v_row
-  from public.council_admin_assignments
-  where id = p_assignment_id;
-
-  if not found or v_row.person_id is null then
-    return;
-  end if;
-
-  select lu.id
-    into v_local_unit_id
-  from public.local_units lu
-  where lu.legacy_council_id = v_row.council_id
-  limit 1;
-
-  if v_local_unit_id is null then
-    return;
-  end if;
-
-  v_member_record_id := public.ensure_member_record_for_person_local_unit(v_local_unit_id, v_row.person_id);
-
-  if v_row.user_id is not null and v_member_record_id is not null then
-    perform public.ensure_user_unit_relationship_for_user_member(
-      v_row.user_id,
-      v_local_unit_id,
-      v_member_record_id,
-      coalesce(v_row.is_active, false)
-    );
-  end if;
-
-  if v_member_record_id is not null then
-    perform public.upsert_parallel_admin_package_for_member(
-      v_local_unit_id,
-      v_member_record_id,
-      'system'::public.grant_source_code,
-      coalesce(v_row.is_active, false),
-      v_row.created_at,
-      v_row.updated_at
-    );
-  end if;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignment"("p_assignment_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."sync_parallel_admin_package_from_org_admin_assignment"("p_assignment_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'app', 'pg_temp'
@@ -3914,38 +3752,6 @@ COMMENT ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_rec
 
 
 
-CREATE OR REPLACE FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-begin
-  perform public.sync_organization_admin_assignment_from_council_admin_assignment(new.id);
-  return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() IS 'Internal trigger helper. Direct anon/authenticated RPC execution revoked during MVP security hardening.';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'app', 'pg_temp'
-    AS $$
-begin
-  perform public.sync_parallel_admin_package_from_council_admin_assignment(new.id);
-  return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."trg_sync_parallel_admin_package_from_org_admin_assignment"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'app', 'pg_temp'
@@ -4156,24 +3962,6 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
-CREATE TABLE IF NOT EXISTS "public"."_archive_council_admin_assignments" (
-    "id" "uuid",
-    "council_id" "uuid",
-    "user_id" "uuid",
-    "person_id" "uuid",
-    "grantee_email" "text",
-    "is_active" boolean,
-    "notes" "text",
-    "created_by_user_id" "uuid",
-    "updated_by_user_id" "uuid",
-    "created_at" timestamp with time zone,
-    "updated_at" timestamp with time zone
-);
-
-
-ALTER TABLE "public"."_archive_council_admin_assignments" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."_archive_custom_list_access" (
     "id" "uuid",
     "custom_list_id" "uuid",
@@ -4351,29 +4139,6 @@ CREATE TABLE IF NOT EXISTS "public"."council_activity_level_types" (
 
 
 ALTER TABLE "public"."council_activity_level_types" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."council_admin_assignments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "council_id" "uuid" NOT NULL,
-    "user_id" "uuid",
-    "person_id" "uuid",
-    "grantee_email" "text",
-    "is_active" boolean DEFAULT true NOT NULL,
-    "notes" "text",
-    "created_by_user_id" "uuid",
-    "updated_by_user_id" "uuid",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "council_admin_assignments_target_check" CHECK ((("user_id" IS NOT NULL) OR ("person_id" IS NOT NULL) OR ("grantee_email" IS NOT NULL)))
-);
-
-
-ALTER TABLE "public"."council_admin_assignments" OWNER TO "postgres";
-
-
-COMMENT ON TABLE "public"."council_admin_assignments" IS 'LEGACY COMPATIBILITY TABLE. Authority decisions should use area_access_grants / v_effective_area_access. Transitional sync input only.';
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."council_reengagement_status_types" (
@@ -6748,11 +6513,6 @@ ALTER TABLE ONLY "public"."council_activity_level_types"
 
 
 
-ALTER TABLE ONLY "public"."council_admin_assignments"
-    ADD CONSTRAINT "council_admin_assignments_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."council_reengagement_status_types"
     ADD CONSTRAINT "council_reengagement_status_types_pkey" PRIMARY KEY ("code");
 
@@ -7408,18 +7168,6 @@ CREATE INDEX "audit_log_council_created_idx" ON "public"."audit_log" USING "btre
 
 
 CREATE INDEX "audit_log_entity_idx" ON "public"."audit_log" USING "btree" ("entity_table", "entity_id", "created_at" DESC);
-
-
-
-CREATE UNIQUE INDEX "council_admin_assignments_council_email_uidx" ON "public"."council_admin_assignments" USING "btree" ("council_id", "lower"("grantee_email")) WHERE ("grantee_email" IS NOT NULL);
-
-
-
-CREATE UNIQUE INDEX "council_admin_assignments_council_person_uidx" ON "public"."council_admin_assignments" USING "btree" ("council_id", "person_id") WHERE ("person_id" IS NOT NULL);
-
-
-
-CREATE UNIQUE INDEX "council_admin_assignments_council_user_uidx" ON "public"."council_admin_assignments" USING "btree" ("council_id", "user_id") WHERE ("user_id" IS NOT NULL);
 
 
 
@@ -8139,18 +7887,6 @@ CREATE OR REPLACE TRIGGER "brand_profiles_set_updated_at" BEFORE UPDATE ON "publ
 
 
 
-CREATE OR REPLACE TRIGGER "council_admin_assignments_sync_org_admin" AFTER INSERT OR UPDATE ON "public"."council_admin_assignments" FOR EACH ROW EXECUTE FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"();
-
-
-
-CREATE OR REPLACE TRIGGER "council_admin_assignments_sync_parallel_admin_package" AFTER INSERT OR UPDATE ON "public"."council_admin_assignments" FOR EACH ROW EXECUTE FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"();
-
-
-
-COMMENT ON TRIGGER "council_admin_assignments_sync_parallel_admin_package" ON "public"."council_admin_assignments" IS 'DEPRECATED COMPATIBILITY BRIDGE. Legacy writes should be blocked; retained only for emergency/manual admin use.';
-
-
-
 CREATE OR REPLACE TRIGGER "councils_set_updated_at" BEFORE UPDATE ON "public"."councils" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
@@ -8346,31 +8082,6 @@ ALTER TABLE ONLY "public"."catechism_topics"
 
 ALTER TABLE ONLY "public"."catechism_topics"
     ADD CONSTRAINT "catechism_topics_topic_id_fkey" FOREIGN KEY ("topic_id") REFERENCES "public"."spiritual_topics"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."council_admin_assignments"
-    ADD CONSTRAINT "council_admin_assignments_council_id_fkey" FOREIGN KEY ("council_id") REFERENCES "public"."councils"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."council_admin_assignments"
-    ADD CONSTRAINT "council_admin_assignments_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."users"("id");
-
-
-
-ALTER TABLE ONLY "public"."council_admin_assignments"
-    ADD CONSTRAINT "council_admin_assignments_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."council_admin_assignments"
-    ADD CONSTRAINT "council_admin_assignments_updated_by_user_id_fkey" FOREIGN KEY ("updated_by_user_id") REFERENCES "public"."users"("id");
-
-
-
-ALTER TABLE ONLY "public"."council_admin_assignments"
-    ADD CONSTRAINT "council_admin_assignments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -9644,51 +9355,6 @@ ALTER TABLE "public"."council_activity_context_types" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."council_activity_level_types" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."council_admin_assignments" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "council_admin_assignments_delete_admin_only" ON "public"."council_admin_assignments" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."local_units" "lu"
-  WHERE (("lu"."legacy_council_id" = "council_admin_assignments"."council_id") AND "public"."auth_has_area_access"("lu"."id", 'admins'::"public"."member_area_code", 'manage'::"public"."area_access_level")))));
-
-
-
-CREATE POLICY "council_admin_assignments_insert_admin_only" ON "public"."council_admin_assignments" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."local_units" "lu"
-  WHERE (("lu"."legacy_council_id" = "council_admin_assignments"."council_id") AND "public"."auth_has_area_access"("lu"."id", 'admins'::"public"."member_area_code", 'manage'::"public"."area_access_level")))));
-
-
-
-CREATE POLICY "council_admin_assignments_legacy_delete_block" ON "public"."council_admin_assignments" FOR DELETE TO "authenticated" USING (false);
-
-
-
-CREATE POLICY "council_admin_assignments_legacy_insert_block" ON "public"."council_admin_assignments" FOR INSERT TO "authenticated" WITH CHECK (false);
-
-
-
-CREATE POLICY "council_admin_assignments_legacy_read" ON "public"."council_admin_assignments" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "council_admin_assignments_legacy_update_block" ON "public"."council_admin_assignments" FOR UPDATE TO "authenticated" USING (false) WITH CHECK (false);
-
-
-
-CREATE POLICY "council_admin_assignments_select_same_council" ON "public"."council_admin_assignments" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."local_units" "lu"
-  WHERE (("lu"."legacy_council_id" = "council_admin_assignments"."council_id") AND "public"."auth_has_area_access"("lu"."id", 'admins'::"public"."member_area_code", 'manage'::"public"."area_access_level")))));
-
-
-
-CREATE POLICY "council_admin_assignments_update_admin_only" ON "public"."council_admin_assignments" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."local_units" "lu"
-  WHERE (("lu"."legacy_council_id" = "council_admin_assignments"."council_id") AND "public"."auth_has_area_access"("lu"."id", 'admins'::"public"."member_area_code", 'manage'::"public"."area_access_level"))))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."local_units" "lu"
-  WHERE (("lu"."legacy_council_id" = "council_admin_assignments"."council_id") AND "public"."auth_has_area_access"("lu"."id", 'admins'::"public"."member_area_code", 'manage'::"public"."area_access_level")))));
-
 
 
 ALTER TABLE "public"."council_reengagement_status_types" ENABLE ROW LEVEL SECURITY;
@@ -11223,17 +10889,6 @@ GRANT ALL ON FUNCTION "public"."sync_local_unit_id_from_legacy_council"() TO "se
 
 
 
-REVOKE ALL ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."sync_organization_admin_assignment_from_council_admin_assignmen"("p_council_assignment_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignment"("p_assignment_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignment"("p_assignment_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."sync_parallel_admin_package_from_council_admin_assignment"("p_assignment_id" "uuid") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."sync_parallel_admin_package_from_org_admin_assignment"("p_assignment_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."sync_parallel_admin_package_from_org_admin_assignment"("p_assignment_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."sync_parallel_admin_package_from_org_admin_assignment"("p_assignment_id" "uuid") TO "service_role";
@@ -11248,17 +10903,6 @@ GRANT ALL ON FUNCTION "public"."sync_parallel_area_grants_from_org_admin_assignm
 
 REVOKE ALL ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."sync_user_unit_relationship_status_from_member_record"() TO "service_role";
-
-
-
-REVOKE ALL ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."trg_sync_org_admin_from_council_admin_assignment"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() TO "anon";
-GRANT ALL ON FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."trg_sync_parallel_admin_package_from_council_admin_assignment"() TO "service_role";
 
 
 
@@ -11322,12 +10966,6 @@ GRANT ALL ON FUNCTION "public"."user_is_council_admin"("target_council_id" "uuid
 
 
 
-
-
-
-GRANT ALL ON TABLE "public"."_archive_council_admin_assignments" TO "anon";
-GRANT ALL ON TABLE "public"."_archive_council_admin_assignments" TO "authenticated";
-GRANT ALL ON TABLE "public"."_archive_council_admin_assignments" TO "service_role";
 
 
 
@@ -11400,12 +11038,6 @@ GRANT ALL ON TABLE "public"."council_activity_context_types" TO "service_role";
 GRANT ALL ON TABLE "public"."council_activity_level_types" TO "anon";
 GRANT ALL ON TABLE "public"."council_activity_level_types" TO "authenticated";
 GRANT ALL ON TABLE "public"."council_activity_level_types" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."council_admin_assignments" TO "anon";
-GRANT ALL ON TABLE "public"."council_admin_assignments" TO "authenticated";
-GRANT ALL ON TABLE "public"."council_admin_assignments" TO "service_role";
 
 
 
