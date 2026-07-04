@@ -207,8 +207,23 @@ export default function PeopleList({ people, currentOfficerLabelsById = {}, exec
       for (const option of selectedColumnOptions) baseRow[option.label] = getColumnValue(person, option.key)
       return baseRow
     })
-    const XLSX = await import('xlsx'); const worksheet = XLSX.utils.json_to_sheet(exportRows); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, 'People')
-    const today = new Date().toISOString().slice(0, 10); XLSX.writeFile(workbook, `${fileSafe(`${filePrefix}-${today}`)}.xlsx`)
+    const writeXlsxFile = (await import('write-excel-file')).default
+    const headers = Object.keys(exportRows[0] ?? {})
+    const data = [
+      headers.map((header) => ({ value: header, fontWeight: 'bold' as const })),
+      ...exportRows.map((row) => headers.map((header) => ({ value: row[header] ?? '' }))),
+    ]
+    const blob = await writeXlsxFile(data, {
+      sheet: 'People',
+      buffer: false,
+    })
+    const today = new Date().toISOString().slice(0, 10)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${fileSafe(`${filePrefix}-${today}`)}.xlsx`
+    link.click()
+    URL.revokeObjectURL(url)
     setNotice({ tone: 'success', text: `Exported ${exportRows.length} ${scopeLabel} to Excel.` })
   }
   async function copyEmailsFromPeople(list: PersonListItem[], scopeLabel: string) {
