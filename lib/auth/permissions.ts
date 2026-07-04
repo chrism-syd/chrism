@@ -93,7 +93,6 @@ type OrganizationProfileRow = {
 }
 
 type OfficerRoleEmailRow = {
-  council_id: string | null
   local_unit_id: string | null
   office_scope_code: string
   office_code: string
@@ -102,7 +101,6 @@ type OfficerRoleEmailRow = {
 
 type OfficerEmailTermRow = {
   person_id: string
-  council_id: string | null
   local_unit_id: string | null
   office_scope_code: string
   office_code: string
@@ -705,12 +703,10 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const currentYear = new Date().getFullYear()
 
   let derivedOfficerEmailPersonId: string | null = null
-  let derivedOfficerEmailCouncilId: string | null = null
-
   if (normalizedEmail) {
     const { data: officerRoleEmailData } = await admin
       .from('officer_role_emails')
-      .select('council_id, local_unit_id, office_scope_code, office_code, office_rank')
+      .select('local_unit_id, office_scope_code, office_code, office_rank')
       .eq('is_active', true)
       .eq('login_enabled', true)
       .ilike('email', normalizedEmail)
@@ -722,28 +718,20 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       const localUnitIds = [
         ...new Set(officerRoleEmails.map((row) => row.local_unit_id).filter((id): id is string => Boolean(id))),
       ]
-      const legacyCouncilIds = [
-        ...new Set(officerRoleEmails.map((row) => row.council_id).filter((id): id is string => Boolean(id))),
-      ]
-
-      const officerTermQuery = admin
-        .from('person_officer_terms')
-        .select('person_id, council_id, local_unit_id, office_scope_code, office_code, office_rank, service_end_year')
-        .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
-        .limit(50)
-
-      const { data: officerTermData } =
-        localUnitIds.length > 0
-          ? await officerTermQuery.in('local_unit_id', localUnitIds)
-          : await officerTermQuery.in('council_id', legacyCouncilIds)
+      const { data: officerTermData } = localUnitIds.length > 0
+        ? await admin
+            .from('person_officer_terms')
+            .select('person_id, local_unit_id, office_scope_code, office_code, office_rank, service_end_year')
+            .in('local_unit_id', localUnitIds)
+            .or(`service_end_year.is.null,service_end_year.gte.${currentYear}`)
+            .limit(50)
+        : { data: [] as OfficerEmailTermRow[] | null }
 
       const officerTerms = (officerTermData as OfficerEmailTermRow[] | null) ?? []
       const matchingTerm = officerTerms.find((term) =>
         officerRoleEmails.some(
           (emailRow) =>
-            (emailRow.local_unit_id
-              ? emailRow.local_unit_id === term.local_unit_id
-              : emailRow.council_id === term.council_id) &&
+            emailRow.local_unit_id === term.local_unit_id &&
             emailRow.office_scope_code === term.office_scope_code &&
             emailRow.office_code === term.office_code &&
             (emailRow.office_rank ?? null) === (term.office_rank ?? null)
@@ -751,7 +739,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
       )
 
       derivedOfficerEmailPersonId = matchingTerm?.person_id ?? null
-      derivedOfficerEmailCouncilId = matchingTerm?.council_id ?? null
     }
   }
 
@@ -1040,7 +1027,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const directCouncilIds = uniqueStrings([
     ...memberLocalUnitSeeds.map((seed) => seed.councilId),
     ...assignmentCouncilIds,
-    derivedOfficerEmailCouncilId,
     ...councilAdminAssignments.map((assignment) => assignment.council_id),
     ...automaticCouncilAdminTerms.map((term) => term.council_id),
   ])
@@ -1123,7 +1109,6 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
   const defaultCouncilId =
     defaultContext?.councilId ??
     defaultMemberSeed?.councilId ??
-    derivedOfficerEmailCouncilId ??
     null
   const defaultOrganizationId =
     defaultContext?.organizationId ??
