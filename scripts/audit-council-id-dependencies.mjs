@@ -63,8 +63,6 @@ const intentionalPublicRouteFiles = new Set([
 ])
 
 const intentionalLegacyBridgeFiles = new Set([
-  'app/super-admin/organization-claims/actions.ts',
-  'app/super-admin/organization-claims/page.tsx',
   'lib/auth/permissions.ts',
 ])
 
