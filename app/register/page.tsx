@@ -4,6 +4,7 @@ import Link from 'next/link'
 import CleanCurrentUrl from '@/app/components/clean-current-url'
 import RegisterForm from './register-form'
 import VerifyRegistrationCodeForm from './verify-registration-code-form'
+import styles from '../auth-surface.module.css'
 
 export const metadata: Metadata = {
   title: 'Register | Chrism',
@@ -21,39 +22,39 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   const isVerificationStep = Boolean(defaultEmail && noticeMessage)
 
   return (
-    <main className="qv-page qv-login-page">
+    <main className={styles.page}>
       <CleanCurrentUrl />
-      <div className="qv-login-shell">
-        <div className="qv-login-surface">
-          <section className="qv-login-showcase" aria-label="Chrism registration introduction">
-            <div className="qv-login-showcase-media" aria-hidden="true" />
+      <div className={styles.shell}>
+        <div className={styles.surface}>
+          <section className={styles.showcase} aria-label="Chrism registration introduction">
+            <div className={styles.showcaseMedia} aria-hidden="true" />
 
-            <div className="qv-login-carousel">
-              <article className="qv-login-carousel-card">
-                <p className="qv-login-carousel-eyebrow">MINISTRY CONTACTS</p>
-                <h2 className="qv-login-carousel-title">Help your ministry keep your information accurate.</h2>
-                <p className="qv-login-carousel-body">
+            <div className={styles.carousel}>
+              <article className={styles.carouselCard}>
+                <p className={styles.carouselEyebrow}>MINISTRY CONTACTS</p>
+                <h2 className={styles.carouselTitle}>Help your ministry keep your information accurate.</h2>
+                <p className={styles.carouselBody}>
                   Register with your name and contact details so ministry leaders can reach you about events, volunteering, and local administration.
                 </p>
               </article>
             </div>
           </section>
 
-          <section className="qv-login-panel">
-            <div className="qv-login-panel-logo">
+          <section className={styles.panel}>
+            <div className={styles.panelLogo}>
               <Image
                 src="/Chrism_horiz.svg"
                 alt="Chrism"
                 width={419}
                 height={98}
                 priority
-                className="qv-login-panel-logo-image"
+                className={styles.panelLogoImage}
               />
             </div>
 
-            <div className="qv-login-panel-copy">
-              <h1 className="qv-login-panel-title">Register with Chrism</h1>
-              <p className="qv-login-panel-text">
+            <div className={styles.panelCopy}>
+              <h1 className={styles.panelTitle}>Register with Chrism</h1>
+              <p className={styles.panelText}>
                 No password needed. We will email you a verification code after you submit your details.
               </p>
             </div>
@@ -67,7 +68,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               <RegisterForm defaultEmail={defaultEmail} />
             )}
 
-            <div className="qv-login-footer-link-row">
+            <div className={styles.footerLinkRow}>
               <Link href="/login" className="qv-auth-footer-link">
                 Already registered? Sign in
               </Link>
@@ -75,7 +76,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           </section>
         </div>
 
-        <div className="qv-auth-surface-link-row">
+        <div className={styles.surfaceLinkRow}>
           <Link href="/about" className="qv-auth-footer-link">
             About us
           </Link>
