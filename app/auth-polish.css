@@ -33,18 +33,13 @@
   box-shadow: 0 24px 64px rgba(46, 42, 52, 0.14);
 }
 
-.qv-login-showcase-media,
-.qv-login-showcase-image {
+.qv-login-showcase-media {
   position: absolute;
   inset: 0;
-}
-
-.qv-login-showcase-media {
   z-index: 0;
-}
-
-.qv-login-showcase-image {
-  object-fit: cover;
+  background-image: url('/akira-hojo-_86u_Y0oAaM-unsplash.jpg');
+  background-size: cover;
+  background-position: center center;
   transform: scale(1.02);
 }
 
