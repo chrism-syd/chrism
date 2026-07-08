@@ -12,6 +12,12 @@ const supabaseHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    resolveAlias: {
+      'read-excel-file': 'read-excel-file/browser',
+      'write-excel-file': 'write-excel-file/browser',
+    },
+  },
   images: {
     remotePatterns: supabaseHostname
       ? [
