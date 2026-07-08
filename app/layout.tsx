@@ -6,6 +6,7 @@ import PendingSubmitEnhancer from '@/app/components/pending-submit-enhancer'
 import './globals.css'
 import './site-recovery.css'
 import './people-pagination-recovery.css'
+import './custom-lists-polish.css'
 import './auth-polish.css'
 
 const bodyFont = localFont({
@@ -40,20 +41,16 @@ const headingFont = localFont({
 
 export const metadata: Metadata = {
   title: 'Chrism',
-  description: 'Spiritual guidance and organization support for Chrism communities.',
+  description: 'A Catholic companion for real life.',
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${bodyFont.variable} ${headingFont.variable}`}>
-        {children}
+    <html lang="en" className={`${bodyFont.variable} ${headingFont.variable}`}>
+      <body>
         <PendingSubmitEnhancer />
         <CleanQueryMessageParams />
+        {children}
         <Analytics />
       </body>
     </html>
