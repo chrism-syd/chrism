@@ -107,7 +107,7 @@ export default async function SuperAdminLocalPagesIndex() {
             <div>
               <h2 className="qv-section-title">Choose a local organization</h2>
               <p className="qv-section-subtitle">
-                First iteration: generated copy, existing organization data, upcoming events, meetings links, and no custom imagery.
+                First iteration: generated copy, existing organization data, upcoming events, meeting links, contact routing, and public gallery images.
               </p>
             </div>
           </div>
