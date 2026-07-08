@@ -415,6 +415,48 @@
   gap: 14px;
 }
 
+.qv-list-row-card {
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--divider);
+  border-radius: 18px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.qv-list-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.qv-list-row-head > div:first-child {
+  min-width: 0;
+}
+
+.qv-list-row-title {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.qv-card-link {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.qv-card-link:hover,
+.qv-card-link:focus-visible {
+  border-color: color-mix(in srgb, var(--interactive) 32%, var(--divider));
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
 .qv-custom-list-card,
 .qv-people-list-card {
   min-width: 0;
@@ -480,5 +522,17 @@
 
   .qv-person-detail-actions .qv-link-button {
     flex: 1 1 auto;
+  }
+
+  .qv-list-row-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .qv-list-row-actions,
+  .qv-list-row-actions form,
+  .qv-list-row-actions .qv-link-button,
+  .qv-list-row-actions button {
+    width: 100%;
   }
 }
