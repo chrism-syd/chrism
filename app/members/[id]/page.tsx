@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import BackToPeopleButton from '@/app/members/back-to-people-button'
 import DeleteMemberIconButton from '@/app/members/delete-member-icon-button'
 import OrganizationAvatar from '@/app/components/organization-avatar'
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context'
@@ -183,7 +184,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 18, flex: '1 1 560px', minWidth: 0 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <Link href="/people" aria-label="Back to people" className="qv-link-button" style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--divider-strong)', background: 'var(--bg-card)', color: 'var(--interactive)', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>‹</Link>
+                <BackToPeopleButton />
                 <p className="qv-eyebrow" style={{ margin: 0 }}>People Directory</p>
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
