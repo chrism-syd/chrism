@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import styles from './back-to-people-button.module.css'
 
 export default function BackToPeopleButton() {
   const router = useRouter()
@@ -11,7 +12,7 @@ export default function BackToPeopleButton() {
     <button
       type="button"
       aria-label="Back to people"
-      className="qv-person-back-button"
+      className={styles.button}
       onClick={() => {
         setIsPending(true)
         router.push('/people')
@@ -19,7 +20,7 @@ export default function BackToPeopleButton() {
       disabled={isPending}
     >
       {isPending ? (
-        <span className="qv-mini-working-star" aria-hidden="true">✣</span>
+        <span className={styles.star} aria-hidden="true">✣</span>
       ) : (
         <span aria-hidden="true">‹</span>
       )}
