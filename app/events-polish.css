@@ -52,3 +52,49 @@
 .qv-member-link .qv-member-row {
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
+
+.qv-volunteer-hours-card {
+  overflow: hidden;
+}
+
+.qv-volunteer-hours-list {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.qv-volunteer-hours-row {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.qv-volunteer-hours-row .qv-member-main,
+.qv-volunteer-hours-row .qv-member-text {
+  min-width: 0;
+}
+
+.qv-volunteer-hours-pills {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.qv-volunteer-hours-pills .qv-mini-pill {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .qv-volunteer-hours-row {
+    padding-inline: 16px;
+  }
+
+  .qv-volunteer-hours-pills {
+    gap: 8px;
+  }
+}
