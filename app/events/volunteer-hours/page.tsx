@@ -313,10 +313,10 @@ export default async function VolunteerHoursPage() {
           </div>
         </section>
 
-        <SectionMenuBar items={[{ label: 'Events', href: '/events' }, { label: 'Add event', href: '/events/new' }, { label: 'Archived events', href: '/events/archive' }]} />
+        <SectionMenuBar items={[{ label: 'Back to events', href: '/events' }]} />
 
         <div className="qv-detail-grid">
-          <section className="qv-card">
+          <section className="qv-card qv-volunteer-hours-card">
             <div className="qv-directory-section-head">
               <div>
                 <h2 className="qv-section-title">Contribution audit</h2>
@@ -327,16 +327,16 @@ export default async function VolunteerHoursPage() {
             {summaries.length === 0 ? (
               <div className="qv-empty"><h3 className="qv-empty-title">No people found</h3><p className="qv-empty-text">Add people to this local organization before tracking volunteer hours.</p></div>
             ) : (
-              <div className="qv-member-list">
+              <div className="qv-member-list qv-volunteer-hours-list">
                 {summaries.map((summary) => (
-                  <article key={summary.personId} className="qv-member-row">
+                  <article key={summary.personId} className="qv-member-row qv-volunteer-hours-row">
                     <div className="qv-member-main">
                       <div className="qv-member-text">
                         <div className="qv-member-name">
                           <Link href={`/people/${summary.personId}`} className="qv-inline-link">{summary.displayName}</Link>
                         </div>
                         <div className="qv-member-meta">{summary.email || 'No email on file'}</div>
-                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
+                        <div className="qv-volunteer-hours-pills">
                           <span className="qv-mini-pill">{formatHours(summary.currentTotalHours)}h total</span>
                           <span className="qv-mini-pill">{formatHours(summary.currentEventHours)}h events</span>
                           <span className="qv-mini-pill">{formatHours(summary.currentManualHours)}h manual</span>
