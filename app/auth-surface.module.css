@@ -1,0 +1,258 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+
+.shell {
+  width: min(1180px, 100%);
+}
+
+.surface {
+  min-height: min(760px, calc(100vh - 56px));
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.72fr);
+  gap: 22px;
+  padding: 22px;
+  border-radius: 34px;
+}
+
+.showcase {
+  position: relative;
+  min-height: 680px;
+  border-radius: 32px;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(76, 94, 121, 0.9), rgba(97, 86, 129, 0.52));
+  box-shadow: 0 24px 64px rgba(46, 42, 52, 0.14);
+}
+
+.showcaseMedia {
+  position: absolute;
+  inset: 0;
+  background-image: url('/akira-hojo-_86u_Y0oAaM-unsplash.jpg');
+  background-size: cover;
+  background-position: center center;
+  transform: scale(1.02);
+}
+
+.showcase::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(47, 55, 74, 0.28) 0%, rgba(47, 55, 74, 0.1) 24%, rgba(47, 55, 74, 0.38) 100%),
+    linear-gradient(135deg, rgba(77, 94, 119, 0.44) 0%, rgba(86, 76, 116, 0.36) 100%);
+  pointer-events: none;
+}
+
+.carousel {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  display: grid;
+  align-items: start;
+  padding: 34px;
+}
+
+.carouselCard {
+  width: min(100%, 760px);
+  padding: 34px 38px;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(94, 86, 142, 0.46);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 42px rgba(33, 28, 46, 0.18);
+  color: #f5f0f8;
+}
+
+.carouselEyebrow {
+  margin: 0 0 20px;
+  font-size: 16px;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: rgba(241, 234, 244, 0.84);
+}
+
+.carouselTitle {
+  margin: 0;
+  max-width: 15ch;
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(40px, 4.6vw, 62px);
+  line-height: 1.04;
+  color: #fcf8fb;
+}
+
+.carouselBody {
+  margin: 26px 0 0;
+  max-width: 22ch;
+  font-size: clamp(16px, 1.65vw, 22px);
+  line-height: 1.5;
+  color: rgba(246, 239, 248, 0.88);
+}
+
+.showcaseFooter {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 28px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  color: rgba(246, 239, 248, 0.82);
+}
+
+.carouselIndicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.indicator {
+  width: 52px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  padding: 0;
+}
+
+.indicatorActive {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.photoCredit {
+  margin: 0;
+  font-size: 12px;
+}
+
+.panel {
+  align-self: center;
+  min-height: 560px;
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  padding: 38px 42px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--divider);
+  background: rgba(253, 252, 249, 0.96);
+  box-shadow: 0 24px 64px rgba(46, 42, 52, 0.12);
+  color: var(--text-primary);
+}
+
+.panelLogo,
+.panelCopy {
+  display: grid;
+  gap: 10px;
+}
+
+.panelLogoImage {
+  display: block;
+  width: 248px;
+  max-width: 100%;
+  height: auto;
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1.04;
+  color: var(--text-primary);
+}
+
+.panelText {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.loginForm {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+}
+
+.loginForm :global(.qv-button-primary) {
+  width: 100%;
+  min-height: 52px;
+}
+
+.panel :global(.qv-register-form) {
+  width: 100%;
+}
+
+.panel :global(.qv-register-form .qv-button-primary) {
+  min-height: 52px;
+}
+
+.panel :global(.qv-control),
+.panel :global(.qv-field) {
+  min-width: 0;
+}
+
+.panel :global(.qv-control input),
+.panel :global(.qv-field input:not([type='checkbox'])) {
+  min-height: 52px;
+}
+
+.footerLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.surfaceLinkRow {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.surfaceLinkRow :global(.qv-auth-footer-link) {
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 18px;
+  }
+
+  .surface {
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+
+  .showcase {
+    min-height: 360px;
+  }
+
+  .panel {
+    min-height: auto;
+    padding: 30px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .showcase {
+    min-height: 300px;
+  }
+
+  .carousel,
+  .carouselCard {
+    padding: 24px;
+  }
+
+  .carouselTitle {
+    font-size: 36px;
+  }
+
+  .showcaseFooter {
+    left: 24px;
+    right: 24px;
+    bottom: 20px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
