@@ -26,15 +26,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       <div className="qv-login-shell">
         <div className="qv-login-surface">
           <section className="qv-login-showcase" aria-label="Chrism registration introduction">
-            <div className="qv-login-showcase-media">
-              <Image
-                src="/akira-hojo-_86u_Y0oAaM-unsplash.jpg"
-                alt=""
-                fill
-                priority
-                className="qv-login-showcase-image"
-              />
-            </div>
+            <div className="qv-login-showcase-media" aria-hidden="true" />
 
             <div className="qv-login-carousel">
               <article className="qv-login-carousel-card">
