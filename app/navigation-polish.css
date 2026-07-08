@@ -1,0 +1,12 @@
+.qv-section-menu-pending-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 86px;
+}
+
+.qv-section-menu-link[aria-disabled='true'],
+.qv-section-menu-overlay-link[aria-disabled='true'] {
+  pointer-events: none;
+}
