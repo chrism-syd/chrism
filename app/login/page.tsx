@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/browser'
 import { buildAuthConfirmRedirectUrl, sanitizeNextPath } from '@/lib/auth/redirects'
 import { getLoginMessage } from '@/lib/auth/login-errors'
+import styles from '../auth-surface.module.css'
 
 type LoginSlide = {
   eyebrow: string
@@ -134,29 +135,29 @@ function LoginPageContent() {
   }
 
   return (
-    <main className="qv-page qv-login-page">
-      <div className="qv-login-shell">
-        <div className="qv-login-surface">
-          <section className="qv-login-showcase" aria-label="Chrism introduction">
-            <div className="qv-login-showcase-media" aria-hidden="true" />
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <div className={styles.surface}>
+          <section className={styles.showcase} aria-label="Chrism introduction">
+            <div className={styles.showcaseMedia} aria-hidden="true" />
 
-            <div className="qv-login-carousel" aria-live="polite">
-              <article className="qv-login-carousel-card" key={activeSlideIndex}>
-                <p className="qv-login-carousel-eyebrow">{activeSlide.eyebrow}</p>
-                <h2 className="qv-login-carousel-title">{activeSlide.title}</h2>
-                <p className="qv-login-carousel-body">{activeSlide.body}</p>
+            <div className={styles.carousel} aria-live="polite">
+              <article className={styles.carouselCard} key={activeSlideIndex}>
+                <p className={styles.carouselEyebrow}>{activeSlide.eyebrow}</p>
+                <h2 className={styles.carouselTitle}>{activeSlide.title}</h2>
+                <p className={styles.carouselBody}>{activeSlide.body}</p>
               </article>
             </div>
 
-            <div className="qv-login-showcase-footer">
-              <div className="qv-login-carousel-indicators" aria-label="Carousel slides">
+            <div className={styles.showcaseFooter}>
+              <div className={styles.carouselIndicators} aria-label="Carousel slides">
                 {LOGIN_SLIDES.map((slide, index) => {
                   const isActive = index === activeSlideIndex
                   return (
                     <button
                       key={slide.eyebrow}
                       type="button"
-                      className={`qv-login-indicator${isActive ? ' is-active' : ''}`}
+                      className={`${styles.indicator}${isActive ? ` ${styles.indicatorActive}` : ''}`}
                       aria-label={`Show slide ${index + 1}`}
                       aria-pressed={isActive}
                       onClick={() => setActiveSlideIndex(index)}
@@ -165,25 +166,25 @@ function LoginPageContent() {
                 })}
               </div>
 
-              <p className="qv-login-photo-credit">Photo by Akira Hojo on Unsplash</p>
+              <p className={styles.photoCredit}>Photo by Akira Hojo on Unsplash</p>
             </div>
           </section>
 
-          <section className="qv-login-panel">
-            <div className="qv-login-panel-logo">
+          <section className={styles.panel}>
+            <div className={styles.panelLogo}>
               <Image
                 src="/Chrism_horiz.svg"
                 alt="Chrism"
                 width={419}
                 height={98}
                 priority
-                className="qv-login-panel-logo-image"
+                className={styles.panelLogoImage}
               />
             </div>
 
-            <div className="qv-login-panel-copy">
-              <h1 className="qv-login-panel-title">Sign in</h1>
-              <p className="qv-login-panel-text">
+            <div className={styles.panelCopy}>
+              <h1 className={styles.panelTitle}>Sign in</h1>
+              <p className={styles.panelText}>
                 Enter your email address and we&apos;ll send you a verification code. No password needed.
               </p>
             </div>
@@ -227,7 +228,7 @@ function LoginPageContent() {
               </form>
             ) : (
               <>
-                <form onSubmit={handleSendLoginCode} className="qv-login-form">
+                <form onSubmit={handleSendLoginCode} className={styles.loginForm}>
                   <div className="qv-control">
                     <input
                       id="email"
@@ -249,7 +250,7 @@ function LoginPageContent() {
               </>
             )}
 
-            <div className="qv-login-footer-link-row">
+            <div className={styles.footerLinkRow}>
               <Link href="/register" className="qv-auth-footer-link">
                 Register with Chrism
               </Link>
@@ -257,7 +258,7 @@ function LoginPageContent() {
           </section>
         </div>
 
-        <div className="qv-auth-surface-link-row">
+        <div className={styles.surfaceLinkRow}>
           <Link href="/about" className="qv-auth-footer-link">
             About us
           </Link>
