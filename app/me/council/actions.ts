@@ -263,10 +263,15 @@ function rangesOverlap(
   left: { start: number; end: number | null },
   right: { start: number; end: number | null }
 ) {
-  const leftEnd = left.end ?? Number.POSITIVE_INFINITY
-  const rightEnd = right.end ?? Number.POSITIVE_INFINITY
+  const normalizeEnd = (range: { start: number; end: number | null }) => {
+    if (range.end == null) return Number.POSITIVE_INFINITY
+    return range.end <= range.start ? range.start + 1 : range.end
+  }
 
-  return left.start <= rightEnd && right.start <= leftEnd
+  const leftEnd = normalizeEnd(left)
+  const rightEnd = normalizeEnd(right)
+
+  return left.start < rightEnd && right.start < leftEnd
 }
 
 function revalidateOfficerSurfaces(personId: string | null) {
