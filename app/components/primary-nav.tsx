@@ -22,6 +22,14 @@ function isHrefActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+function getActiveChildHref(pathname: string, items: NavItem['items']) {
+  const matches = (items ?? [])
+    .filter((item) => isHrefActive(pathname, item.href))
+    .sort((left, right) => right.href.length - left.href.length)
+
+  return matches[0]?.href ?? null
+}
+
 export default function PrimaryNav({ items }: Props) {
   const pathname = usePathname()
   const [openLabel, setOpenLabel] = useState<string | null>(null)
@@ -43,8 +51,9 @@ export default function PrimaryNav({ items }: Props) {
   return (
     <nav className="qv-nav" aria-label="Primary" ref={navRef}>
       {visibleItems.map((item) => {
+        const activeChildHref = getActiveChildHref(pathname, item.items)
         const isActive = item.items
-          ? item.items.some((child) => isHrefActive(pathname, child.href)) || isHrefActive(pathname, item.href)
+          ? Boolean(activeChildHref) || isHrefActive(pathname, item.href)
           : isHrefActive(pathname, item.href)
 
         if (!item.items?.length) {
@@ -94,7 +103,7 @@ export default function PrimaryNav({ items }: Props) {
             {isOpen ? (
               <div className="qv-nav-submenu" role="menu">
                 {item.items.map((child) => {
-                  const isChildActive = isHrefActive(pathname, child.href)
+                  const isChildActive = activeChildHref === child.href
                   return (
                     <Link
                       key={child.href}
