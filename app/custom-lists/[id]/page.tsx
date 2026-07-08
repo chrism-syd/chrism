@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import AppHeader from '@/app/app-header'
+import ChrismStarNavButton from '@/app/components/chrism-star-nav-button'
 import ConfirmActionButton from '@/app/components/confirm-action-button'
 import CustomListDetailClient from '@/app/custom-lists/[id]/detail-client'
 import { archiveCustomListAction } from '@/app/custom-lists/actions'
@@ -413,24 +414,7 @@ export default async function CustomListDetailPage({ params }: PageProps) {
           <div className="qv-hero-card" style={{ paddingBottom: 16 }}>
             <div style={{ display: 'grid', gap: 18 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <Link
-                  href="/custom-lists"
-                  aria-label="Back to custom lists"
-                  className="qv-link-button"
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 6,
-                    border: '1px solid var(--divider-strong)',
-                    background: 'var(--bg-card)',
-                    color: 'var(--interactive)',
-                    fontSize: 18,
-                    fontWeight: 700,
-                    lineHeight: 1,
-                  }}
-                >
-                  ‹
-                </Link>
+                <ChrismStarNavButton href="/custom-lists" ariaLabel="Back to custom lists" />
                 <p className="qv-eyebrow" style={{ margin: 0 }}>
                   Custom Lists
                 </p>
