@@ -404,7 +404,7 @@ export default async function HomePage() {
   const permissions = await getCurrentUserPermissions()
 
   if (!permissions.authUser) {
-    return <ChrismWorksLandingPage />
+    redirect('/login?next=/')
   }
 
   return <OperationsHomePage permissions={permissions} />
