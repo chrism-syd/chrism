@@ -1,0 +1,54 @@
+.qv-form-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.qv-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.qv-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.qv-field-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.qv-input,
+.qv-textarea {
+  width: 100%;
+}
+
+.qv-textarea {
+  min-height: 110px;
+}
+
+.qv-member-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.qv-member-link:hover,
+.qv-member-link:focus-visible {
+  color: inherit;
+}
+
+.qv-member-link:hover .qv-member-row,
+.qv-member-link:focus-visible .qv-member-row {
+  border-color: color-mix(in srgb, var(--interactive) 30%, var(--divider));
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.qv-member-link .qv-member-row {
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
