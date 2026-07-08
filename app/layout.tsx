@@ -11,6 +11,7 @@ import './o/[slug]/public-page.css'
 import './o/[slug]/public-gallery.css'
 import './o/[slug]/public-contact-expander.css'
 import './navigation-polish.css'
+import './events-polish.css'
 import './auth-polish.css'
 
 const bodyFont = localFont({
