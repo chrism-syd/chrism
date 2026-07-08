@@ -173,7 +173,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
   return <main className="qv-page"><div className="qv-shell"><AppHeader />
     <section style={{ display: 'grid', gap: 14, marginTop: 12, marginBottom: 18 }}>
-      <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em', whiteSpace: 'nowrap' }}>Person Detail</h1>
+      <h1 className="qv-directory-name" style={{ margin: 0, fontSize: 'clamp(42px, 6.4vw, 68px)', lineHeight: 0.96, letterSpacing: '-0.04em', whiteSpace: 'normal' }}>Person Detail</h1>
       <p style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.35, color: 'var(--text-secondary)' }}>Review local organization contact, status, and custom list details.</p>
     </section>
 
@@ -199,10 +199,10 @@ export default async function MemberDetailPage({ params }: PageProps) {
             </div>
             <div className="qv-org-avatar-wrap"><OrganizationAvatar displayName={organizationName} logoStoragePath={effectiveBranding.logo_storage_path} logoAltText={effectiveBranding.logo_alt_text ?? organizationName} size={72} /></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(260px, 0.95fr)', gap: 36, alignItems: 'start' }}>
+          <div className="qv-person-detail-grid">
             <div className="qv-detail-list" style={{ marginTop: 0 }}>
               <div className="qv-detail-item" style={{ paddingTop: 0 }}><div className="qv-detail-label">Email</div><div className="qv-detail-value">{person.email || 'No email on file'}</div></div>
-              <div className="qv-detail-item"><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 24 }}><div style={{ minWidth: 0 }}><div className="qv-detail-label">Cell phone</div><div className="qv-detail-value">{person.cell_phone || 'Not set'}</div></div><div style={{ minWidth: 0 }}><div className="qv-detail-label">Home phone</div><div className="qv-detail-value">{person.home_phone || 'Not set'}</div></div><div style={{ minWidth: 0 }}><div className="qv-detail-label">Other phone</div><div className="qv-detail-value">{person.other_phone || 'Not set'}</div></div></div></div>
+              <div className="qv-detail-item"><div className="qv-person-phone-grid"><div style={{ minWidth: 0 }}><div className="qv-detail-label">Cell phone</div><div className="qv-detail-value">{person.cell_phone || 'Not set'}</div></div><div style={{ minWidth: 0 }}><div className="qv-detail-label">Home phone</div><div className="qv-detail-value">{person.home_phone || 'Not set'}</div></div><div style={{ minWidth: 0 }}><div className="qv-detail-label">Other phone</div><div className="qv-detail-value">{person.other_phone || 'Not set'}</div></div></div></div>
               <div className="qv-detail-item"><div className="qv-detail-label">Address</div><div className="qv-detail-value">{address || 'No address on file'}</div></div>
             </div>
             <div className="qv-detail-list" style={{ marginTop: 0 }}>{rightDetailRows.map((row, index) => <div key={row.label} className="qv-detail-item" style={index === 0 ? { paddingTop: 0 } : undefined}><div className="qv-detail-label">{row.label}</div><div className="qv-detail-value">{row.value}</div></div>)}</div>
@@ -211,9 +211,9 @@ export default async function MemberDetailPage({ params }: PageProps) {
       </div>
 
       <div className="qv-section-menu-shell" style={{ marginTop: -22 }}>
-        <div style={{ position: 'relative', minHeight: 58, paddingInline: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="qv-person-detail-actions">
           <Link href={`/people/${person.id}/edit`} className="qv-button-secondary qv-link-button">Edit person</Link>
-          {permissions.isCouncilAdmin ? <div style={{ position: 'absolute', right: 28, top: 0, bottom: 0, display: 'flex', alignItems: 'center' }}><DeleteMemberIconButton memberId={person.id} memberName={personName} /></div> : null}
+          {permissions.isCouncilAdmin ? <DeleteMemberIconButton memberId={person.id} memberName={personName} /> : null}
         </div>
       </div>
     </section>
