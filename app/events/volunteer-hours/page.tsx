@@ -78,6 +78,7 @@ type PersonSummary = {
   allTimeEventCount: number
   allTimeTotalHours: number
   lastVolunteeredOn: string | null
+  lastCreditOn: string | null
   recentEntries: ContributionEntryRow[]
   activeAdjustments: AdjustmentRow[]
 }
@@ -93,6 +94,12 @@ function formatHours(value: number) {
     minimumFractionDigits: rounded % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   })
+}
+
+function formatSignedHours(value: number) {
+  if (value > 0) return `+${formatHours(value)}`
+  if (value < 0) return `-${formatHours(Math.abs(value))}`
+  return formatHours(value)
 }
 
 function formatDate(value?: string | null) {
@@ -254,6 +261,7 @@ export default async function VolunteerHoursPage() {
       allTimeEventCount: new Set(allEventEntries.map((entry) => entry.event_id).filter(Boolean)).size,
       allTimeTotalHours: personEntries.reduce((total, entry) => total + toNumber(entry.hours), 0),
       lastVolunteeredOn: eventEntries[0]?.credited_on ?? allEventEntries[0]?.credited_on ?? null,
+      lastCreditOn: currentEntries[0]?.credited_on ?? personEntries[0]?.credited_on ?? null,
       recentEntries: personEntries.slice(0, 5),
       activeAdjustments: adjustmentsByPersonId.get(person.id) ?? [],
     }
@@ -337,11 +345,11 @@ export default async function VolunteerHoursPage() {
                         </div>
                         <div className="qv-member-meta">{summary.email || 'No email on file'}</div>
                         <div className="qv-volunteer-hours-pills">
-                          <span className="qv-mini-pill">{formatHours(summary.currentTotalHours)}h total</span>
-                          <span className="qv-mini-pill">{formatHours(summary.currentEventHours)}h events</span>
-                          <span className="qv-mini-pill">{formatHours(summary.currentManualHours)}h manual</span>
-                          <span className="qv-mini-pill">{summary.currentEventCount} events</span>
-                          <span className="qv-mini-pill">Last volunteered {formatDate(summary.lastVolunteeredOn)}</span>
+                          <span className="qv-mini-pill">Total: {formatHours(summary.currentTotalHours)}h</span>
+                          <span className="qv-mini-pill">Events participation: {summary.currentEventCount}</span>
+                          <span className="qv-mini-pill">Events hours: {formatHours(summary.currentEventHours)}h</span>
+                          <span className="qv-mini-pill">Adjustments: {formatSignedHours(summary.currentManualHours)}h</span>
+                          <span className="qv-mini-pill">Last credit: {formatDate(summary.lastCreditOn)}</span>
                         </div>
 
                         {summary.recentEntries.length > 0 ? (
