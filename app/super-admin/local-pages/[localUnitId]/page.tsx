@@ -9,6 +9,7 @@ import { getEffectiveOrganizationBranding, getEffectiveOrganizationName } from '
 import { buildCouncilPublicOrgSlug } from '@/lib/public-org-slugs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { submitPublicContactFormAction } from '@/app/o/[slug]/actions'
+import PublicGallerySlideshow from '@/app/o/[slug]/public-gallery-slideshow'
 import LocalPageModalButton from './local-page-modal-button'
 
 type PageProps = {
@@ -65,6 +66,20 @@ type MessageRouteRow = {
   recipient_label: string | null
 }
 
+type GalleryImageRow = {
+  id: string
+  title: string | null
+  storage_bucket: string
+  storage_path: string
+  sort_order: number
+}
+
+type PublicGalleryImage = {
+  id: string
+  title: string | null
+  url: string
+}
+
 type SuperAdminLocalPageDbError = {
   message: string
 }
@@ -91,6 +106,7 @@ function superAdminLocalPageFrom<TData = unknown>(admin: ReturnType<typeof creat
 
 const HERO_VIDEO_SRC = '/o/assets/73228-548173103.mp4'
 const CHRISM_YELLOW = '#f5c84b'
+const PUBLIC_GALLERY_MAX_IMAGES = 12
 
 function localUnitLabel(unit: LocalUnitRow, council?: CouncilRow | null) {
   return unit.display_name?.trim() || unit.official_name?.trim() || council?.name?.trim() || 'Local organization'
@@ -133,6 +149,26 @@ function displayText(text: string | null | undefined) {
   return bindSaintNames(text ?? '')
 }
 
+async function buildPreviewGalleryImages(admin: ReturnType<typeof createAdminClient>, galleryRows: GalleryImageRow[]) {
+  const galleryImages = await Promise.all(
+    galleryRows.map(async (image) => {
+      const { data } = await admin.storage
+        .from(image.storage_bucket)
+        .createSignedUrl(image.storage_path, 60 * 60)
+
+      if (!data?.signedUrl) return null
+
+      return {
+        id: image.id,
+        title: image.title,
+        url: data.signedUrl,
+      }
+    })
+  )
+
+  return galleryImages.filter((image): image is PublicGalleryImage => image !== null)
+}
+
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -155,7 +191,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const localUnit = (localUnitData as LocalUnitRow | null) ?? null
   if (!localUnit) notFound()
 
-  const [organizationResponse, councilResponse, eventsResponse, contactRouteResponse] = await Promise.all([
+  const [organizationResponse, councilResponse, eventsResponse, contactRouteResponse, galleryResponse] = await Promise.all([
     localUnit.legacy_organization_id
       ? admin
           .from('organizations')
@@ -183,6 +219,13 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       .eq('is_active', true)
       .order('updated_at', { ascending: false })
       .limit(1),
+    superAdminLocalPageFrom<GalleryImageRow[]>(admin, 'local_unit_public_gallery_images')
+      .select('id, title, storage_bucket, storage_path, sort_order')
+      .eq('local_unit_id', localUnit.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+      .limit(PUBLIC_GALLERY_MAX_IMAGES),
   ])
 
   const organization = (organizationResponse.data as OrganizationRow | null) ?? null
@@ -210,6 +253,8 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
   const hasCustomContactRecipient = Boolean(contactRoute?.recipient_email)
   const showContactForm = Boolean(canonicalSlug && organization?.public_contact_form_enabled !== false && hasCustomContactRecipient)
   const aboutCopy = displayText(organization?.public_description) || missionCopy()
+  const galleryRows = ((galleryResponse.data as GalleryImageRow[] | null) ?? []).slice(0, PUBLIC_GALLERY_MAX_IMAGES)
+  const galleryImages = await buildPreviewGalleryImages(admin, galleryRows)
 
   return (
     <main style={{ background: '#fdfcf9', color: 'var(--text-primary)', minHeight: '100vh' }}>
@@ -227,28 +272,9 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         }
       `}</style>
 
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 18,
-          padding: '14px clamp(20px, 6vw, 80px)',
-          background: 'rgba(253, 252, 249, 0.94)',
-          borderBottom: '1px solid var(--divider)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
+      <header style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, padding: '14px clamp(20px, 6vw, 80px)', background: 'rgba(253, 252, 249, 0.94)', borderBottom: '1px solid var(--divider)', backdropFilter: 'blur(12px)' }}>
         <Link href="/super-admin/local-pages" style={{ display: 'inline-flex', alignItems: 'center', gap: 14, color: 'var(--text-primary)', textDecoration: 'none' }}>
-          <OrganizationAvatar
-            displayName={displayName}
-            logoStoragePath={organizationBranding?.logo_storage_path ?? null}
-            logoAltText={organizationBranding?.logo_alt_text ?? displayTitle}
-            size={68}
-          />
+          <OrganizationAvatar displayName={displayName} logoStoragePath={organizationBranding?.logo_storage_path ?? null} logoAltText={organizationBranding?.logo_alt_text ?? displayTitle} size={68} />
           <span style={{ display: 'grid', gap: 2 }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 900, letterSpacing: '0.01em' }}>{parentBrandName}</span>
             <strong style={{ fontSize: 22, lineHeight: 1.08 }}>{displayName}</strong>
@@ -271,12 +297,8 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
       <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(320px, 1.05fr)', gap: 28, padding: '64px clamp(20px, 6vw, 80px) 40px', alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 18 }}>
-          <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>
-            Welcome to {displayTitle}
-          </h1>
-          <p style={{ margin: 0, maxWidth: 620, color: 'var(--text-secondary)', fontSize: 22, lineHeight: 1.35 }}>
-            {paragraph(heroSubtitle(displayName))}
-          </p>
+          <h1 style={{ margin: 0, fontSize: 'clamp(44px, 6vw, 78px)', lineHeight: 0.96, letterSpacing: '-0.045em' }}>Welcome to {displayTitle}</h1>
+          <p style={{ margin: 0, maxWidth: 620, color: 'var(--text-secondary)', fontSize: 22, lineHeight: 1.35 }}>{paragraph(heroSubtitle(displayName))}</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
             <a href="#contact" className="qv-link-button qv-button-primary">Get Involved</a>
           </div>
@@ -284,22 +306,11 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
 
         <div style={{ position: 'relative', minHeight: 'clamp(420px, 44vw, 620px)' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, width: '70%', aspectRatio: '1 / 1', overflow: 'hidden', background: 'var(--bg-sunken)' }}>
-            <video
-              src={HERO_VIDEO_SRC}
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              aria-label="Community service video"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+            <video src={HERO_VIDEO_SRC} autoPlay loop muted playsInline preload="metadata" aria-label="Community service video" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           <div id="about" style={{ position: 'absolute', right: 0, top: '28%', width: '68%', padding: '42px clamp(28px, 5vw, 58px)', background: CHRISM_YELLOW, color: 'var(--text-primary)', borderRadius: 0, boxShadow: '0 18px 50px rgba(46, 42, 52, 0.16)' }}>
             <p style={{ margin: '0 0 10px', opacity: 0.78, fontWeight: 800 }}>Our mission</p>
-            <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>
-              {paragraph(aboutCopy)}
-            </p>
+            <p style={{ margin: 0, fontSize: 'clamp(26px, 3vw, 40px)', lineHeight: 1.22 }}>{paragraph(aboutCopy)}</p>
           </div>
         </div>
       </section>
@@ -308,13 +319,9 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--divider)', paddingBottom: 14 }}>
           <div>
             <h2 className="qv-section-title" style={{ margin: 0, color: 'var(--qv-plum)' }}>Events</h2>
-            <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>
-              {paragraph('Upcoming events')}
-            </p>
+            <p className="qv-section-subtitle" style={{ margin: '6px 0 0' }}>{paragraph('Upcoming events')}</p>
           </div>
-          {publicMeetingsHref ? (
-            <LocalPageModalButton label="See More" title="Upcoming events" iframeSrc={publicMeetingsHref} />
-          ) : null}
+          {publicMeetingsHref ? <LocalPageModalButton label="See More" title="Upcoming events" iframeSrc={publicMeetingsHref} /> : null}
         </div>
 
         {publicEvents.length > 0 ? (
@@ -338,13 +345,21 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       </section>
 
       <section id="meetings" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.9fr) minmax(280px, 1.1fr)', gap: 28, padding: '48px clamp(20px, 6vw, 80px)', alignItems: 'stretch' }}>
-        <div style={{ borderRadius: 28, minHeight: 260, background: 'var(--bg-sunken)', border: '1px solid var(--divider)' }} />
+        <div className="local-page-story-visual" style={{ minHeight: 260 }}>
+          {galleryImages.length > 0 ? (
+            <PublicGallerySlideshow images={galleryImages} />
+          ) : (
+            <div className="local-page-story-placeholder">
+              <span className="local-page-story-placeholder-kicker">Community gallery</span>
+              <strong>Photos will appear here.</strong>
+              <span>Upload curated images in settings to bring this local page to life.</span>
+            </div>
+          )}
+        </div>
         <div style={{ padding: '42px clamp(28px, 5vw, 56px)', background: 'var(--qv-plum)', color: 'white', borderRadius: 8 }}>
           <p style={{ margin: '0 0 10px', opacity: 0.8, fontWeight: 700 }}>Meetings</p>
           <h2 style={{ margin: 0, fontSize: 'clamp(30px, 4vw, 52px)', lineHeight: 1.08 }}>Stay connected to regular council life.</h2>
-          <p style={{ fontSize: 18, lineHeight: 1.5, opacity: 0.88 }}>
-            {paragraph('Public meeting information and calendar subscription links help members keep upcoming gatherings on their own calendars.')}
-          </p>
+          <p style={{ fontSize: 18, lineHeight: 1.5, opacity: 0.88 }}>{paragraph('Public meeting information and calendar subscription links help members keep upcoming gatherings on their own calendars.')}</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 22 }}>
             {publicMeetingsHref ? <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">Public Meetings Page</Link> : null}
             {meetingsFeedHref ? <Link href={meetingsFeedHref} className="qv-link-button qv-button-secondary">ICS Feed</Link> : null}
@@ -366,9 +381,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
         <div className="qv-card" style={{ display: 'grid', gap: 18, background: 'var(--bg-sunken)' }}>
           <p className="qv-eyebrow">Get involved</p>
           <h2 className="qv-section-title" style={{ margin: 0 }}>Interested in what is happening at {displayName}?</h2>
-          <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>
-            {paragraph(involvementCopy(orgTypeCode))}
-          </p>
+          <p className="qv-section-subtitle" style={{ maxWidth: 760 }}>{paragraph(involvementCopy(orgTypeCode))}</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {publicMeetingsHref ? <Link href={publicMeetingsHref} className="qv-link-button qv-button-secondary">View Meetings</Link> : null}
           </div>
@@ -376,46 +389,18 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
           {showContactForm ? (
             <form action={submitPublicContactFormAction} className="qv-form-grid" style={{ marginTop: 8 }}>
               <input type="hidden" name="slug" value={canonicalSlug ?? ''} />
-              <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">
-                Website
-                <input name="website" tabIndex={-1} autoComplete="off" />
-              </label>
+              <label style={{ position: 'absolute', left: '-10000px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }} aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
               <div className="qv-form-row qv-form-row-2">
-                <label className="qv-control">
-                  <span className="qv-label">Name</span>
-                  <input name="name" autoComplete="name" required />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">Email</span>
-                  <input name="email" type="email" autoComplete="email" required />
-                </label>
+                <label className="qv-control"><span className="qv-label">Name</span><input name="name" autoComplete="name" required /></label>
+                <label className="qv-control"><span className="qv-label">Email</span><input name="email" type="email" autoComplete="email" required /></label>
               </div>
               <div className="qv-form-row qv-form-row-2">
-                <label className="qv-control">
-                  <span className="qv-label">Phone optional</span>
-                  <input name="phone" autoComplete="tel" />
-                </label>
-                <label className="qv-control">
-                  <span className="qv-label">Submission type</span>
-                  <select name="inquiry_type" defaultValue="general_question">
-                    <option value="volunteer">I want to volunteer</option>
-                    <option value="membership">I&apos;m interested in joining</option>
-                    <option value="general_question">I have a general question</option>
-                    <option value="help_request">I need help with something</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
+                <label className="qv-control"><span className="qv-label">Phone optional</span><input name="phone" autoComplete="tel" /></label>
+                <label className="qv-control"><span className="qv-label">Submission type</span><select name="inquiry_type" defaultValue="general_question"><option value="volunteer">I want to volunteer</option><option value="membership">I&apos;m interested in joining</option><option value="general_question">I have a general question</option><option value="help_request">I need help with something</option><option value="other">Other</option></select></label>
               </div>
-              <label className="qv-control">
-                <span className="qv-label">Message</span>
-                <textarea name="message" rows={4} required />
-              </label>
-              <p className="qv-inline-message">
-                By submitting this form, you agree that this organization may contact you about your submission.
-              </p>
-              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}>
-                <button type="submit" className="qv-button-primary">Send submission</button>
-              </div>
+              <label className="qv-control"><span className="qv-label">Message</span><textarea name="message" rows={4} required /></label>
+              <p className="qv-inline-message">By submitting this form, you agree that this organization may contact you about your submission.</p>
+              <div className="qv-form-actions" style={{ justifyContent: 'flex-start' }}><button type="submit" className="qv-button-primary">Send submission</button></div>
             </form>
           ) : (
             <div className="qv-empty" style={{ borderStyle: 'solid' }}>
@@ -427,10 +412,7 @@ export default async function LocalPageTemplatePreview({ params }: PageProps) {
       </section>
 
       <footer style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', padding: '34px clamp(20px, 6vw, 80px)', background: 'var(--qv-plum)', color: 'white' }}>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <strong>{displayTitle}</strong>
-          <span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism. This is a generated local organization page preview.')}</span>
-        </div>
+        <div style={{ display: 'grid', gap: 8 }}><strong>{displayTitle}</strong><span style={{ opacity: 0.8 }}>{paragraph('Powered by Chrism. This is a generated local organization page preview.')}</span></div>
         <Link href="/super-admin/local-pages" className="qv-link-button qv-button-secondary">Back to previews</Link>
       </footer>
     </main>
