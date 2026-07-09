@@ -7,88 +7,56 @@ function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
 
-const touchpoints = [
-  'Signs and window graphics',
-  'Business cards and stationery',
-  'Menus, flyers, and mailers',
-  'Staff apparel and uniforms',
-  'Labels, stickers, and packaging',
-  'Banners, booths, and event pieces',
-  'Promotional products and client gifts',
-  'Print-ready design and file setup',
-]
-
-const serviceGroups = [
+const flywheelSteps = [
   {
-    title: 'Print and stationery',
-    copy:
-      'Business cards, postcards, flyers, brochures, rack cards, menus, forms, envelopes, letterhead, booklets, labels, stickers, and everyday printed pieces.',
+    title: 'Reach',
+    copy: 'Access to trade-level vendors, pricing, and production relationships your organization couldn\'t easily get on its own.',
   },
   {
-    title: 'Signs and displays',
-    copy:
-      'Banners, coroplast signs, window graphics, posters, decals, event signage, yard signs, retractable displays, and large-format print.',
+    title: 'Redirect',
+    copy: 'Most of that margin stays in the ecosystem — not in a corporate bottom line somewhere else. We run lean so more of it can.',
   },
   {
-    title: 'Apparel and uniforms',
-    copy:
-      'T-shirts, hoodies, crewnecks, polos, staff shirts, event apparel, team wear, embroidered pieces, and branded workwear.',
+    title: 'Reinvest',
+    copy: 'That value keeps core tools free or deeply subsidized for the organizations that need them most.',
   },
   {
-    title: 'Promotional sourcing',
+    title: 'Repeat',
     copy:
-      'Drinkware, tote bags, pens, lanyards, notebooks, magnets, giveaways, client gifts, and branded merchandise sourced through commercial suppliers.',
-  },
-]
-
-const processSteps = [
-  {
-    title: 'Send the need',
-    copy:
-      'Share a finished file, a rough idea, a photo, an old invoice, or a simple message that starts with “can you make this?”',
-  },
-  {
-    title: 'Get practical options',
-    copy:
-      'We help sort out the right product, material, quantity, production method, timeline, and budget before anything gets ordered.',
-  },
-  {
-    title: 'Approve the quote',
-    copy:
-      'You get clear pricing and guidance. If there is a smarter way to produce the job, we will tell you before the dollars march out the door.',
-  },
-  {
-    title: 'Let us handle production',
-    copy:
-      'Chrism manages file prep, sourcing, production, and coordination so you are not stuck chasing a tiny parade of vendors.',
+      'Every order, every subscription, every sourcing request compounds. The more Chrism is used, the more it can do — for everyone in it.',
   },
 ]
 
 const faqs = [
   {
-    question: 'What kind of businesses can Chrism help?',
+    question: 'How is Chrism free for organizations?',
     answer:
-      'Chrism is built for small businesses, independent operators, restaurants, shops, service businesses, trades, local brands, and community-facing organizations that need design and production help without hiring an agency.',
+      'Chrism uses commercial print sourcing, fundraising products, and procurement margin to subsidize the software platform. The goal is to let commercial activity support community infrastructure instead of asking every small organization to carry another software bill.',
   },
   {
-    question: 'Do I need print-ready artwork?',
+    question: 'What does Chrism offer?',
     answer:
-      'No. If you have finished artwork, great. If you only have an idea, an old file, a screenshot, or a previous invoice, Chrism can help turn that into something production-ready.',
+      'Chrism offers software for member management, events, volunteer coordination, communication, and local organization context. It also supports print sourcing, fundraising products, designed materials, and institutional procurement work.',
   },
   {
-    question: 'Can you beat my current vendor?',
+    question: 'What kind of print work can Chrism source?',
     answer:
-      'Sometimes. Send your last quote or invoice and we can compare it honestly. If you already have strong pricing, we will say so. If there is room to improve, we will show you where.',
+      'Chrism can help source Christmas cards, certificates, postcards, signs, banners, apparel, forms, bulletins, fundraising materials, and other institutional print needs.',
   },
   {
-    question: 'Is Chrism a printer?',
+    question: 'How does Chrism help fundraising?',
     answer:
-      'Chrism is a design and sourcing partner, not a single print shop. That means we can help match the job to the right production supplier instead of forcing every order through one machine or method.',
+      'Chrism designs and sources premium goods at wholesale or trade-aware pricing so local groups can sell them at healthy margins. The model is especially useful for products like Christmas cards, where strong design and production quality can become a real fundraising advantage.',
   },
   {
-    question: 'Do you still work with ministries and schools?',
+    question: 'Does Chrism replace existing systems?',
     answer:
-      'Yes. Chrism still supports ministries, parishes, councils, schools, parent groups, and community organizations. This page is the broader small-business front door, with dedicated pages for specific audiences coming next.',
+      'No. Chrism is best understood as a practical coordination layer for organizations, members, leaders, volunteers, events, and local operations. It is meant to reduce everyday friction, not replace every system an organization already uses.',
+  },
+  {
+    question: 'How does Chrism protect user information?',
+    answer:
+      'Chrism uses passwordless authentication, secure HTTPS, responsible access controls, and organization-based permissions. User information is shared only with organizations a user belongs to or chooses to connect with.',
   },
 ]
 
@@ -115,141 +83,146 @@ export default function ChrismWorksLandingPage() {
 
         <section className={styles.heroBlock}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Design, print, sourcing, and production</p>
-            <h1 className={styles.heroTitle}>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h1>
-            <p className={styles.heroLead}>{noOrphan('Your business shows up in a hundred little places before anyone says hello.')}</p>
-            <p className={styles.heroText}>
-              {noOrphan(
-                'Chrism helps small businesses design, source, and produce the everyday pieces people see first: print, signage, apparel, packaging, promotional products, and practical design support.'
-              )}
-            </p>
-            <div className={styles.heroActions}>
-              <Link href="#quote" className="qv-button qv-link-button">
-                Request a quote
-              </Link>
-              <Link href="#invoice-review" className="qv-button-secondary qv-link-button">
-                Send an invoice
-              </Link>
-            </div>
+            <h1 className={styles.heroTitle}>
+              <span className={styles.heroSentencePrimary}>
+                Built for
+                <br />
+                community.
+              </span>
+              <span className={styles.heroSentenceSecondary}>
+                <span className={styles.heroAccent}>Optimized</span>
+                <br />
+                for business.
+              </span>
+            </h1>
           </div>
 
-          <div className={styles.heroArtwork}>
-            <div className={styles.openSignFrame} aria-hidden="true">
+          <div className={styles.heroArtwork} aria-hidden="true">
+            <Image
+              src="/black_chair.png"
+              alt=""
+              width={780}
+              height={780}
+              priority
+              className={styles.heroChairImage}
+            />
+          </div>
+        </section>
+
+        <section className={styles.visionGrid}>
+          <div className={styles.imageColumn}>
+            <div className={styles.imageFrame}>
               <Image
-                src="/open_sign.svg"
-                alt=""
-                width={848}
-                height={1264}
-                priority
-                className={styles.openSignImage}
+                src="/jonny-gios-QMesAlxmi6g-unsplash-chrism.png"
+                alt="Large mural text reading you and me"
+                fill
+                className={styles.aboutImage}
+                sizes="(max-width: 900px) 100vw, 32vw"
               />
-              <span className={styles.signGlow} />
             </div>
-          </div>
-        </section>
-
-        <section className={styles.manifestoSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>Always showing up</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Your brand is working before you are in the room.')}</h2>
-            <p>
-              {noOrphan(
-                'The sign above the door, the card in someone’s hand, the shirt your staff wears, the flyer on a fridge, the sticker sealing a package, and the banner at an event all say something before you get the chance to.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'Chrism helps make those pieces feel considered, consistent, and properly produced without making you manage five separate suppliers.'
-              )}
-            </p>
-          </div>
-
-          <div className={styles.touchpointGrid}>
-            {touchpoints.map((touchpoint) => (
-              <div key={touchpoint} className={styles.touchpointPill}>
-                {touchpoint}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.servicesSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>What we help with</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
-          </div>
-
-          <div className={styles.serviceGrid}>
-            {serviceGroups.map((group) => (
-              <article key={group.title} className={styles.serviceCard}>
-                <h3>{group.title}</h3>
-                <p>{noOrphan(group.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.invoiceBand} id="invoice-review">
-          <div>
-            <p className={styles.eyebrow}>Already have a supplier?</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Send your last quote or invoice.')}</h2>
-          </div>
-          <div className={styles.copyStack}>
-            <p>
-              {noOrphan(
-                'We will take a look and tell you if Chrism can help. Maybe we can beat it. Maybe your current vendor is already giving you a great deal. Either way, you will get a useful second set of eyes.'
-              )}
-            </p>
-            <p>{noOrphan('No pressure, no mystery markup theatre, and no pretending every job needs a discovery workshop.')}</p>
-          </div>
-        </section>
-
-        <section className={styles.processSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>How it works</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('A simpler way to get branded things made.')}</h2>
-          </div>
-
-          <div className={styles.flowGrid}>
-            {processSteps.map((step, index) => (
-              <article key={step.title} className={styles.flowItem}>
-                <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
-                <h3>
-                  <span className={styles.accentWord}>{step.title}</span>
-                </h3>
-                <p>{noOrphan(step.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.plainTrust}>
-          <div className={styles.trustIntro}>
-            <p className={styles.eyebrow}>Why Chrism</p>
-            <h2 className={styles.trustTitle}>Lean, local, and useful.</h2>
-          </div>
-          <div className={styles.copyStack}>
-            <p>
-              {noOrphan(
-                'Chrism is a registered Ontario business built for practical, relationship-based service. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'The goal is not to turn every request into a bloated agency project. The goal is to help you get the right thing made properly, at a fair price, with less vendor soup.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'Chrism also supports ministries, schools, councils, and community organizations, but the same production logic helps regular small businesses show up better too.'
-              )}
+            <p className={styles.photoCredit}>
+              Photo by{' '}
+              <a
+                href="https://unsplash.com/@supergios?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Jonny Gios
+              </a>{' '}
+              on{' '}
+              <a
+                href="https://unsplash.com/photos/a-black-and-white-sign-that-says-you-and-me-and-you-and-me-QMesAlxmi6g?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Unsplash
+              </a>
             </p>
           </div>
+
+          <section className={styles.contentPlain}>
+            <p className={styles.eyebrow}>Why Chrism exists</p>
+            <h2 className={styles.sectionTitle}>
+              The people holding communities together{' '}
+              <span className={styles.noWrap}>
+                deserve <span className={styles.accentWord}>better.</span>
+              </span>
+            </h2>
+            <div className={styles.copyStack}>
+              <p>
+                {noOrphan(
+                  'Educators, ministry leaders, and the people who quietly keep local institutions running are doing some of the most important work in any community. Most never planned to run an organization — they wanted to serve people. Yet here they are, juggling a patchwork of tools, bootstrapping on free tiers, and watching the person they set out to be get kicked in the shins by everything that has nothing to do with why they showed up.'
+                )}
+              </p>
+              <p>
+                {noOrphan(
+                  'The infrastructure available to them was designed for businesses — not communities. The software assumes enterprise budgets. The pricing assumes high-volume buyers. And the gap between what\'s available and what\'s actually needed keeps falling on the people least positioned to absorb it.'
+                )}
+              </p>
+              <p>
+                {noOrphan(
+                  'Chrism exists to close that gap. Operations software, fundraising goods, and institutional print sourcing — connected in one place, so more value stays with the organizations doing the work.'
+                )}
+              </p>
+            </div>
+          </section>
         </section>
+
+        <div className={styles.modelGroup}>
+          <section className={styles.flywheelSection}>
+            <div className={styles.sectionIntroWide}>
+              <p className={styles.eyebrow}>The Flywheel</p>
+              <h2 className={styles.sectionTitle}>
+                Why the model <span className={styles.accentWord}>works</span>
+              </h2>
+              <p>
+                {noOrphan(
+                  'Every vendor your organization deals with is running a business and extracting value from every transaction. So is Chrism.'
+                )}
+              </p>
+              <p>{noOrphan('The difference is what we do with it.')}</p>
+            </div>
+
+            <div className={styles.flowGrid}>
+              {flywheelSteps.map((step, index) => (
+                <article key={step.title} className={styles.flowItem}>
+                  <p className={styles.flowNumber}>{String(index + 1).padStart(2, '0')}</p>
+                  <h3>
+                    <span className={styles.accentWord}>{step.title}</span>
+                  </h3>
+                  <p>{noOrphan(step.copy)}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className={styles.plainTrust}>
+            <div className={styles.trustIntro}>
+              <h2 className={styles.trustTitle}>Responsible stewardship</h2>
+            </div>
+            <div className={styles.copyStack}>
+              <p>
+                {noOrphan(
+                  'Chrism is a registered business in Ontario, Canada — built lean, operated responsibly, and designed to be a vendor you can actually rely on.'
+                )}
+              </p>
+              <p>
+                {noOrphan(
+                  'The platform uses secure HTTPS, passwordless authentication, and organization-based permissions. Your data stays with your organization — it\'s never shared, sold, or used outside the context you set.'
+                )}
+              </p>
+              <p>
+                {noOrphan(
+                  'We\'re not a faceless platform. If something isn\'t working, there\'s a real person behind it.'
+                )}
+              </p>
+            </div>
+          </section>
+        </div>
 
         <div className={styles.schoolsLinkCard}>
           <p>
-            Chrism also works with <Link href="/schools">schools</Link>. A dedicated ministry page is coming next.
+            We also work directly with <Link href="/schools">schools</Link>.
           </p>
         </div>
 
@@ -268,7 +241,7 @@ export default function ChrismWorksLandingPage() {
           </div>
         </section>
 
-        <section className={styles.ctaSection} id="quote">
+        <section className={styles.ctaSection}>
           <InvoiceReviewCta />
         </section>
       </div>
