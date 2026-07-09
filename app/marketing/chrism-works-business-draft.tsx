@@ -161,9 +161,9 @@ export default function ChrismWorksBusinessDraftPage() {
               />
             </div>
           </div>
-
-          <StickyAudienceMenu />
         </section>
+
+        <StickyAudienceMenu />
 
         <section className={styles.calloutSection}>
           <h2>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h2>
