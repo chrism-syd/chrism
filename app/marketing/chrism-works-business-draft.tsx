@@ -97,20 +97,20 @@ export default function ChrismWorksBusinessDraftPage() {
     <main className={`qv-page ${styles.page}`}>
       <div className={`qv-shell ${styles.shell}`}>
         <header className={styles.topBar}>
-          <Link href="/" className={styles.brandLink} aria-label="Chrism home">
-            <Image
-              src="/Chrism_horiz.svg"
-              alt="Chrism"
-              width={419}
-              height={98}
-              priority
-              className={styles.brandImage}
-            />
-          </Link>
-
-          <Link href="https://www.chrism.app" className={`qv-button-secondary qv-link-button ${styles.signInButton}`}>
-            Launch Operations
-          </Link>
+          <nav className={styles.audienceNav} aria-label="Chrismworks audience navigation">
+            <Link href="/business-draft" className={styles.brandWordmark} aria-current="page">
+              <span>Chrismworks</span>
+            </Link>
+            <span className={styles.navFor}>for Business</span>
+            <span className={styles.navDivider}>|</span>
+            <Link href="#" className={styles.navLink}>
+              Ministry
+            </Link>
+            <span className={styles.navDivider}>|</span>
+            <Link href="/schools" className={styles.navLink}>
+              Schools
+            </Link>
+          </nav>
         </header>
 
         <section className={styles.heroBlock}>
