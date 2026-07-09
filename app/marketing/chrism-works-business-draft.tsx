@@ -116,21 +116,12 @@ export default function ChrismWorksBusinessDraftPage() {
         <section className={styles.heroBlock}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>Design, print, sourcing, and production</p>
-            <h1 className={styles.heroTitle}>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h1>
-            <p className={styles.heroLead}>{noOrphan('Your business shows up in a hundred little places before anyone says hello.')}</p>
+            <h1 className={styles.heroTitle}>{noOrphan('Your brand often meets customers before your business does.')}</h1>
             <p className={styles.heroText}>
               {noOrphan(
                 'Chrism helps small businesses design, source, and produce the everyday pieces people see first: print, signage, apparel, packaging, promotional products, and practical design support.'
               )}
             </p>
-            <div className={styles.heroActions}>
-              <Link href="#quote" className="qv-button qv-link-button">
-                Request a quote
-              </Link>
-              <Link href="#invoice-review" className="qv-button-secondary qv-link-button">
-                Send an invoice
-              </Link>
-            </div>
           </div>
 
           <div className={styles.heroArtwork}>
@@ -146,6 +137,10 @@ export default function ChrismWorksBusinessDraftPage() {
               <span className={styles.signGlow} />
             </div>
           </div>
+        </section>
+
+        <section className={styles.calloutSection}>
+          <h2>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h2>
         </section>
 
         <section className={styles.manifestoSection}>
@@ -190,17 +185,17 @@ export default function ChrismWorksBusinessDraftPage() {
         </section>
 
         <section className={styles.invoiceBand} id="invoice-review">
-          <div>
+          <div className={styles.invoiceBandIntro}>
             <p className={styles.eyebrow}>Already have a supplier?</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Send your last quote or invoice.')}</h2>
-          </div>
-          <div className={styles.copyStack}>
+            <h2 className={styles.sectionTitle}>{noOrphan('Send us your last quote or invoice.')}</h2>
             <p>
               {noOrphan(
-                'We will take a look and tell you if Chrism can help. Maybe we can beat it. Maybe your current vendor is already giving you a great deal. Either way, you will get a useful second set of eyes.'
+                'Maybe we can beat it. Maybe your current vendor is already giving you a great deal. Either way, you will get a useful second set of eyes.'
               )}
             </p>
-            <p>{noOrphan('No pressure, no mystery markup theatre, and no pretending every job needs a discovery workshop.')}</p>
+          </div>
+          <div className={styles.invoiceBandCta}>
+            <InvoiceReviewCta />
           </div>
         </section>
 
@@ -266,10 +261,6 @@ export default function ChrismWorksBusinessDraftPage() {
               </details>
             ))}
           </div>
-        </section>
-
-        <section className={styles.ctaSection} id="quote">
-          <InvoiceReviewCta />
         </section>
       </div>
     </main>
