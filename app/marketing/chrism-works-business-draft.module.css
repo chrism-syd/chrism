@@ -35,9 +35,9 @@
 
 .heroBlock {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+  grid-template-columns: minmax(0, 1.85fr) minmax(260px, 0.8fr);
   align-items: center;
-  gap: clamp(40px, 6vw, 96px);
+  gap: clamp(28px, 4.4vw, 72px);
   min-height: calc(100vh - 170px);
   padding: clamp(20px, 3vw, 36px) 0 clamp(44px, 8vh, 96px);
 }
@@ -63,10 +63,10 @@
 .heroTitle {
   margin: 0;
   color: rgb(46, 42, 52);
-  font-size: clamp(56px, 7vw, 104px);
+  font-size: clamp(58px, 7.4vw, 112px);
   line-height: 0.92;
   letter-spacing: -0.058em;
-  max-width: 11ch;
+  max-width: 13.5ch;
 }
 
 .heroLead {
@@ -81,7 +81,7 @@
 
 .heroText {
   margin: 0;
-  max-width: 690px;
+  max-width: 760px;
   color: rgb(46, 42, 52);
   font-size: clamp(18px, 1.55vw, 22px);
   line-height: 1.5;
@@ -96,15 +96,16 @@
 
 .heroArtwork {
   display: grid;
-  justify-items: center;
+  justify-items: end;
   align-items: center;
   min-width: 0;
   pointer-events: none;
+  transform: translateX(clamp(0px, 2.2vw, 34px));
 }
 
 .openSignFrame {
   position: relative;
-  width: min(100%, 360px);
+  width: min(100%, 300px);
   transform: rotate(1deg);
   opacity: 0;
   filter: brightness(0.15) saturate(0.7);
@@ -493,8 +494,13 @@
     padding-bottom: 48px;
   }
 
+  .heroArtwork {
+    justify-items: start;
+    transform: none;
+  }
+
   .openSignFrame {
-    width: min(100%, 300px);
+    width: min(100%, 280px);
     justify-self: start;
   }
 }
@@ -511,6 +517,7 @@
 
   .heroTitle {
     font-size: clamp(44px, 14vw, 68px);
+    max-width: 11ch;
   }
 
   .heroText {
