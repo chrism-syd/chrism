@@ -111,44 +111,14 @@
   animation: signWarmUp 2400ms steps(1, end) 300ms forwards;
 }
 
-.openSignFrame::before {
-  content: '';
-  position: absolute;
-  left: 9%;
-  right: 9%;
-  bottom: 3%;
-  height: 18%;
-  border-radius: 999px;
-  background: rgba(20, 12, 24, 0.28);
-  filter: blur(30px);
-  opacity: 0;
-  transform: translateY(16px);
-  pointer-events: none;
-  z-index: -1;
-  animation: glowPulse 1800ms ease 1200ms forwards;
-}
-
 .openSignImage {
   display: block;
   width: 100%;
   height: auto;
   filter:
-    drop-shadow(0 0 24px rgba(17, 77, 255, 0.22))
-    drop-shadow(0 0 34px rgba(255, 44, 30, 0.18))
-    drop-shadow(0 22px 44px rgba(20, 12, 24, 0.26));
-}
-
-.signGlow {
-  position: absolute;
-  inset: 4% 0 0;
-  border-radius: 36px;
-  opacity: 0;
-  box-shadow:
-    0 0 48px rgba(17, 77, 255, 0.2),
-    0 0 64px rgba(255, 44, 30, 0.14);
-  animation: glowPulse 2100ms ease 900ms forwards;
-  pointer-events: none;
-  z-index: -1;
+    drop-shadow(0 0 18px rgba(17, 77, 255, 0.18))
+    drop-shadow(0 0 22px rgba(255, 44, 30, 0.14))
+    drop-shadow(0 18px 32px rgba(20, 12, 24, 0.22));
 }
 
 .calloutSection {
@@ -492,22 +462,8 @@
   }
 }
 
-@keyframes glowPulse {
-  0% {
-    opacity: 0;
-  }
-  38% {
-    opacity: 0.18;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .openSignFrame,
-  .openSignFrame::before,
-  .signGlow {
+  .openSignFrame {
     opacity: 1;
     filter: none;
     animation: none;
