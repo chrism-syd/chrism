@@ -134,7 +134,6 @@ export default function ChrismWorksBusinessDraftPage() {
                 priority
                 className={styles.openSignImage}
               />
-              <span className={styles.signGlow} />
             </div>
           </div>
         </section>
