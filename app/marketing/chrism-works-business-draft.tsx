@@ -92,6 +92,36 @@ const faqs = [
   },
 ]
 
+function StickyAudienceMenu() {
+  return (
+    <div className={styles.stickyAudienceShell}>
+      <nav className={styles.stickyAudienceNav} aria-label="Sticky audience navigation">
+        <Link href="/business-draft" className={styles.stickyBrand} aria-current="page">
+          <Image
+            src="/chrismworks.svg"
+            alt="Chrismworks"
+            width={260}
+            height={64}
+            className={styles.stickyWordmarkImage}
+          />
+        </Link>
+        <span className={styles.stickyFor}>for</span>
+        <Link href="/business-draft" className={styles.stickyCurrent} aria-current="page">
+          Business
+        </Link>
+        <span className={styles.stickyDivider}>|</span>
+        <Link href="#" className={styles.stickyLink}>
+          Ministry
+        </Link>
+        <span className={styles.stickyDivider}>|</span>
+        <Link href="/schools" className={styles.stickyLink}>
+          Schools
+        </Link>
+      </nav>
+    </div>
+  )
+}
+
 export default function ChrismWorksBusinessDraftPage() {
   return (
     <main className={`qv-page ${styles.page}`}>
@@ -131,33 +161,9 @@ export default function ChrismWorksBusinessDraftPage() {
               />
             </div>
           </div>
-        </section>
 
-        <div className={styles.stickyAudienceShell}>
-          <nav className={styles.stickyAudienceNav} aria-label="Sticky audience navigation">
-            <Link href="/business-draft" className={styles.stickyBrand} aria-current="page">
-              <Image
-                src="/chrismworks.svg"
-                alt="Chrismworks"
-                width={260}
-                height={64}
-                className={styles.stickyWordmarkImage}
-              />
-            </Link>
-            <span className={styles.stickyFor}>for</span>
-            <Link href="/business-draft" className={styles.stickyCurrent} aria-current="page">
-              Business
-            </Link>
-            <span className={styles.stickyDivider}>|</span>
-            <Link href="#" className={styles.stickyLink}>
-              Ministry
-            </Link>
-            <span className={styles.stickyDivider}>|</span>
-            <Link href="/schools" className={styles.stickyLink}>
-              Schools
-            </Link>
-          </nav>
-        </div>
+          <StickyAudienceMenu />
+        </section>
 
         <section className={styles.calloutSection}>
           <h2>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h2>
