@@ -97,17 +97,16 @@ export default function ChrismWorksBusinessDraftPage() {
     <main className={`qv-page ${styles.page}`}>
       <div className={`qv-shell ${styles.shell}`}>
         <header className={styles.topBar}>
-          <nav className={styles.audienceNav} aria-label="Chrismworks audience navigation">
-            <Link href="/business-draft" className={styles.brandWordmark} aria-current="page">
-              <span>Chrismworks</span>
+          <nav className={styles.simpleAudienceNav} aria-label="Audience navigation">
+            <Link href="/business-draft" className={styles.simpleNavCurrent} aria-current="page">
+              Business
             </Link>
-            <span className={styles.navFor}>for Business</span>
             <span className={styles.navDivider}>|</span>
-            <Link href="#" className={styles.navLink}>
+            <Link href="#" className={styles.simpleNavLink}>
               Ministry
             </Link>
             <span className={styles.navDivider}>|</span>
-            <Link href="/schools" className={styles.navLink}>
+            <Link href="/schools" className={styles.simpleNavLink}>
               Schools
             </Link>
           </nav>
@@ -136,6 +135,25 @@ export default function ChrismWorksBusinessDraftPage() {
             </div>
           </div>
         </section>
+
+        <div className={styles.stickyAudienceShell}>
+          <nav className={styles.stickyAudienceNav} aria-label="Sticky audience navigation">
+            <Link href="/business-draft" className={styles.stickyBrand} aria-current="page">
+              Chrismworks for
+            </Link>
+            <Link href="/business-draft" className={styles.stickyCurrent} aria-current="page">
+              Business
+            </Link>
+            <span className={styles.stickyDivider}>|</span>
+            <Link href="#" className={styles.stickyLink}>
+              Ministry
+            </Link>
+            <span className={styles.stickyDivider}>|</span>
+            <Link href="/schools" className={styles.stickyLink}>
+              Schools
+            </Link>
+          </nav>
+        </div>
 
         <section className={styles.calloutSection}>
           <h2>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h2>
