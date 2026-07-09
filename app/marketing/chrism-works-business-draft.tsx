@@ -107,20 +107,6 @@ export default function ChrismWorksBusinessDraftPage() {
               className={styles.brandImage}
             />
           </Link>
-
-          <nav className={styles.simpleAudienceNav} aria-label="Audience navigation">
-            <Link href="/business-draft" className={styles.simpleNavCurrent} aria-current="page">
-              Business
-            </Link>
-            <span className={styles.navDivider}>|</span>
-            <Link href="#" className={styles.simpleNavLink}>
-              Ministry
-            </Link>
-            <span className={styles.navDivider}>|</span>
-            <Link href="/schools" className={styles.simpleNavLink}>
-              Schools
-            </Link>
-          </nav>
         </header>
 
         <section className={styles.heroBlock}>
