@@ -104,7 +104,6 @@
 
 .openSignFrame {
   position: relative;
-  isolation: isolate;
   width: min(100%, 360px);
   transform: rotate(1deg);
   opacity: 0;
@@ -112,44 +111,44 @@
   animation: signWarmUp 2400ms steps(1, end) 300ms forwards;
 }
 
-.openSignFrame::before,
-.openSignFrame::after {
+.openSignFrame::before {
   content: '';
   position: absolute;
-  inset: 9% 7%;
-  border-radius: 36px;
+  left: 9%;
+  right: 9%;
+  bottom: 3%;
+  height: 18%;
+  border-radius: 999px;
+  background: rgba(20, 12, 24, 0.28);
+  filter: blur(30px);
+  opacity: 0;
+  transform: translateY(16px);
   pointer-events: none;
   z-index: -1;
-}
-
-.openSignFrame::before {
-  background: rgba(17, 77, 255, 0.24);
-  filter: blur(28px);
-  opacity: 0;
   animation: glowPulse 1800ms ease 1200ms forwards;
-}
-
-.openSignFrame::after {
-  background: rgba(255, 44, 30, 0.18);
-  filter: blur(52px);
-  opacity: 0;
-  animation: glowPulse 2200ms ease 1550ms forwards;
 }
 
 .openSignImage {
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 22px 44px rgba(20, 12, 24, 0.26));
+  filter:
+    drop-shadow(0 0 24px rgba(17, 77, 255, 0.22))
+    drop-shadow(0 0 34px rgba(255, 44, 30, 0.18))
+    drop-shadow(0 22px 44px rgba(20, 12, 24, 0.26));
 }
 
 .signGlow {
   position: absolute;
-  inset: 0;
+  inset: 4% 0 0;
   border-radius: 36px;
   opacity: 0;
-  box-shadow: 0 0 42px rgba(98, 62, 110, 0.2);
+  box-shadow:
+    0 0 48px rgba(17, 77, 255, 0.2),
+    0 0 64px rgba(255, 44, 30, 0.14);
   animation: glowPulse 2100ms ease 900ms forwards;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .calloutSection {
@@ -277,10 +276,8 @@
 
 .invoiceBand {
   display: grid;
-  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(28px, 5vw, 72px);
-  padding: clamp(26px, 4vw, 40px);
+  gap: 18px;
+  padding: clamp(26px, 4vw, 44px);
   border-radius: 30px;
   background: rgb(245, 194, 66);
   color: rgb(46, 42, 52);
@@ -289,7 +286,8 @@
 
 .invoiceBandIntro {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  max-width: 980px;
 }
 
 .invoiceBand .sectionTitle,
@@ -297,11 +295,13 @@
   color: rgb(46, 42, 52);
 }
 
-.invoiceBandActions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 12px;
+.invoiceBandIntro p:not(.eyebrow) {
+  max-width: none;
+}
+
+.invoiceBandButton {
+  width: fit-content;
+  margin-top: 6px;
 }
 
 .flowGrid {
@@ -507,7 +507,6 @@
 @media (prefers-reduced-motion: reduce) {
   .openSignFrame,
   .openSignFrame::before,
-  .openSignFrame::after,
   .signGlow {
     opacity: 1;
     filter: none;
@@ -528,7 +527,6 @@
 
 @media (max-width: 960px) {
   .heroBlock,
-  .invoiceBand,
   .plainTrust {
     grid-template-columns: minmax(0, 1fr);
   }
