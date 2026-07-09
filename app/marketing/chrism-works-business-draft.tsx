@@ -193,13 +193,8 @@ export default function ChrismWorksBusinessDraftPage() {
                 'Maybe we can beat it. Maybe your current vendor is already giving you a great deal. Either way, you will get a useful second set of eyes.'
               )}
             </p>
-          </div>
-          <div className={styles.invoiceBandActions}>
-            <Link href="#quote" className="qv-button qv-link-button">
+            <Link href="#quote" className={`qv-button qv-link-button ${styles.invoiceBandButton}`}>
               Request a quote
-            </Link>
-            <Link href="#quote" className="qv-button-secondary qv-link-button">
-              Send an invoice
             </Link>
           </div>
         </section>
