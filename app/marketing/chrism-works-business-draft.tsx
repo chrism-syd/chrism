@@ -194,8 +194,13 @@ export default function ChrismWorksBusinessDraftPage() {
               )}
             </p>
           </div>
-          <div className={styles.invoiceBandCta}>
-            <InvoiceReviewCta />
+          <div className={styles.invoiceBandActions}>
+            <Link href="#quote" className="qv-button qv-link-button">
+              Request a quote
+            </Link>
+            <Link href="#quote" className="qv-button-secondary qv-link-button">
+              Send an invoice
+            </Link>
           </div>
         </section>
 
@@ -261,6 +266,10 @@ export default function ChrismWorksBusinessDraftPage() {
               </details>
             ))}
           </div>
+        </section>
+
+        <section className={styles.ctaSection} id="quote">
+          <InvoiceReviewCta />
         </section>
       </div>
     </main>
