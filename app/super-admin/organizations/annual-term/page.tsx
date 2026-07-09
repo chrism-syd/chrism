@@ -103,7 +103,7 @@ export default async function SuperAdminAnnualTermPage({ searchParams }: PagePro
               <p className="qv-eyebrow">Super admin</p>
               <h1 className="qv-directory-name">Parent organization annual terms</h1>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Set the default operating year for umbrella organizations like Knights of Columbus, Society of St. Vincent de Paul, and Catholic Women's League. Local units inherit this value unless they have an explicit local override.
+                Set the default operating year for umbrella organizations like Knights of Columbus, Society of St. Vincent de Paul, and Catholic Women&apos;s League. Local units inherit this value unless they have an explicit local override.
               </p>
               <div className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 16 }}>
                 <Link href="/super-admin/organizations" className="qv-link-button qv-button-secondary">Back to organization manager</Link>
