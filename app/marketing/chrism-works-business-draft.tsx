@@ -7,6 +7,12 @@ function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
 
+const menuPieceStyle = {
+  height: 'clamp(15px, 1.55vw, 22px)',
+  width: 'auto',
+  display: 'block',
+} as const
+
 const touchpoints = [
   'Signs and window graphics',
   'Business cards and stationery',
@@ -96,26 +102,21 @@ function StickyAudienceMenu() {
   return (
     <div className={styles.stickyAudienceShell}>
       <nav className={styles.stickyAudienceNav} aria-label="Sticky audience navigation">
-        <Link href="/business-draft" className={styles.stickyBrand} aria-current="page">
-          <Image
-            src="/chrismworks.svg"
-            alt="Chrismworks"
-            width={260}
-            height={64}
-            className={styles.stickyWordmarkImage}
-          />
+        <Link href="/business-draft" className={styles.stickyBrand} aria-current="page" aria-label="Chrismworks for Business">
+          <Image src="/menu-chrism.svg" alt="" width={260} height={100} style={menuPieceStyle} />
+          <Image src="/menu-works.svg" alt="" width={260} height={100} style={menuPieceStyle} />
         </Link>
-        <span className={styles.stickyFor}>for</span>
+        <Image src="/menu-for.svg" alt="for" width={120} height={100} style={menuPieceStyle} />
         <Link href="/business-draft" className={styles.stickyCurrent} aria-current="page">
-          Business
+          <Image src="/menu-business.svg" alt="Business" width={280} height={100} style={menuPieceStyle} />
         </Link>
-        <span className={styles.stickyDivider}>|</span>
+        <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
         <Link href="#" className={styles.stickyLink}>
-          Ministry
+          <Image src="/menu-ministry.svg" alt="Ministry" width={260} height={100} style={menuPieceStyle} />
         </Link>
-        <span className={styles.stickyDivider}>|</span>
+        <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
         <Link href="/schools" className={styles.stickyLink}>
-          Schools
+          <Image src="/menu-schools.svg" alt="Schools" width={240} height={100} style={menuPieceStyle} />
         </Link>
       </nav>
     </div>
