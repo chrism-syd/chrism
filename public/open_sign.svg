@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="848" height="1264" viewBox="0 0 848 1264" role="img" aria-labelledby="title desc">
+  <title id="title">Your Brand Always Open neon sign</title>
+  <desc id="desc">A stylized neon open sign with the words Your Brand Always Open.</desc>
+  <defs>
+    <filter id="blueGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="redGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="whiteGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#050710"/>
+      <stop offset="1" stop-color="#010106"/>
+    </linearGradient>
+  </defs>
+  <rect width="848" height="1264" rx="64" fill="url(#panel)"/>
+  <rect x="48" y="48" width="752" height="1168" rx="56" fill="none" stroke="#3d7bff" stroke-width="18" filter="url(#blueGlow)"/>
+  <rect x="86" y="88" width="676" height="1088" rx="42" fill="none" stroke="#1d4fff" stroke-width="8" opacity=".9" filter="url(#blueGlow)"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="700" text-anchor="middle" letter-spacing="2">
+    <text x="424" y="286" font-size="86" fill="none" stroke="#ff3325" stroke-width="9" filter="url(#redGlow)">YOUR BRAND</text>
+    <text x="424" y="286" font-size="86" fill="#ffb3a9">YOUR BRAND</text>
+    <text x="424" y="604" font-size="154" fill="none" stroke="#eefdfa" stroke-width="11" filter="url(#whiteGlow)">ALWAYS</text>
+    <text x="424" y="604" font-size="154" fill="#ffffff">ALWAYS</text>
+    <text x="424" y="940" font-size="184" fill="none" stroke="#ff3325" stroke-width="13" filter="url(#redGlow)">OPEN</text>
+    <text x="424" y="940" font-size="184" fill="#ff9a8e">OPEN</text>
+  </g>
+  <g fill="#172035" opacity=".85">
+    <circle cx="62" cy="62" r="13"/><circle cx="786" cy="62" r="13"/><circle cx="62" cy="1202" r="13"/><circle cx="786" cy="1202" r="13"/>
+  </g>
+</svg>
