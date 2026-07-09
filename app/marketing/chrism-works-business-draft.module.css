@@ -12,25 +12,113 @@
 
 .topBar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 20px;
   padding-top: 8px;
 }
 
-.brandLink {
-  display: inline-flex;
-  align-items: center;
+.simpleAudienceNav,
+.stickyAudienceNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: clamp(8px, 1.2vw, 16px);
+  line-height: 1;
 }
 
-.brandImage {
-  display: block;
-  width: 248px;
-  height: auto;
+.simpleAudienceNav {
+  width: 100%;
 }
 
-.signInButton {
-  min-width: 120px;
+.simpleNavCurrent,
+.simpleNavLink,
+.navDivider {
+  font-size: clamp(36px, 5.2vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.simpleNavCurrent {
+  color: rgb(0, 0, 0);
+  text-decoration: none;
+}
+
+.simpleNavLink {
+  color: rgb(111, 130, 141);
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.08em;
+}
+
+.navDivider {
+  color: var(--qv-plum);
+  font-weight: 500;
+}
+
+.simpleNavLink:hover,
+.simpleNavLink:focus-visible {
+  color: var(--qv-plum);
+}
+
+.stickyAudienceShell {
+  position: sticky;
+  top: 16px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  margin-top: -28px;
+  margin-bottom: -18px;
+  pointer-events: none;
+}
+
+.stickyAudienceNav {
+  width: fit-content;
+  max-width: 100%;
+  padding: 12px 18px 14px;
+  border: 1px solid rgba(98, 62, 110, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 42px rgba(20, 12, 24, 0.12);
+  backdrop-filter: blur(14px);
+  pointer-events: auto;
+}
+
+.stickyBrand,
+.stickyCurrent,
+.stickyLink,
+.stickyDivider {
+  font-size: clamp(18px, 2vw, 28px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+
+.stickyBrand {
+  color: rgb(0, 0, 0);
+  font-family: var(--font-heading), Georgia, serif;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.stickyCurrent {
+  color: rgb(0, 0, 0);
+  text-decoration: none;
+}
+
+.stickyLink {
+  color: rgb(111, 130, 141);
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.08em;
+}
+
+.stickyDivider {
+  color: var(--qv-plum);
+  font-weight: 500;
+}
+
+.stickyLink:hover,
+.stickyLink:focus-visible {
+  color: var(--qv-plum);
 }
 
 .heroBlock {
@@ -101,7 +189,7 @@
   align-self: end;
   min-width: 0;
   pointer-events: none;
-  transform: translateX(clamp(0px, 2.2vw, 34px)) translateY(clamp(18px, 5vw, 78px));
+  transform: translateX(clamp(0px, 2.2vw, 34px)) translateY(clamp(4px, 1.7vw, 28px));
 }
 
 .openSignFrame {
@@ -297,7 +385,7 @@
 }
 
 .flowItem + .flowItem::before {
-  content: '→';
+  content: '->';
   position: absolute;
   top: 50%;
   left: calc(-1 * clamp(23px, 2.8vw, 38px));
@@ -506,16 +594,33 @@
     justify-self: start;
     transform: rotate(4deg);
   }
+
+  .stickyAudienceShell {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 720px) {
   .topBar {
     align-items: flex-start;
-    flex-direction: column;
   }
 
-  .brandImage {
-    width: 200px;
+  .simpleNavCurrent,
+  .simpleNavLink,
+  .navDivider {
+    font-size: clamp(34px, 11vw, 56px);
+  }
+
+  .stickyAudienceNav {
+    border-radius: 24px;
+    padding: 12px 14px 14px;
+  }
+
+  .stickyBrand,
+  .stickyCurrent,
+  .stickyLink,
+  .stickyDivider {
+    font-size: 18px;
   }
 
   .heroTitle {
