@@ -166,7 +166,25 @@ export default function ChrismWorksBusinessDraftPage() {
         <StickyAudienceMenu />
 
         <section className={styles.calloutSection}>
+          <Image
+            src="/divazus-fabric-store-fFgbmj3vix4-unsplash.jpg"
+            alt="Close-up of patterned fabric and apparel details"
+            fill
+            className={styles.calloutImage}
+            sizes="(max-width: 900px) 100vw, 1200px"
+          />
+          <div className={styles.calloutOverlay} />
           <h2>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h2>
+          <p className={styles.imageCredit}>
+            Photo by{' '}
+            <a href="https://unsplash.com/@divazus?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText" target="_blank" rel="noreferrer">
+              Divazus Fabric Store
+            </a>{' '}
+            on{' '}
+            <a href="https://unsplash.com/photos/a-close-up-of-a-tie-with-comic-books-on-it-fFgbmj3vix4?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText" target="_blank" rel="noreferrer">
+              Unsplash
+            </a>
+          </p>
         </section>
 
         <section className={styles.manifestoSection}>
