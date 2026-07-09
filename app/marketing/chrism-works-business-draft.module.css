@@ -39,7 +39,7 @@
   align-items: center;
   gap: clamp(40px, 6vw, 96px);
   min-height: calc(100vh - 170px);
-  padding: clamp(20px, 3vw, 36px) 0 clamp(76px, 10vh, 132px);
+  padding: clamp(20px, 3vw, 36px) 0 clamp(44px, 8vh, 96px);
 }
 
 .heroCopy {
@@ -54,6 +54,7 @@
 .heroTitle,
 .sectionTitle,
 .trustTitle,
+.calloutSection h2,
 .flowItem h3,
 .serviceCard h3 {
   font-family: var(--font-heading), Georgia, serif;
@@ -62,10 +63,10 @@
 .heroTitle {
   margin: 0;
   color: rgb(46, 42, 52);
-  font-size: clamp(48px, 6vw, 86px);
-  line-height: 0.94;
-  letter-spacing: -0.055em;
-  max-width: 12.5ch;
+  font-size: clamp(56px, 7vw, 104px);
+  line-height: 0.92;
+  letter-spacing: -0.058em;
+  max-width: 11ch;
 }
 
 .heroLead {
@@ -80,10 +81,10 @@
 
 .heroText {
   margin: 0;
-  max-width: 710px;
+  max-width: 690px;
   color: rgb(46, 42, 52);
-  font-size: clamp(17px, 1.45vw, 20px);
-  line-height: 1.55;
+  font-size: clamp(18px, 1.55vw, 22px);
+  line-height: 1.5;
 }
 
 .heroActions {
@@ -151,6 +152,26 @@
   animation: glowPulse 2100ms ease 900ms forwards;
 }
 
+.calloutSection {
+  display: grid;
+  place-items: center;
+  padding: clamp(30px, 5vw, 56px);
+  border: 1px solid rgba(98, 62, 110, 0.16);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 18px 48px rgba(20, 12, 24, 0.08);
+  text-align: center;
+}
+
+.calloutSection h2 {
+  margin: 0;
+  max-width: 16ch;
+  color: rgb(46, 42, 52);
+  font-size: clamp(38px, 5.2vw, 72px);
+  line-height: 0.94;
+  letter-spacing: -0.045em;
+}
+
 .manifestoSection,
 .servicesSection,
 .processSection {
@@ -186,6 +207,7 @@
 
 .sectionIntroWide p:not(.eyebrow),
 .copyStack p,
+.invoiceBandIntro p:not(.eyebrow),
 .flowItem p:not(.flowNumber),
 .serviceCard p,
 .faqItem p {
@@ -195,7 +217,8 @@
   line-height: 1.58;
 }
 
-.sectionIntroWide p:not(.eyebrow) {
+.sectionIntroWide p:not(.eyebrow),
+.invoiceBandIntro p:not(.eyebrow) {
   max-width: 820px;
   font-size: 17px;
 }
@@ -264,13 +287,27 @@
   box-shadow: 0 22px 54px rgba(20, 12, 24, 0.12);
 }
 
+.invoiceBandIntro {
+  display: grid;
+  gap: 12px;
+}
+
 .invoiceBand .sectionTitle,
 .invoiceBand p {
   color: rgb(46, 42, 52);
 }
 
-.invoiceBand .copyStack {
-  margin: 0;
+.invoiceBandCta {
+  display: grid;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 16px 36px rgba(20, 12, 24, 0.1);
+}
+
+.invoiceBandCta :global(.qv-button-primary),
+.invoiceBandCta :global(.qv-button-secondary) {
+  pointer-events: auto;
 }
 
 .flowGrid {
@@ -505,7 +542,7 @@
   .heroBlock {
     min-height: auto;
     gap: 42px;
-    padding-bottom: 64px;
+    padding-bottom: 48px;
   }
 
   .openSignFrame {
@@ -525,11 +562,15 @@
   }
 
   .heroTitle {
-    font-size: clamp(44px, 14vw, 64px);
+    font-size: clamp(44px, 14vw, 68px);
   }
 
-  .heroLead {
-    font-size: clamp(28px, 8.8vw, 42px);
+  .heroText {
+    font-size: 17px;
+  }
+
+  .calloutSection h2 {
+    font-size: clamp(34px, 11vw, 52px);
   }
 
   .serviceGrid,
