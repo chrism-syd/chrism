@@ -297,17 +297,11 @@
   color: rgb(46, 42, 52);
 }
 
-.invoiceBandCta {
-  display: grid;
-  padding: clamp(18px, 3vw, 28px);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 16px 36px rgba(20, 12, 24, 0.1);
-}
-
-.invoiceBandCta :global(.qv-button-primary),
-.invoiceBandCta :global(.qv-button-secondary) {
-  pointer-events: auto;
+.invoiceBandActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 .flowGrid {
