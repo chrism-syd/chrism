@@ -150,8 +150,15 @@ export default function ChrismWorksBusinessDraftPage() {
         <div className={styles.stickyAudienceShell}>
           <nav className={styles.stickyAudienceNav} aria-label="Sticky audience navigation">
             <Link href="/business-draft" className={styles.stickyBrand} aria-current="page">
-              Chrismworks for
+              <Image
+                src="/chrismworks.svg"
+                alt="Chrismworks"
+                width={260}
+                height={64}
+                className={styles.stickyWordmarkImage}
+              />
             </Link>
+            <span className={styles.stickyFor}>for</span>
             <Link href="/business-draft" className={styles.stickyCurrent} aria-current="page">
               Business
             </Link>
