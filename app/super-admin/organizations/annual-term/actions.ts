@@ -42,9 +42,9 @@ function isValidMonthDay(month: number, day: number) {
 
 export async function updateParentOrganizationAnnualTermAction(formData: FormData) {
   const permissions = await requireSuperAdminNormalMode()
-  const organizationId = textValue(formData, 'organization_id')
+  const familyId = textValue(formData, 'organization_family_id')
 
-  if (!organizationId) {
+  if (!familyId) {
     redirectToAnnualTermManager({ error: 'We could not tell which parent organization to update.' })
   }
 
@@ -62,7 +62,7 @@ export async function updateParentOrganizationAnnualTermAction(formData: FormDat
 
   const admin = createAdminClient()
   const { error } = await admin
-    .from('organizations')
+    .from('organization_families')
     .update({
       annual_term_mode: mode,
       annual_term_label: label,
@@ -70,7 +70,7 @@ export async function updateParentOrganizationAnnualTermAction(formData: FormDat
       annual_term_start_day: startDay,
       updated_by_auth_user_id: permissions.authUser!.id,
     })
-    .eq('id', organizationId)
+    .eq('id', familyId)
 
   if (error) {
     redirectToAnnualTermManager({ error: error.message })
