@@ -115,7 +115,6 @@ export default function ChrismWorksBusinessDraftPage() {
 
         <section className={styles.heroBlock}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Design, print, sourcing, and production</p>
             <h1 className={styles.heroTitle}>{noOrphan('Your brand often meets customers before you do.')}</h1>
             <p className={styles.heroText}>
               {noOrphan(
