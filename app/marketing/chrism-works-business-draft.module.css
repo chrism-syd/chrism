@@ -34,7 +34,7 @@
 .stickyAudienceNav {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: clamp(8px, 1.2vw, 16px);
   line-height: 1;
 }
@@ -50,6 +50,7 @@
   font-size: clamp(20px, 2.4vw, 34px);
   line-height: 1;
   letter-spacing: -0.035em;
+  font-weight: 400;
 }
 
 .simpleNavCurrent {
@@ -66,7 +67,6 @@
 
 .navDivider {
   color: var(--qv-plum);
-  font-weight: 500;
 }
 
 .simpleNavLink:hover,
@@ -97,7 +97,19 @@
   pointer-events: auto;
 }
 
-.stickyBrand,
+.stickyBrand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.stickyWordmarkImage {
+  display: block;
+  width: clamp(132px, 15vw, 220px);
+  height: auto;
+}
+
+.stickyFor,
 .stickyCurrent,
 .stickyLink,
 .stickyDivider {
@@ -105,15 +117,10 @@
   line-height: 1;
   letter-spacing: -0.035em;
   white-space: nowrap;
+  font-weight: 400;
 }
 
-.stickyBrand {
-  color: rgb(0, 0, 0);
-  font-family: var(--font-heading), Georgia, serif;
-  font-weight: 800;
-  text-decoration: none;
-}
-
+.stickyFor,
 .stickyCurrent {
   color: rgb(0, 0, 0);
   text-decoration: none;
@@ -128,7 +135,6 @@
 
 .stickyDivider {
   color: var(--qv-plum);
-  font-weight: 500;
 }
 
 .stickyLink:hover,
@@ -637,7 +643,11 @@
     padding: 12px 14px 14px;
   }
 
-  .stickyBrand,
+  .stickyWordmarkImage {
+    width: 132px;
+  }
+
+  .stickyFor,
   .stickyCurrent,
   .stickyLink,
   .stickyDivider {
