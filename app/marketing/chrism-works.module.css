@@ -1,9 +1,12 @@
 .page {
-  background: var(--bg-page);
+  background:
+    radial-gradient(circle at 82% 12%, rgba(245, 194, 66, 0.22), transparent 28%),
+    radial-gradient(circle at 12% 4%, rgba(98, 62, 110, 0.12), transparent 32%),
+    var(--bg-page);
 }
 
 .shell {
-  gap: 68px;
+  gap: 72px;
   padding-bottom: 64px;
 }
 
@@ -32,16 +35,17 @@
 
 .heroBlock {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.85fr);
-  align-items: start;
-  gap: clamp(44px, 7vw, 112px);
-  min-height: calc(100vh - 190px);
-  padding: clamp(12px, 2.5vw, 32px) 0 clamp(84px, 12vh, 160px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+  align-items: center;
+  gap: clamp(40px, 6vw, 96px);
+  min-height: calc(100vh - 170px);
+  padding: clamp(20px, 3vw, 36px) 0 clamp(76px, 10vh, 132px);
 }
 
 .heroCopy {
   display: grid;
-  align-self: start;
+  align-content: center;
+  gap: 18px;
   min-width: 0;
   position: relative;
   z-index: 1;
@@ -50,121 +54,125 @@
 .heroTitle,
 .sectionTitle,
 .trustTitle,
-.flowItem h3 {
+.flowItem h3,
+.serviceCard h3 {
   font-family: var(--font-heading), Georgia, serif;
 }
 
 .heroTitle {
-  display: grid;
-  gap: 0;
   margin: 0;
-  font-size: clamp(52px, 7vw, 112px);
-  line-height: 0.92;
+  color: rgb(46, 42, 52);
+  font-size: clamp(48px, 6vw, 86px);
+  line-height: 0.94;
   letter-spacing: -0.055em;
+  max-width: 12.5ch;
+}
+
+.heroLead {
+  margin: 0;
+  max-width: 780px;
+  color: var(--qv-plum);
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: clamp(28px, 3.8vw, 50px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.heroText {
+  margin: 0;
+  max-width: 710px;
   color: rgb(46, 42, 52);
-  max-width: none;
-  white-space: nowrap;
+  font-size: clamp(17px, 1.45vw, 20px);
+  line-height: 1.55;
 }
 
-.heroSentencePrimary,
-.heroSentenceSecondary {
-  display: block;
-  opacity: 0;
-  transform: translateY(0.14em);
-  animation: heroSentenceIn 1050ms cubic-bezier(0.16, 0.84, 0.24, 1) forwards;
-}
-
-.heroSentencePrimary {
-  animation-delay: 180ms;
-}
-
-.heroSentenceSecondary {
-  animation-delay: 1450ms;
-}
-
-.heroAccent {
-  color: rgb(46, 42, 52);
-  white-space: nowrap;
-  animation: heroAccentColor 950ms ease forwards;
-  animation-delay: 2850ms;
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .heroArtwork {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  align-self: end;
-  justify-self: end;
-  width: 100%;
+  display: grid;
+  justify-items: center;
+  align-items: center;
   min-width: 0;
   pointer-events: none;
 }
 
-.heroChairImage {
-  display: block;
-  width: min(46vw, 560px);
-  height: auto;
-  aspect-ratio: 1262 / 764;
-  max-height: 72vh;
-  object-fit: contain;
-  object-position: right bottom;
-}
-
-.visionGrid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: clamp(28px, 4.5vw, 56px);
-  align-items: start;
-}
-
-.imageColumn {
-  display: grid;
-  gap: 14px;
-  grid-column: span 3;
-}
-
-.imageFrame {
+.openSignFrame {
   position: relative;
-  overflow: hidden;
-  background: transparent;
-  border-radius: 0;
-  aspect-ratio: 1 / 1.25;
-  border: 0;
+  isolation: isolate;
+  width: min(100%, 360px);
+  transform: rotate(1deg);
+  opacity: 0;
+  filter: brightness(0.15) saturate(0.7);
+  animation: signWarmUp 2400ms steps(1, end) 300ms forwards;
 }
 
-.aboutImage {
-  object-fit: cover;
+.openSignFrame::before,
+.openSignFrame::after {
+  content: '';
+  position: absolute;
+  inset: 9% 7%;
+  border-radius: 36px;
+  pointer-events: none;
+  z-index: -1;
 }
 
-.photoCredit {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--text-secondary);
+.openSignFrame::before {
+  background: rgba(17, 77, 255, 0.24);
+  filter: blur(28px);
+  opacity: 0;
+  animation: glowPulse 1800ms ease 1200ms forwards;
 }
 
-.photoCredit a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.openSignFrame::after {
+  background: rgba(255, 44, 30, 0.18);
+  filter: blur(52px);
+  opacity: 0;
+  animation: glowPulse 2200ms ease 1550ms forwards;
 }
 
-.contentPlain {
+.openSignImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 22px 44px rgba(20, 12, 24, 0.26));
+}
+
+.signGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 36px;
+  opacity: 0;
+  box-shadow: 0 0 42px rgba(98, 62, 110, 0.2);
+  animation: glowPulse 2100ms ease 900ms forwards;
+}
+
+.manifestoSection,
+.servicesSection,
+.processSection {
   display: grid;
-  align-content: start;
-  gap: 6px;
-  padding-top: 0;
-  grid-column: span 3;
+  gap: 28px;
+}
+
+.sectionIntroWide,
+.trustIntro {
+  display: grid;
+  gap: 10px;
+  max-width: 980px;
 }
 
 .eyebrow {
-  margin: 0 0 -8px;
+  margin: 0 0 -4px;
   font-size: 12px;
   line-height: 1.2;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-secondary);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .sectionTitle,
@@ -172,16 +180,24 @@
   margin: 0;
   color: rgb(46, 42, 52);
   letter-spacing: -0.035em;
-  font-size: clamp(34px, 4.2vw, 56px);
+  font-size: clamp(34px, 4.2vw, 58px);
   line-height: 0.98;
 }
 
-.noWrap {
-  white-space: nowrap;
+.sectionIntroWide p:not(.eyebrow),
+.copyStack p,
+.flowItem p:not(.flowNumber),
+.serviceCard p,
+.faqItem p {
+  margin: 0;
+  color: rgb(46, 42, 52);
+  font-size: 15px;
+  line-height: 1.58;
 }
 
-.accentWord {
-  color: var(--qv-plum);
+.sectionIntroWide p:not(.eyebrow) {
+  max-width: 820px;
+  font-size: 17px;
 }
 
 .copyStack {
@@ -190,39 +206,78 @@
   margin-top: 12px;
 }
 
-.copyStack p,
-.sectionIntroWide p:not(.eyebrow),
-.flowItem p:not(.flowNumber),
-.faqItem p {
+.touchpointGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.touchpointPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid rgba(98, 62, 110, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgb(46, 42, 52);
+  box-shadow: 0 12px 28px rgba(20, 12, 24, 0.06);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.serviceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(18px, 2.4vw, 28px);
+}
+
+.serviceCard {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 100%;
+  padding: 24px;
+  border: 1px solid var(--divider);
+  border-radius: 24px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+.serviceCard h3 {
   margin: 0;
   color: rgb(46, 42, 52);
-  font-size: 15px;
-  line-height: 1.58;
+  font-size: clamp(25px, 2.4vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 
-.modelGroup {
+.invoiceBand {
   display: grid;
-  gap: 34px;
+  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+  padding: clamp(26px, 4vw, 40px);
+  border-radius: 30px;
+  background: rgb(245, 194, 66);
+  color: rgb(46, 42, 52);
+  box-shadow: 0 22px 54px rgba(20, 12, 24, 0.12);
 }
 
-.flywheelSection {
-  display: grid;
-  gap: 18px;
-  padding-block: 32px;
+.invoiceBand .sectionTitle,
+.invoiceBand p {
+  color: rgb(46, 42, 52);
 }
 
-.sectionIntroWide,
-.trustIntro {
-  display: grid;
-  gap: 6px;
-  max-width: 980px;
+.invoiceBand .copyStack {
+  margin: 0;
 }
 
 .flowGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(24px, 3vw, 42px);
-  padding: 8px 0 8px;
+  padding: 8px 0;
 }
 
 .flowItem {
@@ -272,12 +327,12 @@
   align-items: start;
   column-gap: clamp(48px, 7vw, 120px);
   row-gap: 22px;
-  padding: 32px 0;
+  padding: 24px 0;
 }
 
 .trustIntro {
   min-width: 0;
-  max-width: 24ch;
+  max-width: 26ch;
 }
 
 .trustTitle {
@@ -297,21 +352,21 @@
   min-height: 90px;
   padding: 24px clamp(24px, 4vw, 40px);
   border-radius: 24px;
-  background: rgb(245, 194, 66);
-  color: rgb(46, 42, 52);
+  background: rgb(46, 42, 52);
+  color: white;
   text-align: center;
 }
 
 .schoolsLinkCard p {
   margin: 0;
-  color: rgb(46, 42, 52);
+  color: white;
   font-size: clamp(18px, 2vw, 24px);
   line-height: 1.36;
   font-weight: 400;
 }
 
 .schoolsLinkCard a {
-  color: inherit;
+  color: rgb(245, 194, 66);
   font-weight: 800;
   text-decoration: underline;
   text-decoration-thickness: 0.08em;
@@ -366,36 +421,83 @@
   justify-items: center;
 }
 
-@keyframes heroSentenceIn {
-  to {
+.accentWord {
+  color: var(--qv-plum);
+}
+
+@keyframes signWarmUp {
+  0% {
+    opacity: 0;
+    filter: brightness(0.08) saturate(0.7);
+  }
+  8% {
+    opacity: 0.36;
+    filter: brightness(0.55) saturate(1.1);
+  }
+  12% {
+    opacity: 0.08;
+    filter: brightness(0.12) saturate(0.7);
+  }
+  18% {
+    opacity: 0.72;
+    filter: brightness(0.85) saturate(1.25);
+  }
+  22% {
+    opacity: 0.18;
+    filter: brightness(0.2) saturate(0.8);
+  }
+  31% {
     opacity: 1;
-    transform: translateY(0);
+    filter: brightness(1.1) saturate(1.25);
+  }
+  38% {
+    opacity: 0.58;
+    filter: brightness(0.65) saturate(1);
+  }
+  44%,
+  100% {
+    opacity: 1;
+    filter: brightness(1) saturate(1.15);
   }
 }
 
-@keyframes heroAccentColor {
-  to {
-    color: var(--qv-plum);
+@keyframes glowPulse {
+  0% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 0.18;
+  }
+  100% {
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroSentencePrimary,
-  .heroSentenceSecondary,
-  .heroAccent {
+  .openSignFrame,
+  .openSignFrame::before,
+  .openSignFrame::after,
+  .signGlow {
     opacity: 1;
-    transform: none;
+    filter: none;
     animation: none;
-  }
-
-  .heroAccent {
-    color: var(--qv-plum);
   }
 }
 
-@media (max-width: 1060px) {
+@media (max-width: 1120px) {
+  .serviceGrid,
+  .flowGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .flowItem::before {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
   .heroBlock,
-  .visionGrid,
+  .invoiceBand,
   .plainTrust {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -403,30 +505,12 @@
   .heroBlock {
     min-height: auto;
     gap: 42px;
-    padding-bottom: 72px;
+    padding-bottom: 64px;
   }
 
-  .heroArtwork {
-    justify-content: flex-start;
+  .openSignFrame {
+    width: min(100%, 300px);
     justify-self: start;
-  }
-
-  .heroChairImage {
-    width: min(100%, 460px);
-    max-height: none;
-  }
-
-  .imageColumn,
-  .contentPlain {
-    grid-column: auto;
-  }
-
-  .flowGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .flowItem::before {
-    display: none;
   }
 }
 
@@ -440,17 +524,21 @@
     width: 200px;
   }
 
-  .heroBlock {
-    gap: 38px;
-    padding-top: 12px;
-    padding-bottom: 56px;
-  }
-
   .heroTitle {
-    white-space: normal;
+    font-size: clamp(44px, 14vw, 64px);
   }
 
+  .heroLead {
+    font-size: clamp(28px, 8.8vw, 42px);
+  }
+
+  .serviceGrid,
   .flowGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .faqSection,
+  .ctaSection {
+    padding: 24px;
   }
 }
