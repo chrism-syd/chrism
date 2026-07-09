@@ -10,11 +10,11 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
-type OrganizationAnnualTermRow = {
+type OrganizationFamilyAnnualTermRow = {
   id: string
+  code: string | null
   display_name: string | null
-  preferred_name: string | null
-  organization_type_code: string | null
+  active: boolean | null
   annual_term_mode: string | null
   annual_term_label: string | null
   annual_term_start_month: number | null
@@ -36,8 +36,8 @@ const MONTH_OPTIONS = [
   { value: 12, label: 'December' },
 ]
 
-function organizationLabel(organization: OrganizationAnnualTermRow) {
-  return organization.preferred_name?.trim() || organization.display_name?.trim() || 'Parent organization'
+function organizationFamilyLabel(family: OrganizationFamilyAnnualTermRow) {
+  return family.display_name?.trim() || family.code?.trim() || 'Parent organization'
 }
 
 function monthLabel(month: number) {
@@ -74,16 +74,16 @@ export default async function SuperAdminAnnualTermPage({ searchParams }: PagePro
 
   const admin = createAdminClient()
   const { data, error } = await admin
-    .from('organizations')
-    .select('id, display_name, preferred_name, organization_type_code, annual_term_mode, annual_term_label, annual_term_start_month, annual_term_start_day')
+    .from('organization_families')
+    .select('id, code, display_name, active, annual_term_mode, annual_term_label, annual_term_start_month, annual_term_start_day')
     .order('display_name', { ascending: true })
-    .returns<OrganizationAnnualTermRow[]>()
+    .returns<OrganizationFamilyAnnualTermRow[]>()
 
   if (error) {
     throw new Error(error.message)
   }
 
-  const organizations = (data ?? []).slice().sort((left, right) => organizationLabel(left).localeCompare(organizationLabel(right)))
+  const families = (data ?? []).slice().sort((left, right) => organizationFamilyLabel(left).localeCompare(organizationFamilyLabel(right)))
 
   return (
     <main className="qv-page">
@@ -103,7 +103,7 @@ export default async function SuperAdminAnnualTermPage({ searchParams }: PagePro
               <p className="qv-eyebrow">Super admin</p>
               <h1 className="qv-directory-name">Parent organization annual terms</h1>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Set the default operating year for each parent organization. Local units inherit this value unless an explicit local override is introduced later.
+                Set the default operating year for umbrella organizations like Knights of Columbus, Society of St. Vincent de Paul, and Catholic Women's League. Local units inherit this value unless they have an explicit local override.
               </p>
               <div className="qv-form-actions" style={{ justifyContent: 'flex-start', marginTop: 16 }}>
                 <Link href="/super-admin/organizations" className="qv-link-button qv-button-secondary">Back to organization manager</Link>
@@ -113,36 +113,36 @@ export default async function SuperAdminAnnualTermPage({ searchParams }: PagePro
         </section>
 
         <section className="qv-card" style={{ marginTop: 18 }}>
-          <h2 className="qv-section-title">Annual term defaults</h2>
+          <h2 className="qv-section-title">Umbrella defaults</h2>
           <p className="qv-section-subtitle">
             Calendar year always means January 1 to December 31. Custom years derive the end date automatically from the selected start date.
           </p>
 
           <div style={{ display: 'grid', gap: 18, marginTop: 18 }}>
-            {organizations.length === 0 ? (
+            {families.length === 0 ? (
               <div className="qv-empty">
-                <p className="qv-empty-title">No organizations yet</p>
-                <p className="qv-empty-text">Create a parent organization first, then return here to set its annual term.</p>
+                <p className="qv-empty-title">No parent organizations yet</p>
+                <p className="qv-empty-text">Create umbrella organization families first, then return here to set their annual terms.</p>
               </div>
-            ) : organizations.map((organization) => {
-              const mode = normalizeMode(organization.annual_term_mode)
-              const label = organization.annual_term_label?.trim() || (mode === 'custom' ? 'Annual Term' : 'Calendar Year')
-              const startMonth = organization.annual_term_start_month ?? 1
-              const startDay = organization.annual_term_start_day ?? 1
+            ) : families.map((family) => {
+              const mode = normalizeMode(family.annual_term_mode)
+              const label = family.annual_term_label?.trim() || (mode === 'custom' ? 'Annual Term' : 'Calendar Year')
+              const startMonth = family.annual_term_start_month ?? 1
+              const startDay = family.annual_term_start_day ?? 1
               const derivedEnd = formatDerivedEnd(startMonth, startDay)
 
               return (
-                <article key={organization.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
+                <article key={family.id} className="qv-card" style={{ background: 'var(--bg-sunken)' }}>
                   <div style={{ display: 'grid', gap: 4, marginBottom: 14 }}>
-                    <h3 className="qv-section-title" style={{ margin: 0 }}>{organizationLabel(organization)}</h3>
-                    <p className="qv-section-subtitle" style={{ margin: 0 }}>Type: {organization.organization_type_code ?? 'unknown'}</p>
+                    <h3 className="qv-section-title" style={{ margin: 0 }}>{organizationFamilyLabel(family)}</h3>
+                    <p className="qv-section-subtitle" style={{ margin: 0 }}>Family code: {family.code ?? 'unknown'} · {family.active === false ? 'Inactive' : 'Active'}</p>
                     <p className="qv-section-subtitle" style={{ margin: 0 }}>
                       Current: {label} starts {monthLabel(startMonth)} {startDay}, ends {derivedEnd}
                     </p>
                   </div>
 
                   <form action={updateParentOrganizationAnnualTermAction} className="qv-form-grid">
-                    <input type="hidden" name="organization_id" value={organization.id} />
+                    <input type="hidden" name="organization_family_id" value={family.id} />
 
                     <div className="qv-form-row qv-form-row-2">
                       <label className="qv-field" style={{ alignItems: 'flex-start' }}>
@@ -164,7 +164,7 @@ export default async function SuperAdminAnnualTermPage({ searchParams }: PagePro
                       <div className="qv-inline-message" style={{ alignSelf: 'start' }}>
                         <strong>Inherited by local units</strong>
                         <p style={{ margin: '6px 0 0' }}>
-                          This is the parent default. It is not editable by ordinary local organization admins.
+                          This is the umbrella default. Council and conference-level admins can only set their own local override.
                         </p>
                       </div>
                     </div>
