@@ -111,14 +111,19 @@ function StickyAudienceMenu() {
           <Image src="/menu-business.svg" alt="Business" width={280} height={100} style={menuPieceStyle} />
         </Link>
         <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
-        <Link href="#" className={styles.stickyLink}>
+        <Link href="#" className={`${styles.stickyLink} ${styles.stickyInactive}`}>
           <Image src="/menu-ministry.svg" alt="Ministry" width={260} height={100} style={menuPieceStyle} />
         </Link>
         <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
-        <Link href="/schools" className={styles.stickyLink}>
+        <Link href="/schools" className={`${styles.stickyLink} ${styles.stickyInactive}`}>
           <Image src="/menu-schools.svg" alt="Schools" width={240} height={100} style={menuPieceStyle} />
         </Link>
       </nav>
+      <button className={styles.mobileMenuButton} type="button" aria-label="Open menu">
+        <span />
+        <span />
+        <span />
+      </button>
     </div>
   )
 }
