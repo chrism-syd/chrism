@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from '@/app/marketing/chrism-works-audience-menu'
 import styles from '../about/about.module.css'
 import faqStyles from '../faq-image.module.css'
 import heroStyles from '../landing-hero.module.css'
@@ -62,6 +63,8 @@ export default function SchoolsLandingPage() {
         </div>
 
         <SchoolHowItWorksSection />
+
+        <ChrismWorksAudienceMenu current="schools" />
 
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`}>
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
@@ -160,6 +163,8 @@ export default function SchoolsLandingPage() {
         <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`}>
           <InvoiceReviewCta variant="schoolsContact" />
         </section>
+
+        <ChrismWorksFooterLogo />
       </div>
     </main>
   )
