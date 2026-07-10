@@ -123,8 +123,6 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <ChrismWorksAudienceMenu current="business" />
-
         <section className={styles.calloutSection} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
           <Image
             src="/divazus-fabric-store-fFgbmj3vix4-unsplash.jpg"
@@ -156,9 +154,10 @@ export default function ChrismWorksBusinessDraftPage() {
             </p>
             <p>
               {noOrphan(
-                'Chrism helps make those pieces feel considered, consistent, and properly produced without making you manage five separate suppliers.'
+                'Chrism brings design and creative direction into those pieces from the start, then helps make them feel considered, consistent, and properly produced without making you manage five separate suppliers.'
               )}
             </p>
+            <p>{noOrphan('The goal is simple: produce work your business can actually stand behind, not churn out cheap-looking filler just because it can be printed.')}</p>
           </div>
 
           <div className={styles.touchpointGrid}>
@@ -210,6 +209,8 @@ export default function ChrismWorksBusinessDraftPage() {
             </p>
           </div>
         </section>
+
+        <ChrismWorksAudienceMenu current="business" placement="inline" />
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
