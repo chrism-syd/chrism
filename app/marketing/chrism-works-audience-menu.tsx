@@ -14,7 +14,7 @@ function audienceClass(current: Audience, audience: Audience) {
   return current === audience ? styles.stickyCurrent : `${styles.stickyLink} ${styles.stickyInactive}`
 }
 
-function ariaCurrent(current: Audience, audience: Audience) {
+function ariaCurrent(current: Audience, audience: Audience): 'page' | undefined {
   return current === audience ? 'page' : undefined
 }
 
