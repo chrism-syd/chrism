@@ -1,0 +1,16 @@
+:global(.qv-page [class*='flowItem']),
+:global(.qv-page [class*='serviceCard']),
+:global(.qv-page [class*='supplyCard']),
+:global(.qv-page [class*='howCard']),
+:global(.qv-page [class*='faqSection']),
+:global(.qv-page [class*='ctaSection']),
+:global(.qv-page [class*='invoiceDropzone']),
+:global(.qv-page [class*='invoiceModal']),
+:global(.qv-page [class*='carouselControls'] button) {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+:global(.qv-page [class*='manifestoClose']) {
+  color: var(--qv-plum) !important;
+  font-weight: 900 !important;
+}
