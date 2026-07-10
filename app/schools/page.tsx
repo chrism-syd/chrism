@@ -64,7 +64,7 @@ export default function SchoolsLandingPage() {
 
         <SchoolHowItWorksSection />
 
-        <ChrismWorksAudienceMenu current="schools" />
+        <ChrismWorksAudienceMenu current="schools" placement="inline" />
 
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`}>
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
