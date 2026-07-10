@@ -1,10 +1,14 @@
 :global(html),
 :global(body) {
-  background:
-    radial-gradient(circle at 82% 12%, rgba(245, 194, 66, 0.22), transparent 28%),
-    radial-gradient(circle at 12% 4%, rgba(98, 62, 110, 0.12), transparent 32%),
-    linear-gradient(180deg, #faf6f2 0%, #f3edf7 100%);
+  min-height: 100%;
+  background-color: #faf6f2;
+  background-image: linear-gradient(180deg, #faf6f2 0%, #f3edf7 100%);
   background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+:global(body) {
+  min-height: 100dvh;
 }
 
 :global(.qv-page [class*='flowItem']),
