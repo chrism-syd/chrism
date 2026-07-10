@@ -122,7 +122,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.calloutSection} style={{ borderBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+        <section className={styles.calloutSection} style={{ borderBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, boxShadow: 'none' }}>
           <Image
             src="/divazus-fabric-store-fFgbmj3vix4-unsplash.jpg"
             alt="Close-up of patterned fabric and apparel details"
@@ -169,7 +169,7 @@ export default function ChrismWorksBusinessDraftPage() {
         </section>
 
         <section className={styles.processSection} data-scroll-motion="process">
-          <div className={styles.sectionIntroWide}>
+          <div className={styles.sectionIntroWide} style={{ justifyItems: 'center', margin: '0 auto', textAlign: 'center' }}>
             <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
           </div>
 
@@ -186,14 +186,17 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.plainTrust} style={{ gridTemplateColumns: 'minmax(0, 1fr)', paddingTop: 0 }}>
-          <div className={styles.copyStack} style={{ maxWidth: '820px' }}>
+        <section className={styles.plainTrust} style={{ gridTemplateColumns: 'minmax(0, 1fr)', paddingTop: 0 }} data-scroll-motion="fade">
+          <div className={styles.copyStack} style={{ justifyItems: 'center', margin: '0 auto', maxWidth: '820px', textAlign: 'center' }}>
             <p>
               {noOrphan(
                 'Chrism helps sort out what should be made, how it should be produced, and whether there is a smarter way to source it. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
               )}
             </p>
-            <p className={styles.manifestoClose}>{noOrphan('And for business compliance, rest assured we’re a registered Ontario business built for this. Lean, local, and useful.')}</p>
+            <p>
+              And for business compliance, rest assured we’re a registered Ontario business built for this.{' '}
+              <span className={styles.manifestoClose}>{noOrphan('Lean, local, and useful.')}</span>
+            </p>
           </div>
         </section>
 
@@ -201,7 +204,7 @@ export default function ChrismWorksBusinessDraftPage() {
           <ChrismWorksAudienceMenu current="business" placement="inline" />
         </div>
 
-        <section className={styles.faqSection}>
+        <section className={styles.faqSection} data-scroll-motion="fade">
           <div className={styles.sectionIntroWide}>
             <h2 className={styles.sectionTitle}>{noOrphan('Common questions')}</h2>
           </div>
@@ -216,7 +219,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.ctaSection} id="quote">
+        <section className={styles.ctaSection} id="quote" data-scroll-motion="fade">
           <InvoiceReviewCta />
         </section>
 
