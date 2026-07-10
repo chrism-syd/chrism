@@ -1,11 +1,11 @@
 @keyframes contentSectionOpen {
   from {
-    opacity: 0.86;
-    transform: translateY(18px) scaleX(0.94);
+    opacity: 0.82;
+    transform: translateY(20px) scaleX(0.9);
     box-shadow: 0 10px 28px rgba(20, 12, 24, 0.04);
   }
 
-  62%,
+  72%,
   to {
     opacity: 1;
     transform: translateY(0) scaleX(1);
@@ -16,100 +16,201 @@
 @keyframes touchpointPillRise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(16px) scale(0.96);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes processCardRise {
   from {
-    opacity: 0.82;
-    transform: translateY(14px);
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-:global(.qv-page [class*='manifestoSection']) {
+@keyframes audienceMenuArrive {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    filter: saturate(0.82);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
+}
+
+:global(.qv-page [data-scroll-motion='manifesto']) {
   transform-origin: center top;
   will-change: transform, opacity, box-shadow;
 }
 
-:global(.qv-page [class*='touchpointPill']) {
+:global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']) {
   opacity: 0;
-  animation: touchpointPillRise 560ms cubic-bezier(0.2, 0.75, 0.2, 1) forwards;
+  will-change: transform, opacity;
 }
 
-:global(.qv-page [class*='touchpointPill']:nth-child(1)) {
-  animation-delay: 90ms;
+:global(.qv-page [data-scroll-motion='process'] [class*='flowItem']) {
+  opacity: 0;
+  will-change: transform, opacity;
 }
 
-:global(.qv-page [class*='touchpointPill']:nth-child(2)) {
-  animation-delay: 130ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(3)) {
-  animation-delay: 170ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(4)) {
-  animation-delay: 210ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(5)) {
-  animation-delay: 250ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(6)) {
-  animation-delay: 290ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(7)) {
-  animation-delay: 330ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(8)) {
-  animation-delay: 370ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(9)) {
-  animation-delay: 410ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(10)) {
-  animation-delay: 450ms;
-}
-
-:global(.qv-page [class*='touchpointPill']:nth-child(11)) {
-  animation-delay: 490ms;
+:global(.qv-page [data-scroll-motion='audience-menu']) {
+  opacity: 0;
+  transform-origin: center;
+  will-change: transform, opacity, filter;
 }
 
 @supports (animation-timeline: view()) {
-  :global(.qv-page [class*='manifestoSection']) {
+  :global(.qv-page [data-scroll-motion='manifesto']) {
     animation: contentSectionOpen linear both;
     animation-timeline: view();
-    animation-range: entry 0% cover 44%;
+    animation-range: entry 0% cover 48%;
   }
 
-  :global(.qv-page [class*='flowItem']) {
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']) {
+    animation: touchpointPillRise 640ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 24%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(1)) {
+    animation-range: entry 0% cover 18%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(2)) {
+    animation-range: entry 4% cover 22%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(3)) {
+    animation-range: entry 8% cover 26%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(4)) {
+    animation-range: entry 12% cover 30%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(5)) {
+    animation-range: entry 16% cover 34%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(6)) {
+    animation-range: entry 20% cover 38%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(7)) {
+    animation-range: entry 24% cover 42%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(8)) {
+    animation-range: entry 28% cover 46%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(9)) {
+    animation-range: entry 32% cover 50%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(10)) {
+    animation-range: entry 36% cover 54%;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(11)) {
+    animation-range: entry 40% cover 58%;
+  }
+
+  :global(.qv-page [data-scroll-motion='process'] [class*='flowItem']) {
     animation: processCardRise linear both;
     animation-timeline: view();
-    animation-range: entry 0% cover 28%;
+    animation-range: entry 0% cover 32%;
+  }
+
+  :global(.qv-page [data-scroll-motion='audience-menu']) {
+    animation: audienceMenuArrive linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 24%;
+  }
+}
+
+@supports not (animation-timeline: view()) {
+  :global(.qv-page [data-scroll-motion='manifesto']) {
+    animation: contentSectionOpen 760ms cubic-bezier(0.2, 0.75, 0.2, 1) 180ms both;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']) {
+    animation: touchpointPillRise 620ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(1)) {
+    animation-delay: 90ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(2)) {
+    animation-delay: 150ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(3)) {
+    animation-delay: 210ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(4)) {
+    animation-delay: 270ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(5)) {
+    animation-delay: 330ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(6)) {
+    animation-delay: 390ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(7)) {
+    animation-delay: 450ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(8)) {
+    animation-delay: 510ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(9)) {
+    animation-delay: 570ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(10)) {
+    animation-delay: 630ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']:nth-child(11)) {
+    animation-delay: 690ms;
+  }
+
+  :global(.qv-page [data-scroll-motion='process'] [class*='flowItem']) {
+    animation: processCardRise 680ms cubic-bezier(0.2, 0.75, 0.2, 1) 160ms both;
+  }
+
+  :global(.qv-page [data-scroll-motion='audience-menu']) {
+    animation: audienceMenuArrive 620ms cubic-bezier(0.2, 0.75, 0.2, 1) 200ms both;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :global(.qv-page [class*='manifestoSection']),
-  :global(.qv-page [class*='touchpointPill']),
-  :global(.qv-page [class*='flowItem']) {
+  :global(.qv-page [data-scroll-motion='manifesto']),
+  :global(.qv-page [data-scroll-motion='pills'] [class*='touchpointPill']),
+  :global(.qv-page [data-scroll-motion='process'] [class*='flowItem']),
+  :global(.qv-page [data-scroll-motion='audience-menu']) {
     opacity: 1;
+    filter: none;
     transform: none;
     animation: none;
     will-change: auto;
