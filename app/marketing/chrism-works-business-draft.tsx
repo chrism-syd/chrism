@@ -157,7 +157,7 @@ export default function ChrismWorksBusinessDraftPage() {
                 'Chrism brings design and creative direction into those pieces from the start, then helps make them feel considered, consistent, and properly produced without making you manage five separate suppliers.'
               )}
             </p>
-            <p>{noOrphan('The goal is simple: create work your business can actually stand behind.')}</p>
+            <p className={styles.manifestoClose}>{noOrphan('The goal is simple: create work your business can actually stand behind.')}</p>
           </div>
 
           <div className={styles.touchpointGrid}>
@@ -200,11 +200,6 @@ export default function ChrismWorksBusinessDraftPage() {
             <p>
               {noOrphan(
                 'The goal is not to turn every request into a bloated agency project. The goal is to help you get the right thing made properly, at a fair price, with less vendor soup.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'Chrism also supports ministries, schools, councils, and community organizations, but the same production logic helps regular small businesses show up better too.'
               )}
             </p>
           </div>
