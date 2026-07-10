@@ -3,6 +3,7 @@ import Link from 'next/link'
 import styles from './chrism-works-audience-menu.module.css'
 
 type Audience = 'business' | 'ministry' | 'schools'
+type Placement = 'hero' | 'inline'
 
 const menuPieceStyle = {
   height: 'clamp(15px, 1.55vw, 22px)',
@@ -18,9 +19,11 @@ function ariaCurrent(current: Audience, audience: Audience): 'page' | undefined 
   return current === audience ? 'page' : undefined
 }
 
-export function ChrismWorksAudienceMenu({ current = 'business' }: { current?: Audience }) {
+export function ChrismWorksAudienceMenu({ current = 'business', placement = 'hero' }: { current?: Audience; placement?: Placement }) {
+  const shellClassName = placement === 'inline' ? `${styles.stickyAudienceShell} ${styles.inlineAudienceShell}` : styles.stickyAudienceShell
+
   return (
-    <div className={styles.stickyAudienceShell}>
+    <div className={shellClassName}>
       <nav className={styles.stickyAudienceNav} aria-label="Chrismworks audience navigation">
         <Link href="/" className={styles.stickyBrand} aria-label="Chrismworks home">
           <Image src="/menu-chrism.svg" alt="" width={260} height={100} style={menuPieceStyle} />
