@@ -1,0 +1,115 @@
+.stickyAudienceShell {
+  position: sticky;
+  top: 16px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  margin-top: clamp(-52px, -4vw, -24px);
+  margin-bottom: clamp(40px, 6vw, 76px);
+  pointer-events: none;
+}
+
+.stickyAudienceNav {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: calc(100vw - 48px);
+  gap: 6px;
+  padding: 10px 22px 12px;
+  border: 1px solid rgba(92, 74, 114, 0.18);
+  border-radius: 999px;
+  background: rgb(245, 194, 66);
+  box-shadow: 0 18px 42px rgba(20, 12, 24, 0.14);
+  backdrop-filter: blur(14px);
+  line-height: 1;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.stickyBrand,
+.stickyCurrent,
+.stickyLink {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.stickyAudienceNav > img {
+  flex: 0 0 auto;
+}
+
+.stickyCurrent img {
+  filter: brightness(0) saturate(100%);
+}
+
+.stickyInactive img {
+  opacity: 1;
+  filter: brightness(0) saturate(100%) invert(32%) sepia(15%) saturate(1115%) hue-rotate(222deg) brightness(91%) contrast(87%);
+}
+
+.mobileMenuButton {
+  display: none;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 1px solid rgba(98, 62, 110, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 32px rgba(20, 12, 24, 0.12);
+  backdrop-filter: blur(14px);
+  pointer-events: auto;
+}
+
+.mobileMenuButton span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgb(92, 74, 114);
+}
+
+.footerLogoWrap {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 0;
+}
+
+.footerLogoLink {
+  display: inline-flex;
+  align-items: center;
+}
+
+.footerLogoImage {
+  display: block;
+  width: clamp(188px, 19vw, 248px);
+  height: auto;
+}
+
+@media (max-width: 960px) {
+  .stickyAudienceShell {
+    justify-content: flex-start;
+    margin-top: 10px;
+    margin-bottom: 40px;
+  }
+}
+
+@media (max-width: 720px) {
+  .stickyAudienceShell {
+    justify-content: flex-end;
+  }
+
+  .stickyAudienceNav {
+    display: none;
+  }
+
+  .mobileMenuButton {
+    display: grid;
+  }
+}
