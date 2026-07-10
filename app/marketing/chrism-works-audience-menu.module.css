@@ -83,7 +83,7 @@
 .footerLogoWrap {
   display: flex;
   justify-content: center;
-  padding: clamp(18px, 2.6vw, 34px) 0 0;
+  padding: 6px 0 0;
 }
 
 .footerLogoLink {
