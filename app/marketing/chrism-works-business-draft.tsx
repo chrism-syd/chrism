@@ -135,7 +135,7 @@ export default function ChrismWorksBusinessDraftPage() {
             sizes="(max-width: 900px) 100vw, 1200px"
           />
           <div className={styles.calloutOverlay} />
-          <h2>{noOrphan('Everything your small business needs to look professional and get noticed.')}</h2>
+          <h2>{noOrphan('Everything you need to look professional and get noticed.')}</h2>
           <p className={styles.imageCredit}>
             Photo by{' '}
             <a href="https://unsplash.com/@divazus?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText" target="_blank" rel="noreferrer">
@@ -171,24 +171,8 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.invoiceBand} id="invoice-review">
-          <div className={styles.invoiceBandIntro}>
-            <p className={styles.eyebrow}>Already have a supplier?</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Send us your last quote or invoice.')}</h2>
-            <p>
-              {noOrphan(
-                'Maybe we can beat it. Maybe your current vendor is already giving you a great deal. Either way, you will get a useful second set of eyes.'
-              )}
-            </p>
-            <Link href="#quote" className={`qv-button qv-link-button ${styles.invoiceBandButton}`}>
-              Request a quote
-            </Link>
-          </div>
-        </section>
-
         <section className={styles.processSection}>
           <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>How it works</p>
             <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
           </div>
 
@@ -207,7 +191,6 @@ export default function ChrismWorksBusinessDraftPage() {
 
         <section className={styles.plainTrust}>
           <div className={styles.trustIntro}>
-            <p className={styles.eyebrow}>Why Chrism</p>
             <h2 className={styles.trustTitle}>Lean, local, and useful.</h2>
           </div>
           <div className={styles.copyStack}>
