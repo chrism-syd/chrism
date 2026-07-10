@@ -221,7 +221,7 @@ export default function ChrismWorksMinistryPage() {
           </section>
         </div>
 
-        <ChrismWorksAudienceMenu current="ministry" />
+        <ChrismWorksAudienceMenu current="ministry" placement="inline" />
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
