@@ -13,6 +13,16 @@ const menuPieceStyle = {
   display: 'block',
 } as const
 
+const touchpointContinuationStyle = {
+  marginTop: '-72px',
+  padding: 'clamp(24px, 4vw, 42px)',
+  border: '1px solid rgba(98, 62, 110, 0.16)',
+  borderTop: 0,
+  borderRadius: '0 0 30px 30px',
+  background: 'rgba(255, 255, 255, 0.72)',
+  boxShadow: '0 18px 48px rgba(20, 12, 24, 0.08)',
+} as const
+
 const touchpoints = [
   'Signs and window graphics',
   'Business cards and stationery',
@@ -171,7 +181,7 @@ export default function ChrismWorksBusinessDraftPage() {
 
         <StickyAudienceMenu />
 
-        <section className={styles.calloutSection}>
+        <section className={styles.calloutSection} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
           <Image
             src="/divazus-fabric-store-fFgbmj3vix4-unsplash.jpg"
             alt="Close-up of patterned fabric and apparel details"
@@ -193,7 +203,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </p>
         </section>
 
-        <section className={styles.manifestoSection}>
+        <section className={styles.manifestoSection} style={touchpointContinuationStyle}>
           <div className={styles.sectionIntroWide}>
             <p>
               {noOrphan(
