@@ -18,7 +18,7 @@ const touchpointContinuationStyle = {
   borderTop: 0,
   borderRadius: '0 0 30px 30px',
   background: 'rgba(255, 255, 255, 0.72)',
-  boxShadow: '0 18px 48px rgba(20, 12, 24, 0.08)',
+  boxShadow: 'none',
 } as const
 
 const touchpoints = [
@@ -132,7 +132,9 @@ export default function ChrismWorksBusinessDraftPage() {
           />
           <div className={styles.calloutOverlay} />
           <h2>
-            Everything you need to look professional
+            Everything you need
+            <br />
+            to look professional
             <br />
             and get noticed.
           </h2>
@@ -173,14 +175,16 @@ export default function ChrismWorksBusinessDraftPage() {
         </section>
 
         <section className={styles.processSection} data-scroll-motion="process">
-          <div className={styles.sectionIntroWide} style={{ justifyItems: 'center', margin: '0 auto', textAlign: 'center' }}>
+          <div className={styles.sectionIntroWide} style={{ justifyItems: 'center', margin: '0 auto', maxWidth: '980px', textAlign: 'center' }}>
             <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
-            <p>
-              {noOrphan(
-                'Chrism helps sort out what should be made, how it should be produced, and whether there is a smarter way to source it. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
-              )}
+            <p style={{ maxWidth: '1040px' }}>
+              Chrism helps sort out what should be made, how it should be produced,
+              <br />
+              and whether there is a smarter way to source it. You get one point of contact who understands design,
+              <br />
+              print files, production constraints, sourcing, and small-business budgets.
             </p>
-            <p>
+            <p style={{ maxWidth: '980px' }}>
               And for business compliance, rest assured we’re a registered Ontario business built for this.{' '}
               <span className={styles.manifestoClose}>{noOrphan('Lean, local, and useful.')}</span>
             </p>
