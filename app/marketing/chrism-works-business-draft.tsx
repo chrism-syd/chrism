@@ -1,17 +1,12 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import InvoiceReviewCta from '@/app/invoice-review-cta'
+import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from './chrism-works-audience-menu'
 import styles from './chrism-works-business-draft.module.css'
 
 function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
 }
-
-const menuPieceStyle = {
-  height: 'clamp(15px, 1.55vw, 22px)',
-  width: 'auto',
-  display: 'block',
-} as const
 
 const touchpointContinuationStyle = {
   marginTop: '-72px',
@@ -88,36 +83,6 @@ const faqs = [
   },
 ]
 
-function StickyAudienceMenu() {
-  return (
-    <div className={styles.stickyAudienceShell}>
-      <nav className={styles.stickyAudienceNav} aria-label="Sticky audience navigation">
-        <Link href="/business-draft" className={styles.stickyBrand} aria-current="page" aria-label="Chrismworks for Business">
-          <Image src="/menu-chrism.svg" alt="" width={260} height={100} style={menuPieceStyle} />
-          <Image src="/menu-works.svg" alt="" width={260} height={100} style={menuPieceStyle} />
-        </Link>
-        <Image src="/menu-for.svg" alt="for" width={120} height={100} style={menuPieceStyle} />
-        <Link href="/business-draft" className={styles.stickyCurrent} aria-current="page">
-          <Image src="/menu-business.svg" alt="Business" width={280} height={100} style={menuPieceStyle} />
-        </Link>
-        <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
-        <Link href="#" className={`${styles.stickyLink} ${styles.stickyInactive}`}>
-          <Image src="/menu-ministry.svg" alt="Ministry" width={260} height={100} style={menuPieceStyle} />
-        </Link>
-        <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
-        <Link href="/schools" className={`${styles.stickyLink} ${styles.stickyInactive}`}>
-          <Image src="/menu-schools.svg" alt="Schools" width={240} height={100} style={menuPieceStyle} />
-        </Link>
-      </nav>
-      <button className={styles.mobileMenuButton} type="button" aria-label="Open menu">
-        <span />
-        <span />
-        <span />
-      </button>
-    </div>
-  )
-}
-
 export default function ChrismWorksBusinessDraftPage() {
   return (
     <main className={`qv-page ${styles.page}`}>
@@ -159,7 +124,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <StickyAudienceMenu />
+        <ChrismWorksAudienceMenu current="business" />
 
         <section className={styles.calloutSection} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
           <Image
@@ -264,12 +229,6 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <div className={styles.schoolsLinkCard}>
-          <p>
-            Chrism also works with <Link href="/schools">schools</Link>. A dedicated ministry page is coming next.
-          </p>
-        </div>
-
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
             <h2 className={styles.sectionTitle}>{noOrphan('Common questions')}</h2>
@@ -288,6 +247,8 @@ export default function ChrismWorksBusinessDraftPage() {
         <section className={styles.ctaSection} id="quote">
           <InvoiceReviewCta />
         </section>
+
+        <ChrismWorksFooterLogo />
       </div>
     </main>
   )
