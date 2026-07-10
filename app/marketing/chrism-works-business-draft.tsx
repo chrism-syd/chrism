@@ -77,11 +77,6 @@ const faqs = [
     answer:
       'Chrism is a design and sourcing partner, not a single print shop. That means we can help match the job to the right production supplier instead of forcing every order through one machine or method.',
   },
-  {
-    question: 'Do you still work with ministries and schools?',
-    answer:
-      'Yes. Chrism still supports ministries, parishes, councils, schools, parent groups, and community organizations. This page is the broader small-business front door, with dedicated pages for specific audiences coming next.',
-  },
 ]
 
 export default function ChrismWorksBusinessDraftPage() {
@@ -196,6 +191,11 @@ export default function ChrismWorksBusinessDraftPage() {
             <p>
               {noOrphan(
                 'Chrism is a registered Ontario business built for practical, relationship-based service. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
+              )}
+            </p>
+            <p>
+              {noOrphan(
+                'Send the need, the file, the old invoice, or the half-formed idea. Chrism helps sort out what should be made, how it should be produced, and whether there is a smarter way to source it.'
               )}
             </p>
           </div>
