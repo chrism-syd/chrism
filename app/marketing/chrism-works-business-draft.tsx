@@ -195,8 +195,6 @@ export default function ChrismWorksBusinessDraftPage() {
 
         <section className={styles.manifestoSection}>
           <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>Always showing up</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('Your brand is working before you are in the room.')}</h2>
             <p>
               {noOrphan(
                 'The sign above the door, the card in someone’s hand, the shirt your staff wears, the flyer on a fridge, the sticker sealing a package, and the banner at an event all say something before you get the chance to.'
