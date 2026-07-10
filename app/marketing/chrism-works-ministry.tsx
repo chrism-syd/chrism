@@ -1,9 +1,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import InvoiceReviewCta from '@/app/invoice-review-cta'
+import BusinessMotionObserver from './business-motion-observer'
 import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from './chrism-works-audience-menu'
 import styles from './chrism-works.module.css'
 import './audience-card-overrides.module.css'
+import './business-motion.module.css'
 
 function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
@@ -65,6 +67,7 @@ const faqs = [
 export default function ChrismWorksMinistryPage() {
   return (
     <main className={`qv-page ${styles.page}`}>
+      <BusinessMotionObserver />
       <div className={`qv-shell ${styles.shell}`}>
         <header className={styles.topBar}>
           <Link href="/" className={styles.brandLink} aria-label="Chrism home">
@@ -111,7 +114,7 @@ export default function ChrismWorksMinistryPage() {
           </div>
         </section>
 
-        <section className={styles.visionGrid}>
+        <section className={styles.visionGrid} data-scroll-motion="fade">
           <div className={styles.imageColumn}>
             <div className={styles.imageFrame}>
               <Image
@@ -171,7 +174,7 @@ export default function ChrismWorksMinistryPage() {
         </section>
 
         <div className={styles.modelGroup}>
-          <section className={styles.flywheelSection}>
+          <section className={styles.flywheelSection} data-scroll-motion="process">
             <div className={styles.sectionIntroWide}>
               <p className={styles.eyebrow}>The Flywheel</p>
               <h2 className={styles.sectionTitle}>
@@ -198,7 +201,7 @@ export default function ChrismWorksMinistryPage() {
             </div>
           </section>
 
-          <section className={styles.plainTrust}>
+          <section className={styles.plainTrust} data-scroll-motion="fade">
             <div className={styles.trustIntro}>
               <h2 className={styles.trustTitle}>Responsible stewardship</h2>
             </div>
@@ -222,9 +225,11 @@ export default function ChrismWorksMinistryPage() {
           </section>
         </div>
 
-        <ChrismWorksAudienceMenu current="ministry" placement="inline" />
+        <div data-scroll-motion="audience-menu">
+          <ChrismWorksAudienceMenu current="ministry" placement="inline" />
+        </div>
 
-        <section className={styles.faqSection}>
+        <section className={styles.faqSection} data-scroll-motion="fade">
           <div className={styles.sectionIntroWide}>
             <h2 className={styles.sectionTitle}>{noOrphan('Common questions')}</h2>
           </div>
@@ -239,7 +244,7 @@ export default function ChrismWorksMinistryPage() {
           </div>
         </section>
 
-        <section className={styles.ctaSection}>
+        <section className={styles.ctaSection} data-scroll-motion="fade">
           <InvoiceReviewCta />
         </section>
 
