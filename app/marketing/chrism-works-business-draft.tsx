@@ -104,9 +104,8 @@ export default function ChrismWorksBusinessDraftPage() {
           <div className={styles.heroCopy}>
             <h1 className={styles.heroTitle}>{noOrphan('Your brand often meets customers before you do.')}</h1>
             <p className={styles.heroText}>
-              {noOrphan(
-                'We help produce the everyday pieces people see — print, signage, apparel, packaging, promotional products — through practical design and sourcing built on volume pricing.'
-              )}
+              We help produce the everyday pieces people see: print, signage, apparel, packaging, and promotional products. Behind each piece is{' '}
+              <strong>creative direction</strong>, <strong>practical sourcing</strong>, and <strong>access to volume pricing</strong>.
             </p>
           </div>
 
