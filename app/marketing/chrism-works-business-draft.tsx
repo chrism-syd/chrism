@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import InvoiceReviewCta from '@/app/invoice-review-cta'
+import BusinessMotionObserver from './business-motion-observer'
 import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from './chrism-works-audience-menu'
 import styles from './chrism-works-business-draft.module.css'
 import './audience-card-overrides.module.css'
@@ -83,6 +84,7 @@ const faqs = [
 export default function ChrismWorksBusinessDraftPage() {
   return (
     <main className={`qv-page ${styles.page}`}>
+      <BusinessMotionObserver />
       <div className={`qv-shell ${styles.shell}`}>
         <header className={styles.topBar}>
           <Link href="/" className={styles.brandLink} aria-label="Chrism home">
@@ -120,7 +122,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.calloutSection} style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+        <section className={styles.calloutSection} style={{ borderBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
           <Image
             src="/divazus-fabric-store-fFgbmj3vix4-unsplash.jpg"
             alt="Close-up of patterned fabric and apparel details"
@@ -184,21 +186,14 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.plainTrust}>
-          <div className={styles.trustIntro}>
-            <h2 className={styles.trustTitle}>Lean, local, and useful.</h2>
-          </div>
-          <div className={styles.copyStack}>
+        <section className={styles.plainTrust} style={{ gridTemplateColumns: 'minmax(0, 1fr)', paddingTop: 0 }}>
+          <div className={styles.copyStack} style={{ maxWidth: '820px' }}>
             <p>
               {noOrphan(
-                'Chrism is a registered Ontario business built for practical, relationship-based service. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
+                'Chrism helps sort out what should be made, how it should be produced, and whether there is a smarter way to source it. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
               )}
             </p>
-            <p>
-              {noOrphan(
-                'Send the need, the file, the old invoice, or the half-formed idea. Chrism helps sort out what should be made, how it should be produced, and whether there is a smarter way to source it.'
-              )}
-            </p>
+            <p className={styles.manifestoClose}>{noOrphan('And for business compliance, rest assured we’re a registered Ontario business built for this. Lean, local, and useful.')}</p>
           </div>
         </section>
 
