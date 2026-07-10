@@ -49,10 +49,10 @@
   max-width: calc(100vw - 48px);
   gap: 6px;
   padding: 10px 22px 12px;
-  border: 1px solid rgba(98, 62, 110, 0.12);
+  border: 1px solid rgba(92, 74, 114, 0.18);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 18px 42px rgba(20, 12, 24, 0.12);
+  background: rgb(245, 194, 66);
+  box-shadow: 0 18px 42px rgba(20, 12, 24, 0.14);
   backdrop-filter: blur(14px);
   line-height: 1;
   pointer-events: auto;
@@ -75,6 +75,7 @@
 }
 
 .stickyInactive img {
+  opacity: 0.68;
   filter: brightness(0) saturate(100%) invert(32%) sepia(15%) saturate(1115%) hue-rotate(222deg) brightness(91%) contrast(87%);
 }
 
