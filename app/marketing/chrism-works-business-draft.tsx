@@ -3,6 +3,7 @@ import Link from 'next/link'
 import InvoiceReviewCta from '@/app/invoice-review-cta'
 import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from './chrism-works-audience-menu'
 import styles from './chrism-works-business-draft.module.css'
+import './audience-card-overrides.module.css'
 
 function noOrphan(text: string) {
   return text.replace(/\s+(\S+)$/, '\u00a0$1')
@@ -195,11 +196,6 @@ export default function ChrismWorksBusinessDraftPage() {
             <p>
               {noOrphan(
                 'Chrism is a registered Ontario business built for practical, relationship-based service. You get one point of contact who understands design, print files, production constraints, sourcing, and small-business budgets.'
-              )}
-            </p>
-            <p>
-              {noOrphan(
-                'The goal is not to turn every request into a bloated agency project. The goal is to help you get the right thing made properly, at a fair price, with less vendor soup.'
               )}
             </p>
           </div>
