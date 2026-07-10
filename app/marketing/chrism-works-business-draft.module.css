@@ -418,7 +418,7 @@
 }
 
 .flowItem + .flowItem::before {
-  content: '->';
+  content: '→';
   position: absolute;
   top: 50%;
   left: calc(-1 * clamp(23px, 2.8vw, 38px));
