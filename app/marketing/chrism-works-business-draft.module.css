@@ -315,6 +315,11 @@
   font-size: 17px;
 }
 
+.sectionIntroWide .manifestoClose {
+  color: var(--qv-plum);
+  font-weight: 900;
+}
+
 .copyStack {
   display: grid;
   gap: 14px;
