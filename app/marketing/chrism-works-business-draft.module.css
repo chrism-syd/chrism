@@ -6,7 +6,7 @@
 }
 
 .shell {
-  gap: 72px;
+  gap: 68px;
   padding-bottom: 64px;
 }
 
@@ -25,7 +25,7 @@
 
 .brandImage {
   display: block;
-  width: clamp(188px, 19vw, 248px);
+  width: 248px;
   height: auto;
 }
 
@@ -109,16 +109,16 @@
 .heroBlock {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(20px, 3.4vw, 56px);
   min-height: calc(100vh - 190px);
-  padding: clamp(12px, 2.5vw, 32px) 0 clamp(76px, 10vh, 124px);
+  padding: clamp(12px, 2.5vw, 32px) 0 clamp(84px, 12vh, 160px);
 }
 
 .heroCopy {
   display: grid;
-  align-content: center;
-  align-self: center;
+  align-content: start;
+  align-self: start;
   gap: 18px;
   min-width: 0;
   position: relative;
@@ -613,7 +613,7 @@
   .heroBlock {
     min-height: auto;
     gap: 42px;
-    padding-bottom: 48px;
+    padding-bottom: 72px;
   }
 
   .heroArtwork {
