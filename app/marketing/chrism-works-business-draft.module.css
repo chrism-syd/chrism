@@ -74,8 +74,12 @@
   flex: 0 0 auto;
 }
 
+.stickyCurrent img {
+  filter: brightness(0) saturate(100%);
+}
+
 .stickyInactive img {
-  opacity: 0.68;
+  opacity: 1;
   filter: brightness(0) saturate(100%) invert(32%) sepia(15%) saturate(1115%) hue-rotate(222deg) brightness(91%) contrast(87%);
 }
 
