@@ -1,5 +1,5 @@
-import ChrismWorksBusinessDraftPage from '@/app/marketing/chrism-works-business-draft'
+import { redirect } from 'next/navigation'
 
 export default function BusinessDraftPage() {
-  return <ChrismWorksBusinessDraftPage />
+  redirect('/')
 }
