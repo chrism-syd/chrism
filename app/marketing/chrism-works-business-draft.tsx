@@ -142,7 +142,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </p>
         </section>
 
-        <section className={styles.manifestoSection} style={touchpointContinuationStyle}>
+        <section className={styles.manifestoSection} style={touchpointContinuationStyle} data-scroll-motion="manifesto">
           <div className={styles.sectionIntroWide}>
             <p>
               {noOrphan(
@@ -157,7 +157,7 @@ export default function ChrismWorksBusinessDraftPage() {
             <p className={styles.manifestoClose}>{noOrphan('The goal is simple: create work your business can actually stand behind.')}</p>
           </div>
 
-          <div className={styles.touchpointGrid}>
+          <div className={styles.touchpointGrid} data-scroll-motion="pills">
             {touchpoints.map((touchpoint) => (
               <div key={touchpoint} className={styles.touchpointPill}>
                 {touchpoint}
@@ -166,7 +166,7 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.processSection}>
+        <section className={styles.processSection} data-scroll-motion="process">
           <div className={styles.sectionIntroWide}>
             <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
           </div>
@@ -202,7 +202,9 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <ChrismWorksAudienceMenu current="business" placement="inline" />
+        <div data-scroll-motion="audience-menu">
+          <ChrismWorksAudienceMenu current="business" placement="inline" />
+        </div>
 
         <section className={styles.faqSection}>
           <div className={styles.sectionIntroWide}>
