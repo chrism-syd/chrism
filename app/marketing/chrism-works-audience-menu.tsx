@@ -19,6 +19,10 @@ function ariaCurrent(current: Audience, audience: Audience): 'page' | undefined 
   return current === audience ? 'page' : undefined
 }
 
+function MenuDivider() {
+  return <span className={styles.menuDivider} aria-hidden="true" />
+}
+
 export function ChrismWorksAudienceMenu({ current = 'business', placement = 'hero' }: { current?: Audience; placement?: Placement }) {
   const shellClassName = placement === 'inline' ? `${styles.stickyAudienceShell} ${styles.inlineAudienceShell}` : styles.stickyAudienceShell
 
@@ -33,11 +37,11 @@ export function ChrismWorksAudienceMenu({ current = 'business', placement = 'her
         <Link href="/" className={audienceClass(current, 'business')} aria-current={ariaCurrent(current, 'business')}>
           <Image src="/menu-business.svg" alt="Business" width={280} height={100} style={menuPieceStyle} />
         </Link>
-        <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
+        <MenuDivider />
         <Link href="/ministry" className={audienceClass(current, 'ministry')} aria-current={ariaCurrent(current, 'ministry')}>
           <Image src="/menu-ministry.svg" alt="Ministry" width={260} height={100} style={menuPieceStyle} />
         </Link>
-        <Image src="/menu-vdiv.svg" alt="" width={40} height={100} style={menuPieceStyle} />
+        <MenuDivider />
         <Link href="/schools" className={audienceClass(current, 'schools')} aria-current={ariaCurrent(current, 'schools')}>
           <Image src="/menu-schools.svg" alt="Schools" width={240} height={100} style={menuPieceStyle} />
         </Link>
