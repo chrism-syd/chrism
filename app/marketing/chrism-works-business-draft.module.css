@@ -45,10 +45,10 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
-  width: min(100%, 980px);
-  max-width: 100%;
-  gap: clamp(8px, 1.3vw, 18px);
-  padding: 13px clamp(28px, 4vw, 52px) 15px;
+  width: fit-content;
+  max-width: calc(100vw - 48px);
+  gap: 6px;
+  padding: 10px 22px 12px;
   border: 1px solid rgba(98, 62, 110, 0.12);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.86);
@@ -65,7 +65,7 @@
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: clamp(2px, 0.25vw, 4px);
+  gap: 2px;
   line-height: 0;
   text-decoration: none;
 }
