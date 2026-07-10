@@ -27,34 +27,14 @@ const touchpoints = [
   'Signs and window graphics',
   'Business cards and stationery',
   'Menus, flyers, and mailers',
-  'Staff apparel and uniforms',
-  'Labels, stickers, and packaging',
-  'Banners, booths, and event pieces',
+  'Apparel, hats, and uniforms',
+  'Labels and packaging',
+  'Buttons and stickers',
+  'Vinyl hanging and roll-up banners',
+  'Booth backdrops and event signage',
+  'Folding promotional tents',
   'Promotional products and client gifts',
   'Print-ready design and file setup',
-]
-
-const serviceGroups = [
-  {
-    title: 'Print and stationery',
-    copy:
-      'Business cards, postcards, flyers, brochures, rack cards, menus, forms, envelopes, letterhead, booklets, labels, stickers, and everyday printed pieces.',
-  },
-  {
-    title: 'Signs and displays',
-    copy:
-      'Banners, coroplast signs, window graphics, posters, decals, event signage, yard signs, retractable displays, and large-format print.',
-  },
-  {
-    title: 'Apparel and uniforms',
-    copy:
-      'T-shirts, hoodies, crewnecks, polos, staff shirts, event apparel, team wear, embroidered pieces, and branded workwear.',
-  },
-  {
-    title: 'Promotional sourcing',
-    copy:
-      'Drinkware, tote bags, pens, lanyards, notebooks, magnets, giveaways, client gifts, and branded merchandise sourced through commercial suppliers.',
-  },
 ]
 
 const processSteps = [
@@ -226,22 +206,6 @@ export default function ChrismWorksBusinessDraftPage() {
           </div>
         </section>
 
-        <section className={styles.servicesSection}>
-          <div className={styles.sectionIntroWide}>
-            <p className={styles.eyebrow}>What we help with</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
-          </div>
-
-          <div className={styles.serviceGrid}>
-            {serviceGroups.map((group) => (
-              <article key={group.title} className={styles.serviceCard}>
-                <h3>{group.title}</h3>
-                <p>{noOrphan(group.copy)}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className={styles.invoiceBand} id="invoice-review">
           <div className={styles.invoiceBandIntro}>
             <p className={styles.eyebrow}>Already have a supplier?</p>
@@ -260,7 +224,7 @@ export default function ChrismWorksBusinessDraftPage() {
         <section className={styles.processSection}>
           <div className={styles.sectionIntroWide}>
             <p className={styles.eyebrow}>How it works</p>
-            <h2 className={styles.sectionTitle}>{noOrphan('A simpler way to get branded things made.')}</h2>
+            <h2 className={styles.sectionTitle}>{noOrphan('One practical partner for the pieces your business needs.')}</h2>
           </div>
 
           <div className={styles.flowGrid}>
