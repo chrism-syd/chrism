@@ -9,6 +9,11 @@
   pointer-events: none;
 }
 
+.inlineAudienceShell {
+  margin-top: 0;
+  margin-bottom: clamp(34px, 5vw, 64px);
+}
+
 .stickyAudienceNav {
   display: flex;
   flex-wrap: nowrap;
@@ -96,6 +101,11 @@
   .stickyAudienceShell {
     justify-content: flex-start;
     margin-top: 10px;
+    margin-bottom: 40px;
+  }
+
+  .inlineAudienceShell {
+    margin-top: 0;
     margin-bottom: 40px;
   }
 }
