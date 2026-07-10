@@ -1,11 +1,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import BusinessMotionObserver from '@/app/marketing/business-motion-observer'
 import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from '@/app/marketing/chrism-works-audience-menu'
 import styles from '../about/about.module.css'
 import faqStyles from '../faq-image.module.css'
 import heroStyles from '../landing-hero.module.css'
 import InvoiceReviewCta from '../invoice-review-cta'
 import '../marketing/audience-card-overrides.module.css'
+import '../marketing/business-motion.module.css'
 import SchoolHowItWorksSection from '../school-how-it-works-section'
 import schoolStyles from '../school-landing.module.css'
 import SchoolSuppliesSection from '../school-supplies-section'
@@ -17,6 +19,7 @@ function noOrphan(text: string) {
 export default function SchoolsLandingPage() {
   return (
     <main className="qv-page">
+      <BusinessMotionObserver />
       <div className={`qv-shell ${styles.aboutShell}`}>
         <header className={styles.topBar}>
           <Link href="/" className={styles.brandLink} aria-label="Chrism home">
@@ -60,14 +63,20 @@ export default function SchoolsLandingPage() {
             </div>
           </section>
 
-          <SchoolSuppliesSection />
+          <div data-scroll-motion="fade">
+            <SchoolSuppliesSection />
+          </div>
         </div>
 
-        <SchoolHowItWorksSection />
+        <div data-scroll-motion="process">
+          <SchoolHowItWorksSection />
+        </div>
 
-        <ChrismWorksAudienceMenu current="schools" placement="inline" />
+        <div data-scroll-motion="audience-menu">
+          <ChrismWorksAudienceMenu current="schools" placement="inline" />
+        </div>
 
-        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`}>
+        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`} data-scroll-motion="fade">
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
             <div className={styles.imageFrame}>
               <Image
@@ -161,7 +170,7 @@ export default function SchoolsLandingPage() {
           </div>
         </section>
 
-        <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`}>
+        <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`} data-scroll-motion="fade">
           <InvoiceReviewCta variant="schoolsContact" />
         </section>
 
