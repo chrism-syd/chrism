@@ -75,7 +75,7 @@ export default function SchoolsLandingPage() {
 
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`} data-scroll-motion="fade">
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
-            <div className={`${styles.imageFrame} ${faqStyles.faqImageFrame}`}>
+            <div className={styles.imageFrame}>
               <Image
                 src="/birmingham-museums-trust-aE0-ZJb2VTQ-unsplash.jpg"
                 alt="Painting of a woman wearing a red beaded necklace"
