@@ -124,25 +124,25 @@ export default function ChrismWorksMinistryPage() {
                 className={styles.aboutImage}
                 sizes="(max-width: 900px) 100vw, 32vw"
               />
+              <p className={styles.photoCredit}>
+                Photo by{' '}
+                <a
+                  href="https://unsplash.com/@supergios?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Jonny Gios
+                </a>{' '}
+                on{' '}
+                <a
+                  href="https://unsplash.com/photos/a-black-and-white-sign-that-says-you-and-me-and-you-and-me-QMesAlxmi6g?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Unsplash
+                </a>
+              </p>
             </div>
-            <p className={styles.photoCredit}>
-              Photo by{' '}
-              <a
-                href="https://unsplash.com/@supergios?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Jonny Gios
-              </a>{' '}
-              on{' '}
-              <a
-                href="https://unsplash.com/photos/a-black-and-white-sign-that-says-you-and-me-and-you-and-me-QMesAlxmi6g?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Unsplash
-              </a>
-            </p>
           </div>
 
           <section className={styles.contentPlain}>
