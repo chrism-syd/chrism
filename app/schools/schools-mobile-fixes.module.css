@@ -46,9 +46,10 @@
 
   :global([class*='suppliesCarouselRow']) {
     display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: calc(100% + 16px) !important;
+    max-width: calc(100% + 16px) !important;
     min-width: 0;
+    margin-right: -16px !important;
     overflow: visible !important;
   }
 
