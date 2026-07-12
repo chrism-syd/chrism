@@ -149,11 +149,11 @@
 
   .stickyAudienceNav {
     display: flex;
-    width: 100%;
-    max-width: calc(100vw - 32px);
-    justify-content: space-between;
-    padding: clamp(8px, 2.6vw, 10px) clamp(10px, 3.2vw, 14px) clamp(9px, 2.8vw, 12px);
-    gap: clamp(2px, 0.8vw, 4px);
+    width: min(100%, 620px);
+    max-width: calc(100vw - 40px);
+    justify-content: center;
+    padding: clamp(8px, 2.6vw, 10px) clamp(14px, 4vw, 18px) clamp(9px, 2.8vw, 12px);
+    gap: clamp(7px, 2.1vw, 10px);
   }
 
   .stickyBrand,
