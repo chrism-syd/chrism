@@ -38,58 +38,63 @@
     text-underline-offset: 2px;
   }
 
-  :global([class*='suppliesSection']) {
-    max-width: 100%;
+  :global(.schoolSuppliesSection),
+  :global(.schoolSuppliesCarouselRow),
+  :global(.schoolSuppliesRailShell),
+  :global(.schoolSuppliesRail),
+  :global(.schoolSupplyCard),
+  :global(.schoolCarouselControls) {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
     min-width: 0;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  :global(.schoolSuppliesSection) {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
     overflow: visible !important;
   }
 
-  :global([class*='suppliesCarouselRow']) {
+  :global(.schoolSuppliesCarouselRow) {
     display: block !important;
-    width: calc(100% + 16px) !important;
-    max-width: calc(100% + 16px) !important;
-    min-width: 0;
-    margin-right: -16px !important;
+    padding: 0 !important;
     overflow: visible !important;
   }
 
-  :global([class*='pennantFrame']) {
+  :global(.schoolSuppliesPennantFrame) {
     display: none !important;
   }
 
-  :global([class*='suppliesRailShell']) {
+  :global(.schoolSuppliesRailShell) {
     display: grid !important;
     gap: 14px;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0;
+    padding: 0 !important;
     overflow: visible !important;
   }
 
-  :global([class*='suppliesRail']) {
-    box-sizing: border-box;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0;
+  :global(.schoolSuppliesRail) {
+    display: grid !important;
+    grid-auto-flow: column;
     grid-auto-columns: minmax(0, 100%) !important;
     gap: 14px !important;
-    margin-inline: 0 !important;
-    padding: var(--supply-card-top) 0 16px 0 !important;
-    scroll-padding-inline-start: 0 !important;
-    overflow-x: auto;
+    padding: var(--supply-card-top) 0 16px !important;
+    overflow-x: auto !important;
+    scroll-padding-inline: 0 !important;
   }
 
-  :global([class*='supplyCard']) {
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 0;
+  :global(.schoolSupplyCard) {
+    justify-self: stretch;
+    padding-right: 24px;
+    padding-left: 24px;
   }
 
-  :global([class*='carouselControls']) {
+  :global(.schoolCarouselControls) {
     display: flex !important;
     justify-content: flex-end !important;
-    width: 100% !important;
-    padding-right: 0 !important;
+    padding: 0 !important;
   }
 
   :global([class*='reasonList']) {
