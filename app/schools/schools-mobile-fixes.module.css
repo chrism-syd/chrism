@@ -16,4 +16,91 @@
   :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit']) {
     position: absolute !important;
     right: auto !important;
-    bottom:
+    bottom: 12px !important;
+    left: 12px !important;
+    z-index: 3;
+    display: inline-block;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin: 0 !important;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(46, 42, 52, 0.62);
+    color: #fdfcf9;
+    font-size: 10px;
+    line-height: 1.35;
+    backdrop-filter: blur(8px);
+  }
+
+  :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit'] a) {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  :global([class*='suppliesSection']) {
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible !important;
+  }
+
+  :global([class*='suppliesCarouselRow']) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    overflow: visible !important;
+  }
+
+  :global([class*='pennantFrame']) {
+    display: none !important;
+  }
+
+  :global([class*='suppliesRailShell']) {
+    display: grid !important;
+    gap: 14px;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    overflow: visible !important;
+  }
+
+  :global([class*='suppliesRail']) {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    grid-auto-columns: minmax(0, 100%) !important;
+    gap: 14px !important;
+    margin-inline: 0 !important;
+    padding: var(--supply-card-top) 0 16px 0 !important;
+    scroll-padding-inline-start: 0 !important;
+    overflow-x: auto;
+  }
+
+  :global([class*='supplyCard']) {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  :global([class*='carouselControls']) {
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+    padding-right: 0 !important;
+  }
+
+  :global([class*='reasonList']) {
+    grid-template-columns: 1fr !important;
+    overflow: visible;
+  }
+
+  :global([class*='reasonItem']) {
+    min-width: 0;
+  }
+
+  :global([class*='reasonItem'] h3) {
+    white-space: normal !important;
+  }
+}
