@@ -27,3 +27,62 @@
   color: var(--qv-plum) !important;
   font-weight: 900 !important;
 }
+
+:global(.qv-page [class*='imageFrame'] [class*='photoCredit']) {
+  position: absolute;
+  right: auto;
+  bottom: 12px;
+  left: 12px;
+  display: inline-block;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(46, 42, 52, 0.62);
+  color: #fdfcf9;
+  font-size: 10px;
+  line-height: 1.35;
+  backdrop-filter: blur(8px);
+}
+
+:global(.qv-page [class*='imageFrame'] [class*='photoCredit'] a) {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  :global(.qv-page [class*='schoolStoryImageColumn'] [class*='faqImageCredit']) {
+    right: auto;
+    bottom: 12px;
+    left: 12px;
+    max-width: calc(100% - 24px);
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(46, 42, 52, 0.62);
+    color: #fdfcf9;
+    font-size: 10px;
+    line-height: 1.35;
+    backdrop-filter: blur(8px);
+  }
+
+  :global(.qv-page [class*='suppliesCarouselRow']) {
+    grid-template-columns: minmax(70px, 0.22fr) minmax(0, 1fr) !important;
+    gap: clamp(10px, 3vw, 16px) !important;
+    align-items: start !important;
+  }
+
+  :global(.qv-page [class*='pennantFrame']) {
+    justify-content: center !important;
+  }
+
+  :global(.qv-page [class*='pennantImage']) {
+    width: min(22vw, 96px) !important;
+    margin-top: 4px !important;
+  }
+
+  :global(.qv-page [class*='suppliesRail']) {
+    grid-auto-columns: minmax(238px, 88%) !important;
+  }
+}
