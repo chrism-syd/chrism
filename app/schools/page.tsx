@@ -10,6 +10,7 @@ import '../marketing/audience-card-overrides.module.css'
 import '../marketing/business-motion.module.css'
 import SchoolHowItWorksSection from '../school-how-it-works-section'
 import schoolStyles from '../school-landing.module.css'
+import './schools-mobile-fixes.module.css'
 import SchoolSuppliesSection from '../school-supplies-section'
 
 function noOrphan(text: string) {
