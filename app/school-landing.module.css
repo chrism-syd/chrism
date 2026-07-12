@@ -338,7 +338,7 @@
   grid-column: 1 / -1;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(18px, 2.4vw, 30px);
-  margin-top: 4px;
+  margin-top: clamp(22px, 3.4vw, 46px);
 }
 
 .reasonItem {
@@ -511,6 +511,14 @@
   .schoolStoryImageColumn .schoolStoryImage {
     object-fit: contain !important;
     object-position: center center !important;
+  }
+
+  .reasonList {
+    margin-top: 34px;
+  }
+
+  .reasonItem h3 {
+    white-space: nowrap;
   }
 
   .pennantFrame {
