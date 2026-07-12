@@ -45,7 +45,6 @@
   :global(.schoolSupplyCard),
   :global(.schoolCarouselControls) {
     box-sizing: border-box;
-    width: 100% !important;
     max-width: none !important;
     min-width: 0;
     margin-right: 0 !important;
@@ -53,6 +52,9 @@
   }
 
   :global(.schoolSuppliesSection) {
+    justify-self: start;
+    width: calc(100vw - 40px) !important;
+    max-width: calc(100vw - 40px) !important;
     padding-right: 0 !important;
     padding-left: 0 !important;
     overflow: visible !important;
@@ -60,6 +62,7 @@
 
   :global(.schoolSuppliesCarouselRow) {
     display: block !important;
+    width: 100% !important;
     padding: 0 !important;
     overflow: visible !important;
   }
@@ -71,14 +74,16 @@
   :global(.schoolSuppliesRailShell) {
     display: grid !important;
     gap: 14px;
+    width: 100% !important;
     padding: 0 !important;
     overflow: visible !important;
   }
 
   :global(.schoolSuppliesRail) {
     display: grid !important;
+    width: 100% !important;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 100%) !important;
+    grid-auto-columns: 100% !important;
     gap: 14px !important;
     padding: var(--supply-card-top) 0 16px !important;
     overflow-x: auto !important;
@@ -86,6 +91,7 @@
   }
 
   :global(.schoolSupplyCard) {
+    width: 100% !important;
     justify-self: stretch;
     padding-right: 24px;
     padding-left: 24px;
@@ -94,7 +100,12 @@
   :global(.schoolCarouselControls) {
     display: flex !important;
     justify-content: flex-end !important;
+    width: 100% !important;
     padding: 0 !important;
+  }
+
+  :global([class*='howSection'])::before {
+    top: clamp(180px, 48vw, 250px) !important;
   }
 
   :global([class*='reasonList']) {
