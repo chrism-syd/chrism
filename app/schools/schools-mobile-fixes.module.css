@@ -1,0 +1,21 @@
+:global([class*='heroSupplyBridge']) {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@media (max-width: 900px) {
+  :global(.qv-page) {
+    overflow-x: clip;
+  }
+
+  :global([class*='schoolStoryImageColumn'] [class*='imageFrame']) {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit']) {
+    position: absolute !important;
+    right: auto !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    z-index: 3
