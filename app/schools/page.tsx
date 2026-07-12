@@ -74,7 +74,7 @@ export default function SchoolsLandingPage() {
 
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`} data-scroll-motion="fade">
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
-            <div className={styles.imageFrame}>
+            <div className={styles.imageFrame} style={{ position: 'relative', overflow: 'hidden' }}>
               <Image
                 src="/birmingham-museums-trust-aE0-ZJb2VTQ-unsplash.jpg"
                 alt="Painting of a woman wearing a red beaded necklace"
@@ -82,12 +82,32 @@ export default function SchoolsLandingPage() {
                 className={`${styles.aboutImage} ${schoolStyles.schoolStoryImage}`}
                 sizes="(max-width: 900px) 100vw, 26vw"
               />
-              <p className={schoolStyles.schoolStoryImageCredit}>
+              <p
+                className="schoolStoryImageCredit"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  bottom: '12px',
+                  zIndex: 3,
+                  display: 'inline-block',
+                  width: 'fit-content',
+                  maxWidth: 'calc(100% - 24px)',
+                  margin: 0,
+                  padding: '8px 10px',
+                  borderRadius: '12px',
+                  background: 'rgba(46, 42, 52, 0.62)',
+                  color: '#fdfcf9',
+                  fontSize: '10px',
+                  lineHeight: 1.35,
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
                 Photo by{' '}
                 <a
                   href="https://unsplash.com/@birminghammuseumstrust?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
                   target="_blank"
                   rel="noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}
                 >
                   Birmingham Museums Trust
                 </a>{' '}
@@ -96,6 +116,7 @@ export default function SchoolsLandingPage() {
                   href="https://unsplash.com/photos/woman-wearing-red-beaded-necklace-painting-aE0-ZJb2VTQ?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
                   target="_blank"
                   rel="noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}
                 >
                   Unsplash
                 </a>
