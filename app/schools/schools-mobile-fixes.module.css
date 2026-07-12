@@ -19,3 +19,78 @@
 
   :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit']) {
     position: absolute !important;
+    right: auto !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    z-index: 3;
+    display: inline-block;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin: 0 !important;
+  }
+
+  :global([class*='suppliesSection']),
+  :global([class*='suppliesCarouselRow']),
+  :global([class*='suppliesRailShell']) {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  :global([class*='suppliesCarouselRow']) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0 !important;
+    overflow: hidden;
+  }
+
+  :global([class*='pennantFrame']) {
+    display: none !important;
+  }
+
+  :global([class*='suppliesRailShell']) {
+    overflow: hidden;
+  }
+
+  :global([class*='suppliesRail']) {
+    grid-auto-columns: minmax(0, 92%) !important;
+    margin-inline: 0 !important;
+    padding: var(--supply-card-top) 0 16px 0 !important;
+    scroll-padding-inline-start: 0 !important;
+  }
+
+  :global([class*='reasonList']) {
+    grid-template-columns: clamp(54px, 18vw, 82px) minmax(0, 1fr) !important;
+    column-gap: clamp(12px, 3vw, 18px) !important;
+    row-gap: clamp(16px, 4vw, 22px) !important;
+    align-items: start;
+  }
+
+  :global(.schoolReasonPennantFrame) {
+    display: flex;
+    grid-row: 1 / span 3;
+    align-self: start;
+    justify-content: flex-start;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  :global(.schoolReasonPennantImage) {
+    display: block;
+    width: min(100%, 82px);
+    height: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  :global([class*='suppliesRail']) {
+    grid-auto-columns: minmax(0, 94%) !important;
+  }
+
+  :global([class*='reasonList']) {
+    grid-template-columns: clamp(46px, 16vw, 64px) minmax(0, 1fr) !important;
+    column-gap: 10px !important;
+  }
+
+  :global(.schoolReasonPennantImage) {
+    width: min(100%, 64px);
+  }
+}
