@@ -161,11 +161,7 @@ export default function SchoolsLandingPage() {
               </p>
             </div>
             <div className={schoolStyles.reasonItem}>
-              <h3>
-                Trade pricing.
-                <br />
-                Not retail markup.
-              </h3>
+              <h3>Trade pricing. Not retail markup.</h3>
               <p>
                 {noOrphan(
                   'Because we source at wholesale and operate with low overhead, we can offer pricing that most schools aren\'t currently getting — and we\'ll show you the comparison if you want to see it.'
@@ -173,11 +169,7 @@ export default function SchoolsLandingPage() {
               </p>
             </div>
             <div className={schoolStyles.reasonItem}>
-              <h3>
-                A real person
-                <br />
-                on every order.
-              </h3>
+              <h3>A real person on every order.</h3>
               <p>
                 {noOrphan(
                   'Not a ticket system. Not a chatbot. Someone who knows your order, knows your school, and picks up the phone.'
