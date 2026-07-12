@@ -3,6 +3,10 @@
   overflow-x: clip;
 }
 
+:global(.schoolReasonPennantFrame) {
+  display: none;
+}
+
 @media (max-width: 900px) {
   :global(.qv-page) {
     overflow-x: clip;
@@ -15,78 +19,3 @@
 
   :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit']) {
     position: absolute !important;
-    right: auto !important;
-    bottom: 12px !important;
-    left: 12px !important;
-    z-index: 3;
-    display: inline-block;
-    width: fit-content;
-    max-width: calc(100% - 24px);
-    margin: 0 !important;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: rgba(46, 42, 52, 0.62);
-    color: #fdfcf9;
-    font-size: 10px;
-    line-height: 1.35;
-    backdrop-filter: blur(8px);
-  }
-
-  :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit'] a) {
-    color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  :global([class*='suppliesSection']),
-  :global([class*='suppliesCarouselRow']),
-  :global([class*='suppliesRailShell']) {
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  :global([class*='suppliesCarouselRow']) {
-    grid-template-columns: clamp(62px, 20vw, 86px) minmax(0, 1fr) !important;
-    gap: clamp(10px, 3vw, 14px) !important;
-    align-items: start;
-    overflow: hidden;
-  }
-
-  :global([class*='pennantFrame']) {
-    justify-content: flex-start !important;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  :global([class*='pennantImage']) {
-    width: min(100%, 86px) !important;
-    max-width: 100%;
-    margin-top: 0 !important;
-  }
-
-  :global([class*='suppliesRailShell']) {
-    overflow: hidden;
-  }
-
-  :global([class*='suppliesRail']) {
-    grid-auto-columns: minmax(0, 92%) !important;
-    margin-inline: 0 !important;
-    padding: var(--supply-card-top) 0 16px 0 !important;
-    scroll-padding-inline-start: 0 !important;
-  }
-}
-
-@media (max-width: 390px) {
-  :global([class*='suppliesCarouselRow']) {
-    grid-template-columns: clamp(54px, 18vw, 70px) minmax(0, 1fr) !important;
-    gap: 10px !important;
-  }
-
-  :global([class*='pennantImage']) {
-    width: min(100%, 70px) !important;
-  }
-
-  :global([class*='suppliesRail']) {
-    grid-auto-columns: minmax(0, 94%) !important;
-  }
-}
