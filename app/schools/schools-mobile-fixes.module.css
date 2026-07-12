@@ -58,15 +58,25 @@
   }
 
   :global([class*='suppliesRailShell']) {
-    overflow: hidden;
+    width: 100%;
+    overflow: visible;
   }
 
   :global([class*='suppliesRail']) {
-    grid-auto-columns: minmax(260px, 86%) !important;
+    width: 100%;
+    grid-auto-columns: minmax(0, 100%) !important;
     gap: 14px !important;
     margin-inline: 0 !important;
     padding: var(--supply-card-top) 0 16px 0 !important;
     scroll-padding-inline-start: 0 !important;
+    overflow-x: auto;
+  }
+
+  :global([class*='carouselControls']) {
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100%;
+    padding-right: 0 !important;
   }
 
   :global([class*='reasonList']) {
@@ -80,11 +90,5 @@
 
   :global([class*='reasonItem'] h3) {
     white-space: normal !important;
-  }
-}
-
-@media (max-width: 390px) {
-  :global([class*='suppliesRail']) {
-    grid-auto-columns: minmax(240px, 90%) !important;
   }
 }
