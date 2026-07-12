@@ -72,10 +72,6 @@ export default function SchoolsLandingPage() {
           <SchoolHowItWorksSection />
         </div>
 
-        <div data-scroll-motion="audience-menu">
-          <ChrismWorksAudienceMenu current="schools" placement="inline" />
-        </div>
-
         <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`} data-scroll-motion="fade">
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
             <div className={styles.imageFrame}>
@@ -169,6 +165,10 @@ export default function SchoolsLandingPage() {
             </div>
           </div>
         </section>
+
+        <div data-scroll-motion="audience-menu">
+          <ChrismWorksAudienceMenu current="schools" placement="inline" />
+        </div>
 
         <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`} data-scroll-motion="fade">
           <InvoiceReviewCta variant="schoolsContact" />
