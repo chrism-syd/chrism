@@ -144,11 +144,33 @@
 @media (max-width: 720px) {
   .stickyAudienceShell {
     justify-content: center;
+    width: 100%;
   }
 
   .stickyAudienceNav {
     display: flex;
+    width: 100%;
     max-width: calc(100vw - 32px);
+    justify-content: space-between;
+    padding: clamp(8px, 2.6vw, 10px) clamp(10px, 3.2vw, 14px) clamp(9px, 2.8vw, 12px);
+    gap: clamp(2px, 0.8vw, 4px);
+  }
+
+  .stickyBrand,
+  .stickyCurrent,
+  .stickyLink {
+    min-width: 0;
+  }
+
+  .stickyAudienceNav img {
+    height: clamp(9px, 2.95vw, 13px) !important;
+    max-width: 100%;
+    width: auto !important;
+  }
+
+  .menuDivider {
+    height: clamp(10px, 3vw, 14px);
+    margin: 0 clamp(1px, 0.45vw, 2px);
   }
 
   .mobileMenuButton {
