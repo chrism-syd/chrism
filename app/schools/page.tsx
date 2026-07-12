@@ -132,15 +132,6 @@ export default function SchoolsLandingPage() {
           </section>
 
           <div className={schoolStyles.reasonList}>
-            <div className="schoolReasonPennantFrame" aria-hidden="true">
-              <Image
-                src="/YCDSB_Pennant.svg"
-                alt=""
-                width={160}
-                height={160}
-                className="schoolReasonPennantImage"
-              />
-            </div>
             <div className={schoolStyles.reasonItem}>
               <h3>One vendor. Everything your school needs.</h3>
               <p>
