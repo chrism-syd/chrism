@@ -3,7 +3,6 @@ import Link from 'next/link'
 import BusinessMotionObserver from '@/app/marketing/business-motion-observer'
 import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from '@/app/marketing/chrism-works-audience-menu'
 import styles from '../about/about.module.css'
-import faqStyles from '../faq-image.module.css'
 import heroStyles from '../landing-hero.module.css'
 import InvoiceReviewCta from '../invoice-review-cta'
 import '../marketing/audience-card-overrides.module.css'
@@ -83,7 +82,7 @@ export default function SchoolsLandingPage() {
                 className={`${styles.aboutImage} ${schoolStyles.schoolStoryImage}`}
                 sizes="(max-width: 900px) 100vw, 26vw"
               />
-              <p className={faqStyles.faqImageCredit}>
+              <p className={schoolStyles.schoolStoryImageCredit}>
                 Photo by{' '}
                 <a
                   href="https://unsplash.com/@birminghammuseumstrust?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
