@@ -1,0 +1,123 @@
+:global([class*='heroSupplyBridge']) {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@media (max-width: 900px) {
+  :global(.qv-page) {
+    overflow-x: clip;
+  }
+
+  :global([class*='schoolStoryImageColumn'] [class*='imageFrame']) {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit']) {
+    position: absolute !important;
+    right: auto !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    z-index: 3;
+    display: inline-block;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin: 0 !important;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(46, 42, 52, 0.62);
+    color: #fdfcf9;
+    font-size: 10px;
+    line-height: 1.35;
+    backdrop-filter: blur(8px);
+  }
+
+  :global([class*='schoolStoryImageColumn'] [class*='faqImageCredit'] a) {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  :global(.schoolSuppliesSection),
+  :global(.schoolSuppliesCarouselRow),
+  :global(.schoolSuppliesRailShell),
+  :global(.schoolSuppliesRail),
+  :global(.schoolSupplyCard),
+  :global(.schoolCarouselControls) {
+    box-sizing: border-box;
+    max-width: none !important;
+    min-width: 0;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  :global(.schoolSuppliesSection) {
+    justify-self: start;
+    width: calc(100vw - 40px) !important;
+    max-width: calc(100vw - 40px) !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+    overflow: visible !important;
+  }
+
+  :global(.schoolSuppliesCarouselRow) {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  :global(.schoolSuppliesPennantFrame) {
+    display: none !important;
+  }
+
+  :global(.schoolSuppliesRailShell) {
+    display: grid !important;
+    gap: 14px;
+    width: 100% !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  :global(.schoolSuppliesRail) {
+    display: grid !important;
+    width: 100% !important;
+    grid-auto-flow: column;
+    grid-auto-columns: 100% !important;
+    gap: 14px !important;
+    padding: var(--supply-card-top) 0 16px !important;
+    overflow-x: auto !important;
+    scroll-padding-inline: 0 !important;
+  }
+
+  :global(.schoolSupplyCard) {
+    width: 100% !important;
+    justify-self: stretch;
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  :global(.schoolCarouselControls) {
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  :global([class*='howSection'])::before {
+    top: clamp(180px, 48vw, 250px) !important;
+  }
+
+  :global([class*='reasonList']) {
+    grid-template-columns: 1fr !important;
+    overflow: visible;
+  }
+
+  :global([class*='reasonItem']) {
+    min-width: 0;
+  }
+
+  :global([class*='reasonItem'] h3) {
+    white-space: normal !important;
+  }
+}
