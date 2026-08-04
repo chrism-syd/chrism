@@ -87,7 +87,7 @@ export default function SchoolSuppliesSection() {
   }
 
   return (
-    <section className={styles.suppliesSection}>
+    <section className={`${styles.suppliesSection} schoolSuppliesSection`}>
       <div className={styles.suppliesIntro}>
         <p className={styles.eyebrow}>What we supply</p>
         <h2>
@@ -102,8 +102,8 @@ export default function SchoolSuppliesSection() {
         </p>
       </div>
 
-      <div className={styles.suppliesCarouselRow}>
-        <div className={styles.pennantFrame} aria-hidden="true">
+      <div className={`${styles.suppliesCarouselRow} schoolSuppliesCarouselRow`}>
+        <div className={`${styles.pennantFrame} schoolSuppliesPennantFrame`} aria-hidden="true">
           <Image
             src="/YCDSB_Pennant.svg"
             alt=""
@@ -113,17 +113,21 @@ export default function SchoolSuppliesSection() {
           />
         </div>
 
-        <div className={styles.suppliesRailShell}>
-          <div ref={railRef} className={styles.suppliesRail} aria-label="School supply categories">
+        <div className={`${styles.suppliesRailShell} schoolSuppliesRailShell`}>
+          <div
+            ref={railRef}
+            className={`${styles.suppliesRail} schoolSuppliesRail`}
+            aria-label="School supply categories"
+          >
             {supplyCards.map((card) => (
-              <article key={card.label} className={styles.supplyCard}>
+              <article key={card.label} className={`${styles.supplyCard} schoolSupplyCard`}>
                 <h3>{card.title}</h3>
                 <p>{noOrphan(card.copy)}</p>
               </article>
             ))}
           </div>
 
-          <div className={styles.carouselControls} aria-label="Supply carousel controls">
+          <div className={`${styles.carouselControls} schoolCarouselControls`} aria-label="Supply carousel controls">
             <button type="button" onClick={() => scrollSupplyCards('previous')} aria-label="Previous supply categories">
               ←
             </button>

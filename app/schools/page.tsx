@@ -1,11 +1,16 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import BusinessMotionObserver from '@/app/marketing/business-motion-observer'
+import { ChrismWorksAudienceMenu, ChrismWorksFooterLogo } from '@/app/marketing/chrism-works-audience-menu'
 import styles from '../about/about.module.css'
 import faqStyles from '../faq-image.module.css'
 import heroStyles from '../landing-hero.module.css'
 import InvoiceReviewCta from '../invoice-review-cta'
+import '../marketing/audience-card-overrides.module.css'
+import '../marketing/business-motion.module.css'
 import SchoolHowItWorksSection from '../school-how-it-works-section'
 import schoolStyles from '../school-landing.module.css'
+import './schools-mobile-fixes.module.css'
 import SchoolSuppliesSection from '../school-supplies-section'
 
 function noOrphan(text: string) {
@@ -15,6 +20,7 @@ function noOrphan(text: string) {
 export default function SchoolsLandingPage() {
   return (
     <main className="qv-page">
+      <BusinessMotionObserver />
       <div className={`qv-shell ${styles.aboutShell}`}>
         <header className={styles.topBar}>
           <Link href="/" className={styles.brandLink} aria-label="Chrism home">
@@ -58,12 +64,16 @@ export default function SchoolsLandingPage() {
             </div>
           </section>
 
-          <SchoolSuppliesSection />
+          <div data-scroll-motion="fade">
+            <SchoolSuppliesSection />
+          </div>
         </div>
 
-        <SchoolHowItWorksSection />
+        <div data-scroll-motion="process">
+          <SchoolHowItWorksSection />
+        </div>
 
-        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`}>
+        <section className={`${styles.visionGrid} ${heroStyles.visionGridSix} ${schoolStyles.schoolStoryGrid}`} data-scroll-motion="fade">
           <div className={`${styles.imageColumn} ${heroStyles.visionImageColumn} ${schoolStyles.schoolStoryImageColumn}`}>
             <div className={styles.imageFrame}>
               <Image
@@ -131,11 +141,7 @@ export default function SchoolsLandingPage() {
               </p>
             </div>
             <div className={schoolStyles.reasonItem}>
-              <h3>
-                Trade pricing.
-                <br />
-                Not retail markup.
-              </h3>
+              <h3>Trade pricing. Not retail markup.</h3>
               <p>
                 {noOrphan(
                   'Because we source at wholesale and operate with low overhead, we can offer pricing that most schools aren\'t currently getting — and we\'ll show you the comparison if you want to see it.'
@@ -143,11 +149,7 @@ export default function SchoolsLandingPage() {
               </p>
             </div>
             <div className={schoolStyles.reasonItem}>
-              <h3>
-                A real person
-                <br />
-                on every order.
-              </h3>
+              <h3>A real person on every order.</h3>
               <p>
                 {noOrphan(
                   'Not a ticket system. Not a chatbot. Someone who knows your order, knows your school, and picks up the phone.'
@@ -157,9 +159,15 @@ export default function SchoolsLandingPage() {
           </div>
         </section>
 
-        <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`}>
+        <div data-scroll-motion="audience-menu">
+          <ChrismWorksAudienceMenu current="schools" placement="inline" />
+        </div>
+
+        <section className={`${styles.ctaSection} ${schoolStyles.schoolCtaSection}`} data-scroll-motion="fade">
           <InvoiceReviewCta variant="schoolsContact" />
         </section>
+
+        <ChrismWorksFooterLogo />
       </div>
     </main>
   )
