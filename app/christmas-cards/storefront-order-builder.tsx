@@ -216,13 +216,15 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
             </div>
 
             <div className="ccic-cart-drawer-body">
-              <div className="ccic-case-progress">
-                <div className="ccic-case-progress-copy">
-                  <strong>{currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
-                  <span>boxes toward current custom case</span>
+              {selectedLooseBoxCount > 0 ? (
+                <div className="ccic-case-progress">
+                  <div className="ccic-case-progress-copy">
+                    <strong>{currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
+                    <span>boxes toward current custom case</span>
+                  </div>
+                  <div className="ccic-progress-track" aria-hidden="true"><span style={{ width: `${progressPercent}%` }} /></div>
                 </div>
-                <div className="ccic-progress-track" aria-hidden="true"><span style={{ width: `${progressPercent}%` }} /></div>
-              </div>
+              ) : null}
 
               {!hasOrder ? <p className="ccic-muted">Choose a Classic Case or individual boxes to begin.</p> : null}
 
