@@ -1,0 +1,79 @@
+.ccic-site-header-inner {
+  min-height: 142px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.ccic-header-logo {
+  width: 124px;
+  height: 124px;
+}
+
+.ccic-header-cart-link {
+  display: inline-grid;
+  place-items: center;
+  justify-self: end;
+  width: 46px;
+  height: 46px;
+  color: var(--ccic-ink);
+  text-decoration: none;
+}
+
+.ccic-header-cart-link svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ccic-header-cart-link:hover,
+.ccic-header-cart-link:focus-visible {
+  background: var(--ccic-soft);
+  outline: none;
+}
+
+.ccic-hero-image {
+  width: 100%;
+  overflow: hidden;
+  background: #ece7e4;
+}
+
+.ccic-hero-image-wrap {
+  position: relative;
+  width: 100%;
+  min-height: clamp(300px, 42vw, 620px);
+}
+
+.ccic-hero-image-asset {
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (max-width: 640px) {
+  .ccic-site-header-inner {
+    min-height: 108px;
+    padding: 6px 18px;
+  }
+
+  .ccic-header-logo {
+    width: 96px;
+    height: 96px;
+  }
+
+  .ccic-header-cart-link {
+    width: 42px;
+    height: 42px;
+  }
+
+  .ccic-header-cart-link svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .ccic-hero-image-wrap {
+    min-height: 270px;
+  }
+}
