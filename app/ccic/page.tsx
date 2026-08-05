@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import StorefrontOrderBuilder from '../christmas-cards/storefront-order-builder'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
 import { CcicCartButton, CcicCartProvider } from '../christmas-cards/cart-context'
@@ -13,6 +14,7 @@ import '../christmas-cards/payment-polish.css'
 import '../christmas-cards/storefront-redesign.css'
 import '../christmas-cards/storefront-header-polish.css'
 import '../christmas-cards/storefront-cart-drawer.css'
+import '../christmas-cards/storefront-review-polish.css'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
@@ -81,10 +83,13 @@ export default function CcicPage() {
         />
 
         <footer className="ccic-footer ccic-footer-powered">
-          <span>Powered by</span>
-          <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
-            <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
-          </a>
+          <div className="ccic-footer-brand">
+            <span>Powered by</span>
+            <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
+              <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
+            </a>
+          </div>
+          <Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link>
         </footer>
       </main>
     </CcicCartProvider>

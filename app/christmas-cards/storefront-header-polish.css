@@ -175,12 +175,25 @@
 }
 
 .ccic-footer-powered {
-  justify-content: flex-start;
+  justify-content: space-between;
+}
+
+.ccic-footer-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .ccic-footer-powered a {
   display: inline-flex;
   align-items: center;
+}
+
+.ccic-footer-admin {
+  color: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .ccic-footer-powered a:focus-visible {

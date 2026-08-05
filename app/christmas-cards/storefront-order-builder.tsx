@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import BoxGalleryCard from './box-gallery-card'
 import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
 import { useCcicCart } from './cart-context'
@@ -12,6 +13,12 @@ import {
   type ChristmasCardCollection,
   type ChristmasCardCuratedCase,
 } from '@/lib/christmas-cards/catalog'
+import {
+  CCIC_ORDER_DRAFT_STORAGE_KEY,
+  calculateCcicOrder,
+  type CcicFulfillmentMethod,
+  type CcicOrderDraftInput,
+} from '@/lib/christmas-cards/order'
 
 type Props = {
   cases: ChristmasCardCuratedCase[]
@@ -20,67 +27,39 @@ type Props = {
 }
 
 type QuantityMap = Record<string, number>
-type FulfillmentMethod = 'pickup' | 'shipping'
-
-const SHIPPING_RATE_CENTS = 3600
 
 export default function StorefrontOrderBuilder({ cases, boxes, collections }: Props) {
+  const router = useRouter()
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [boxQuantities, setBoxQuantities] = useState<QuantityMap>({})
-  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('pickup')
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<CcicFulfillmentMethod>('pickup')
   const { isOpen, closeCart, setSummary } = useCcicCart()
 
   const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
   const sortedCollections = useMemo(() => [...collections].sort((a, b) => a.sortOrder - b.sortOrder), [collections])
-
-  const selectedClassicCases = cases
-    .map((item) => ({ item, quantity: quantityFromMap(caseQuantities, item.id) }))
-    .filter((entry) => entry.quantity > 0)
-
-  const eligibleBoxes = sortedBoxes.filter((box) => box.isCasePricingEligible)
-  const selectedLooseBoxCount = eligibleBoxes.reduce((sum, box) => sum + quantityFromMap(boxQuantities, box.id), 0)
-  const selectedLooseBoxRetailCents = eligibleBoxes.reduce(
-    (sum, box) => sum + quantityFromMap(boxQuantities, box.id) * box.priceCents,
-    0
+  const draftInput = useMemo<CcicOrderDraftInput>(() => ({
+    version: 1,
+    caseQuantities,
+    boxQuantities,
+    fulfillmentMethod,
+  }), [boxQuantities, caseQuantities, fulfillmentMethod])
+  const calculatedOrder = useMemo(() => calculateCcicOrder(draftInput), [draftInput])
+  const selectedClassicLines = calculatedOrder.lines.filter((line) => line.lineType === 'classic_case')
+  const selectedIndividualLines = calculatedOrder.lines.filter((line) => line.lineType === 'individual_box')
+  const selectedLooseBoxCount = selectedIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
+  const progressPercent = Math.round(
+    (calculatedOrder.currentCaseProgress / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100
   )
-
-  const customCaseCount = Math.floor(selectedLooseBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
-  const remainingLooseBoxes = selectedLooseBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
-  const looseBoxPriceCents = eligibleBoxes[0]?.priceCents ?? 0
-  const customSelectionCents =
-    customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents + remainingLooseBoxes * looseBoxPriceCents
-  const customCaseSavingsCents = Math.max(0, selectedLooseBoxRetailCents - customSelectionCents)
-  const boxesUntilNextCase = remainingLooseBoxes === 0
-    ? 0
-    : CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase - remainingLooseBoxes
-
-  const classicCaseTotalCents = selectedClassicCases.reduce(
-    (sum, entry) => sum + entry.quantity * entry.item.priceCents,
-    0
-  )
-  const subtotalCents = classicCaseTotalCents + customSelectionCents
-  const hasOrder = subtotalCents > 0
-  const shippingCents = hasOrder && fulfillmentMethod === 'shipping' ? SHIPPING_RATE_CENTS : 0
-  const estimatedTotalCents = subtotalCents + shippingCents
-  const totalSelectedBoxes = selectedClassicCases.reduce(
-    (sum, entry) => sum + entry.quantity * entry.item.boxesPerCase,
-    selectedLooseBoxCount
-  )
-  const totalSelectedCases = selectedClassicCases.reduce((sum, entry) => sum + entry.quantity, customCaseCount)
-  const currentCaseProgress = selectedLooseBoxCount > 0 && remainingLooseBoxes === 0
-    ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
-    : remainingLooseBoxes
-  const progressPercent = Math.round((currentCaseProgress / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100)
 
   useEffect(() => {
     setSummary({
-      totalSelectedBoxes,
-      estimatedTotalCents,
-      hasOrder,
-      currentCaseProgress,
+      totalSelectedBoxes: calculatedOrder.totalSelectedBoxes,
+      estimatedTotalCents: calculatedOrder.totalCents,
+      hasOrder: calculatedOrder.hasOrder,
+      currentCaseProgress: calculatedOrder.currentCaseProgress,
       boxesPerCase: CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase,
     })
-  }, [currentCaseProgress, estimatedTotalCents, hasOrder, setSummary, totalSelectedBoxes])
+  }, [calculatedOrder, setSummary])
 
   useEffect(() => {
     if (!isOpen) return
@@ -92,6 +71,21 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [closeCart, isOpen])
+
+  function removeClassicCase(catalogId: string) {
+    setCaseQuantities((current) => setQuantityValue(current, catalogId, 0))
+  }
+
+  function removeIndividualBox(catalogId: string) {
+    setBoxQuantities((current) => setQuantityValue(current, catalogId, 0))
+  }
+
+  function reviewOrder() {
+    if (!calculatedOrder.hasOrder) return
+    window.sessionStorage.setItem(CCIC_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draftInput))
+    closeCart()
+    router.push('/ccic/review')
+  }
 
   return (
     <>
@@ -116,8 +110,10 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
                     <h2>{item.title}</h2>
                     <p>{item.description}</p>
                     <p className="ccic-featured-case-price">
-                      {formatChristmasCardMoney(item.priceCents)} per case
-                      <span>{formatChristmasCardMoney(Math.round(item.priceCents / item.boxesPerCase))} per box</span>
+                      {formatChristmasCardMoney(item.priceCents)} per case{' '}
+                      <span className="ccic-unit-price">
+                        ({formatChristmasCardMoney(Math.round(item.priceCents / item.boxesPerCase))} per box)
+                      </span>
                     </p>
                     <ul className="ccic-plain-list">
                       <li>{item.boxesPerCase} boxed greeting card sets</li>
@@ -146,8 +142,10 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
               <strong>Make your own case.</strong>
               <p>
                 Select any {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes for{' '}
-                {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents)} total, or{' '}
-                {formatChristmasCardMoney(Math.round(CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase))} per box.
+                {formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents)} total{' '}
+                <span className="ccic-custom-unit-price">
+                  ({formatChristmasCardMoney(Math.round(CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase))} per box)
+                </span>.
               </p>
             </div>
           </section>
@@ -219,53 +217,75 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
               {selectedLooseBoxCount > 0 ? (
                 <div className="ccic-case-progress">
                   <div className="ccic-case-progress-copy">
-                    <strong>{currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
+                    <strong>{calculatedOrder.currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
                     <span>boxes toward current custom case</span>
                   </div>
                   <div className="ccic-progress-track" aria-hidden="true"><span style={{ width: `${progressPercent}%` }} /></div>
                 </div>
               ) : null}
 
-              {!hasOrder ? <p className="ccic-muted">Choose a Classic Case or individual boxes to begin.</p> : null}
+              {!calculatedOrder.hasOrder ? <p className="ccic-muted">Choose a Classic Case or individual boxes to begin.</p> : null}
 
               <div className="ccic-summary-scroll">
-                {selectedClassicCases.length ? (
+                {selectedClassicLines.length ? (
                   <div className="ccic-summary-section">
                     <h3>Classic cases</h3>
-                    {selectedClassicCases.map((entry) => (
-                      <div className="ccic-summary-line" key={entry.item.id}>
-                        <span>{entry.quantity} x {entry.item.title}</span>
-                        <strong>{formatChristmasCardMoney(entry.quantity * entry.item.priceCents)}</strong>
+                    {selectedClassicLines.map((line) => (
+                      <div className="ccic-cart-item-row" key={line.catalogId}>
+                        <div className="ccic-summary-line">
+                          <span>{line.quantity} × {line.title}</span>
+                          <strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong>
+                        </div>
+                        <button
+                          type="button"
+                          className="ccic-cart-remove-item"
+                          onClick={() => removeClassicCase(line.catalogId)}
+                          aria-label={`Remove ${line.title} from order`}
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
                       </div>
                     ))}
                   </div>
                 ) : null}
 
-                {customCaseCount ? (
-                  <div className="ccic-summary-section">
-                    <h3>Custom cases</h3>
-                    <div className="ccic-summary-line">
-                      <span>{customCaseCount} x custom 32-box case</span>
-                      <strong>{formatChristmasCardMoney(customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents)}</strong>
-                    </div>
-                  </div>
-                ) : null}
-
-                {selectedLooseBoxCount ? (
+                {selectedIndividualLines.length ? (
                   <div className="ccic-summary-section">
                     <h3>Individual selections</h3>
-                    {sortedBoxes.map((box) => {
-                      const quantity = quantityFromMap(boxQuantities, box.id)
-                      return quantity ? (
-                        <div className="ccic-summary-line" key={box.id}>
-                          <span>{quantity} x {box.title}</span>
-                          <strong>{formatChristmasCardMoney(quantity * box.priceCents)}</strong>
+                    {selectedIndividualLines.map((line) => (
+                      <div className="ccic-cart-item-row" key={line.catalogId}>
+                        <div className="ccic-summary-line">
+                          <span>{line.quantity} × {line.title}</span>
+                          <strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong>
                         </div>
-                      ) : null
-                    })}
-                    {customCaseSavingsCents ? <p className="ccic-good-news">Custom Case pricing saved {formatChristmasCardMoney(customCaseSavingsCents)}.</p> : null}
-                    {!customCaseCount && boxesUntilNextCase > 0 && selectedLooseBoxCount >= 16 ? (
-                      <p className="ccic-nudge"><Image src="/chrism_star.png" alt="" width={24} height={24} />Add {boxesUntilNextCase} more boxes and receive Custom Case pricing.</p>
+                        <button
+                          type="button"
+                          className="ccic-cart-remove-item"
+                          onClick={() => removeIndividualBox(line.catalogId)}
+                          aria-label={`Remove ${line.title} from order`}
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      </div>
+                    ))}
+                    {calculatedOrder.customCaseCount ? (
+                      <div className="ccic-summary-line ccic-pricing-adjustment">
+                        <span>
+                          Custom Case pricing ({calculatedOrder.customCaseCount} complete case{calculatedOrder.customCaseCount === 1 ? '' : 's'})
+                        </span>
+                        <strong>−{formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}</strong>
+                      </div>
+                    ) : null}
+                    {calculatedOrder.customCaseDiscountCents ? (
+                      <p className="ccic-good-news">
+                        Custom Case pricing saved {formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}.
+                      </p>
+                    ) : null}
+                    {calculatedOrder.boxesUntilNextCase > 0 && calculatedOrder.remainingLooseBoxes >= 16 ? (
+                      <p className="ccic-nudge">
+                        <Image src="/chrism_star.png" alt="" width={24} height={24} />
+                        Add {calculatedOrder.boxesUntilNextCase} more boxes and receive Custom Case pricing.
+                      </p>
                     ) : null}
                   </div>
                 ) : null}
@@ -296,20 +316,27 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
               </div>
 
               <div className="ccic-summary-total">
-                <div className="ccic-summary-line"><span>Subtotal</span><strong>{formatChristmasCardMoney(subtotalCents)}</strong></div>
+                <div className="ccic-summary-line"><span>Subtotal</span><strong>{formatChristmasCardMoney(calculatedOrder.subtotalCents)}</strong></div>
                 <div className="ccic-summary-line">
                   <span>{fulfillmentMethod === 'shipping' ? 'Shipping' : 'Pickup'}</span>
-                  <strong>{formatChristmasCardMoney(shippingCents)}</strong>
+                  <strong>{formatChristmasCardMoney(calculatedOrder.shippingCents)}</strong>
                 </div>
-                <div className="ccic-summary-line ccic-total-line"><span>Estimated total</span><strong>{formatChristmasCardMoney(estimatedTotalCents)}</strong></div>
+                <div className="ccic-summary-line ccic-total-line"><span>Estimated total</span><strong>{formatChristmasCardMoney(calculatedOrder.totalCents)}</strong></div>
               </div>
 
               <p className="ccic-summary-count">
-                {hasOrder
-                  ? `${totalSelectedCases} case${totalSelectedCases === 1 ? '' : 's'} / ${totalSelectedBoxes} boxes selected`
+                {calculatedOrder.hasOrder
+                  ? `${calculatedOrder.totalSelectedCases} case${calculatedOrder.totalSelectedCases === 1 ? '' : 's'} / ${calculatedOrder.totalSelectedBoxes} boxes selected`
                   : 'Pickup is free. Shipping is a flat $36 per order.'}
               </p>
-              <button type="button" className="ccic-primary-button" disabled>Review order coming next</button>
+              <button
+                type="button"
+                className="ccic-primary-button"
+                disabled={!calculatedOrder.hasOrder}
+                onClick={reviewOrder}
+              >
+                Review order
+              </button>
             </div>
           </aside>
         </div>
