@@ -7,7 +7,9 @@
 
 .ccic-admin-header,
 .ccic-admin-panel,
-.ccic-admin-detail-grid {
+.ccic-admin-detail-grid,
+.ccic-packing-orders,
+.ccic-packing-section-heading {
   width: min(1320px, 100%);
   margin-right: auto;
   margin-left: auto;
@@ -47,10 +49,38 @@
   text-underline-offset: 3px;
 }
 
+.ccic-admin-header-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ccic-admin-print-button,
+.ccic-admin-order-controls button,
+.ccic-packing-controls button,
+.ccic-admin-status-form button {
+  appearance: none;
+  padding: 11px 16px;
+  border: 1px solid #202020;
+  border-radius: 0;
+  background: #202020;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .ccic-admin-panel {
   padding: 28px;
   border: 1px solid #dfdbd7;
   background: #fff;
+}
+
+.ccic-admin-panel + .ccic-admin-panel {
+  margin-top: 20px;
 }
 
 .ccic-admin-panel-heading {
@@ -69,6 +99,59 @@
 }
 
 .ccic-admin-panel-heading > span:not(.ccic-admin-status) {
+  color: #6a6460;
+  font-size: 13px;
+}
+
+.ccic-admin-order-controls,
+.ccic-packing-controls {
+  margin-bottom: 20px;
+  padding: 18px 22px;
+}
+
+.ccic-admin-order-controls form,
+.ccic-packing-controls,
+.ccic-packing-controls form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ccic-packing-controls {
+  justify-content: space-between;
+}
+
+.ccic-admin-order-controls label,
+.ccic-packing-controls label,
+.ccic-admin-status-form label {
+  color: #6a6460;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-order-controls select,
+.ccic-packing-controls select,
+.ccic-admin-status-form select {
+  min-height: 42px;
+  padding: 9px 36px 9px 12px;
+  border: 1px solid #cfcac5;
+  background: #fff;
+  color: #202020;
+  font: inherit;
+}
+
+.ccic-admin-order-controls a {
+  color: #6a6460;
+  font-size: 13px;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.ccic-packing-controls p {
+  margin: 0;
   color: #6a6460;
   font-size: 13px;
 }
@@ -115,6 +198,27 @@
   font-size: 12px;
 }
 
+.ccic-admin-sort {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ccic-admin-sort span {
+  color: #a29b95;
+  font-size: 12px;
+}
+
+.ccic-admin-sort.is-active {
+  color: #202020;
+}
+
+.ccic-admin-sort.is-active span {
+  color: #202020;
+}
+
 .ccic-admin-status {
   display: inline-flex !important;
   width: max-content;
@@ -129,13 +233,25 @@
   text-transform: uppercase;
 }
 
-.ccic-admin-status.is-new {
+.ccic-admin-status.is-new,
+.ccic-admin-status.is-received {
   background: #fff3c7;
   color: #725500 !important;
 }
 
+.ccic-admin-status.is-paid {
+  background: #e5efff;
+  color: #164d91 !important;
+}
+
+.ccic-admin-status.is-packed {
+  background: #efe7fb;
+  color: #60358a !important;
+}
+
 .ccic-admin-status.is-confirmed,
-.ccic-admin-status.is-fulfilled {
+.ccic-admin-status.is-fulfilled,
+.ccic-admin-status.is-shipped {
   background: #e7f5e9;
   color: #1d6b3a !important;
 }
@@ -159,6 +275,24 @@
   color: #6a6460;
 }
 
+.ccic-admin-notice,
+.ccic-admin-error {
+  width: min(1320px, 100%);
+  margin: -8px auto 20px;
+  padding: 12px 16px;
+  border: 1px solid #abd4b5;
+  background: #edf8f0;
+  color: #1d6b3a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ccic-admin-error {
+  border-color: #d69a95;
+  background: #fff4f3;
+  color: #8a201b;
+}
+
 .ccic-admin-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
@@ -168,6 +302,59 @@
 
 .ccic-admin-detail-grid .ccic-admin-panel {
   width: 100%;
+}
+
+.ccic-admin-detail-main {
+  display: grid;
+  gap: 20px;
+}
+
+.ccic-admin-detail-main .ccic-admin-panel + .ccic-admin-panel {
+  margin-top: 0;
+}
+
+.ccic-admin-status-form {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid #e4e0dc;
+  background: #faf9f8;
+}
+
+.ccic-admin-status-form > div {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.ccic-admin-status-form select {
+  flex: 1;
+}
+
+.ccic-admin-workflow-dates {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.ccic-admin-workflow-dates > div {
+  padding: 12px;
+  border: 1px solid #ece9e6;
+}
+
+.ccic-admin-workflow-dates dt {
+  color: #6a6460;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-workflow-dates dd {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .ccic-admin-order-lines {
@@ -264,6 +451,161 @@
   line-height: 1.5;
 }
 
+.ccic-packing-page .ccic-admin-panel + .ccic-admin-panel {
+  margin-top: 20px;
+}
+
+.ccic-packing-kicker {
+  margin: 0 0 5px;
+  color: #6a6460;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ccic-packing-summary-table tfoot td {
+  border-top: 2px solid #202020;
+  border-bottom: 0;
+  font-size: 15px;
+}
+
+.ccic-packing-summary-table tfoot td:last-child {
+  font-size: 18px;
+}
+
+.ccic-packing-section-heading {
+  display: flex;
+  gap: 24px;
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 34px;
+  margin-bottom: 16px;
+}
+
+.ccic-packing-section-heading h2,
+.ccic-packing-section-heading p {
+  margin: 0;
+}
+
+.ccic-packing-section-heading h2 {
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.ccic-packing-section-heading p {
+  max-width: 660px;
+  color: #6a6460;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.ccic-packing-orders {
+  display: grid;
+  gap: 18px;
+}
+
+.ccic-packing-order {
+  padding: 24px;
+  border: 1px solid #d7d2cd;
+  background: #fff;
+  break-inside: avoid;
+}
+
+.ccic-packing-order > header {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e8e5e2;
+}
+
+.ccic-packing-order > header > div {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ccic-packing-order h3,
+.ccic-packing-order header p {
+  margin: 0;
+}
+
+.ccic-packing-order h3 {
+  font-size: 18px;
+}
+
+.ccic-packing-order header p {
+  margin-top: 3px;
+  color: #6a6460;
+}
+
+.ccic-packing-checkbox {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #202020;
+  background: #fff;
+}
+
+.ccic-packing-order-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px 0;
+}
+
+.ccic-packing-order-meta > div {
+  display: grid;
+  gap: 4px;
+}
+
+.ccic-packing-order-meta strong {
+  color: #6a6460;
+  font-size: 10px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.ccic-packing-order-meta span {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ccic-packing-order ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid #ece9e6;
+}
+
+.ccic-packing-order li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid #ece9e6;
+}
+
+.ccic-packing-order li small {
+  display: block;
+  margin-top: 3px;
+  color: #6a6460;
+}
+
+.ccic-packing-order-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #202020;
+  font-size: 13px;
+  font-weight: 800;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 900px) {
   .ccic-admin-page {
     padding: 24px;
@@ -276,6 +618,11 @@
   .ccic-admin-contact-card {
     position: static;
   }
+
+  .ccic-admin-workflow-dates,
+  .ccic-packing-order-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -283,12 +630,85 @@
     padding: 18px 14px;
   }
 
-  .ccic-admin-header {
+  .ccic-admin-header,
+  .ccic-packing-section-heading {
     align-items: flex-start;
     flex-direction: column;
   }
 
+  .ccic-admin-header-actions {
+    justify-content: flex-start;
+  }
+
   .ccic-admin-panel {
     padding: 20px;
+  }
+
+  .ccic-admin-status-form > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ccic-admin-workflow-dates,
+  .ccic-packing-order-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .ccic-packing-section-heading p {
+    text-align: left;
+  }
+}
+
+@media print {
+  @page {
+    margin: .45in;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-print,
+  .ccic-admin-header-actions,
+  .ccic-packing-order-link {
+    display: none !important;
+  }
+
+  .ccic-admin-page {
+    min-height: auto;
+    padding: 0;
+    background: #fff;
+  }
+
+  .ccic-admin-header {
+    margin-bottom: 18px;
+  }
+
+  .ccic-admin-header h1 {
+    font-size: 34px;
+  }
+
+  .ccic-admin-panel,
+  .ccic-packing-order {
+    border-color: #777;
+    box-shadow: none;
+  }
+
+  .ccic-packing-summary {
+    padding: 18px;
+  }
+
+  .ccic-packing-section-heading {
+    margin-top: 24px;
+  }
+
+  .ccic-packing-order {
+    padding: 18px;
+    page-break-inside: avoid;
+  }
+
+  .ccic-admin-table th,
+  .ccic-admin-table td {
+    padding: 8px 7px;
   }
 }
