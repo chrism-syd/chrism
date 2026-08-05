@@ -28,14 +28,33 @@ function hashesMatch(left: string, right: string) {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
 }
 
+function getRequestHost(request: NextRequest) {
+  return (
+    request.headers.get('x-forwarded-host') ??
+    request.headers.get('host') ??
+    ''
+  )
+    .split(':')[0]
+    .trim()
+    .toLowerCase()
+}
+
+function getCcicAdminCookiePath(request: NextRequest) {
+  const host = getRequestHost(request)
+  return host === 'ccic.supplies' || host === 'www.ccic.supplies'
+    ? '/admin'
+    : '/ccic/admin'
+}
+
 export async function POST(request: NextRequest) {
   let email = ''
   let code = ''
 
   try {
-    const body = await request.json() as { email?: unknown; code?: unknown }
-    email = normalizeCcicAdminEmail(typeof body.email === 'string' ? body.email : '')
-    code = typeof body.code === 'string' ? body.code.replace(/\D/g, '') : ''
+    const body = request.json() as Promise<{ email?: unknown; code?: unknown }>
+    const parsedBody = await body
+    email = normalizeCcicAdminEmail(typeof parsedBody.email === 'string' ? parsedBody.email : '')
+    code = typeof parsedBody.code === 'string' ? parsedBody.code.replace(/\D/g, '') : ''
   } catch {
     return NextResponse.json({ error: 'The login request was not valid.' }, { status: 400 })
   }
@@ -109,7 +128,7 @@ export async function POST(request: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    path: '/ccic/admin',
+    path: getCcicAdminCookiePath(request),
     maxAge: CCIC_ADMIN_SESSION_MAX_AGE_SECONDS,
   })
 
