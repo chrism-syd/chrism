@@ -20,15 +20,28 @@ import {
   type CcicOrderDraftInput,
 } from '@/lib/christmas-cards/order'
 
+type InventoryAvailability = Record<string, {
+  isStoreEnabled: boolean
+  stockOnHand: number | null
+  committedBoxes: number
+  availableBoxes: number | null
+}>
+
 type Props = {
   cases: ChristmasCardCuratedCase[]
   boxes: ChristmasCardBox[]
   collections: ChristmasCardCollection[]
+  inventoryAvailability: InventoryAvailability
 }
 
 type QuantityMap = Record<string, number>
 
-export default function StorefrontOrderBuilder({ cases, boxes, collections }: Props) {
+export default function StorefrontOrderBuilder({
+  cases,
+  boxes,
+  collections,
+  inventoryAvailability,
+}: Props) {
   const router = useRouter()
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [boxQuantities, setBoxQuantities] = useState<QuantityMap>({})
@@ -37,6 +50,10 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
 
   const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
   const sortedCollections = useMemo(() => [...collections].sort((a, b) => a.sortOrder - b.sortOrder), [collections])
+  const caseEligibleBoxIds = useMemo(
+    () => new Set(boxes.filter((box) => box.isCasePricingEligible).map((box) => box.id)),
+    [boxes]
+  )
   const draftInput = useMemo<CcicOrderDraftInput>(() => ({
     version: 1,
     caseQuantities,
@@ -46,10 +63,35 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
   const calculatedOrder = useMemo(() => calculateCcicOrder(draftInput), [draftInput])
   const selectedClassicLines = calculatedOrder.lines.filter((line) => line.lineType === 'classic_case')
   const selectedIndividualLines = calculatedOrder.lines.filter((line) => line.lineType === 'individual_box')
-  const selectedLooseBoxCount = selectedIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
+  const selectedCaseEligibleBoxCount = selectedIndividualLines.reduce(
+    (sum, line) => sum + (caseEligibleBoxIds.has(line.catalogId) ? line.quantity : 0),
+    0
+  )
   const progressPercent = Math.round(
     (calculatedOrder.currentCaseProgress / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100
   )
+
+  function maxQuantityForBox(catalogId: string) {
+    const availability = inventoryAvailability[catalogId]
+    if (!availability) return 999
+    if (!availability.isStoreEnabled) return 0
+    return availability.availableBoxes === null ? 999 : availability.availableBoxes
+  }
+
+  function maxQuantityForCase(item: ChristmasCardCuratedCase) {
+    let maxCases = 999
+
+    for (const component of item.components) {
+      const availability = inventoryAvailability[component.boxId]
+      if (!availability) continue
+      if (!availability.isStoreEnabled) return 0
+      if (availability.availableBoxes !== null) {
+        maxCases = Math.min(maxCases, Math.floor(availability.availableBoxes / component.quantityBoxes))
+      }
+    }
+
+    return maxCases
+  }
 
   useEffect(() => {
     setSummary({
@@ -94,6 +136,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
           <section className="ccic-featured-case" id="curated-cases">
             {cases.map((item) => {
               const quantity = quantityFromMap(caseQuantities, item.id)
+              const maxQuantity = maxQuantityForCase(item)
               return (
                 <article className="ccic-featured-case-card" key={item.id}>
                   <div className="ccic-classic-case-image">
@@ -122,11 +165,16 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
                       <li>Preselected assortment containing 2 boxes of each of our 16 designs.</li>
                       <li><strong>Best value!</strong></li>
                     </ul>
-                    <QuantityControl
-                      label={`${item.title} cases`}
-                      value={quantity}
-                      onChange={(value) => setCaseQuantities((current) => setQuantityValue(current, item.id, value))}
-                    />
+                    {maxQuantity > 0 ? (
+                      <QuantityControl
+                        label={`${item.title} cases`}
+                        value={quantity}
+                        max={maxQuantity}
+                        onChange={(value) => setCaseQuantities((current) => setQuantityValue(current, item.id, value))}
+                      />
+                    ) : (
+                      <span className="ccic-sold-out-pill" role="status">Sold out</span>
+                    )}
                   </div>
                 </article>
               )
@@ -176,6 +224,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
                           box={box}
                           quantityLabel={`${box.title} boxes`}
                           quantity={quantityFromMap(boxQuantities, box.id)}
+                          maxQuantity={maxQuantityForBox(box.id)}
                           onQuantityChange={(value) => setBoxQuantities((current) => setQuantityValue(current, box.id, value))}
                         />
                       ))}
@@ -214,7 +263,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
             </div>
 
             <div className="ccic-cart-drawer-body">
-              {selectedLooseBoxCount > 0 ? (
+              {selectedCaseEligibleBoxCount > 0 ? (
                 <div className="ccic-case-progress">
                   <div className="ccic-case-progress-copy">
                     <strong>{calculatedOrder.currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
