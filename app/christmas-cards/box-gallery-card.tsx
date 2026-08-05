@@ -33,9 +33,7 @@ export default function BoxGalleryCard({
       <div className="ccic-gallery-copy">
         <h3>{box.title}</h3>
         <p className="ccic-product-kicker">{box.sku}</p>
-        <p>{box.cardsPerBox} cards and envelopes</p>
         {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)}</strong> : null}
-        {box.isCasePricingEligible ? <span className="ccic-case-badge">Case pricing eligible</span> : null}
       </div>
       <QuantityControl label={quantityLabel} value={quantity} onChange={onQuantityChange} />
     </article>
