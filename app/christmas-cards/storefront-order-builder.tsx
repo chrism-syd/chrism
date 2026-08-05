@@ -58,7 +58,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
   )
   const subtotalCents = classicCaseTotalCents + customSelectionCents
   const hasOrder = subtotalCents > 0
-  const shippingCents = hasOrder && fulfillmentMethod === 'shipping' ? SHIPPING_RATE_CENTS : 0
+  const shippingCents = fulfillmentMethod === 'shipping' ? SHIPPING_RATE_CENTS : 0
   const estimatedTotalCents = subtotalCents + shippingCents
   const totalSelectedBoxes = selectedClassicCases.reduce(
     (sum, entry) => sum + entry.quantity * entry.item.boxesPerCase,
@@ -100,7 +100,8 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
                       <li>{item.boxesPerCase} boxed greeting card sets</li>
                       <li>12 cards and 12 envelopes per box</li>
                       <li>{item.boxesPerCase * 12} cards total</li>
-                      <li>Preselected assortment at the best case price</li>
+                      <li>Preselected assortment containing 2 boxes of each of our 16 designs.</li>
+                      <li>Best value!</li>
                     </ul>
                     <QuantityControl
                       label={`${item.title} cases`}
@@ -220,10 +221,9 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
                       </div>
                     ) : null
                   })}
-                  {remainingLooseBoxes ? <p className="ccic-muted">{remainingLooseBoxes} boxes remain at $12 each.</p> : null}
                   {customCaseSavingsCents ? <p className="ccic-good-news">Custom case pricing saved {formatChristmasCardMoney(customCaseSavingsCents)}.</p> : null}
                   {!customCaseCount && boxesUntilNextCase > 0 && selectedLooseBoxCount >= 16 ? (
-                    <p className="ccic-nudge"><Image src="/chrism_star.png" alt="" width={24} height={24} />Add {boxesUntilNextCase} more boxes to reach custom case pricing.</p>
+                    <p className="ccic-nudge"><Image src="/chrism_star.png" alt="" width={24} height={24} />Add {boxesUntilNextCase} more boxes and receive Custom Case pricing.</p>
                   ) : null}
                 </div>
               ) : null}
