@@ -28,20 +28,6 @@ const nextConfig: NextConfig = {
         ]
       : undefined,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/',
-        has: [
-          {
-            type: 'host',
-            value: 'ccic.supplies',
-          },
-        ],
-        destination: '/ccic',
-      },
-    ];
-  },
   async redirects() {
     return [
       {
