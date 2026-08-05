@@ -5,8 +5,13 @@ import Link from 'next/link'
 import { Suspense, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/browser'
-import { sanitizeNextPath } from '@/lib/auth/redirects'
 import '../../../christmas-cards/ccic-admin-login.css'
+
+function getCcicAdminNextPath(value: string | null) {
+  if (!value) return '/ccic/admin/orders'
+  if (value === '/ccic/admin/orders' || value.startsWith('/ccic/admin/orders/')) return value
+  return '/ccic/admin/orders'
+}
 
 function CcicAdminLoginContent() {
   const router = useRouter()
@@ -69,8 +74,7 @@ function CcicAdminLoginContent() {
       return
     }
 
-    const nextPath = sanitizeNextPath(searchParams.get('next')) || '/ccic/admin/orders'
-    router.push(nextPath)
+    router.push(getCcicAdminNextPath(searchParams.get('next')))
     router.refresh()
   }
 
@@ -92,7 +96,9 @@ function CcicAdminLoginContent() {
         <div className="ccic-admin-login-heading">
           <p>Private order access</p>
           <h1>CCIC order administration</h1>
-          <span>Access is limited to four authorized email addresses.</span>
+          <span>
+            Access is limited to four authorized email addresses and grants access only to the CCIC order area.
+          </span>
         </div>
 
         {emailSentTo ? (
