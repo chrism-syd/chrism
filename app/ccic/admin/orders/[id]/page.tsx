@@ -4,12 +4,19 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
+import {
+  CCIC_ORDER_STATUSES,
+  CCIC_ORDER_STATUS_LABELS,
+  getCcicOrderStatusLabel,
+  type CcicOrderStatus,
+} from '@/lib/christmas-cards/admin-order-status'
+import { updateCcicOrderStatus } from '../actions'
 import '../../../../christmas-cards/admin-orders.css'
 
 type OrderRow = {
   id: string
   order_number: string
-  status_code: string
+  status_code: CcicOrderStatus
   contact_name: string
   organization_name: string
   email: string | null
@@ -31,7 +38,11 @@ type OrderRow = {
   confirmation_email_sent_at: string | null
   admin_email_sent_at: string | null
   email_error: string | null
+  paid_at: string | null
+  packed_at: string | null
+  shipped_at: string | null
   created_at: string
+  updated_at: string
 }
 
 type OrderLine = {
@@ -46,8 +57,12 @@ type OrderLine = {
   sort_order: number
 }
 
+function stringParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
 function formatDate(value: string | null) {
-  if (!value) return 'Not sent'
+  if (!value) return 'Not yet'
 
   return new Intl.DateTimeFormat('en-CA', {
     dateStyle: 'medium',
@@ -60,9 +75,18 @@ export const metadata = {
   title: 'CCIC Order Details | Chrism',
 }
 
-export default async function CcicOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CcicOrderDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ updated?: string | string[]; error?: string | string[] }>
+}) {
   const { id } = await params
   await requireCcicOrderAdmin(`/ccic/admin/orders/${id}`)
+  const query = await searchParams
+  const updated = stringParam(query.updated) === '1'
+  const errorCode = stringParam(query.error)
 
   const admin = createAdminClient()
   const [{ data: orderData, error: orderError }, { data: lineData, error: lineError }] = await Promise.all([
@@ -90,41 +114,78 @@ export default async function CcicOrderDetailPage({ params }: { params: Promise<
           <p>CCIC order</p>
           <h1>{order.order_number}</h1>
         </div>
-        <Link href="/ccic/admin/orders">Back to all orders</Link>
+        <div className="ccic-admin-header-actions">
+          <Link href="/ccic/admin/packing-list">Packing list</Link>
+          <Link href="/ccic/admin/orders">Back to all orders</Link>
+        </div>
       </header>
 
+      {updated ? <p className="ccic-admin-notice">Order status updated.</p> : null}
+      {errorCode ? <p className="ccic-admin-error">The order status could not be updated. Please try again.</p> : null}
+
       <div className="ccic-admin-detail-grid">
-        <section className="ccic-admin-panel">
-          <div className="ccic-admin-panel-heading">
-            <h2>Order items</h2>
-            <span className={`ccic-admin-status is-${order.status_code}`}>{order.status_code}</span>
-          </div>
+        <div className="ccic-admin-detail-main">
+          <section className="ccic-admin-panel ccic-admin-status-panel">
+            <div className="ccic-admin-panel-heading">
+              <h2>Order status</h2>
+              <span className={`ccic-admin-status is-${order.status_code}`}>
+                {getCcicOrderStatusLabel(order.status_code)}
+              </span>
+            </div>
 
-          <div className="ccic-admin-order-lines">
-            {lines.map((line) => (
-              <div key={line.id}>
-                <span>
-                  <strong>{line.quantity} × {line.title}</strong>
-                  <small>{line.sku} · {line.line_type === 'classic_case' ? `${line.boxes_per_unit} boxes per case` : 'Individual box'}</small>
-                </span>
-                <strong>{formatChristmasCardMoney(line.line_total_cents)}</strong>
+            <form action={updateCcicOrderStatus} className="ccic-admin-status-form">
+              <input type="hidden" name="order_id" value={order.id} />
+              <label htmlFor="status">Update workflow status</label>
+              <div>
+                <select id="status" name="status" defaultValue={order.status_code}>
+                  {CCIC_ORDER_STATUSES.map((status) => (
+                    <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>
+                  ))}
+                </select>
+                <button type="submit">Save status</button>
               </div>
-            ))}
+            </form>
 
-            {order.custom_case_discount_cents ? (
-              <div className="ccic-admin-discount">
-                <span>Custom Case pricing ({order.custom_case_count} complete case{order.custom_case_count === 1 ? '' : 's'})</span>
-                <strong>−{formatChristmasCardMoney(order.custom_case_discount_cents)}</strong>
-              </div>
-            ) : null}
-          </div>
+            <dl className="ccic-admin-workflow-dates">
+              <div><dt>Received</dt><dd>{formatDate(order.created_at)}</dd></div>
+              <div><dt>Paid</dt><dd>{formatDate(order.paid_at)}</dd></div>
+              <div><dt>Packed</dt><dd>{formatDate(order.packed_at)}</dd></div>
+              <div><dt>Shipped</dt><dd>{formatDate(order.shipped_at)}</dd></div>
+            </dl>
+          </section>
 
-          <div className="ccic-admin-totals">
-            <div><span>Subtotal</span><strong>{formatChristmasCardMoney(order.subtotal_cents)}</strong></div>
-            <div><span>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</span><strong>{formatChristmasCardMoney(order.shipping_cents)}</strong></div>
-            <div className="ccic-admin-total"><span>Estimated total</span><strong>{formatChristmasCardMoney(order.total_cents)}</strong></div>
-          </div>
-        </section>
+          <section className="ccic-admin-panel">
+            <div className="ccic-admin-panel-heading">
+              <h2>Order items</h2>
+              <span>{lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)} boxes</span>
+            </div>
+
+            <div className="ccic-admin-order-lines">
+              {lines.map((line) => (
+                <div key={line.id}>
+                  <span>
+                    <strong>{line.quantity} × {line.title}</strong>
+                    <small>{line.sku} · {line.line_type === 'classic_case' ? `${line.boxes_per_unit} boxes per case` : 'Individual box'}</small>
+                  </span>
+                  <strong>{formatChristmasCardMoney(line.line_total_cents)}</strong>
+                </div>
+              ))}
+
+              {order.custom_case_discount_cents ? (
+                <div className="ccic-admin-discount">
+                  <span>Custom Case pricing ({order.custom_case_count} complete case{order.custom_case_count === 1 ? '' : 's'})</span>
+                  <strong>−{formatChristmasCardMoney(order.custom_case_discount_cents)}</strong>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="ccic-admin-totals">
+              <div><span>Subtotal</span><strong>{formatChristmasCardMoney(order.subtotal_cents)}</strong></div>
+              <div><span>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</span><strong>{formatChristmasCardMoney(order.shipping_cents)}</strong></div>
+              <div className="ccic-admin-total"><span>Estimated total</span><strong>{formatChristmasCardMoney(order.total_cents)}</strong></div>
+            </div>
+          </section>
+        </div>
 
         <aside className="ccic-admin-panel ccic-admin-contact-card">
           <h2>Customer details</h2>
