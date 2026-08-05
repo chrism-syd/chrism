@@ -15,7 +15,7 @@ function getCatalogItem(catalogId: string) {
   return CHRISTMAS_CARD_BOXES.find((item) => item.id === catalogId) ?? null
 }
 
-function finish(message: string) {
+function finish(message: string): never {
   revalidatePath('/ccic')
   revalidatePath('/ccic/admin/store-control')
   redirect(`/ccic/admin/store-control?${message}`)
