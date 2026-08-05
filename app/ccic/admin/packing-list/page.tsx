@@ -4,6 +4,7 @@ import { decryptPeopleRecords } from '@/lib/security/pii'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import {
   getCcicOrderStatusLabel,
+  isCcicOrderStatus,
   type CcicOrderStatus,
 } from '@/lib/christmas-cards/admin-order-status'
 import PackingListPrintButton from './print-button'
@@ -37,22 +38,26 @@ type OrderLine = {
   sort_order: number
 }
 
-type PackingScope = 'ready' | 'packed' | 'open' | 'shipped' | 'all'
-
-const SCOPE_OPTIONS: Array<{
-  value: PackingScope
+const PACKING_STATUS_OPTIONS: Array<{
+  value: CcicOrderStatus
   label: string
-  statuses: CcicOrderStatus[] | null
 }> = [
-  { value: 'open', label: 'All open orders', statuses: ['received', 'paid', 'packed'] },
-  { value: 'ready', label: 'Ready to pack', statuses: ['paid'] },
-  { value: 'packed', label: 'Packed, awaiting fulfilment', statuses: ['packed'] },
-  { value: 'shipped', label: 'Shipped orders', statuses: ['shipped'] },
-  { value: 'all', label: 'All orders', statuses: null },
+  { value: 'received', label: 'Order received' },
+  { value: 'paid', label: 'Order paid' },
+  { value: 'packed', label: 'Order packed' },
+  { value: 'shipped', label: 'Order shipped' },
+  { value: 'cancelled', label: 'Cancelled' },
 ]
+
+const DEFAULT_PACKING_STATUSES: CcicOrderStatus[] = ['received', 'paid', 'packed']
 
 function stringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
+}
+
+function stringParams(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value
+  return value ? [value] : []
 }
 
 function formatDate(value: string) {
@@ -69,16 +74,20 @@ export const metadata = {
 export default async function CcicPackingListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scope?: string | string[] }>
+  searchParams: Promise<{
+    status?: string | string[]
+    filtered?: string | string[]
+  }>
 }) {
   await requireCcicOrderAdmin('/ccic/admin/packing-list')
 
   const params = await searchParams
-  const requestedScope = stringParam(params.scope)
-  const scope = SCOPE_OPTIONS.some((option) => option.value === requestedScope)
-    ? requestedScope as PackingScope
-    : 'open'
-  const scopeOption = SCOPE_OPTIONS.find((option) => option.value === scope) ?? SCOPE_OPTIONS[0]
+  const hasExplicitFilter = stringParam(params.filtered) === '1'
+  const requestedStatuses = stringParams(params.status).filter(isCcicOrderStatus)
+  const selectedStatuses = hasExplicitFilter
+    ? [...new Set(requestedStatuses)]
+    : DEFAULT_PACKING_STATUSES
+  const selectedStatusSet = new Set<CcicOrderStatus>(selectedStatuses)
 
   const admin = createAdminClient()
   const { data: orderData, error: orderError } = await admin
@@ -89,10 +98,13 @@ export default async function CcicPackingListPage({
   if (orderError) throw new Error(`Unable to load CCIC packing orders: ${orderError.message}`)
 
   const allOrders = decryptPeopleRecords((orderData ?? []) as OrderRow[])
-  const orders = scopeOption.statuses
-    ? allOrders.filter((order) => scopeOption.statuses?.includes(order.status_code))
-    : allOrders
+  const orders = allOrders.filter((order) => selectedStatusSet.has(order.status_code))
   const orderIds = orders.map((order) => order.id)
+  const statusCounts = new Map<CcicOrderStatus, number>()
+
+  for (const order of allOrders) {
+    statusCounts.set(order.status_code, (statusCounts.get(order.status_code) ?? 0) + 1)
+  }
 
   let lines: OrderLine[] = []
   if (orderIds.length) {
@@ -135,6 +147,11 @@ export default async function CcicPackingListPage({
 
   const summaryLines = [...summary.values()].sort((a, b) => a.title.localeCompare(b.title))
   const totalBoxes = summaryLines.reduce((sum, line) => sum + line.boxes, 0)
+  const selectedStatusLabel = selectedStatuses.length === PACKING_STATUS_OPTIONS.length
+    ? 'All order statuses'
+    : selectedStatuses.length
+      ? selectedStatuses.map(getCcicOrderStatusLabel).join(' + ')
+      : 'No statuses selected'
 
   return (
     <main className="ccic-admin-page ccic-packing-page">
@@ -151,13 +168,21 @@ export default async function CcicPackingListPage({
 
       <section className="ccic-admin-panel ccic-packing-controls no-print">
         <form method="get">
-          <label htmlFor="scope">Show orders</label>
-          <select id="scope" name="scope" defaultValue={scope}>
-            {SCOPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-          <button type="submit">Update list</button>
+          <input type="hidden" name="filtered" value="1" />
+          <strong>Include order statuses</strong>
+          {PACKING_STATUS_OPTIONS.map((option) => (
+            <label key={option.value}>
+              <input
+                type="checkbox"
+                name="status"
+                value={option.value}
+                defaultChecked={selectedStatusSet.has(option.value)}
+              />
+              {option.label} ({statusCounts.get(option.value) ?? 0})
+            </label>
+          ))}
+          <button type="submit">Update packing list</button>
+          <Link href="/ccic/admin/packing-list">Reset to open orders</Link>
         </form>
         <p>{orders.length} order{orders.length === 1 ? '' : 's'} · {totalBoxes} box{totalBoxes === 1 ? '' : 'es'}</p>
       </section>
@@ -165,7 +190,7 @@ export default async function CcicPackingListPage({
       <section className="ccic-admin-panel ccic-packing-summary">
         <div className="ccic-admin-panel-heading">
           <div>
-            <p className="ccic-packing-kicker">{scopeOption.label}</p>
+            <p className="ccic-packing-kicker">{selectedStatusLabel}</p>
             <h2>Product totals</h2>
           </div>
           <span>Printed {formatDate(new Date().toISOString())}</span>
@@ -205,7 +230,7 @@ export default async function CcicPackingListPage({
         ) : (
           <div className="ccic-admin-empty">
             <h2>No orders in this view</h2>
-            <p>Choose another status group to build a packing list.</p>
+            <p>Select one or more order statuses to build a packing list.</p>
           </div>
         )}
       </section>
