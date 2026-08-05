@@ -1,0 +1,163 @@
+import {
+  CHRISTMAS_CARD_BOXES,
+  CHRISTMAS_CARD_CURATED_CASES,
+  CHRISTMAS_CARD_ORDER_CONFIG,
+} from './catalog'
+
+export const CCIC_ORDER_DRAFT_STORAGE_KEY = 'ccic-order-draft-v1'
+export const CCIC_SHIPPING_RATE_CENTS = 3600
+
+export type CcicFulfillmentMethod = 'pickup' | 'shipping'
+
+export type CcicOrderDraftInput = {
+  version: 1
+  caseQuantities: Record<string, number>
+  boxQuantities: Record<string, number>
+  fulfillmentMethod: CcicFulfillmentMethod
+}
+
+export type CcicCalculatedLine = {
+  lineType: 'classic_case' | 'individual_box'
+  catalogId: string
+  sku: string
+  title: string
+  quantity: number
+  unitPriceCents: number
+  lineTotalCents: number
+  boxesPerUnit: number
+}
+
+export type CcicCalculatedOrder = {
+  input: CcicOrderDraftInput
+  lines: CcicCalculatedLine[]
+  regularSubtotalCents: number
+  customCaseCount: number
+  customCaseDiscountCents: number
+  subtotalCents: number
+  shippingCents: number
+  totalCents: number
+  totalSelectedBoxes: number
+  totalSelectedCases: number
+  remainingLooseBoxes: number
+  currentCaseProgress: number
+  boxesUntilNextCase: number
+  hasOrder: boolean
+}
+
+function normalizeQuantity(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(999, Math.floor(value)))
+}
+
+function normalizeQuantityMap(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([key, quantity]) => [key, normalizeQuantity(quantity)] as const)
+      .filter(([, quantity]) => quantity > 0)
+  )
+}
+
+export function parseCcicOrderDraftInput(value: unknown): CcicOrderDraftInput | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const candidate = value as Partial<CcicOrderDraftInput>
+  const fulfillmentMethod = candidate.fulfillmentMethod === 'shipping' ? 'shipping' : 'pickup'
+
+  return {
+    version: 1,
+    caseQuantities: normalizeQuantityMap(candidate.caseQuantities),
+    boxQuantities: normalizeQuantityMap(candidate.boxQuantities),
+    fulfillmentMethod,
+  }
+}
+
+export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOrder {
+  const normalizedInput = parseCcicOrderDraftInput(input) ?? {
+    version: 1 as const,
+    caseQuantities: {},
+    boxQuantities: {},
+    fulfillmentMethod: 'pickup' as const,
+  }
+
+  const classicLines: CcicCalculatedLine[] = CHRISTMAS_CARD_CURATED_CASES.flatMap((item) => {
+    const quantity = normalizeQuantity(normalizedInput.caseQuantities[item.id])
+    if (!quantity) return []
+
+    return [{
+      lineType: 'classic_case' as const,
+      catalogId: item.id,
+      sku: item.sku,
+      title: item.title,
+      quantity,
+      unitPriceCents: item.priceCents,
+      lineTotalCents: quantity * item.priceCents,
+      boxesPerUnit: item.boxesPerCase,
+    }]
+  })
+
+  const individualLines: CcicCalculatedLine[] = CHRISTMAS_CARD_BOXES
+    .filter((item) => item.isCasePricingEligible)
+    .flatMap((item) => {
+      const quantity = normalizeQuantity(normalizedInput.boxQuantities[item.id])
+      if (!quantity) return []
+
+      return [{
+        lineType: 'individual_box' as const,
+        catalogId: item.id,
+        sku: item.sku,
+        title: item.title,
+        quantity,
+        unitPriceCents: item.priceCents,
+        lineTotalCents: quantity * item.priceCents,
+        boxesPerUnit: 1,
+      }]
+    })
+
+  const lines = [...classicLines, ...individualLines]
+  const individualBoxCount = individualLines.reduce((sum, line) => sum + line.quantity, 0)
+  const customCaseCount = Math.floor(individualBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
+  const remainingLooseBoxes = individualBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+  const regularSubtotalCents = lines.reduce((sum, line) => sum + line.lineTotalCents, 0)
+  const standardCustomCaseRetailCents = CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * (CHRISTMAS_CARD_BOXES[0]?.priceCents ?? 0)
+  const discountPerCustomCaseCents = Math.max(
+    0,
+    standardCustomCaseRetailCents - CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents
+  )
+  const customCaseDiscountCents = customCaseCount * discountPerCustomCaseCents
+  const subtotalCents = regularSubtotalCents - customCaseDiscountCents
+  const hasOrder = subtotalCents > 0
+  const shippingCents = hasOrder && normalizedInput.fulfillmentMethod === 'shipping'
+    ? CCIC_SHIPPING_RATE_CENTS
+    : 0
+  const totalCents = subtotalCents + shippingCents
+  const totalSelectedBoxes = lines.reduce(
+    (sum, line) => sum + line.quantity * line.boxesPerUnit,
+    0
+  )
+  const classicCaseCount = classicLines.reduce((sum, line) => sum + line.quantity, 0)
+  const currentCaseProgress = individualBoxCount > 0 && remainingLooseBoxes === 0
+    ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+    : remainingLooseBoxes
+  const boxesUntilNextCase = remainingLooseBoxes === 0
+    ? 0
+    : CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase - remainingLooseBoxes
+
+  return {
+    input: normalizedInput,
+    lines,
+    regularSubtotalCents,
+    customCaseCount,
+    customCaseDiscountCents,
+    subtotalCents,
+    shippingCents,
+    totalCents,
+    totalSelectedBoxes,
+    totalSelectedCases: classicCaseCount + customCaseCount,
+    remainingLooseBoxes,
+    currentCaseProgress,
+    boxesUntilNextCase,
+    hasOrder,
+  }
+}
