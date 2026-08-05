@@ -1,0 +1,24 @@
+.ccic-sold-out-pill {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid #7a211c;
+  border-radius: 999px;
+  background: #fff4f3;
+  color: #7a211c;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ccic-gallery-card.is-sold-out {
+  border-color: #d7c8c5;
+}
+
+.ccic-gallery-card.is-sold-out .ccic-gallery-copy > strong {
+  color: #6a6460;
+}
