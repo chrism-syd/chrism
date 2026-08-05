@@ -173,6 +173,23 @@ function buildOrderEmail(args: {
   return { htmlContent, textContent, calculated }
 }
 
+function getAdminNotificationRecipients() {
+  const configuredEmails = (process.env.CCIC_ORDER_NOTIFICATION_EMAIL || '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => /^\S+@\S+\.\S+$/.test(email))
+
+  const uniqueEmails = [...new Set(configuredEmails)]
+  if (uniqueEmails.length) {
+    return uniqueEmails.map((email) => ({ email, name: 'CCIC Orders' }))
+  }
+
+  const fallbackEmail = process.env.BREVO_SENDER_EMAIL?.trim().toLowerCase() || ''
+  return /^\S+@\S+\.\S+$/.test(fallbackEmail)
+    ? [{ email: fallbackEmail, name: 'CCIC Orders' }]
+    : []
+}
+
 export async function POST(request: NextRequest) {
   let body: RequestBody
 
@@ -262,9 +279,7 @@ export async function POST(request: NextRequest) {
   }
 
   const email = buildOrderEmail({ orderNumber: order.order_number, contact, draft })
-  const adminEmail = process.env.CCIC_ORDER_NOTIFICATION_EMAIL?.trim()
-    || process.env.BREVO_SENDER_EMAIL?.trim()
-    || ''
+  const adminRecipients = getAdminNotificationRecipients()
 
   const emailResults = await Promise.allSettled([
     sendBrevoTransactionalEmail({
@@ -273,9 +288,9 @@ export async function POST(request: NextRequest) {
       htmlContent: email.htmlContent,
       textContent: email.textContent,
     }),
-    adminEmail
+    adminRecipients.length
       ? sendBrevoTransactionalEmail({
-          to: [{ email: adminEmail, name: 'CCIC Orders' }],
+          to: adminRecipients,
           subject: `New CCIC order ${order.order_number} from ${contact.organizationName}`,
           htmlContent: email.htmlContent,
           textContent: email.textContent,
