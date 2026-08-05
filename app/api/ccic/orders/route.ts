@@ -1,8 +1,10 @@
+import { revalidatePath } from 'next/cache'
 import { NextResponse, type NextRequest } from 'next/server'
 import { sendBrevoTransactionalEmail } from '@/lib/email/brevo'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { protectPeoplePayload } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
+import { allocateCcicOrderInventory } from '@/lib/christmas-cards/inventory'
 import {
   calculateCcicOrder,
   parseCcicOrderDraftInput,
@@ -282,6 +284,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'We could not save the items in your order. Please try again.' }, { status: 500 })
   }
 
+  try {
+    await allocateCcicOrderInventory(order.id, calculated)
+  } catch (error) {
+    console.error('CCIC inventory allocation failed', error)
+    await admin.from('ccic_orders').delete().eq('id', order.id)
+
+    const message = typeof error === 'object' && error && 'message' in error
+      ? String(error.message)
+      : ''
+    const customerMessage = message.includes('no longer available') || message.includes('not have enough inventory')
+      ? message
+      : 'We could not reserve the selected cards. Please refresh the store and review the available quantities.'
+
+    return NextResponse.json({ error: customerMessage }, { status: 409 })
+  }
+
   const email = buildOrderEmail({ orderNumber: order.order_number, contact, draft })
   const adminRecipients = getAdminNotificationRecipients()
 
@@ -318,6 +336,9 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', order.id)
+
+  revalidatePath('/ccic')
+  revalidatePath('/ccic/admin/store-control')
 
   return NextResponse.json({
     orderNumber: order.order_number,
