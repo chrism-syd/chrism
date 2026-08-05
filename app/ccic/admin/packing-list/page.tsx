@@ -50,6 +50,7 @@ const PACKING_STATUS_OPTIONS: Array<{
 ]
 
 const DEFAULT_PACKING_STATUSES: CcicOrderStatus[] = ['received', 'paid', 'packed']
+const OPEN_ORDERS_PATH = '/ccic/admin/packing-list?filtered=1&status=received&status=paid&status=packed'
 
 function stringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
@@ -182,7 +183,7 @@ export default async function CcicPackingListPage({
             </label>
           ))}
           <button type="submit">Update packing list</button>
-          <Link href="/ccic/admin/packing-list">Reset to open orders</Link>
+          <a href={OPEN_ORDERS_PATH}>Open orders only</a>
         </form>
         <p>{orders.length} order{orders.length === 1 ? '' : 's'} · {totalBoxes} box{totalBoxes === 1 ? '' : 'es'}</p>
       </section>
