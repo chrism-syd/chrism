@@ -57,8 +57,12 @@ function validateContact(contact: ContactInput | undefined, draft: CcicOrderDraf
   const addressLine1 = nullableString(contact?.addressLine1)
   const addressLine2 = nullableString(contact?.addressLine2)
   const city = nullableString(contact?.city)
-  const province = nullableString(contact?.province)
+  const rawProvince = nullableString(contact?.province)
   const postalCode = nullableString(contact?.postalCode)
+  const hasPickupAddressDetails = Boolean(addressLine1 || addressLine2 || city || postalCode)
+  const province = draft.fulfillmentMethod === 'pickup' && !hasPickupAddressDetails
+    ? null
+    : rawProvince
 
   if (!contactName) throw new Error('Please enter your name.')
   if (!organizationName) throw new Error('Please enter your organization name.')
@@ -236,7 +240,7 @@ export async function POST(request: NextRequest) {
     .from('ccic_orders')
     .insert({
       order_number: orderNumber,
-      status_code: 'new',
+      status_code: 'received',
       contact_name: contact.contactName,
       organization_name: contact.organizationName,
       ...protectedContact,
