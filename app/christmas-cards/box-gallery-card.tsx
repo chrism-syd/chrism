@@ -10,17 +10,20 @@ export default function BoxGalleryCard({
   quantity,
   onQuantityChange,
   showPrice = true,
+  maxQuantity = 999,
 }: {
   box: ChristmasCardBox
   quantityLabel: string
   quantity: number
   onQuantityChange: (quantity: number) => void
   showPrice?: boolean
+  maxQuantity?: number
 }) {
   const thumbnailUrl = box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl
+  const isSoldOut = maxQuantity <= 0
 
   return (
-    <article className={`ccic-gallery-card ${quantity > 0 ? 'is-selected' : ''}`}>
+    <article className={`ccic-gallery-card ${quantity > 0 ? 'is-selected' : ''}${isSoldOut ? ' is-sold-out' : ''}`}>
       <CardArt
         title={box.title}
         imageUrl={thumbnailUrl}
@@ -35,7 +38,16 @@ export default function BoxGalleryCard({
         <p className="ccic-product-kicker">{box.sku}</p>
         {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)}</strong> : null}
       </div>
-      <QuantityControl label={quantityLabel} value={quantity} onChange={onQuantityChange} />
+      {isSoldOut ? (
+        <span className="ccic-sold-out-pill" role="status">Sold out</span>
+      ) : (
+        <QuantityControl
+          label={quantityLabel}
+          value={quantity}
+          max={maxQuantity}
+          onChange={onQuantityChange}
+        />
+      )}
     </article>
   )
 }
