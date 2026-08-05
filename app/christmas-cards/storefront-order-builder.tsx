@@ -20,24 +20,10 @@ type Props = {
 }
 
 type QuantityMap = Record<string, number>
-type PackageTier = 'none' | 'promotion' | 'campaign'
-
-function packagePrice(tier: PackageTier) {
-  if (tier === 'promotion') return CHRISTMAS_CARD_ORDER_CONFIG.promotionPackageCents
-  if (tier === 'campaign') return CHRISTMAS_CARD_ORDER_CONFIG.campaignPackageCents
-  return 0
-}
-
-function packageLabel(tier: PackageTier) {
-  if (tier === 'promotion') return 'Promotion Package'
-  if (tier === 'campaign') return 'Campaign Package'
-  return ''
-}
 
 export default function StorefrontOrderBuilder({ cases, boxes, collections }: Props) {
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [boxQuantities, setBoxQuantities] = useState<QuantityMap>({})
-  const [selectedPackage, setSelectedPackage] = useState<PackageTier>('none')
 
   const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
   const sortedCollections = useMemo(() => [...collections].sort((a, b) => a.sortOrder - b.sortOrder), [collections])
@@ -68,8 +54,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
     (sum, entry) => sum + entry.quantity * entry.item.priceCents,
     0
   )
-  const selectedPackageCents = packagePrice(selectedPackage)
-  const subtotalCents = classicCaseTotalCents + customSelectionCents + selectedPackageCents
+  const subtotalCents = classicCaseTotalCents + customSelectionCents
   const totalSelectedBoxes = selectedClassicCases.reduce(
     (sum, entry) => sum + entry.quantity * entry.item.boxesPerCase,
     selectedLooseBoxCount
@@ -189,31 +174,6 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
               )
             })}
           </div>
-
-          <section className="ccic-packages" id="fundraising-packages">
-            <div className="ccic-section-heading">
-              <p className="ccic-eyebrow">Optional fundraising support</p>
-              <h2>Choose a campaign package</h2>
-              <p>Add parish branding, promotional materials, or both.</p>
-            </div>
-            <div className="ccic-package-grid" role="radiogroup" aria-label="Fundraising package">
-              <label className={`ccic-package-card ${selectedPackage === 'promotion' ? 'is-selected' : ''}`}>
-                <input type="radio" name="ccic-package" checked={selectedPackage === 'promotion'} onChange={() => setSelectedPackage('promotion')} />
-                <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.promotionPackageCents)}</span>
-                <strong>Promotion Package</strong>
-                <p>Personalize your cards with parish branding and a custom message.</p>
-              </label>
-              <label className={`ccic-package-card ${selectedPackage === 'campaign' ? 'is-selected' : ''}`}>
-                <input type="radio" name="ccic-package" checked={selectedPackage === 'campaign'} onChange={() => setSelectedPackage('campaign')} />
-                <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.campaignPackageCents)}</span>
-                <strong>Campaign Package</strong>
-                <p>Add promotional posters and a digital campaign graphic.</p>
-              </label>
-            </div>
-            {selectedPackage !== 'none' ? (
-              <button type="button" className="ccic-remove-package-button" onClick={() => setSelectedPackage('none')}>Remove fundraising package</button>
-            ) : null}
-          </section>
         </div>
 
         <aside className="ccic-summary" id="order-summary" aria-label="Order summary">
@@ -271,13 +231,6 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
                   {!customCaseCount && boxesUntilNextCase > 0 && selectedLooseBoxCount >= 16 ? (
                     <p className="ccic-nudge"><Image src="/chrism_star.png" alt="" width={24} height={24} />Add {boxesUntilNextCase} more boxes to reach custom case pricing.</p>
                   ) : null}
-                </div>
-              ) : null}
-
-              {selectedPackage !== 'none' ? (
-                <div className="ccic-summary-section">
-                  <h3>Fundraising package</h3>
-                  <div className="ccic-summary-line"><span>{packageLabel(selectedPackage)}</span><strong>{formatChristmasCardMoney(selectedPackageCents)}</strong></div>
                 </div>
               ) : null}
             </div>
