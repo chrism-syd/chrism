@@ -1,0 +1,229 @@
+.ccic-site-header-inner {
+  min-height: 142px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.ccic-header-logo {
+  width: 124px;
+  height: 124px;
+}
+
+.ccic-header-cart-link {
+  display: inline-grid;
+  place-items: center;
+  justify-self: end;
+  width: 46px;
+  height: 46px;
+  color: var(--ccic-ink);
+  text-decoration: none;
+}
+
+.ccic-header-cart-link svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ccic-header-cart-link:hover,
+.ccic-header-cart-link:focus-visible {
+  background: var(--ccic-soft);
+  outline: none;
+}
+
+.ccic-hero-image {
+  width: 100%;
+  overflow: hidden;
+  background: #ece7e4;
+}
+
+.ccic-hero-image-wrap {
+  position: relative;
+  width: 100%;
+  min-height: clamp(360px, 48vw, 720px);
+}
+
+.ccic-hero-image-asset {
+  object-fit: cover;
+  object-position: center;
+}
+
+.ccic-trust-grid strong {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.ccic-classic-case-image {
+  position: relative;
+  min-height: clamp(360px, 42vw, 520px);
+  overflow: hidden;
+  background: transparent;
+}
+
+.ccic-classic-case-image img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.ccic-gallery-copy {
+  gap: 5px;
+}
+
+.ccic-gallery-copy strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ccic-gallery-card .ccic-quantity,
+.ccic-featured-case-copy .ccic-quantity {
+  grid-template-columns: 42px 52px 42px;
+  justify-self: center;
+  border: 1px solid #d7d5d3;
+  border-radius: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ccic-gallery-card .ccic-quantity button,
+.ccic-featured-case-copy .ccic-quantity button {
+  height: 40px;
+  border: 0;
+  background: #fff !important;
+  color: var(--ccic-ink) !important;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.ccic-gallery-card .ccic-quantity button:hover:not(:disabled),
+.ccic-gallery-card .ccic-quantity button:focus-visible,
+.ccic-featured-case-copy .ccic-quantity button:hover:not(:disabled),
+.ccic-featured-case-copy .ccic-quantity button:focus-visible {
+  background: #f5f4f3 !important;
+  outline: none;
+}
+
+.ccic-gallery-card .ccic-quantity input,
+.ccic-featured-case-copy .ccic-quantity input {
+  width: 52px;
+  height: 40px;
+  border: 0;
+  border-inline: 1px solid #d7d5d3;
+  background: #fff;
+  color: var(--ccic-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ccic-fulfillment-choice {
+  display: grid;
+  gap: 9px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ccic-line);
+}
+
+.ccic-fulfillment-label {
+  color: var(--ccic-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ccic-fulfillment-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 3px;
+  background: #eceae8;
+}
+
+.ccic-fulfillment-toggle button {
+  display: grid;
+  gap: 2px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ccic-muted);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+
+.ccic-fulfillment-toggle button span {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ccic-fulfillment-toggle button strong {
+  font-size: 13px;
+}
+
+.ccic-fulfillment-toggle button.is-selected {
+  background: #fff;
+  color: var(--ccic-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+}
+
+.ccic-fulfillment-toggle button:focus-visible {
+  outline: 2px solid var(--ccic-ink);
+  outline-offset: -2px;
+}
+
+.ccic-footer-powered {
+  justify-content: flex-start;
+}
+
+.ccic-footer-powered a {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ccic-footer-powered a:focus-visible {
+  outline: 2px solid var(--ccic-ink);
+  outline-offset: 4px;
+}
+
+@media (max-width: 860px) {
+  .ccic-trust-grid strong {
+    white-space: normal;
+  }
+
+  .ccic-classic-case-image {
+    min-height: clamp(320px, 70vw, 520px);
+  }
+}
+
+@media (max-width: 640px) {
+  .ccic-site-header-inner {
+    min-height: 108px;
+    padding: 6px 18px;
+  }
+
+  .ccic-header-logo {
+    width: 96px;
+    height: 96px;
+  }
+
+  .ccic-header-cart-link {
+    width: 42px;
+    height: 42px;
+  }
+
+  .ccic-header-cart-link svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .ccic-hero-image-wrap {
+    min-height: 320px;
+  }
+
+  .ccic-classic-case-image {
+    min-height: 300px;
+  }
+}
