@@ -1,14 +1,16 @@
 import Image from 'next/image'
 import ChristmasCardsOrderBuilder from '../christmas-cards/order-builder'
+import CardArt from '../christmas-cards/card-art'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
-import StickyHeader from '../christmas-cards/sticky-header'
 import {
   CHRISTMAS_CARD_BOXES,
+  CHRISTMAS_CARD_COLLECTIONS,
   CHRISTMAS_CARD_CURATED_CASES,
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
 import '../christmas-cards/storefront.css'
 import '../christmas-cards/payment-polish.css'
+import '../christmas-cards/storefront-redesign.css'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
@@ -16,74 +18,77 @@ export const metadata = {
 }
 
 export default function CcicPage() {
+  const heroBoxes = CHRISTMAS_CARD_BOXES.slice(0, 4)
+
   return (
     <main className="ccic-page">
-      <StickyHeader brandName={CHRISTMAS_CARD_ORDER_CONFIG.brandName} />
-
-      <section className="ccic-hero">
-        <div className="ccic-hero-title-row">
+      <header className="ccic-site-header">
+        <div className="ccic-site-header-inner">
+          <span aria-hidden="true" className="ccic-header-spacer" />
           <Image
-            id="ccic-hero-logo-anchor"
             src="/CCiC.png"
             alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-            width={280}
-            height={120}
+            width={124}
+            height={124}
             priority
-            className="ccic-brand-logo"
+            className="ccic-header-logo"
           />
-          <div>
-            <p className="ccic-eyebrow">Christmas card ordering</p>
-            <h1>
-              Christmas cards made<br />for ministry
-            </h1>
-          </div>
+          <a className="ccic-header-order-link" href="#order-summary">
+            Review order
+          </a>
         </div>
+      </header>
 
-        <div className="ccic-hero-copy">
-          <p>
-            Meaningful Christmas cards for faith communities. Beautiful, faith-centered designs paired with psalms and Scripture verses. Perfect for churches, parishes, and ministries.
-          </p>
-        </div>
-        <div className="ccic-hero-card" aria-label="Payment and order confirmation details">
-          <strong>No payment <span className="ccic-nowrap">collected online</span></strong>
-          <PaymentOptionsDetails />
+      <section className="ccic-hero-gallery" aria-label="Christmas card collection preview">
+        <div className="ccic-hero-gallery-inner">
+          {heroBoxes.map((box) => (
+            <CardArt
+              key={`hero-${box.id}`}
+              title={box.title}
+              imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
+              images={[
+                { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
+                { label: 'Inside', url: box.insideImageUrl },
+                { label: 'Outside', url: box.outsideImageUrl },
+              ]}
+            />
+          ))}
         </div>
       </section>
 
-      <section className="ccic-trust-strip" aria-label="Product origin and paper certification">
-        <div>
-          <span className="ccic-maple-leaf" aria-hidden="true">🍁</span>
-          <strong>Designed, sourced, and printed in Canada</strong>
+      <section className="ccic-intro">
+        <div className="ccic-intro-heading">
+          <p className="ccic-eyebrow">Celebrate Christ in Christmas</p>
+          <h1>Perfect for churches, parishes, councils, and ministries.</h1>
+          <p>Simple to order, meaningful to share, and designed for faith communities.</p>
         </div>
-        <div>
-          <span className="ccic-cert-mark" aria-hidden="true">FSC</span>
-          <strong>Printed on FSC certified paper</strong>
+
+        <div className="ccic-trust-grid">
+          <article>
+            <strong>Meaningful Christmas cards</strong>
+            <p>Faith-centered designs paired with psalms and Scripture verses.</p>
+          </article>
+          <article>
+            <strong>No payment collected online</strong>
+            <p><PaymentOptionsDetails /></p>
+          </article>
+          <article>
+            <strong>Designed and printed in Canada</strong>
+            <p>Produced in Canada on FSC certified paper.</p>
+          </article>
         </div>
       </section>
 
-      <section className="ccic-how">
-        <h2>How ordering works</h2>
-        <div className="ccic-steps">
-          <div>
-            <strong>1. Choose your cards</strong>
-            <span>Select our curated case, or choose individual&nbsp;boxes.</span>
-          </div>
-          <div>
-            <strong>2. Review your order</strong>
-            <span>Review the summary of your selections and estimated&nbsp;total.</span>
-          </div>
-          <div>
-            <strong>3. Place your order</strong>
-            <span>Enter your contact information, confirm delivery pricing or local pick-up and submit your&nbsp;order.</span>
-          </div>
-        </div>
-      </section>
-
-      <ChristmasCardsOrderBuilder cases={CHRISTMAS_CARD_CURATED_CASES} boxes={CHRISTMAS_CARD_BOXES} />
+      <ChristmasCardsOrderBuilder
+        cases={CHRISTMAS_CARD_CURATED_CASES}
+        boxes={CHRISTMAS_CARD_BOXES}
+        collections={CHRISTMAS_CARD_COLLECTIONS}
+      />
 
       <footer className="ccic-footer">
+        <Image src="/CCiC.png" alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName} width={82} height={82} />
         <span>Powered by</span>
-        <Image src="/Chrism.png" alt="Chrism" width={156} height={67} className="ccic-footer-logo" />
+        <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
       </footer>
     </main>
   )
