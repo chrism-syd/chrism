@@ -83,10 +83,11 @@ export default function CcicPage() {
         collections={CHRISTMAS_CARD_COLLECTIONS}
       />
 
-      <footer className="ccic-footer">
-        <Image src="/CCiC.png" alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName} width={82} height={82} />
+      <footer className="ccic-footer ccic-footer-powered">
         <span>Powered by</span>
-        <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
+        <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
+          <Image src="/Chrism.png" alt="Chrism" width={156} height={67} className="ccic-footer-logo" />
+        </a>
       </footer>
     </main>
   )
