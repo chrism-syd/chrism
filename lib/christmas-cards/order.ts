@@ -98,28 +98,32 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     }]
   })
 
-  const individualLines: CcicCalculatedLine[] = CHRISTMAS_CARD_BOXES
-    .filter((item) => item.isCasePricingEligible)
-    .flatMap((item) => {
-      const quantity = normalizeQuantity(normalizedInput.boxQuantities[item.id])
-      if (!quantity) return []
+  const individualLines: CcicCalculatedLine[] = CHRISTMAS_CARD_BOXES.flatMap((item) => {
+    const quantity = normalizeQuantity(normalizedInput.boxQuantities[item.id])
+    if (!quantity) return []
 
-      return [{
-        lineType: 'individual_box' as const,
-        catalogId: item.id,
-        sku: item.sku,
-        title: item.title,
-        quantity,
-        unitPriceCents: item.priceCents,
-        lineTotalCents: quantity * item.priceCents,
-        boxesPerUnit: 1,
-      }]
-    })
+    return [{
+      lineType: 'individual_box' as const,
+      catalogId: item.id,
+      sku: item.sku,
+      title: item.title,
+      quantity,
+      unitPriceCents: item.priceCents,
+      lineTotalCents: quantity * item.priceCents,
+      boxesPerUnit: 1,
+    }]
+  })
 
+  const caseEligibleBoxIds = new Set(
+    CHRISTMAS_CARD_BOXES
+      .filter((item) => item.isCasePricingEligible)
+      .map((item) => item.id)
+  )
+  const caseEligibleIndividualLines = individualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
   const lines = [...classicLines, ...individualLines]
-  const individualBoxCount = individualLines.reduce((sum, line) => sum + line.quantity, 0)
-  const customCaseCount = Math.floor(individualBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
-  const remainingLooseBoxes = individualBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+  const caseEligibleBoxCount = caseEligibleIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
+  const customCaseCount = Math.floor(caseEligibleBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
+  const remainingLooseBoxes = caseEligibleBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
   const classicSubtotalCents = classicLines.reduce((sum, line) => sum + line.lineTotalCents, 0)
   const individualRegularSubtotalCents = individualLines.reduce((sum, line) => sum + line.lineTotalCents, 0)
   const regularSubtotalCents = classicSubtotalCents + individualRegularSubtotalCents
@@ -143,7 +147,7 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     0
   )
   const classicCaseCount = classicLines.reduce((sum, line) => sum + line.quantity, 0)
-  const currentCaseProgress = individualBoxCount > 0 && remainingLooseBoxes === 0
+  const currentCaseProgress = caseEligibleBoxCount > 0 && remainingLooseBoxes === 0
     ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
     : remainingLooseBoxes
   const boxesUntilNextCase = remainingLooseBoxes === 0
