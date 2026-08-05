@@ -3,7 +3,7 @@ import 'server-only'
 import { createHash, createHmac, randomBytes, randomInt } from 'node:crypto'
 
 export const CCIC_ADMIN_SESSION_COOKIE = 'ccic_admin_session'
-export const CCIC_ADMIN_SESSION_MAX_AGE_SECONDS = 12 * 60 * 60
+export const CCIC_ADMIN_SESSION_MAX_AGE_SECONDS = 48 * 60 * 60
 export const CCIC_ADMIN_CODE_TTL_MINUTES = 10
 export const CCIC_ADMIN_MAX_CODE_ATTEMPTS = 5
 
