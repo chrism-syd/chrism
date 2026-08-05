@@ -61,12 +61,61 @@
   position: relative;
   min-height: clamp(360px, 42vw, 520px);
   overflow: hidden;
-  background: #f6f3f0;
+  background: transparent;
 }
 
 .ccic-classic-case-image img {
   object-fit: contain;
   object-position: center;
+}
+
+.ccic-gallery-copy {
+  gap: 5px;
+}
+
+.ccic-gallery-copy strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ccic-gallery-card .ccic-quantity,
+.ccic-featured-case-copy .ccic-quantity {
+  grid-template-columns: 42px 52px 42px;
+  justify-self: center;
+  border: 1px solid #d7d5d3;
+  border-radius: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ccic-gallery-card .ccic-quantity button,
+.ccic-featured-case-copy .ccic-quantity button {
+  height: 40px;
+  border: 0;
+  background: #fff !important;
+  color: var(--ccic-ink) !important;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.ccic-gallery-card .ccic-quantity button:hover:not(:disabled),
+.ccic-gallery-card .ccic-quantity button:focus-visible,
+.ccic-featured-case-copy .ccic-quantity button:hover:not(:disabled),
+.ccic-featured-case-copy .ccic-quantity button:focus-visible {
+  background: #f5f4f3 !important;
+  outline: none;
+}
+
+.ccic-gallery-card .ccic-quantity input,
+.ccic-featured-case-copy .ccic-quantity input {
+  width: 52px;
+  height: 40px;
+  border: 0;
+  border-inline: 1px solid #d7d5d3;
+  background: #fff;
+  color: var(--ccic-ink);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .ccic-fulfillment-choice {
