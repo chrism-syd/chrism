@@ -109,9 +109,6 @@ function CcicAdminLoginContent() {
         <div className="ccic-admin-login-heading">
           <p>Private order access</p>
           <h1>CCIC order administration</h1>
-          <span>
-            Access is limited to four authorized email addresses and grants access only to the CCIC order area.
-          </span>
         </div>
 
         {emailSentTo ? (
