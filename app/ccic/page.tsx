@@ -12,6 +12,7 @@ import '../christmas-cards/storefront.css'
 import '../christmas-cards/payment-polish.css'
 import '../christmas-cards/storefront-redesign.css'
 import '../christmas-cards/storefront-header-polish.css'
+import '../christmas-cards/storefront-cart-drawer.css'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
@@ -53,7 +54,7 @@ export default function CcicPage() {
         <section className="ccic-intro">
           <div className="ccic-intro-heading">
             <p className="ccic-eyebrow">Celebrate Christ in Christmas</p>
-            <h1>Perfect for churches, parishes, councils, and ministries.</h1>
+            <h1>Perfect for Councils, Parishes, and Ministries.</h1>
             <p>Simple to order, meaningful to share, and designed for faith communities.</p>
           </div>
 
