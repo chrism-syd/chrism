@@ -3,7 +3,6 @@
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import BoxGalleryCard from './box-gallery-card'
-import CardArt from './card-art'
 import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
 import {
   CHRISTMAS_CARD_ORDER_CONFIG,
@@ -20,14 +19,17 @@ type Props = {
 }
 
 type QuantityMap = Record<string, number>
+type FulfillmentMethod = 'pickup' | 'shipping'
+
+const SHIPPING_RATE_CENTS = 3600
 
 export default function StorefrontOrderBuilder({ cases, boxes, collections }: Props) {
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [boxQuantities, setBoxQuantities] = useState<QuantityMap>({})
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('pickup')
 
   const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
   const sortedCollections = useMemo(() => [...collections].sort((a, b) => a.sortOrder - b.sortOrder), [collections])
-  const boxesById = useMemo(() => new Map(boxes.map((box) => [box.id, box])), [boxes])
 
   const selectedClassicCases = cases
     .map((item) => ({ item, quantity: quantityFromMap(caseQuantities, item.id) }))
@@ -55,6 +57,9 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
     0
   )
   const subtotalCents = classicCaseTotalCents + customSelectionCents
+  const hasOrder = subtotalCents > 0
+  const shippingCents = hasOrder && fulfillmentMethod === 'shipping' ? SHIPPING_RATE_CENTS : 0
+  const estimatedTotalCents = subtotalCents + shippingCents
   const totalSelectedBoxes = selectedClassicCases.reduce(
     (sum, entry) => sum + entry.quantity * entry.item.boxesPerCase,
     selectedLooseBoxCount
@@ -64,7 +69,6 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
     ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
     : remainingLooseBoxes
   const progressPercent = Math.round((currentCaseProgress / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100)
-  const hasOrder = subtotalCents > 0
 
   return (
     <>
@@ -75,23 +79,13 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
               const quantity = quantityFromMap(caseQuantities, item.id)
               return (
                 <article className="ccic-featured-case-card" key={item.id}>
-                  <div className="ccic-case-art-grid" aria-label={`${item.title} artwork preview`}>
-                    {item.components.slice(0, 8).map((component) => {
-                      const box = boxesById.get(component.boxId)
-                      return box ? (
-                        <CardArt
-                          key={component.boxId}
-                          title={box.title}
-                          imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
-                          size="small"
-                          images={[
-                            { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
-                            { label: 'Inside', url: box.insideImageUrl },
-                            { label: 'Outside', url: box.outsideImageUrl },
-                          ]}
-                        />
-                      ) : null
-                    })}
+                  <div className="ccic-classic-case-image">
+                    <Image
+                      src="/CCIC_Classic32.jpg"
+                      alt={`${item.title} assortment of 32 Christmas card boxes`}
+                      fill
+                      sizes="(max-width: 860px) 100vw, 62vw"
+                    />
                   </div>
 
                   <div className="ccic-featured-case-copy">
@@ -139,7 +133,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
             <div>
               <article><strong>1. Make your selection</strong><p>Select a Classic Case or choose individual boxes.</p></article>
               <article><strong>2. Review your order</strong><p>Watch the fixed summary update as you add boxes.</p></article>
-              <article><strong>3. Place your order</strong><p>Confirm delivery and payment details before submitting.</p></article>
+              <article><strong>3. Place your order</strong><p>Choose pickup or shipping, then confirm your details.</p></article>
             </div>
           </section>
 
@@ -235,14 +229,43 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
               ) : null}
             </div>
 
+            <div className="ccic-fulfillment-choice" aria-label="Fulfilment method">
+              <span className="ccic-fulfillment-label">Fulfilment</span>
+              <div className="ccic-fulfillment-toggle" role="group" aria-label="Choose pickup or shipping">
+                <button
+                  type="button"
+                  className={fulfillmentMethod === 'pickup' ? 'is-selected' : ''}
+                  aria-pressed={fulfillmentMethod === 'pickup'}
+                  onClick={() => setFulfillmentMethod('pickup')}
+                >
+                  <span>Pickup</span>
+                  <strong>$0</strong>
+                </button>
+                <button
+                  type="button"
+                  className={fulfillmentMethod === 'shipping' ? 'is-selected' : ''}
+                  aria-pressed={fulfillmentMethod === 'shipping'}
+                  onClick={() => setFulfillmentMethod('shipping')}
+                >
+                  <span>Shipping</span>
+                  <strong>$36</strong>
+                </button>
+              </div>
+            </div>
+
             <div className="ccic-summary-total">
               <div className="ccic-summary-line"><span>Subtotal</span><strong>{formatChristmasCardMoney(subtotalCents)}</strong></div>
-              <div className="ccic-summary-line"><span>Shipping</span><strong>After review</strong></div>
-              <div className="ccic-summary-line ccic-total-line"><span>Estimated total</span><strong>{formatChristmasCardMoney(subtotalCents)}</strong></div>
+              <div className="ccic-summary-line">
+                <span>{fulfillmentMethod === 'shipping' ? 'Shipping' : 'Pickup'}</span>
+                <strong>{formatChristmasCardMoney(shippingCents)}</strong>
+              </div>
+              <div className="ccic-summary-line ccic-total-line"><span>Estimated total</span><strong>{formatChristmasCardMoney(estimatedTotalCents)}</strong></div>
             </div>
 
             <p className="ccic-summary-count">
-              {hasOrder ? `${totalSelectedCases} case${totalSelectedCases === 1 ? '' : 's'} / ${totalSelectedBoxes} boxes selected` : CHRISTMAS_CARD_ORDER_CONFIG.shippingLabel}
+              {hasOrder
+                ? `${totalSelectedCases} case${totalSelectedCases === 1 ? '' : 's'} / ${totalSelectedBoxes} boxes selected`
+                : 'Pickup is free. Shipping is a flat $36 per order.'}
             </p>
             <button type="button" className="ccic-primary-button" disabled>Review order coming next</button>
           </div>
@@ -250,7 +273,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections }: Pr
       </section>
 
       {hasOrder ? (
-        <a className="ccic-mobile-summary" href="#order-summary"><span>{totalSelectedBoxes} boxes</span><strong>{formatChristmasCardMoney(subtotalCents)}</strong><em>Review order</em></a>
+        <a className="ccic-mobile-summary" href="#order-summary"><span>{totalSelectedBoxes} boxes</span><strong>{formatChristmasCardMoney(estimatedTotalCents)}</strong><em>Review order</em></a>
       ) : null}
     </>
   )
