@@ -9,24 +9,24 @@ import {
   CHRISTMAS_CARD_ORDER_CONFIG,
   formatChristmasCardMoney,
   type ChristmasCardBox,
+  type ChristmasCardCollection,
   type ChristmasCardCuratedCase,
 } from '@/lib/christmas-cards/catalog'
 
 type Props = {
   cases: ChristmasCardCuratedCase[]
   boxes: ChristmasCardBox[]
+  collections: ChristmasCardCollection[]
 }
 
 type QuantityMap = Record<string, number>
 type PackageTier = 'none' | 'promotion' | 'campaign'
 
-function SavingsNudge({ boxesUntilNextCase, savingsCents, savingsPercent }: { boxesUntilNextCase: number; savingsCents: number; savingsPercent: number }) {
+function SavingsNudge({ boxesUntilNextCase, savingsCents }: { boxesUntilNextCase: number; savingsCents: number }) {
   return (
     <p className="ccic-nudge">
-      <Image src="/chrism_star.png" alt="" width={26} height={26} className="ccic-nudge-star" />
-      <span>
-        Add {boxesUntilNextCase} more boxes to make a case and save {formatChristmasCardMoney(savingsCents)}. That is a savings of {savingsPercent}%!
-      </span>
+      <Image src="/chrism_star.png" alt="" width={24} height={24} className="ccic-nudge-star" />
+      <span>Add {boxesUntilNextCase} more boxes to complete a case and save {formatChristmasCardMoney(savingsCents)}.</span>
     </p>
   )
 }
@@ -43,20 +43,15 @@ function packagePrice(packageTier: PackageTier) {
   return 0
 }
 
-export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
+export default function ChristmasCardsOrderBuilder({ cases, boxes, collections }: Props) {
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [individualBoxQuantities, setIndividualBoxQuantities] = useState<QuantityMap>({})
-  const [themeFilter, setThemeFilter] = useState('all')
   const [selectedPackage, setSelectedPackage] = useState<PackageTier>('none')
 
   const sortedBoxes = useMemo(() => [...boxes].sort((left, right) => left.sortOrder - right.sortOrder), [boxes])
-  const themeOptions = useMemo(
-    () => Array.from(new Set(sortedBoxes.flatMap((box) => box.themeTags))).sort((left, right) => left.localeCompare(right)),
-    [sortedBoxes]
-  )
-  const visibleIndividualBoxes = useMemo(
-    () => themeFilter === 'all' ? sortedBoxes : sortedBoxes.filter((box) => box.themeTags.includes(themeFilter)),
-    [sortedBoxes, themeFilter]
+  const sortedCollections = useMemo(
+    () => [...collections].sort((left, right) => left.sortOrder - right.sortOrder),
+    [collections]
   )
   const boxesById = useMemo(() => new Map(boxes.map((box) => [box.id, box])), [boxes])
   const primaryCase = cases[0]
@@ -91,9 +86,6 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const caseSavingsCents = primaryCase
     ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents - primaryCase.priceCents
     : 0
-  const caseSavingsPercent = primaryCase && individualBoxPriceCents
-    ? Math.round((caseSavingsCents / (CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * individualBoxPriceCents)) * 100)
-    : 0
 
   const curatedCaseTotalCents = selectedCuratedCases.reduce(
     (total, entry) => total + entry.quantity * entry.item.priceCents,
@@ -106,255 +98,278 @@ export default function ChristmasCardsOrderBuilder({ cases, boxes }: Props) {
   const totalSelectedBoxes =
     selectedCuratedCases.reduce((total, entry) => total + entry.quantity * entry.item.boxesPerCase, 0) + eligibleIndividualBoxCount
 
+  const currentCaseProgress = eligibleIndividualBoxCount > 0 && remainingIndividualBoxes === 0
+    ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+    : remainingIndividualBoxes
+  const progressPercent = Math.min(100, Math.round((currentCaseProgress / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100))
   const hasOrder = subtotalCents > 0
 
   return (
-    <section className="ccic-builder" aria-label="Christmas card order builder">
-      <div className="ccic-builder-main">
-        <section className="ccic-panel" id="curated-cases">
-          <div className="ccic-section-heading">
-            <p className="ccic-eyebrow ccic-eyebrow-gold">Best value</p>
-            <h2>Curated case</h2>
-            <p>A complete Catholic Christmas card fundraising collection for parishes and councils.</p>
-          </div>
-
-          <div className="ccic-card-list">
+    <>
+      <section className="ccic-shop-layout" aria-label="Christmas card order builder">
+        <div className="ccic-shop-main">
+          <section className="ccic-featured-case" id="curated-cases">
             {cases.map((item) => {
               const value = quantityFromMap(caseQuantities, item.id)
               return (
-                <article className="ccic-product-card" key={item.id}>
-                  <div>
-                    <p className="ccic-product-kicker">{item.sku}</p>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                    <p className="ccic-price-line">
-                      {formatChristmasCardMoney(item.priceCents)} per case
-                      <span>35 boxes / 420 cards total</span>
-                    </p>
-                    <ul className="ccic-plain-list">
-                      <li>35 boxed greeting card sets</li>
-                      <li>12 cards + 12 envelopes per box</li>
-                      <li>Curated sacred Christmas artwork</li>
-                      <li>Retail-ready parish fundraising program</li>
-                    </ul>
-                    <details className="ccic-case-details">
-                      <summary>See what is included</summary>
-                      <div className="ccic-case-gallery">
-                        {item.components.map((component) => {
-                          const box = boxesById.get(component.boxId)
-                          return box ? (
-                            <div className="ccic-case-gallery-item" key={component.boxId}>
-                              <CardArt
-                                title={box.title}
-                                imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
-                                size="small"
-                                images={[
-                                  { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
-                                  { label: 'Inside', url: box.insideImageUrl },
-                                  { label: 'Outside', url: box.outsideImageUrl },
-                                ]}
-                              />
-                              <span>{component.quantityBoxes} x {box.title}</span>
-                            </div>
-                          ) : null
-                        })}
-                      </div>
-                    </details>
+                <article className="ccic-featured-case-card" key={item.id}>
+                  <div className="ccic-case-art-grid" aria-label={`${item.title} artwork preview`}>
+                    {item.components.slice(0, 8).map((component) => {
+                      const box = boxesById.get(component.boxId)
+                      return box ? (
+                        <CardArt
+                          key={component.boxId}
+                          title={box.title}
+                          imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
+                          size="small"
+                          images={[
+                            { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
+                            { label: 'Inside', url: box.insideImageUrl },
+                            { label: 'Outside', url: box.outsideImageUrl },
+                          ]}
+                        />
+                      ) : null
+                    })}
                   </div>
-                  <QuantityControl
-                    label={`${item.title} cases`}
-                    value={value}
-                    onChange={(quantity) => setCaseQuantities((current) => setQuantityValue(current, item.id, quantity))}
-                  />
+
+                  <div className="ccic-featured-case-copy">
+                    <p className="ccic-eyebrow">Most popular</p>
+                    <h2>{item.title}</h2>
+                    <p>{item.description}</p>
+                    <p className="ccic-featured-case-price">{formatChristmasCardMoney(item.priceCents)} per case</p>
+                    <ul className="ccic-plain-list">
+                      <li>{item.boxesPerCase} boxed greeting card sets</li>
+                      <li>12 cards and 12 envelopes per box</li>
+                      <li>{item.boxesPerCase * 12} cards total</li>
+                      <li>Exceptional value compared with individual boxes</li>
+                    </ul>
+                    <QuantityControl
+                      label={`${item.title} cases`}
+                      value={value}
+                      onChange={(quantity) => setCaseQuantities((current) => setQuantityValue(current, item.id, quantity))}
+                    />
+                  </div>
                 </article>
               )
             })}
-          </div>
-        </section>
+          </section>
 
-        <section className="ccic-panel ccic-custom-callout" id="fundraising-packages">
-          <div className="ccic-section-heading">
-            <p className="ccic-eyebrow ccic-eyebrow-gold">New</p>
-            <h2>Choose your fundraising package</h2>
-            <p>Personalize and promote your seasonal card campaign with simple package options designed for parish and council fundraising.</p>
-          </div>
+          <section className="ccic-custom-case-banner" aria-label="Custom case pricing">
+            <div>
+              <span>Custom case of</span>
+              <strong>{CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes</strong>
+            </div>
+            <div>
+              <strong>Make your own case.</strong>
+              <p>Select any {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} eligible boxes and case pricing is applied automatically.</p>
+            </div>
+          </section>
 
-          <div className="ccic-package-grid" role="radiogroup" aria-label="Fundraising package">
-            <label className={`ccic-package-card ${selectedPackage === 'promotion' ? 'is-selected' : ''}`}>
-              <input type="radio" name="ccic-package" checked={selectedPackage === 'promotion'} onChange={() => setSelectedPackage('promotion')} />
-              <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.promotionPackageCents)}</span>
-              <strong>Promotion Package</strong>
-              <p>Personalize your fundraising campaign with parish branding and messaging tailored to your community.</p>
-              <ul>
-                <li>Logo integration on every card, plus custom message</li>
-                <li>Digital proof approval</li>
-                <li>Production setup and formatting</li>
-                <li>Priority handling for customized orders</li>
-              </ul>
-            </label>
+          <section className="ccic-ordering-steps" aria-labelledby="ordering-is-easy">
+            <h2 id="ordering-is-easy">Ordering is easy</h2>
+            <div>
+              <article>
+                <strong>1. Make your selection</strong>
+                <p>Select a curated case or choose individual boxes.</p>
+              </article>
+              <article>
+                <strong>2. Review your order</strong>
+                <p>Follow the summary as quantities and case pricing update.</p>
+              </article>
+              <article>
+                <strong>3. Place your order</strong>
+                <p>Confirm contact, delivery, and payment details before submitting.</p>
+              </article>
+            </div>
+          </section>
 
-            <label className={`ccic-package-card ccic-package-card-featured ${selectedPackage === 'campaign' ? 'is-selected' : ''}`}>
-              <input type="radio" name="ccic-package" checked={selectedPackage === 'campaign'} onChange={() => setSelectedPackage('campaign')} />
-              <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.campaignPackageCents)}</span>
-              <strong>Campaign Package</strong>
-              <p>A complete parish fundraising campaign package designed to help promote seasonal card sales within your church and community.</p>
-              <ul>
-                <li>Everything in the Promotion Package</li>
-                <li>5 × 18x24 promotional posters</li>
-                <li>1 custom graphic for email, bulletin, or social media</li>
-              </ul>
-              <div className="ccic-social-preview" aria-hidden="true">
-                <span>Parish Christmas Card Fundraiser</span>
-                <strong>Celebrate Christ in Christmas</strong>
-                <em>Order after Mass • Support local ministry</em>
-              </div>
-            </label>
-          </div>
-
-          {selectedPackage !== 'none' ? (
-            <button type="button" className="ccic-remove-package-button" onClick={() => setSelectedPackage('none')}>
-              Remove fundraising package
-            </button>
-          ) : null}
-        </section>
-
-        <section className="ccic-panel" id="individual-boxes">
-          <div className="ccic-section-heading">
-            <p className="ccic-eyebrow">Individual boxes</p>
-            <h2>Custom selection</h2>
-            <p>Choose any card boxes. When your selection reaches 35 boxes, case pricing is applied automatically.</p>
-          </div>
-
-          <label className="ccic-theme-filter">
-            <span>View cards by theme</span>
-            <select value={themeFilter} onChange={(event) => setThemeFilter(event.target.value)}>
-              <option value="all">All cards</option>
-              {themeOptions.map((theme) => <option key={theme} value={theme}>{theme}</option>)}
-            </select>
-          </label>
-
-          <div className="ccic-gallery-grid">
-            {visibleIndividualBoxes.map((box) => {
-              const value = quantityFromMap(individualBoxQuantities, box.id)
+          <div className="ccic-collections" id="individual-boxes">
+            {sortedCollections.map((collection) => {
+              const collectionBoxes = sortedBoxes.filter((box) => box.collectionId === collection.id)
               return (
-                <BoxGalleryCard
-                  key={`individual-${box.id}`}
-                  box={box}
-                  quantityLabel={`${box.title} individual boxes`}
-                  quantity={value}
-                  onQuantityChange={(quantity) => setIndividualBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
-                />
+                <section className="ccic-collection" key={collection.id} aria-labelledby={`${collection.id}-title`}>
+                  <div className="ccic-collection-heading">
+                    <h2 id={`${collection.id}-title`}>{collection.title}</h2>
+                    <p>{collection.description}</p>
+                  </div>
+
+                  {collectionBoxes.length > 0 ? (
+                    <div className="ccic-gallery-grid">
+                      {collectionBoxes.map((box) => {
+                        const value = quantityFromMap(individualBoxQuantities, box.id)
+                        return (
+                          <BoxGalleryCard
+                            key={`individual-${box.id}`}
+                            box={box}
+                            quantityLabel={`${box.title} individual boxes`}
+                            quantity={value}
+                            onQuantityChange={(quantity) => setIndividualBoxQuantities((current) => setQuantityValue(current, box.id, quantity))}
+                          />
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="ccic-collection-empty">
+                      <strong>Designs coming soon</strong>
+                      <p>This collection row is ready for the final artwork and product details.</p>
+                    </div>
+                  )}
+                </section>
               )
             })}
           </div>
-        </section>
-      </div>
 
-      <aside className="ccic-summary" aria-label="Order summary">
-        <div className="ccic-summary-card">
-          <p className="ccic-eyebrow">Your order</p>
-          <h2>Order summary</h2>
-
-          {!hasOrder ? <p className="ccic-muted">Choose cases or boxes to start your order.</p> : null}
-
-          {selectedCuratedCases.length > 0 ? (
-            <div className="ccic-summary-section">
-              <h3>Curated cases</h3>
-              {selectedCuratedCases.map((entry) => (
-                <div className="ccic-summary-row" key={entry.item.id}>
-                  <div className="ccic-summary-line">
-                    <span>{entry.quantity} x {entry.item.title}</span>
-                    <strong>{formatChristmasCardMoney(entry.quantity * entry.item.priceCents)}</strong>
-                  </div>
-                </div>
-              ))}
+          <section className="ccic-packages" id="fundraising-packages">
+            <div className="ccic-section-heading">
+              <p className="ccic-eyebrow">Optional fundraising support</p>
+              <h2>Choose a campaign package</h2>
+              <p>Add parish branding, promotional materials, or both.</p>
             </div>
-          ) : null}
 
-          {customCaseCountFromSelection > 0 ? (
-            <div className="ccic-summary-section">
-              <h3>Custom case</h3>
-              <div className="ccic-summary-line">
-                <span>{customCaseCountFromSelection} x custom 35-box case</span>
-                <strong>{primaryCase ? formatChristmasCardMoney(customCaseCountFromSelection * primaryCase.priceCents) : formatChristmasCardMoney(0)}</strong>
-              </div>
-              <p className="ccic-muted">Built from your custom selection.</p>
-            </div>
-          ) : null}
+            <div className="ccic-package-grid" role="radiogroup" aria-label="Fundraising package">
+              <label className={`ccic-package-card ${selectedPackage === 'promotion' ? 'is-selected' : ''}`}>
+                <input type="radio" name="ccic-package" checked={selectedPackage === 'promotion'} onChange={() => setSelectedPackage('promotion')} />
+                <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.promotionPackageCents)}</span>
+                <strong>Promotion Package</strong>
+                <p>Personalize your cards with parish branding and a custom message.</p>
+                <ul>
+                  <li>Logo integration and custom message</li>
+                  <li>Digital proof approval</li>
+                  <li>Production setup and formatting</li>
+                </ul>
+              </label>
 
-          {eligibleIndividualBoxCount > 0 ? (
-            <div className="ccic-summary-section">
-              <h3>Individual boxes</h3>
-              {customCaseCountFromSelection > 0 ? <p className="ccic-muted">Selection details</p> : null}
-              {sortedBoxes.map((box) => {
-                const quantity = quantityFromMap(individualBoxQuantities, box.id)
-                if (quantity <= 0) return null
-                return (
-                  <div className="ccic-summary-row" key={`summary-${box.id}`}>
-                    <div className="ccic-summary-line">
-                      <span>{quantity} x {box.title}</span>
-                      <strong>{formatChristmasCardMoney(quantity * box.priceCents)}</strong>
-                    </div>
-                  </div>
-                )
-              })}
-              {customCaseCountFromSelection > 0 ? (
-                <div className="ccic-summary-line">
-                  <span>Remaining individual boxes</span>
-                  <strong>{remainingIndividualBoxes}</strong>
-                </div>
-              ) : null}
-              <div className="ccic-summary-line">
-                <span>Adjusted custom selection total</span>
-                <strong>{formatChristmasCardMoney(individualCaseAdjustedTotalCents)}</strong>
-              </div>
-              {individualCaseSavingsCents > 0 ? (
-                <p className="ccic-good-news">Case pricing applied. You saved {formatChristmasCardMoney(individualCaseSavingsCents)}.</p>
-              ) : eligibleIndividualBoxCount >= 18 && boxesUntilNextCase > 0 && caseSavingsCents > 0 ? (
-                <SavingsNudge boxesUntilNextCase={boxesUntilNextCase} savingsCents={caseSavingsCents} savingsPercent={caseSavingsPercent} />
-              ) : null}
-              {customCaseCountFromSelection > 0 && remainingIndividualBoxes > 0 ? (
-                <p className="ccic-muted">{remainingIndividualBoxes} extra boxes are priced individually.</p>
-              ) : null}
+              <label className={`ccic-package-card ${selectedPackage === 'campaign' ? 'is-selected' : ''}`}>
+                <input type="radio" name="ccic-package" checked={selectedPackage === 'campaign'} onChange={() => setSelectedPackage('campaign')} />
+                <span className="ccic-package-price">+{formatChristmasCardMoney(CHRISTMAS_CARD_ORDER_CONFIG.campaignPackageCents)}</span>
+                <strong>Campaign Package</strong>
+                <p>A fuller parish campaign package for promoting card sales.</p>
+                <ul>
+                  <li>Everything in the Promotion Package</li>
+                  <li>Five 18 x 24 promotional posters</li>
+                  <li>One email, bulletin, or social graphic</li>
+                </ul>
+              </label>
             </div>
-          ) : null}
 
-          {selectedPackage !== 'none' ? (
-            <div className="ccic-summary-section">
-              <h3>Fundraising package</h3>
-              <div className="ccic-summary-line">
-                <span>{packageLabel(selectedPackage)}</span>
-                <strong>{formatChristmasCardMoney(selectedPackageCents)}</strong>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="ccic-summary-total">
-            <div className="ccic-summary-line">
-              <span>Subtotal</span>
-              <strong>{formatChristmasCardMoney(subtotalCents)}</strong>
-            </div>
-            <div className="ccic-summary-line">
-              <span>Shipping</span>
-              <strong>Calculated after review</strong>
-            </div>
-            <div className="ccic-summary-line ccic-total-line">
-              <span>Estimated total</span>
-              <strong>{formatChristmasCardMoney(subtotalCents)}</strong>
-            </div>
-          </div>
-
-          <p className="ccic-muted">
-            {totalSelectedCases > 0 || totalSelectedBoxes > 0
-              ? `${totalSelectedCases} case${totalSelectedCases === 1 ? '' : 's'} / ${totalSelectedBoxes} box${totalSelectedBoxes === 1 ? '' : 'es'} selected.`
-              : 'Shipping calculated after order review.'}
-          </p>
-
-          <button type="button" className="ccic-primary-button" disabled>
-            Review order coming next
-          </button>
+            {selectedPackage !== 'none' ? (
+              <button type="button" className="ccic-remove-package-button" onClick={() => setSelectedPackage('none')}>
+                Remove fundraising package
+              </button>
+            ) : null}
+          </section>
         </div>
-      </aside>
-    </section>
+
+        <aside className="ccic-summary" id="order-summary" aria-label="Order summary">
+          <div className="ccic-summary-card">
+            <p className="ccic-eyebrow">Your order</p>
+            <h2>Order summary</h2>
+
+            <div className="ccic-case-progress" aria-label={`${currentCaseProgress} of ${CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase} boxes selected toward the current custom case`}>
+              <div className="ccic-case-progress-copy">
+                <strong>{currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
+                <span>boxes toward current case</span>
+              </div>
+              <div className="ccic-progress-track" aria-hidden="true">
+                <span style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
+
+            {!hasOrder ? <p className="ccic-muted">Choose a curated case or individual boxes to begin.</p> : null}
+
+            <div className="ccic-summary-scroll">
+              {selectedCuratedCases.length > 0 ? (
+                <div className="ccic-summary-section">
+                  <h3>Curated cases</h3>
+                  {selectedCuratedCases.map((entry) => (
+                    <div className="ccic-summary-line" key={entry.item.id}>
+                      <span>{entry.quantity} x {entry.item.title}</span>
+                      <strong>{formatChristmasCardMoney(entry.quantity * entry.item.priceCents)}</strong>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {customCaseCountFromSelection > 0 ? (
+                <div className="ccic-summary-section">
+                  <h3>Custom cases</h3>
+                  <div className="ccic-summary-line">
+                    <span>{customCaseCountFromSelection} x custom {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}-box case</span>
+                    <strong>{primaryCase ? formatChristmasCardMoney(customCaseCountFromSelection * primaryCase.priceCents) : formatChristmasCardMoney(0)}</strong>
+                  </div>
+                </div>
+              ) : null}
+
+              {eligibleIndividualBoxCount > 0 ? (
+                <div className="ccic-summary-section">
+                  <h3>Individual selections</h3>
+                  {sortedBoxes.map((box) => {
+                    const quantity = quantityFromMap(individualBoxQuantities, box.id)
+                    if (quantity <= 0) return null
+                    return (
+                      <div className="ccic-summary-line" key={`summary-${box.id}`}>
+                        <span>{quantity} x {box.title}</span>
+                        <strong>{formatChristmasCardMoney(quantity * box.priceCents)}</strong>
+                      </div>
+                    )
+                  })}
+                  {customCaseCountFromSelection > 0 && remainingIndividualBoxes > 0 ? (
+                    <p className="ccic-muted">{remainingIndividualBoxes} extra boxes remain individually priced.</p>
+                  ) : null}
+                  {individualCaseSavingsCents > 0 ? (
+                    <p className="ccic-good-news">Case pricing applied. You saved {formatChristmasCardMoney(individualCaseSavingsCents)}.</p>
+                  ) : eligibleIndividualBoxCount >= Math.ceil(CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase / 2) && boxesUntilNextCase > 0 && caseSavingsCents > 0 ? (
+                    <SavingsNudge boxesUntilNextCase={boxesUntilNextCase} savingsCents={caseSavingsCents} />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {selectedPackage !== 'none' ? (
+                <div className="ccic-summary-section">
+                  <h3>Fundraising package</h3>
+                  <div className="ccic-summary-line">
+                    <span>{packageLabel(selectedPackage)}</span>
+                    <strong>{formatChristmasCardMoney(selectedPackageCents)}</strong>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="ccic-summary-total">
+              <div className="ccic-summary-line">
+                <span>Subtotal</span>
+                <strong>{formatChristmasCardMoney(subtotalCents)}</strong>
+              </div>
+              <div className="ccic-summary-line">
+                <span>Shipping</span>
+                <strong>After review</strong>
+              </div>
+              <div className="ccic-summary-line ccic-total-line">
+                <span>Estimated total</span>
+                <strong>{formatChristmasCardMoney(subtotalCents)}</strong>
+              </div>
+            </div>
+
+            <p className="ccic-summary-count">
+              {totalSelectedCases > 0 || totalSelectedBoxes > 0
+                ? `${totalSelectedCases} case${totalSelectedCases === 1 ? '' : 's'} / ${totalSelectedBoxes} box${totalSelectedBoxes === 1 ? '' : 'es'} selected`
+                : CHRISTMAS_CARD_ORDER_CONFIG.shippingLabel}
+            </p>
+
+            <button type="button" className="ccic-primary-button" disabled>
+              Review order coming next
+            </button>
+          </div>
+        </aside>
+      </section>
+
+      {hasOrder ? (
+        <a className="ccic-mobile-summary" href="#order-summary">
+          <span>{totalSelectedBoxes} boxes</span>
+          <strong>{formatChristmasCardMoney(subtotalCents)}</strong>
+          <em>Review order</em>
+        </a>
+      ) : null}
+    </>
   )
 }
