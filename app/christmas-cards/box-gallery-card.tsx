@@ -20,7 +20,7 @@ export default function BoxGalleryCard({
   const thumbnailUrl = box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl
 
   return (
-    <article className="ccic-gallery-card">
+    <article className={`ccic-gallery-card ${quantity > 0 ? 'is-selected' : ''}`}>
       <CardArt
         title={box.title}
         imageUrl={thumbnailUrl}
@@ -31,14 +31,11 @@ export default function BoxGalleryCard({
         ]}
       />
       <div className="ccic-gallery-copy">
-        <p className="ccic-product-kicker">{box.sku}</p>
         <h3>{box.title}</h3>
-        <p>{box.cardsPerBox} Cards + Envelopes</p>
-        {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)} per box</strong> : null}
-        <details className="ccic-inside-preview">
-          <summary>Inside wording</summary>
-          <p>{box.insideMessage}</p>
-        </details>
+        <p className="ccic-product-kicker">{box.sku}</p>
+        <p>{box.cardsPerBox} cards and envelopes</p>
+        {showPrice ? <strong>{formatChristmasCardMoney(box.priceCents)}</strong> : null}
+        {box.isCasePricingEligible ? <span className="ccic-case-badge">Case pricing eligible</span> : null}
       </div>
       <QuantityControl label={quantityLabel} value={quantity} onChange={onQuantityChange} />
     </article>
