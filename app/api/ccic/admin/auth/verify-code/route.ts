@@ -51,10 +51,9 @@ export async function POST(request: NextRequest) {
   let code = ''
 
   try {
-    const body = request.json() as Promise<{ email?: unknown; code?: unknown }>
-    const parsedBody = await body
-    email = normalizeCcicAdminEmail(typeof parsedBody.email === 'string' ? parsedBody.email : '')
-    code = typeof parsedBody.code === 'string' ? parsedBody.code.replace(/\D/g, '') : ''
+    const body = await request.json() as { email?: unknown; code?: unknown }
+    email = normalizeCcicAdminEmail(typeof body.email === 'string' ? body.email : '')
+    code = typeof body.code === 'string' ? body.code.replace(/\D/g, '') : ''
   } catch {
     return NextResponse.json({ error: 'The login request was not valid.' }, { status: 400 })
   }
