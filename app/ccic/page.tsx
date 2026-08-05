@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import ChristmasCardsOrderBuilder from '../christmas-cards/order-builder'
+import StorefrontOrderBuilder from '../christmas-cards/storefront-order-builder'
 import CardArt from '../christmas-cards/card-art'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
 import {
@@ -79,7 +79,7 @@ export default function CcicPage() {
         </div>
       </section>
 
-      <ChristmasCardsOrderBuilder
+      <StorefrontOrderBuilder
         cases={CHRISTMAS_CARD_CURATED_CASES}
         boxes={CHRISTMAS_CARD_BOXES}
         collections={CHRISTMAS_CARD_COLLECTIONS}
