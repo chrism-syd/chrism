@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const CCIC_HOSTS = new Set(['ccic.supplies', 'www.ccic.supplies'])
 const CCIC_ROUTE_PREFIX = '/ccic'
+const PUBLIC_FILE_PATTERN = /\.[^/]+$/
 
 function getRequestHost(request: NextRequest) {
   return (
@@ -33,8 +34,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(cleanUrl, 308)
     }
 
-    // CCIC API routes already live at /api/ccic and must not be nested again.
-    if (!pathname.startsWith('/api/')) {
+    // API routes and public files already live at their root paths.
+    if (!pathname.startsWith('/api/') && !PUBLIC_FILE_PATTERN.test(pathname)) {
       const ccicUrl = request.nextUrl.clone()
       ccicUrl.pathname = pathname === '/' ? CCIC_ROUTE_PREFIX : `${CCIC_ROUTE_PREFIX}${pathname}`
 
