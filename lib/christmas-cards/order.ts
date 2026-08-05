@@ -32,6 +32,7 @@ export type CcicCalculatedOrder = {
   lines: CcicCalculatedLine[]
   regularSubtotalCents: number
   customCaseCount: number
+  customCaseSubtotalCents: number
   customCaseDiscountCents: number
   subtotalCents: number
   shippingCents: number
@@ -119,13 +120,18 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
   const individualBoxCount = individualLines.reduce((sum, line) => sum + line.quantity, 0)
   const customCaseCount = Math.floor(individualBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
   const remainingLooseBoxes = individualBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
-  const regularSubtotalCents = lines.reduce((sum, line) => sum + line.lineTotalCents, 0)
-  const standardCustomCaseRetailCents = CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase * (CHRISTMAS_CARD_BOXES[0]?.priceCents ?? 0)
-  const discountPerCustomCaseCents = Math.max(
+  const classicSubtotalCents = classicLines.reduce((sum, line) => sum + line.lineTotalCents, 0)
+  const individualRegularSubtotalCents = individualLines.reduce((sum, line) => sum + line.lineTotalCents, 0)
+  const regularSubtotalCents = classicSubtotalCents + individualRegularSubtotalCents
+  const customCaseSubtotalCents = customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents
+  const individualBoxPriceCents = CHRISTMAS_CARD_BOXES.find((item) => item.isCasePricingEligible)?.priceCents ?? 0
+  const completeCustomCasesAtRetailCents = customCaseCount
+    * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+    * individualBoxPriceCents
+  const customCaseDiscountCents = Math.max(
     0,
-    standardCustomCaseRetailCents - CHRISTMAS_CARD_ORDER_CONFIG.customCasePriceCents
+    completeCustomCasesAtRetailCents - customCaseSubtotalCents
   )
-  const customCaseDiscountCents = customCaseCount * discountPerCustomCaseCents
   const subtotalCents = regularSubtotalCents - customCaseDiscountCents
   const hasOrder = subtotalCents > 0
   const shippingCents = hasOrder && normalizedInput.fulfillmentMethod === 'shipping'
@@ -149,6 +155,7 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     lines,
     regularSubtotalCents,
     customCaseCount,
+    customCaseSubtotalCents,
     customCaseDiscountCents,
     subtotalCents,
     shippingCents,
