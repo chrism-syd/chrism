@@ -25,7 +25,7 @@ export default function BoxGalleryCard({
         title={box.title}
         imageUrl={thumbnailUrl}
         images={[
-          { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
+          { label: 'Cover', url: box.frontImageUrl ?? box.outsideImageUrl },
           { label: 'Inside', url: box.insideImageUrl },
           { label: 'Outside', url: box.outsideImageUrl },
         ]}
