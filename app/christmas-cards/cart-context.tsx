@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 
 type CartSummary = {
@@ -32,6 +32,8 @@ const CartContext = createContext<CartContextValue | null>(null)
 export function CcicCartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [summary, setSummary] = useState<CartSummary>(EMPTY_SUMMARY)
+  const openCart = useCallback(() => setIsOpen(true), [])
+  const closeCart = useCallback(() => setIsOpen(false), [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -47,12 +49,12 @@ export function CcicCartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(
     () => ({
       isOpen,
-      openCart: () => setIsOpen(true),
-      closeCart: () => setIsOpen(false),
+      openCart,
+      closeCart,
       summary,
       setSummary,
     }),
-    [isOpen, summary]
+    [closeCart, isOpen, openCart, summary]
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
