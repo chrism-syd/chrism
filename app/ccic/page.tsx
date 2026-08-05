@@ -1,6 +1,5 @@
 import Image from 'next/image'
 import StorefrontOrderBuilder from '../christmas-cards/storefront-order-builder'
-import CardArt from '../christmas-cards/card-art'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
 import {
   CHRISTMAS_CARD_BOXES,
@@ -11,6 +10,7 @@ import {
 import '../christmas-cards/storefront.css'
 import '../christmas-cards/payment-polish.css'
 import '../christmas-cards/storefront-redesign.css'
+import '../christmas-cards/storefront-header-polish.css'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
@@ -18,8 +18,6 @@ export const metadata = {
 }
 
 export default function CcicPage() {
-  const heroBoxes = CHRISTMAS_CARD_BOXES.slice(0, 4)
-
   return (
     <main className="ccic-page">
       <header className="ccic-site-header">
@@ -28,31 +26,31 @@ export default function CcicPage() {
           <Image
             src="/CCiC.png"
             alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-            width={124}
-            height={124}
+            width={176}
+            height={176}
             priority
             className="ccic-header-logo"
           />
-          <a className="ccic-header-order-link" href="#order-summary">
-            Review order
+          <a className="ccic-header-cart-link" href="#order-summary" aria-label="Review order">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
+              <circle cx="10" cy="19" r="1.25" />
+              <circle cx="17" cy="19" r="1.25" />
+            </svg>
           </a>
         </div>
       </header>
 
-      <section className="ccic-hero-gallery" aria-label="Christmas card collection preview">
-        <div className="ccic-hero-gallery-inner">
-          {heroBoxes.map((box) => (
-            <CardArt
-              key={`hero-${box.id}`}
-              title={box.title}
-              imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
-              images={[
-                { label: 'Front', url: box.frontImageUrl ?? box.outsideImageUrl },
-                { label: 'Inside', url: box.insideImageUrl },
-                { label: 'Outside', url: box.outsideImageUrl },
-              ]}
-            />
-          ))}
+      <section className="ccic-hero-image" aria-label="Christmas card collection preview">
+        <div className="ccic-hero-image-wrap">
+          <Image
+            src="/Cards_Selection_Tile.jpg"
+            alt="Selection of Celebrate Christ in Christmas greeting cards"
+            fill
+            priority
+            sizes="100vw"
+            className="ccic-hero-image-asset"
+          />
         </div>
       </section>
 
