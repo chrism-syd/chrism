@@ -1,0 +1,294 @@
+.ccic-admin-page {
+  min-height: 100vh;
+  padding: 42px;
+  background: #f5f3f1;
+  color: #202020;
+}
+
+.ccic-admin-header,
+.ccic-admin-panel,
+.ccic-admin-detail-grid {
+  width: min(1320px, 100%);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.ccic-admin-header {
+  display: flex;
+  gap: 24px;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.ccic-admin-header p,
+.ccic-admin-header h1 {
+  margin: 0;
+}
+
+.ccic-admin-header p {
+  color: #6a6460;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-header h1 {
+  margin-top: 4px;
+  font-size: clamp(34px, 5vw, 58px);
+  font-weight: 500;
+  letter-spacing: -.04em;
+}
+
+.ccic-admin-header a {
+  color: #202020;
+  font-weight: 800;
+  text-underline-offset: 3px;
+}
+
+.ccic-admin-panel {
+  padding: 28px;
+  border: 1px solid #dfdbd7;
+  background: #fff;
+}
+
+.ccic-admin-panel-heading {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.ccic-admin-panel-heading h2,
+.ccic-admin-contact-card h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.ccic-admin-panel-heading > span:not(.ccic-admin-status) {
+  color: #6a6460;
+  font-size: 13px;
+}
+
+.ccic-admin-table-wrap {
+  overflow-x: auto;
+}
+
+.ccic-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.ccic-admin-table th,
+.ccic-admin-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #ece9e6;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ccic-admin-table th {
+  color: #6a6460;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-table td a {
+  color: #202020;
+  font-weight: 800;
+  text-underline-offset: 3px;
+}
+
+.ccic-admin-table td strong,
+.ccic-admin-table td span {
+  display: block;
+}
+
+.ccic-admin-table td span {
+  margin-top: 3px;
+  color: #6a6460;
+  font-size: 12px;
+}
+
+.ccic-admin-status {
+  display: inline-flex !important;
+  width: max-content;
+  margin: 0 !important;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #eeecea;
+  color: #4d4946 !important;
+  font-size: 10px !important;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-status.is-new {
+  background: #fff3c7;
+  color: #725500 !important;
+}
+
+.ccic-admin-status.is-confirmed,
+.ccic-admin-status.is-fulfilled {
+  background: #e7f5e9;
+  color: #1d6b3a !important;
+}
+
+.ccic-admin-status.is-cancelled {
+  background: #f9e4e2;
+  color: #8a201b !important;
+}
+
+.ccic-admin-empty {
+  padding: 54px 20px;
+  text-align: center;
+}
+
+.ccic-admin-empty h2 {
+  margin: 0 0 8px;
+}
+
+.ccic-admin-empty p {
+  margin: 0;
+  color: #6a6460;
+}
+
+.ccic-admin-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.ccic-admin-detail-grid .ccic-admin-panel {
+  width: 100%;
+}
+
+.ccic-admin-order-lines {
+  border-top: 1px solid #e8e5e2;
+}
+
+.ccic-admin-order-lines > div,
+.ccic-admin-totals > div {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid #ece9e6;
+}
+
+.ccic-admin-order-lines span,
+.ccic-admin-order-lines strong,
+.ccic-admin-totals span,
+.ccic-admin-totals strong {
+  min-width: 0;
+}
+
+.ccic-admin-order-lines small {
+  display: block;
+  margin-top: 4px;
+  color: #6a6460;
+}
+
+.ccic-admin-order-lines > div > strong,
+.ccic-admin-totals > div > strong {
+  white-space: nowrap;
+}
+
+.ccic-admin-discount {
+  color: #1d6b3a;
+}
+
+.ccic-admin-totals {
+  margin-top: 18px;
+}
+
+.ccic-admin-total {
+  margin-top: 4px;
+  border-top: 1px solid #202020;
+  border-bottom: 0 !important;
+  font-size: 17px;
+}
+
+.ccic-admin-contact-card {
+  position: sticky;
+  top: 24px;
+}
+
+.ccic-admin-contact-card dl {
+  display: grid;
+  gap: 18px;
+  margin: 24px 0 0;
+}
+
+.ccic-admin-contact-card dl > div {
+  display: grid;
+  gap: 5px;
+}
+
+.ccic-admin-contact-card dt {
+  color: #6a6460;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-contact-card dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ccic-admin-contact-card dd span {
+  display: block;
+}
+
+.ccic-admin-contact-card a {
+  color: #202020;
+  text-underline-offset: 3px;
+}
+
+.ccic-admin-email-error {
+  margin: 24px 0 0;
+  padding: 14px;
+  border: 1px solid #d69a95;
+  background: #fff4f3;
+  color: #8a201b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .ccic-admin-page {
+    padding: 24px;
+  }
+
+  .ccic-admin-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ccic-admin-contact-card {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .ccic-admin-page {
+    padding: 18px 14px;
+  }
+
+  .ccic-admin-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ccic-admin-panel {
+    padding: 20px;
+  }
+}

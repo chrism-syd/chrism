@@ -1,0 +1,129 @@
+.ccic-admin-login-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 32px 20px;
+  background: #f5f3f1;
+  color: #202020;
+}
+
+.ccic-admin-login-card {
+  width: min(520px, 100%);
+  padding: clamp(30px, 7vw, 58px);
+  border: 1px solid #dfdbd7;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(30, 26, 22, .09);
+}
+
+.ccic-admin-login-logo {
+  display: inline-flex;
+  margin-bottom: 22px;
+}
+
+.ccic-admin-login-heading p,
+.ccic-admin-login-heading h1,
+.ccic-admin-login-heading span {
+  margin: 0;
+}
+
+.ccic-admin-login-heading p {
+  color: #8a4d13;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.ccic-admin-login-heading h1 {
+  margin: 7px 0 10px;
+  font-size: clamp(30px, 6vw, 43px);
+  font-weight: 500;
+  letter-spacing: -.035em;
+}
+
+.ccic-admin-login-heading span {
+  color: #6a6460;
+  line-height: 1.55;
+}
+
+.ccic-admin-login-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 30px;
+  text-align: left;
+}
+
+.ccic-admin-login-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.ccic-admin-login-form label > span {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ccic-admin-login-form input {
+  width: 100%;
+  min-height: 50px;
+  padding: 11px 13px;
+  border: 1px solid #cbc6c2;
+  border-radius: 3px;
+  background: #fff;
+  color: #202020;
+  font: inherit;
+}
+
+.ccic-admin-login-form input:focus {
+  border-color: #202020;
+  outline: 2px solid rgba(32, 32, 32, .12);
+  outline-offset: 1px;
+}
+
+.ccic-admin-login-form button {
+  min-height: 50px;
+  padding: 12px 18px;
+  border: 1px solid #202020;
+  border-radius: 3px;
+  background: #202020;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.ccic-admin-login-form button:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
+.ccic-admin-login-form .ccic-admin-login-secondary {
+  background: #fff;
+  color: #202020;
+}
+
+.ccic-admin-login-sent {
+  margin: -2px 0 2px;
+  color: #6a6460;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.ccic-admin-login-message {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #bcdac4;
+  background: #f1faf3;
+  color: #1d6b3a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ccic-admin-login-message.is-error {
+  border-color: #d69a95;
+  background: #fff4f3;
+  color: #8a201b;
+}

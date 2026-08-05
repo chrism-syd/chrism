@@ -13,6 +13,7 @@ import '../christmas-cards/payment-polish.css'
 import '../christmas-cards/storefront-redesign.css'
 import '../christmas-cards/storefront-header-polish.css'
 import '../christmas-cards/storefront-cart-drawer.css'
+import '../christmas-cards/storefront-review-polish.css'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
