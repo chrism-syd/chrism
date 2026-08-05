@@ -44,9 +44,9 @@ const SCOPE_OPTIONS: Array<{
   label: string
   statuses: CcicOrderStatus[] | null
 }> = [
+  { value: 'open', label: 'All open orders', statuses: ['received', 'paid', 'packed'] },
   { value: 'ready', label: 'Ready to pack', statuses: ['paid'] },
   { value: 'packed', label: 'Packed, awaiting fulfilment', statuses: ['packed'] },
-  { value: 'open', label: 'All open orders', statuses: ['received', 'paid', 'packed'] },
   { value: 'shipped', label: 'Shipped orders', statuses: ['shipped'] },
   { value: 'all', label: 'All orders', statuses: null },
 ]
@@ -77,7 +77,7 @@ export default async function CcicPackingListPage({
   const requestedScope = stringParam(params.scope)
   const scope = SCOPE_OPTIONS.some((option) => option.value === requestedScope)
     ? requestedScope as PackingScope
-    : 'ready'
+    : 'open'
   const scopeOption = SCOPE_OPTIONS.find((option) => option.value === scope) ?? SCOPE_OPTIONS[0]
 
   const admin = createAdminClient()
