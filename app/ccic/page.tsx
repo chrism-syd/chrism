@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import StorefrontOrderBuilder from '../christmas-cards/storefront-order-builder'
+import OtherCardsPlaceholder from '../christmas-cards/other-cards-placeholder'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
 import { CcicCartButton, CcicCartProvider } from '../christmas-cards/cart-context'
 import {
@@ -9,19 +10,25 @@ import {
   CHRISTMAS_CARD_CURATED_CASES,
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
+import { getCcicStoreAvailabilityMap } from '@/lib/christmas-cards/inventory'
 import '../christmas-cards/storefront.css'
 import '../christmas-cards/payment-polish.css'
 import '../christmas-cards/storefront-redesign.css'
 import '../christmas-cards/storefront-header-polish.css'
 import '../christmas-cards/storefront-cart-drawer.css'
 import '../christmas-cards/storefront-review-polish.css'
+import '../christmas-cards/storefront-inventory.css'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Christmas Cards Made for Ministry | Celebrate Christ in Christmas',
   description: 'Meaningful Christmas cards for faith communities, churches, parishes, and ministries.',
 }
 
-export default function CcicPage() {
+export default async function CcicPage() {
+  const inventoryAvailability = await getCcicStoreAvailabilityMap()
+
   return (
     <CcicCartProvider>
       <main className="ccic-page">
@@ -80,7 +87,10 @@ export default function CcicPage() {
           cases={CHRISTMAS_CARD_CURATED_CASES}
           boxes={CHRISTMAS_CARD_BOXES}
           collections={CHRISTMAS_CARD_COLLECTIONS}
+          inventoryAvailability={inventoryAvailability}
         />
+
+        <OtherCardsPlaceholder />
 
         <footer className="ccic-footer ccic-footer-powered">
           <div className="ccic-footer-brand">

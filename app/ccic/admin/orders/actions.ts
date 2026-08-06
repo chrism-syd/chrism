@@ -51,8 +51,10 @@ export async function updateCcicOrderStatus(formData: FormData) {
     redirect(`/ccic/admin/orders/${orderId}?error=status-update`)
   }
 
+  revalidatePath('/ccic')
   revalidatePath('/ccic/admin/orders')
   revalidatePath(`/ccic/admin/orders/${orderId}`)
   revalidatePath('/ccic/admin/packing-list')
+  revalidatePath('/ccic/admin/store-control')
   redirect(`/ccic/admin/orders/${orderId}?updated=1`)
 }

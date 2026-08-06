@@ -1,0 +1,148 @@
+.ccic-store-control-summary {
+  display: grid;
+  width: min(1320px, 100%);
+  margin: 0 auto 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ccic-store-control-summary article {
+  display: grid;
+  gap: 4px;
+  padding: 20px;
+  border: 1px solid #dfdbd7;
+  background: #fff;
+}
+
+.ccic-store-control-summary strong {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.ccic-store-control-summary span {
+  color: #6a6460;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.ccic-store-control-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  gap: 30px;
+  margin-bottom: 20px;
+}
+
+.ccic-store-control-intro h2,
+.ccic-store-control-intro p {
+  margin: 0;
+}
+
+.ccic-store-control-intro h2 {
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.ccic-store-control-intro p {
+  color: #6a6460;
+  line-height: 1.55;
+}
+
+.ccic-store-control-table td {
+  vertical-align: middle;
+}
+
+.ccic-store-control-table td:nth-child(2),
+.ccic-store-control-table td:nth-child(3),
+.ccic-store-control-table td:nth-child(4) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ccic-store-inline-form {
+  display: flex;
+  min-width: 190px;
+  gap: 8px;
+  align-items: center;
+}
+
+.ccic-store-inline-form input {
+  width: 94px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #cfcac5;
+  background: #fff;
+  color: #202020;
+  font: inherit;
+}
+
+.ccic-store-inline-form button,
+.ccic-store-link-button {
+  appearance: none;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #202020;
+  background: #202020;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ccic-store-link-button {
+  min-height: auto;
+  margin-top: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #202020;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ccic-store-status {
+  display: inline-flex !important;
+  width: max-content;
+  margin: 0 !important;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px !important;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.ccic-store-status.is-available {
+  background: #e7f5e9;
+  color: #1d6b3a !important;
+}
+
+.ccic-store-status.is-sold-out,
+.ccic-store-status.is-off {
+  background: #f9e4e2;
+  color: #8a201b !important;
+}
+
+.ccic-store-muted {
+  color: #7b746f !important;
+  font-size: 12px !important;
+}
+
+@media (max-width: 900px) {
+  .ccic-store-control-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ccic-store-control-intro {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .ccic-store-control-summary {
+    grid-template-columns: 1fr;
+  }
+}

@@ -157,6 +157,7 @@ export default async function CcicOrdersPage({
           <h1>Orders</h1>
         </div>
         <div className="ccic-admin-header-actions">
+          <Link href="/ccic/admin/store-control">Store control</Link>
           <Link href="/ccic/admin/packing-list">Packing list</Link>
           <Link href="/ccic">View storefront</Link>
         </div>
