@@ -7,7 +7,7 @@ export default function OtherCardsPlaceholder() {
         <div className="ccic-collection-heading">
           <h2 id="other-cards-title">Other Cards</h2>
           <p>
-            Left-over card stock from previous campaigns. Sold by the box for $9.00 and not included in case pricing.
+            Sold by the box for $9.00 and not included in case pricing.
           </p>
         </div>
 
