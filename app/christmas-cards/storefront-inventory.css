@@ -1,18 +1,35 @@
-.ccic-sold-out-pill {
+.ccic-sold-out-pill,
+.ccic-coming-soon-pill {
   display: inline-flex;
   width: max-content;
   align-items: center;
   justify-content: center;
   min-height: 42px;
   padding: 10px 16px;
-  border: 1px solid #7a211c;
   border-radius: 999px;
-  background: #fff4f3;
-  color: #7a211c;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: .08em;
   text-transform: uppercase;
+}
+
+.ccic-sold-out-pill {
+  border: 1px solid #7a211c;
+  background: #fff4f3;
+  color: #7a211c;
+}
+
+.ccic-coming-soon-pill {
+  border: 1px solid #b6afa9;
+  background: #f6f3f0;
+  color: #625c57;
+}
+
+.ccic-low-stock-count {
+  margin: 8px 0 0;
+  color: #7a211c;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .ccic-gallery-card.is-sold-out {
@@ -21,4 +38,43 @@
 
 .ccic-gallery-card.is-sold-out .ccic-gallery-copy > strong {
   color: #6a6460;
+}
+
+.ccic-other-cards-shell {
+  padding: 0 24px 72px;
+}
+
+.ccic-other-cards-inner {
+  width: min(1320px, 100%);
+  margin: 0 auto;
+}
+
+.ccic-other-card-placeholder {
+  border-style: dashed;
+}
+
+.ccic-other-card-placeholder-art {
+  display: grid;
+  min-height: 270px;
+  place-items: center;
+  border-bottom: 1px dashed #d3cec9;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .84), rgba(245, 241, 237, .84)),
+    repeating-linear-gradient(45deg, #f7f4f1 0, #f7f4f1 12px, #eee9e4 12px, #eee9e4 24px);
+  color: #7a736d;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 720px) {
+  .ccic-other-cards-shell {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .ccic-other-card-placeholder-art {
+    min-height: 220px;
+  }
 }
