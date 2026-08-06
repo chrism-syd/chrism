@@ -73,12 +73,14 @@
 }
 
 .ccic-other-cards-shell {
-  padding: 0 24px 72px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 52px 32px;
 }
 
 .ccic-other-cards-inner {
-  width: min(1320px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 .ccic-other-card-placeholder {
@@ -100,17 +102,19 @@
   text-transform: uppercase;
 }
 
+@media (max-width: 860px) {
+  .ccic-other-cards-shell {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}
+
 @media (max-width: 720px) {
   .ccic-custom-case-banner {
     grid-template-columns: 1fr;
     gap: 24px;
     min-height: 0;
     padding: 36px 24px;
-  }
-
-  .ccic-other-cards-shell {
-    padding-right: 16px;
-    padding-left: 16px;
   }
 
   .ccic-other-card-placeholder-art {
