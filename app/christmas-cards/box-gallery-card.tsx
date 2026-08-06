@@ -21,6 +21,8 @@ export default function BoxGalleryCard({
 }) {
   const thumbnailUrl = box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl
   const isSoldOut = maxQuantity <= 0
+  const remainingQuantity = Math.max(0, maxQuantity - quantity)
+  const showLowStock = maxQuantity > 0 && maxQuantity < 100
 
   return (
     <article className={`ccic-gallery-card ${quantity > 0 ? 'is-selected' : ''}${isSoldOut ? ' is-sold-out' : ''}`}>
@@ -41,12 +43,21 @@ export default function BoxGalleryCard({
       {isSoldOut ? (
         <span className="ccic-sold-out-pill" role="status">Sold out</span>
       ) : (
-        <QuantityControl
-          label={quantityLabel}
-          value={quantity}
-          max={maxQuantity}
-          onChange={onQuantityChange}
-        />
+        <>
+          <QuantityControl
+            label={quantityLabel}
+            value={quantity}
+            max={maxQuantity}
+            onChange={onQuantityChange}
+          />
+          {showLowStock ? (
+            <p className="ccic-low-stock-count" aria-live="polite">
+              {remainingQuantity > 0
+                ? `Only ${remainingQuantity} left`
+                : 'All available boxes are in your cart'}
+            </p>
+          ) : null}
+        </>
       )}
     </article>
   )
