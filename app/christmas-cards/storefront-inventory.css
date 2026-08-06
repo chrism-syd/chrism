@@ -40,6 +40,38 @@
   color: #6a6460;
 }
 
+.ccic-custom-case-banner {
+  grid-template-columns: minmax(280px, .8fr) minmax(0, 1.2fr);
+  gap: 48px;
+  min-height: 220px;
+  padding: 48px 42px;
+}
+
+.ccic-custom-case-banner > div:first-child span,
+.ccic-custom-case-banner > div:first-child strong {
+  font-size: clamp(28px, 3.4vw, 42px);
+  font-weight: 500;
+  letter-spacing: -.02em;
+  line-height: 1.08;
+  text-transform: none;
+}
+
+.ccic-custom-case-banner p {
+  margin-top: 12px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.ccic-custom-case-banner .ccic-custom-unit-price {
+  font-size: .92em;
+  font-weight: 400;
+}
+
+.ccic-collection:last-child {
+  border-bottom: 1px solid var(--ccic-line);
+}
+
 .ccic-other-cards-shell {
   padding: 0 24px 72px;
 }
@@ -69,6 +101,13 @@
 }
 
 @media (max-width: 720px) {
+  .ccic-custom-case-banner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    min-height: 0;
+    padding: 36px 24px;
+  }
+
   .ccic-other-cards-shell {
     padding-right: 16px;
     padding-left: 16px;
