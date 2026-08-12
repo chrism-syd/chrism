@@ -138,6 +138,7 @@ function buildOrderEmail(args: {
     ? `\nCustom Case pricing: -${formatChristmasCardMoney(calculated.customCaseDiscountCents)}`
     : ''
   const totalLabel = formatChristmasCardMoney(calculated.totalCents)
+  const thankYouMessage = 'Thank you for supporting the charitable efforts of the Knights of Columbus, and for helping ensure that Jesus remains the reason we celebrate the season of Christmas.'
 
   const htmlContent = `
     <div style="font-family:Arial,sans-serif;color:#202020;line-height:1.55;max-width:680px;margin:0 auto;">
@@ -160,10 +161,10 @@ function buildOrderEmail(args: {
         ${discountHtml}
         <tr><td style="padding:10px 0 4px;">Subtotal</td><td style="padding:10px 0 4px;text-align:right;">${escapeHtml(formatChristmasCardMoney(calculated.subtotalCents))}</td></tr>
         <tr><td style="padding:4px 0;">${fulfillmentLabel}</td><td style="padding:4px 0;text-align:right;">${escapeHtml(formatChristmasCardMoney(calculated.shippingCents))}</td></tr>
-        <tr><td style="padding:12px 0;border-top:1px solid #202020;font-weight:bold;">Estimated total</td><td style="padding:12px 0;border-top:1px solid #202020;text-align:right;font-weight:bold;">${escapeHtml(totalLabel)}</td></tr>
+        <tr><td style="padding:12px 0;border-top:1px solid #202020;font-weight:bold;">Total</td><td style="padding:12px 0;border-top:1px solid #202020;text-align:right;font-weight:bold;">${escapeHtml(totalLabel)}</td></tr>
       </table>
       <p><strong>Fulfilment:</strong> ${fulfillmentLabel}</p>
-      <p><strong>E-transfer payment:</strong> Please send an e-transfer for <strong>${escapeHtml(totalLabel)}</strong> when your order is placed. Send payment to <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>${escapeHtml(args.orderNumber)}</strong> in the e-transfer message.</p>
+      <p><strong>E-transfer payment:</strong> Please send an e-transfer for <strong>${escapeHtml(totalLabel)}</strong> to treasurer@kofc7689.org and include your order number <strong>${escapeHtml(args.orderNumber)}</strong> in the e-transfer message.</p>
       <p><strong>Cheque payment:</strong><br>
         <strong>Make cheque payable to:</strong><br>
         Knights of Columbus #7689<br><br>
@@ -171,9 +172,9 @@ function buildOrderEmail(args: {
         Kerry Mendonca, CCIC<br>
         37 White Ash Drive<br>
         Markham, ON L3P 4N1<br><br>
-        Please include your CCIC order number <strong>${escapeHtml(args.orderNumber)}</strong> in the Memo field.
+        Please include your order number <strong>${escapeHtml(args.orderNumber)}</strong> in the memo field.
       </p>
-      <p>No payment is collected through the website.</p>
+      <p style="margin-top:28px;padding-top:20px;border-top:1px solid #e5e5e5;">${escapeHtml(thankYouMessage)}</p>
     </div>
   `
 
@@ -191,10 +192,10 @@ function buildOrderEmail(args: {
     '',
     `Subtotal: ${formatChristmasCardMoney(calculated.subtotalCents)}`,
     `${fulfillmentLabel}: ${formatChristmasCardMoney(calculated.shippingCents)}`,
-    `Estimated total: ${totalLabel}`,
+    `Total: ${totalLabel}`,
     address ? `Address:\n${address}` : '',
     '',
-    `E-transfer payment: Please send an e-transfer for ${totalLabel} when your order is placed. Send payment to treasurer@kofc7689.org and include your order number ${args.orderNumber} in the e-transfer message.`,
+    `E-transfer payment: Please send an e-transfer for ${totalLabel} to treasurer@kofc7689.org and include your order number ${args.orderNumber} in the e-transfer message.`,
     '',
     'Cheque payment:',
     'Make cheque payable to:',
@@ -205,9 +206,9 @@ function buildOrderEmail(args: {
     '37 White Ash Drive',
     'Markham, ON L3P 4N1',
     '',
-    `Please include your CCIC order number ${args.orderNumber} in the Memo field.`,
+    `Please include your order number ${args.orderNumber} in the memo field.`,
     '',
-    'No payment is collected through the website.',
+    thankYouMessage,
   ].filter(Boolean).join('\n')
 
   return { htmlContent, textContent, calculated }
