@@ -91,6 +91,21 @@
   width: min(780px, 100%);
 }
 
+.ccic-payment-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2px;
+}
+
+.ccic-payment-header {
+  justify-content: center;
+  text-align: center;
+}
+
+.ccic-payment-header > div {
+  width: 100%;
+}
+
 .ccic-payment-options-list {
   display: grid;
   gap: 14px;
@@ -117,6 +132,11 @@
 .ccic-payment-options-list p {
   color: #4c3b2e;
   line-height: 1.5;
+}
+
+.ccic-payment-options-list a {
+  color: #8a4d13;
+  font-weight: 800;
 }
 
 .ccic-package-grid {
