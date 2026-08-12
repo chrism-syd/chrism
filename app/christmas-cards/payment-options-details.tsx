@@ -41,7 +41,9 @@ export default function PaymentOptionsDetails() {
               </section>
               <section>
                 <h3>Cheque</h3>
-                <p>Pay by cheque after your order is confirmed. Payee and mailing details will be included with your confirmation.</p>
+                <p>
+                  Cheques can be made payable to Knights of Columbus Council #7689. Please include your CCIC order number in the Memo field.
+                </p>
               </section>
             </div>
           </div>
