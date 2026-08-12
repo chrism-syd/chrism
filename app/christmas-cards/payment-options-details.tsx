@@ -42,8 +42,16 @@ export default function PaymentOptionsDetails() {
               <section>
                 <h3>Cheque</h3>
                 <p>
-                  Cheques can be made payable to Knights of Columbus Council #7689. Please include your CCIC order number in the Memo field.
+                  <strong>Make cheque payable to:</strong><br />
+                  Knights of Columbus #7689
                 </p>
+                <p>
+                  <strong>Mail to:</strong><br />
+                  Kerry Mendonca, CCIC<br />
+                  37 White Ash Drive<br />
+                  Markham, ON L3P 4N1
+                </p>
+                <p>Please include your CCIC order number in the Memo field.</p>
               </section>
             </div>
           </div>
