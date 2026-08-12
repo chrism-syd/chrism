@@ -38,6 +38,19 @@ function getBrevoConfig() {
   }
 }
 
+function getSenderForMessage(subject: string, defaultSender: BrevoRecipient): BrevoRecipient {
+  const isCcicOrderEmail = subject.startsWith('CCIC order request ') || subject.startsWith('New CCIC order ')
+
+  if (isCcicOrderEmail) {
+    return {
+      email: 'orders@ccic.supplies',
+      name: 'CCIC',
+    }
+  }
+
+  return defaultSender
+}
+
 export async function sendBrevoTransactionalEmail(args: SendBrevoTransactionalEmailArgs) {
   const config = getBrevoConfig()
 
@@ -53,7 +66,7 @@ export async function sendBrevoTransactionalEmail(args: SendBrevoTransactionalEm
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      sender: config.sender,
+      sender: getSenderForMessage(args.subject, config.sender),
       to: args.to.map((recipient) => ({
         email: recipient.email,
         ...(recipient.name ? { name: recipient.name } : {}),
