@@ -16,6 +16,7 @@ import {
 import {
   CCIC_ORDER_DRAFT_STORAGE_KEY,
   calculateCcicOrder,
+  parseCcicOrderDraftInput,
   type CcicFulfillmentMethod,
   type CcicOrderDraftInput,
 } from '@/lib/christmas-cards/order'
@@ -35,6 +36,17 @@ type Props = {
 }
 
 type QuantityMap = Record<string, number>
+
+function readStoredDraft() {
+  const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
+  if (!storedDraft) return null
+
+  try {
+    return parseCcicOrderDraftInput(JSON.parse(storedDraft))
+  } catch {
+    return null
+  }
+}
 
 export default function StorefrontOrderBuilder({
   cases,
@@ -92,6 +104,19 @@ export default function StorefrontOrderBuilder({
 
     return maxCases
   }
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const storedDraft = readStoredDraft()
+      if (!storedDraft) return
+
+      setCaseQuantities(storedDraft.caseQuantities)
+      setBoxQuantities(storedDraft.boxQuantities)
+      setFulfillmentMethod(storedDraft.fulfillmentMethod)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [])
 
   useEffect(() => {
     setSummary({
