@@ -20,6 +20,17 @@ function fieldValue(formData: FormData, key: string) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function readStoredDraft() {
+  const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
+  if (!storedDraft) return null
+
+  try {
+    return parseCcicOrderDraftInput(JSON.parse(storedDraft))
+  } catch {
+    return null
+  }
+}
+
 export default function ReviewOrderForm() {
   const [draftInput, setDraftInput] = useState<CcicOrderDraftInput | null | undefined>(undefined)
   const [submitting, setSubmitting] = useState(false)
@@ -27,17 +38,11 @@ export default function ReviewOrderForm() {
   const [result, setResult] = useState<SubmissionResult | null>(null)
 
   useEffect(() => {
-    const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
-    if (!storedDraft) {
-      setDraftInput(null)
-      return
-    }
+    const timeoutId = window.setTimeout(() => {
+      setDraftInput(readStoredDraft())
+    }, 0)
 
-    try {
-      setDraftInput(parseCcicOrderDraftInput(JSON.parse(storedDraft)))
-    } catch {
-      setDraftInput(null)
-    }
+    return () => window.clearTimeout(timeoutId)
   }, [])
 
   const calculatedOrder = useMemo(
