@@ -1,0 +1,71 @@
+.ccic-custom-case-banner {
+  grid-template-columns: minmax(0, 1fr) 230px;
+}
+
+.ccic-custom-case-banner > div:first-child {
+  order: 2;
+  text-align: right;
+}
+
+.ccic-custom-case-banner > div:first-child span,
+.ccic-custom-case-banner > div:first-child strong {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  line-height: 1.35;
+}
+
+.ccic-custom-case-banner > div:last-child {
+  order: 1;
+}
+
+.ccic-custom-case-banner > div:last-child strong {
+  display: block;
+  font-size: clamp(28px, 3.4vw, 42px);
+  font-weight: 500;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.ccic-support-banner {
+  margin-top: 64px;
+  padding: 44px 32px;
+  background: #f5eeee;
+  text-align: center;
+}
+
+.ccic-support-banner p {
+  max-width: 900px;
+  margin: 0 auto;
+  color: #202020;
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.015em;
+}
+
+.ccic-support-banner + .ccic-footer {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .ccic-custom-case-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .ccic-custom-case-banner > div:first-child,
+  .ccic-custom-case-banner > div:last-child {
+    order: initial;
+    text-align: left;
+  }
+
+  .ccic-custom-case-banner > div:last-child {
+    order: -1;
+  }
+
+  .ccic-support-banner {
+    margin-top: 48px;
+    padding: 36px 22px;
+  }
+}
