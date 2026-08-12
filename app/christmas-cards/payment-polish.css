@@ -113,7 +113,12 @@
 }
 
 .ccic-payment-header h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: clamp(28px, 3.4vw, 42px);
+  font-weight: 500;
   line-height: 1.05;
+  letter-spacing: -.02em;
 }
 
 .ccic-payment-options-list {
@@ -158,9 +163,19 @@
   margin-top: 4px;
 }
 
-.ccic-payment-options-list a {
+.ccic-payment-options-list .ccic-cheque-detail {
+  line-height: 1.4;
+}
+
+.ccic-payment-options-list .ccic-cheque-detail strong {
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.ccic-payment-email {
   color: #8a4d13;
   font-weight: 800;
+  user-select: text;
 }
 
 .ccic-package-grid {
