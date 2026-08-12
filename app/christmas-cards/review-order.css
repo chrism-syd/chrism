@@ -228,12 +228,69 @@
   text-align: center;
 }
 
+.ccic-review-success {
+  width: min(900px, calc(100% - 48px));
+}
+
 .ccic-review-primary-link {
   margin-top: 16px;
 }
 
 .ccic-review-order-number {
   font-size: 18px;
+}
+
+.ccic-review-payment-details {
+  margin: 34px auto 16px;
+  padding: 28px;
+  border: 1px solid #e1ddda;
+  background: #faf9f8;
+  text-align: left;
+}
+
+.ccic-review-payment-heading {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.ccic-review-payment-heading h2 {
+  margin: 4px 0 0;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+}
+
+.ccic-review-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.ccic-review-payment-grid section {
+  padding: 20px;
+  border: 1px solid #e8e5e2;
+  background: #fff;
+}
+
+.ccic-review-payment-grid h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+.ccic-review-payment-grid p {
+  margin: 0 0 12px;
+  color: #4f4a47;
+  line-height: 1.55;
+}
+
+.ccic-review-payment-grid p:last-child {
+  margin-bottom: 0;
+}
+
+.ccic-review-payment-grid a {
+  color: #202020;
+  font-weight: 700;
 }
 
 @media (max-width: 900px) {
@@ -258,7 +315,8 @@
     padding: 22px;
   }
 
-  .ccic-review-fields {
+  .ccic-review-fields,
+  .ccic-review-payment-grid {
     grid-template-columns: 1fr;
   }
 
@@ -273,5 +331,9 @@
   .ccic-review-actions {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .ccic-review-payment-details {
+    padding: 20px 16px;
   }
 }
