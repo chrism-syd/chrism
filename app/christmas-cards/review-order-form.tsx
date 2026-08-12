@@ -113,6 +113,8 @@ export default function ReviewOrderForm() {
   }
 
   if (result) {
+    const totalLabel = formatChristmasCardMoney(calculatedOrder.totalCents)
+
     return (
       <section className="ccic-review-success">
         <p className="ccic-eyebrow">Order received</p>
@@ -120,9 +122,42 @@ export default function ReviewOrderForm() {
         <p className="ccic-review-order-number">Order number: <strong>{result.orderNumber}</strong></p>
         <p>
           {result.confirmationEmailSent
-            ? 'A copy of your order has been emailed to you. We will review it and follow up with payment and fulfilment details.'
-            : 'Your order was saved successfully. We will review it and follow up with payment and fulfilment details.'}
+            ? 'A copy of your order and these payment instructions has been emailed to you.'
+            : 'Your order was saved successfully. Please keep the payment instructions below for your records.'}
         </p>
+
+        <div className="ccic-review-payment-details">
+          <div className="ccic-review-payment-heading">
+            <p className="ccic-eyebrow">Payment options</p>
+            <h2>Choose what works best</h2>
+          </div>
+
+          <div className="ccic-review-payment-grid">
+            <section>
+              <h3>E-transfer</h3>
+              <p>
+                Please send an e-transfer for <strong>{totalLabel}</strong> when your order is placed. Send payment to{' '}
+                <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>{result.orderNumber}</strong> in the e-transfer message.
+              </p>
+            </section>
+
+            <section>
+              <h3>Cheque</h3>
+              <p>
+                <strong>Make cheque payable to:</strong><br />
+                Knights of Columbus #7689
+              </p>
+              <p>
+                <strong>Mail to:</strong><br />
+                Kerry Mendonca, CCIC<br />
+                37 White Ash Drive<br />
+                Markham, ON L3P 4N1
+              </p>
+              <p>Please include your CCIC order number <strong>{result.orderNumber}</strong> in the Memo field.</p>
+            </section>
+          </div>
+        </div>
+
         <Link className="ccic-review-primary-link" href="/ccic">Return to the CCIC collection</Link>
       </section>
     )
