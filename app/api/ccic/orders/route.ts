@@ -144,6 +144,14 @@ function buildOrderEmail(args: {
       <h1 style="font-size:28px;margin:0 0 8px;">CCIC order request received</h1>
       <p style="margin:0 0 22px;">Order <strong>${escapeHtml(args.orderNumber)}</strong></p>
       <p>Thank you, ${escapeHtml(args.contact.contactName)}. We received the Christmas card order request for <strong>${escapeHtml(args.contact.organizationName)}</strong>.</p>
+      <div style="margin:22px 0;padding:16px;border:1px solid #e5e5e5;background:#fafafa;">
+        <p style="margin:0 0 8px;font-weight:bold;">Contact details</p>
+        <p style="margin:0;"><strong>Name:</strong> ${escapeHtml(args.contact.contactName)}</p>
+        <p style="margin:0;"><strong>Organization:</strong> ${escapeHtml(args.contact.organizationName)}</p>
+        <p style="margin:0;"><strong>Email:</strong> <a href="mailto:${escapeHtml(args.contact.email)}">${escapeHtml(args.contact.email)}</a></p>
+        <p style="margin:0;"><strong>Phone:</strong> ${escapeHtml(args.contact.phone)}</p>
+        ${address ? `<p style="margin:8px 0 0;"><strong>Shipping address:</strong><br>${escapeHtml(address).replaceAll('\n', '<br>')}</p>` : ''}
+      </div>
       <table style="width:100%;border-collapse:collapse;margin:22px 0;">
         ${lineRowsHtml}
         ${discountHtml}
@@ -152,7 +160,6 @@ function buildOrderEmail(args: {
         <tr><td style="padding:12px 0;border-top:1px solid #202020;font-weight:bold;">Estimated total</td><td style="padding:12px 0;border-top:1px solid #202020;text-align:right;font-weight:bold;">${escapeHtml(totalLabel)}</td></tr>
       </table>
       <p><strong>Fulfilment:</strong> ${fulfillmentLabel}</p>
-      ${address ? `<p><strong>Address:</strong><br>${escapeHtml(address).replaceAll('\n', '<br>')}</p>` : ''}
       <p><strong>E-transfer payment:</strong> Please send an e-transfer for <strong>${escapeHtml(totalLabel)}</strong> when your order is placed. Send payment to <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>${escapeHtml(args.orderNumber)}</strong> in the e-transfer message.</p>
       <p>No payment is collected through the website.</p>
     </div>
