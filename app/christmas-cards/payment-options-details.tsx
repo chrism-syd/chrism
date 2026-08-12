@@ -36,22 +36,22 @@ export default function PaymentOptionsDetails() {
                 <h3>E-transfer</h3>
                 <p>
                   Please send an e-transfer for the amount of your order when your order is placed. Send payment to{' '}
-                  <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number in the e-transfer message.
+                  <strong className="ccic-payment-email">treasurer@kofc7689.org</strong> and include your order number in the e-transfer message.
                 </p>
               </section>
               <section>
                 <h3>Cheque</h3>
-                <p>
+                <p className="ccic-cheque-detail">
                   <strong>Make cheque payable to:</strong><br />
                   Knights of Columbus #7689
                 </p>
-                <p>
+                <p className="ccic-cheque-detail">
                   <strong>Mail to:</strong><br />
                   Kerry Mendonca, CCIC<br />
                   37 White Ash Drive<br />
                   Markham, ON L3P 4N1
                 </p>
-                <p>Please include your CCIC order number in the Memo field.</p>
+                <p>Please include your order number in the memo field.</p>
               </section>
             </div>
           </div>
