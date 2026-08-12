@@ -164,7 +164,15 @@ function buildOrderEmail(args: {
       </table>
       <p><strong>Fulfilment:</strong> ${fulfillmentLabel}</p>
       <p><strong>E-transfer payment:</strong> Please send an e-transfer for <strong>${escapeHtml(totalLabel)}</strong> when your order is placed. Send payment to <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>${escapeHtml(args.orderNumber)}</strong> in the e-transfer message.</p>
-      <p><strong>Cheque payment:</strong> Cheques can be made payable to <strong>Knights of Columbus Council #7689</strong>. Please include your CCIC order number <strong>${escapeHtml(args.orderNumber)}</strong> in the Memo field.</p>
+      <p><strong>Cheque payment:</strong><br>
+        <strong>Make cheque payable to:</strong><br>
+        Knights of Columbus #7689<br><br>
+        <strong>Mail to:</strong><br>
+        Kerry Mendonca, CCIC<br>
+        37 White Ash Drive<br>
+        Markham, ON L3P 4N1<br><br>
+        Please include your CCIC order number <strong>${escapeHtml(args.orderNumber)}</strong> in the Memo field.
+      </p>
       <p>No payment is collected through the website.</p>
     </div>
   `
@@ -187,7 +195,18 @@ function buildOrderEmail(args: {
     address ? `Address:\n${address}` : '',
     '',
     `E-transfer payment: Please send an e-transfer for ${totalLabel} when your order is placed. Send payment to treasurer@kofc7689.org and include your order number ${args.orderNumber} in the e-transfer message.`,
-    `Cheque payment: Cheques can be made payable to Knights of Columbus Council #7689. Please include your CCIC order number ${args.orderNumber} in the Memo field.`,
+    '',
+    'Cheque payment:',
+    'Make cheque payable to:',
+    'Knights of Columbus #7689',
+    '',
+    'Mail to:',
+    'Kerry Mendonca, CCIC',
+    '37 White Ash Drive',
+    'Markham, ON L3P 4N1',
+    '',
+    `Please include your CCIC order number ${args.orderNumber} in the Memo field.`,
+    '',
     'No payment is collected through the website.',
   ].filter(Boolean).join('\n')
 
