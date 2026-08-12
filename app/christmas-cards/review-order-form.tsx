@@ -136,7 +136,7 @@ export default function ReviewOrderForm() {
             <section>
               <h3>E-transfer</h3>
               <p>
-                Please send an e-transfer for <strong>{totalLabel}</strong> when your order is placed. Send payment to{' '}
+                Please send an e-transfer for <strong>{totalLabel}</strong> to{' '}
                 <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>{result.orderNumber}</strong> in the e-transfer message.
               </p>
             </section>
