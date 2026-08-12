@@ -18,6 +18,7 @@ import '../christmas-cards/storefront-header-polish.css'
 import '../christmas-cards/storefront-cart-drawer.css'
 import '../christmas-cards/storefront-review-polish.css'
 import '../christmas-cards/storefront-inventory.css'
+import '../christmas-cards/storefront-final-polish.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,6 +92,12 @@ export default async function CcicPage() {
         />
 
         <OtherCardsPlaceholder />
+
+        <section className="ccic-support-banner" aria-label="Thank you for your support">
+          <p>
+            Thank you for supporting the charitable efforts of the Knights of Columbus, and for helping ensure that Jesus remains the reason we celebrate the season of Christmas.
+          </p>
+        </section>
 
         <footer className="ccic-footer ccic-footer-powered">
           <div className="ccic-footer-brand">
