@@ -18,20 +18,26 @@ export default function PaymentOptionsDetails() {
         <div className="ccic-lightbox" role="dialog" aria-modal="true" aria-label="Payment options">
           <button type="button" className="ccic-lightbox-backdrop" aria-label="Close payment options" onClick={() => setIsOpen(false)} />
           <div className="ccic-lightbox-panel ccic-payment-panel">
-            <div className="ccic-lightbox-header ccic-payment-header">
-              <div>
-                <p className="ccic-eyebrow">Payment options</p>
-                <h2>Choose what works best</h2>
-              </div>
+            <div className="ccic-payment-close-row">
               <button type="button" className="ccic-lightbox-close" onClick={() => setIsOpen(false)} aria-label="Close payment options">
                 ×
               </button>
             </div>
 
+            <div className="ccic-lightbox-header ccic-payment-header">
+              <div>
+                <p className="ccic-eyebrow">Payment options</p>
+                <h2>Choose what works best</h2>
+              </div>
+            </div>
+
             <div className="ccic-payment-options-list">
               <section>
                 <h3>E-transfer</h3>
-                <p>After your order is reviewed, we can send the confirmed total and e-transfer details by email.</p>
+                <p>
+                  Please send an e-transfer for the amount of your order when your order is placed. Send payment to{' '}
+                  <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number in the e-transfer message.
+                </p>
               </section>
               <section>
                 <h3>Cheque</h3>
