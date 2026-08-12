@@ -137,6 +137,7 @@ function buildOrderEmail(args: {
   const discountText = calculated.customCaseDiscountCents
     ? `\nCustom Case pricing: -${formatChristmasCardMoney(calculated.customCaseDiscountCents)}`
     : ''
+  const totalLabel = formatChristmasCardMoney(calculated.totalCents)
 
   const htmlContent = `
     <div style="font-family:Arial,sans-serif;color:#202020;line-height:1.55;max-width:680px;margin:0 auto;">
@@ -148,11 +149,12 @@ function buildOrderEmail(args: {
         ${discountHtml}
         <tr><td style="padding:10px 0 4px;">Subtotal</td><td style="padding:10px 0 4px;text-align:right;">${escapeHtml(formatChristmasCardMoney(calculated.subtotalCents))}</td></tr>
         <tr><td style="padding:4px 0;">${fulfillmentLabel}</td><td style="padding:4px 0;text-align:right;">${escapeHtml(formatChristmasCardMoney(calculated.shippingCents))}</td></tr>
-        <tr><td style="padding:12px 0;border-top:1px solid #202020;font-weight:bold;">Estimated total</td><td style="padding:12px 0;border-top:1px solid #202020;text-align:right;font-weight:bold;">${escapeHtml(formatChristmasCardMoney(calculated.totalCents))}</td></tr>
+        <tr><td style="padding:12px 0;border-top:1px solid #202020;font-weight:bold;">Estimated total</td><td style="padding:12px 0;border-top:1px solid #202020;text-align:right;font-weight:bold;">${escapeHtml(totalLabel)}</td></tr>
       </table>
       <p><strong>Fulfilment:</strong> ${fulfillmentLabel}</p>
       ${address ? `<p><strong>Address:</strong><br>${escapeHtml(address).replaceAll('\n', '<br>')}</p>` : ''}
-      <p>No payment has been collected. We will review the order and follow up with confirmation and payment instructions.</p>
+      <p><strong>E-transfer payment:</strong> Please send an e-transfer for <strong>${escapeHtml(totalLabel)}</strong> when your order is placed. Send payment to <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>${escapeHtml(args.orderNumber)}</strong> in the e-transfer message.</p>
+      <p>No payment is collected through the website.</p>
     </div>
   `
 
@@ -170,10 +172,11 @@ function buildOrderEmail(args: {
     '',
     `Subtotal: ${formatChristmasCardMoney(calculated.subtotalCents)}`,
     `${fulfillmentLabel}: ${formatChristmasCardMoney(calculated.shippingCents)}`,
-    `Estimated total: ${formatChristmasCardMoney(calculated.totalCents)}`,
+    `Estimated total: ${totalLabel}`,
     address ? `Address:\n${address}` : '',
     '',
-    'No payment has been collected. The order will be reviewed before final confirmation.',
+    `E-transfer payment: Please send an e-transfer for ${totalLabel} when your order is placed. Send payment to treasurer@kofc7689.org and include your order number ${args.orderNumber} in the e-transfer message.`,
+    'No payment is collected through the website.',
   ].filter(Boolean).join('\n')
 
   return { htmlContent, textContent, calculated }
