@@ -161,48 +161,43 @@ export default function ReviewOrderForm() {
           </label>
         </div>
 
-        <fieldset className="ccic-review-address">
-          <legend>
-            {requiresAddress ? 'Shipping address' : 'Address (optional for pickup)'}
-          </legend>
-          <p>
-            {requiresAddress
-              ? 'Shipping was selected, so a complete delivery address is required.'
-              : 'You may include an address now, or confirm pickup details with us later.'}
-          </p>
+        {requiresAddress ? (
+          <fieldset className="ccic-review-address">
+            <legend>Shipping address</legend>
 
-          <div className="ccic-review-fields">
-            <label className="ccic-review-field-wide">
-              <span>Address</span>
-              <input name="address_line_1" autoComplete="address-line1" required={requiresAddress} />
-            </label>
+            <div className="ccic-review-fields">
+              <label className="ccic-review-field-wide">
+                <span>Address</span>
+                <input name="address_line_1" autoComplete="address-line1" required />
+              </label>
 
-            <label className="ccic-review-field-wide">
-              <span>Unit, suite, or additional address details</span>
-              <input name="address_line_2" autoComplete="address-line2" />
-            </label>
+              <label className="ccic-review-field-wide">
+                <span>Unit, suite, or additional address details</span>
+                <input name="address_line_2" autoComplete="address-line2" />
+              </label>
 
-            <label>
-              <span>City</span>
-              <input name="city" autoComplete="address-level2" required={requiresAddress} />
-            </label>
+              <label>
+                <span>City</span>
+                <input name="city" autoComplete="address-level2" required />
+              </label>
 
-            <label>
-              <span>Province</span>
-              <input name="province" autoComplete="address-level1" defaultValue="Ontario" required={requiresAddress} />
-            </label>
+              <label>
+                <span>Province</span>
+                <input name="province" autoComplete="address-level1" defaultValue="Ontario" required />
+              </label>
 
-            <label>
-              <span>Postal code</span>
-              <input name="postal_code" autoComplete="postal-code" required={requiresAddress} />
-            </label>
-          </div>
-        </fieldset>
+              <label>
+                <span>Postal code</span>
+                <input name="postal_code" autoComplete="postal-code" required />
+              </label>
+            </div>
+          </fieldset>
+        ) : null}
 
         {error ? <p className="ccic-review-error" role="alert">{error}</p> : null}
 
         <div className="ccic-review-actions">
-          <Link href="/ccic">Return to card selection</Link>
+          <Link href="/ccic">Return to make changes</Link>
           <button type="submit" disabled={submitting}>
             {submitting ? 'Submitting order…' : 'Submit order request'}
           </button>
