@@ -73,6 +73,12 @@ export const CHRISTMAS_CARD_COLLECTIONS: ChristmasCardCollection[] = [
     description: 'Contemporary Christmas symbols including a star, tree, ornament, and stocking.',
     sortOrder: 40,
   },
+  {
+    id: 'catholic-prayer-cards',
+    title: 'Catholic Prayer Cards',
+    description: 'Sold by the box for $9.00 and not included in case pricing.',
+    sortOrder: 50,
+  },
 ]
 
 const CHRISTMAS_CARD_BOX_DESCRIPTION =
@@ -85,6 +91,8 @@ function createChristmasCardBox({
   themeTags,
   collectionId,
   sortOrder,
+  priceCents = 1200,
+  isCasePricingEligible = true,
 }: {
   sku: string
   title: string
@@ -92,6 +100,8 @@ function createChristmasCardBox({
   themeTags: string[]
   collectionId: string
   sortOrder: number
+  priceCents?: number
+  isCasePricingEligible?: boolean
 }): ChristmasCardBox {
   const imageBaseUrl = `/christmas-cards/${fileStem}`
 
@@ -108,8 +118,8 @@ function createChristmasCardBox({
     collectionId,
     languageCode: 'en',
     cardsPerBox: 12,
-    priceCents: 1200,
-    isCasePricingEligible: true,
+    priceCents,
+    isCasePricingEligible,
     sortOrder,
   }
 }
@@ -243,6 +253,76 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     collectionId: 'collection-4',
     sortOrder: 160,
   }),
+  createChristmasCardBox({
+    sku: 'CC-25-01',
+    title: 'Mary Gentle Mother',
+    fileStem: 'other/CC-25-01_mary_gentle_mother',
+    themeTags: ['Mary'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 170,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
+  createChristmasCardBox({
+    sku: 'CC-25-02',
+    title: 'Heart of Mary',
+    fileStem: 'other/CC-25-02_heart_of_mary',
+    themeTags: ['Mary'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 180,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
+  createChristmasCardBox({
+    sku: 'CC-25-03',
+    title: 'Child of Wonder',
+    fileStem: 'other/CC-25-03_child_of_wonder',
+    themeTags: ['Christ Child'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 190,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
+  createChristmasCardBox({
+    sku: 'CC-25-04',
+    title: 'Shepherds Adore',
+    fileStem: 'other/CC-25-04_shepherds_adore',
+    themeTags: ['Shepherds'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 200,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
+  createChristmasCardBox({
+    sku: 'CC-25-05',
+    title: 'Star of Bethlehem',
+    fileStem: 'other/CC-25-05_star_of_bethlehem',
+    themeTags: ['Bethlehem'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 210,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
+  createChristmasCardBox({
+    sku: 'CC-25-06',
+    title: 'Madonna and Child',
+    fileStem: 'other/CC-25-06_madonna_and_child',
+    themeTags: ['Madonna & Child'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 220,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
+  createChristmasCardBox({
+    sku: 'CC-25-07',
+    title: 'The Nativity',
+    fileStem: 'other/CC-25-07_the_nativity',
+    themeTags: ['Nativity'],
+    collectionId: 'catholic-prayer-cards',
+    sortOrder: 230,
+    priceCents: 900,
+    isCasePricingEligible: false,
+  }),
 ]
 
 export const CHRISTMAS_CARD_CURATED_CASES: ChristmasCardCuratedCase[] = [
@@ -253,10 +333,12 @@ export const CHRISTMAS_CARD_CURATED_CASES: ChristmasCardCuratedCase[] = [
     description: 'A complete Catholic Christmas card fundraising collection for parishes and councils.',
     boxesPerCase: 32,
     priceCents: 32640,
-    components: CHRISTMAS_CARD_BOXES.map((box) => ({
-      boxId: box.id,
-      quantityBoxes: 2,
-    })),
+    components: CHRISTMAS_CARD_BOXES
+      .filter((box) => box.isCasePricingEligible)
+      .map((box) => ({
+        boxId: box.id,
+        quantityBoxes: 2,
+      })),
   },
 ]
 
