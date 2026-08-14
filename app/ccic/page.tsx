@@ -9,7 +9,10 @@ import {
   CHRISTMAS_CARD_CURATED_CASES,
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
-import { getCcicStoreAvailabilityMap } from '@/lib/christmas-cards/inventory'
+import {
+  getCcicStoreAvailabilityMap,
+  syncCcicStoreInventoryCatalog,
+} from '@/lib/christmas-cards/inventory'
 import '../christmas-cards/storefront.css'
 import '../christmas-cards/payment-polish.css'
 import '../christmas-cards/storefront-redesign.css'
@@ -27,6 +30,7 @@ export const metadata = {
 }
 
 export default async function CcicPage() {
+  await syncCcicStoreInventoryCatalog()
   const inventoryAvailability = await getCcicStoreAvailabilityMap()
 
   return (
