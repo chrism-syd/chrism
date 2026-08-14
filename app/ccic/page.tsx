@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import StorefrontOrderBuilder from '../christmas-cards/storefront-order-builder'
-import OtherCardsPlaceholder from '../christmas-cards/other-cards-placeholder'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
 import { CcicCartButton, CcicCartProvider } from '../christmas-cards/cart-context'
 import {
@@ -90,8 +89,6 @@ export default async function CcicPage() {
           collections={CHRISTMAS_CARD_COLLECTIONS}
           inventoryAvailability={inventoryAvailability}
         />
-
-        <OtherCardsPlaceholder />
 
         <section className="ccic-support-banner" aria-label="Thank you for your support">
           <p>
