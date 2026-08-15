@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
-import { CHRISTMAS_CARD_BOXES } from '@/lib/christmas-cards/catalog'
+import { CHRISTMAS_CARD_BOXES, CHRISTMAS_CARD_CURATED_CASES } from '@/lib/christmas-cards/catalog'
+import { getCcicCaseReserves, getCcicStoreAvailabilityMap } from '@/lib/christmas-cards/inventory'
 
 function formText(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -122,4 +123,53 @@ export async function toggleCcicInventoryStore(formData: FormData) {
   }
 
   finish(`updated=${enabled ? 'enabled' : 'disabled'}`)
+}
+
+export async function setCcicClassicCaseReserve(formData: FormData) {
+  await requireCcicOrderAdmin('/ccic/admin/store-control')
+
+  const caseCatalogId = formText(formData, 'case_catalog_id')
+  const reservedCases = Number(formText(formData, 'reserved_cases'))
+  const curatedCase = CHRISTMAS_CARD_CURATED_CASES.find((item) => item.id === caseCatalogId)
+
+  if (!curatedCase) finish('error=invalid-case')
+  if (!Number.isInteger(reservedCases) || reservedCases < 0 || reservedCases > 999999) {
+    finish('error=invalid-reserve')
+  }
+
+  const [reserves, availability] = await Promise.all([
+    getCcicCaseReserves(),
+    getCcicStoreAvailabilityMap(),
+  ])
+  const currentReserve = reserves.find((item) => item.caseCatalogId === caseCatalogId)
+  const committedCases = currentReserve?.committedCases ?? 0
+
+  if (reservedCases < committedCases) finish('error=reserve-below-committed')
+
+  let maxReservableCases = 999999
+  for (const component of curatedCase.components) {
+    const row = availability[component.boxId]
+    if (!row || row.stockOnHand === null) continue
+    const boxesOutsideCurrentReserve = (row.availableBoxes ?? 0) + row.reservedBoxes
+    const componentCapacity = committedCases + Math.floor(boxesOutsideCurrentReserve / component.quantityBoxes)
+    maxReservableCases = Math.min(maxReservableCases, componentCapacity)
+  }
+
+  if (reservedCases > maxReservableCases) finish('error=reserve-exceeds-stock')
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('ccic_case_reserve_settings')
+    .upsert({
+      case_catalog_id: caseCatalogId,
+      reserved_cases: reservedCases,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'case_catalog_id' })
+
+  if (error) {
+    console.error('CCIC case reserve update failed', error)
+    finish('error=reserve-update')
+  }
+
+  finish('updated=reserve')
 }
