@@ -13,10 +13,21 @@ export const metadata = {
 export default function CcicReviewPage() {
   return (
     <main className="ccic-review-page">
-      <header className="ccic-review-site-header">
-        <Link href="/ccic" aria-label="Return to Celebrate Christ in Christmas card selection">
-          <Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={116} height={116} priority />
-        </Link>
+      <header className="ccic-site-header">
+        <div className="ccic-site-header-inner">
+          <span aria-hidden="true" className="ccic-header-spacer" />
+          <Link href="/ccic" aria-label="Return to Celebrate Christ in Christmas card selection">
+            <Image
+              src="/CCiC.png"
+              alt="Celebrate Christ in Christmas"
+              width={176}
+              height={176}
+              priority
+              className="ccic-header-logo"
+            />
+          </Link>
+          <span aria-hidden="true" className="ccic-header-spacer" />
+        </div>
       </header>
       <ReviewOrderForm />
     </main>
