@@ -151,25 +151,11 @@ export async function setCcicClassicCaseReserve(formData: FormData) {
     finish('error=invalid-reserve')
   }
 
-  const [reserves, availability] = await Promise.all([
-    getCcicCaseReserves(),
-    getCcicStoreAvailabilityMap(),
-  ])
+  const reserves = await getCcicCaseReserves()
   const currentReserve = reserves.find((item) => item.caseCatalogId === caseCatalogId)
   const committedCases = currentReserve?.committedCases ?? 0
 
   if (reservedCases < committedCases) finish('error=reserve-below-committed')
-
-  let maxReservableCases = 999999
-  for (const component of curatedCase.components) {
-    const row = availability[component.boxId]
-    if (!row || row.stockOnHand === null) continue
-    const uncommittedBoxes = Math.max(0, row.stockOnHand - row.committedBoxes)
-    const componentCapacity = committedCases + Math.floor(uncommittedBoxes / component.quantityBoxes)
-    maxReservableCases = Math.min(maxReservableCases, componentCapacity)
-  }
-
-  if (reservedCases > maxReservableCases) finish('error=reserve-exceeds-stock')
 
   const admin = createAdminClient()
   const { error } = await admin
