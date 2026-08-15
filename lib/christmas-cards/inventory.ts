@@ -11,6 +11,7 @@ export type CcicStoreAvailability = {
   isStoreEnabled: boolean
   stockOnHand: number | null
   committedBoxes: number
+  reservedBoxes: number
   availableBoxes: number | null
 }
 
@@ -19,6 +20,13 @@ export type CcicStoreAvailabilityMap = Record<string, CcicStoreAvailability>
 export type CcicInventoryAllocation = {
   catalogId: string
   quantityBoxes: number
+}
+
+export type CcicCaseReserve = {
+  caseCatalogId: string
+  reservedCases: number
+  committedCases: number
+  availableCases: number
 }
 
 type InventoryRow = {
@@ -38,6 +46,23 @@ type AllocationRow = {
 type OrderStatusRow = {
   id: string
   status_code: string
+}
+
+type CaseReserveSettingRow = {
+  case_catalog_id: string
+  reserved_cases: number
+}
+
+type CaseReserveComponentRow = {
+  case_catalog_id: string
+  catalog_id: string
+  quantity_per_case: number
+}
+
+type ClassicCaseOrderLineRow = {
+  order_id: string
+  catalog_id: string
+  quantity: number
 }
 
 export function getCcicInventoryCatalogItems() {
@@ -69,15 +94,97 @@ export async function syncCcicStoreInventoryCatalog() {
   }
 }
 
+async function getCcicReserveState() {
+  const admin = createAdminClient()
+  const [
+    { data: settingsData, error: settingsError },
+    { data: componentsData, error: componentsError },
+    { data: classicLineData, error: classicLineError },
+  ] = await Promise.all([
+    admin.from('ccic_case_reserve_settings').select('case_catalog_id, reserved_cases'),
+    admin.from('ccic_case_reserve_components').select('case_catalog_id, catalog_id, quantity_per_case'),
+    admin.from('ccic_order_lines').select('order_id, catalog_id, quantity').eq('line_type', 'classic_case'),
+  ])
+
+  if (settingsError?.code === '42P01' || componentsError?.code === '42P01') {
+    return {
+      reserves: [] as CcicCaseReserve[],
+      reservedBoxesByCatalog: new Map<string, number>(),
+    }
+  }
+  if (settingsError) throw new Error(`Unable to load CCIC case reserve settings: ${settingsError.message}`)
+  if (componentsError) throw new Error(`Unable to load CCIC case reserve components: ${componentsError.message}`)
+  if (classicLineError) throw new Error(`Unable to load CCIC classic case commitments: ${classicLineError.message}`)
+
+  const classicLines = (classicLineData ?? []) as ClassicCaseOrderLineRow[]
+  const classicOrderIds = [...new Set(classicLines.map((row) => row.order_id))]
+  const activeClassicOrderIds = new Set<string>()
+
+  if (classicOrderIds.length) {
+    const { data: orderData, error: orderError } = await admin
+      .from('ccic_orders')
+      .select('id, status_code')
+      .in('id', classicOrderIds)
+
+    if (orderError) throw new Error(`Unable to load CCIC classic case order statuses: ${orderError.message}`)
+    for (const order of (orderData ?? []) as OrderStatusRow[]) {
+      if (order.status_code !== 'cancelled') activeClassicOrderIds.add(order.id)
+    }
+  }
+
+  const committedCasesByCaseCatalog = new Map<string, number>()
+  for (const line of classicLines) {
+    if (!activeClassicOrderIds.has(line.order_id)) continue
+    committedCasesByCaseCatalog.set(
+      line.catalog_id,
+      (committedCasesByCaseCatalog.get(line.catalog_id) ?? 0) + line.quantity
+    )
+  }
+
+  const settings = (settingsData ?? []) as CaseReserveSettingRow[]
+  const components = (componentsData ?? []) as CaseReserveComponentRow[]
+  const reservedBoxesByCatalog = new Map<string, number>()
+  const reserves: CcicCaseReserve[] = settings.map((setting) => {
+    const committedCases = committedCasesByCaseCatalog.get(setting.case_catalog_id) ?? 0
+    const availableCases = Math.max(0, setting.reserved_cases - committedCases)
+
+    for (const component of components.filter((item) => item.case_catalog_id === setting.case_catalog_id)) {
+      reservedBoxesByCatalog.set(
+        component.catalog_id,
+        (reservedBoxesByCatalog.get(component.catalog_id) ?? 0) + availableCases * component.quantity_per_case
+      )
+    }
+
+    return {
+      caseCatalogId: setting.case_catalog_id,
+      reservedCases: setting.reserved_cases,
+      committedCases,
+      availableCases,
+    }
+  })
+
+  return { reserves, reservedBoxesByCatalog }
+}
+
+export async function getCcicCaseReserves() {
+  const { reserves } = await getCcicReserveState()
+  return reserves
+}
+
 export async function getCcicStoreAvailabilityMap(): Promise<CcicStoreAvailabilityMap> {
   const admin = createAdminClient()
-  const [{ data: inventoryData, error: inventoryError }, { data: allocationData, error: allocationError }] = await Promise.all([
+  const [
+    { data: inventoryData, error: inventoryError },
+    { data: allocationData, error: allocationError },
+    reserveState,
+  ] = await Promise.all([
     admin
       .from('ccic_store_inventory')
       .select('catalog_id, sku, title, stock_on_hand, is_store_enabled'),
     admin
       .from('ccic_order_inventory_allocations')
       .select('order_id, catalog_id, quantity_boxes'),
+    getCcicReserveState(),
   ])
 
   if (inventoryError) {
@@ -120,13 +227,15 @@ export async function getCcicStoreAvailabilityMap(): Promise<CcicStoreAvailabili
   const availability: CcicStoreAvailabilityMap = {}
   for (const row of (inventoryData ?? []) as InventoryRow[]) {
     const committedBoxes = committedByCatalog.get(row.catalog_id) ?? 0
+    const reservedBoxes = reserveState.reservedBoxesByCatalog.get(row.catalog_id) ?? 0
     availability[row.catalog_id] = {
       isStoreEnabled: row.is_store_enabled,
       stockOnHand: row.stock_on_hand,
       committedBoxes,
+      reservedBoxes,
       availableBoxes: row.stock_on_hand === null
         ? null
-        : Math.max(0, row.stock_on_hand - committedBoxes),
+        : Math.max(0, row.stock_on_hand - committedBoxes - reservedBoxes),
     }
   }
 
