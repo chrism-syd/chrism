@@ -167,8 +167,31 @@ async function getCcicReserveState() {
 }
 
 export async function getCcicCaseReserves() {
-  const { reserves } = await getCcicReserveState()
-  return reserves
+  const reserveState = await getCcicReserveState()
+  if (!reserveState.reserves.length) return reserveState.reserves
+
+  const availability = await getCcicStoreAvailabilityMap()
+
+  return reserveState.reserves.map((reserve) => {
+    const curatedCase = CHRISTMAS_CARD_CURATED_CASES.find((item) => item.id === reserve.caseCatalogId)
+    if (!curatedCase) return reserve
+
+    let physicalAvailableCases = 999999
+    for (const component of curatedCase.components) {
+      const row = availability[component.boxId]
+      if (!row || row.stockOnHand === null) continue
+      const uncommittedBoxes = Math.max(0, row.stockOnHand - row.committedBoxes)
+      physicalAvailableCases = Math.min(
+        physicalAvailableCases,
+        Math.floor(uncommittedBoxes / component.quantityBoxes)
+      )
+    }
+
+    return {
+      ...reserve,
+      availableCases: Math.min(reserve.availableCases, physicalAvailableCases),
+    }
+  })
 }
 
 export async function getCcicStoreAvailabilityMap(): Promise<CcicStoreAvailabilityMap> {
