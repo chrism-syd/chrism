@@ -33,6 +33,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   'invalid-adjustment': 'Enter a non-zero whole number for the stock adjustment.',
   'set-stock-first': 'Set the stock count before using the adjustment control.',
   'negative-stock': 'That adjustment would make the stock count negative.',
+  'stock-below-reserve': 'Stock cannot be reduced below boxes already committed to orders or held for the Classic Case reserve.',
   'stock-update': 'The stock quantity could not be updated.',
   'store-toggle': 'The storefront availability could not be changed.',
   'invalid-case': 'That Classic Case could not be found.',
