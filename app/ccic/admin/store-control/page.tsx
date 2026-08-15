@@ -33,14 +33,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   'invalid-adjustment': 'Enter a non-zero whole number for the stock adjustment.',
   'set-stock-first': 'Set the stock count before using the adjustment control.',
   'negative-stock': 'That adjustment would make the stock count negative.',
-  'stock-below-reserve': 'Stock cannot be reduced below boxes already committed to orders or held for the Classic Case reserve.',
+  'stock-below-reserve': 'Stock cannot be reduced below boxes already committed to orders or currently protected for backed Classic Cases.',
   'stock-update': 'The stock quantity could not be updated.',
   'store-toggle': 'The storefront availability could not be changed.',
   'invalid-case': 'That Classic Case could not be found.',
-  'invalid-reserve': 'Enter a whole number of reserved cases, zero or more.',
-  'reserve-below-committed': 'The reserve cannot be lower than the number of Classic Cases already committed to active orders.',
-  'reserve-exceeds-stock': 'There is not enough remaining inventory across all 16 designs to reserve that many Classic Cases.',
-  'reserve-update': 'The Classic Case reserve could not be updated.',
+  'invalid-reserve': 'Enter a whole number of reserve target cases, zero or more.',
+  'reserve-below-committed': 'The reserve target cannot be lower than the number of Classic Cases already committed to active orders.',
+  'reserve-update': 'The Classic Case reserve target could not be updated.',
 }
 
 const UPDATED_MESSAGES: Record<string, string> = {
@@ -48,7 +47,7 @@ const UPDATED_MESSAGES: Record<string, string> = {
   adjustment: 'The manual stock adjustment was applied.',
   enabled: 'The card is available in the store again.',
   disabled: 'The card is now marked sold out in the store.',
-  reserve: 'The Classic Case reserve was updated. Released boxes are immediately available for individual orders.',
+  reserve: 'The Classic Case reserve target was updated. Backed cases and held boxes were recalculated from current inventory.',
 }
 
 export default async function CcicStoreControlPage({
@@ -109,7 +108,9 @@ export default async function CcicStoreControlPage({
         <div className="ccic-admin-panel-heading">
           <div>
             <h2>Classic Case reserve</h2>
-            <p className="ccic-store-muted">Inventory held here is protected from individual-box sales.</p>
+            <p className="ccic-store-muted">
+              Set the reserve target you want to maintain. The store only holds boxes for cases that current inventory can actually support.
+            </p>
           </div>
           <span>2 boxes of each of 16 designs per case</span>
         </div>
@@ -118,18 +119,28 @@ export default async function CcicStoreControlPage({
           const reserve = caseReserves.find((row) => row.caseCatalogId === item.id) ?? {
             caseCatalogId: item.id,
             reservedCases: 0,
+            backedCases: 0,
             committedCases: 0,
             availableCases: 0,
           }
+          const targetGap = Math.max(0, reserve.reservedCases - reserve.backedCases)
 
           return (
             <div className="ccic-case-reserve-row" key={item.id}>
               <div>
                 <strong>{item.title}</strong>
                 <span>{item.sku}</span>
+                {targetGap > 0 ? (
+                  <small>
+                    Target is {targetGap} case{targetGap === 1 ? '' : 's'} above current inventory capacity. Adding stock will automatically back more cases.
+                  </small>
+                ) : (
+                  <small>Current inventory fully backs the reserve target.</small>
+                )}
               </div>
               <dl>
-                <div><dt>Reserved</dt><dd>{reserve.reservedCases}</dd></div>
+                <div><dt>Target reserve</dt><dd>{reserve.reservedCases}</dd></div>
+                <div><dt>Backed reserve</dt><dd>{reserve.backedCases}</dd></div>
                 <div><dt>Committed</dt><dd>{reserve.committedCases}</dd></div>
                 <div><dt>Available cases</dt><dd>{reserve.availableCases}</dd></div>
                 <div><dt>Boxes held</dt><dd>{reserve.availableCases * item.boxesPerCase}</dd></div>
@@ -137,16 +148,16 @@ export default async function CcicStoreControlPage({
               <form action={setCcicClassicCaseReserve} className="ccic-case-reserve-form">
                 <input type="hidden" name="case_catalog_id" value={item.id} />
                 <label>
-                  <span>Set reserved cases</span>
+                  <span>Set reserve target</span>
                   <input type="number" name="reserved_cases" min={reserve.committedCases} step="1" defaultValue={reserve.reservedCases} required />
                 </label>
-                <button type="submit">Update reserve</button>
+                <button type="submit">Update target</button>
               </form>
             </div>
           )
         })}
         <p className="ccic-case-reserve-note">
-          Lowering the reserve releases the corresponding boxes back into individual inventory immediately. The reserve cannot be reduced below cases already committed to active orders.
+          Lowering the target releases any no-longer-needed held boxes immediately. Raising it does not invent inventory: the backed reserve grows automatically only when all required designs have enough stock.
         </p>
       </section>
 
@@ -159,7 +170,7 @@ export default async function CcicStoreControlPage({
           </p>
         </div>
         <p>
-          Leaving stock blank means the design is not quantity-limited. Reserved Classic Case boxes are withheld from the individual-box availability shown below.
+          Leaving stock blank means the design is not quantity-limited. Only boxes backing physically supportable Classic Cases are withheld from the individual-box availability shown below.
         </p>
       </section>
 
