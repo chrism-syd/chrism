@@ -25,6 +25,7 @@ type InventoryAvailability = Record<string, {
   isStoreEnabled: boolean
   stockOnHand: number | null
   committedBoxes: number
+  reservedBoxes: number
   availableBoxes: number | null
 }>
 
@@ -33,6 +34,7 @@ type Props = {
   boxes: ChristmasCardBox[]
   collections: ChristmasCardCollection[]
   inventoryAvailability: InventoryAvailability
+  caseAvailability: Record<string, number>
 }
 
 type QuantityMap = Record<string, number>
@@ -53,6 +55,7 @@ export default function StorefrontOrderBuilder({
   boxes,
   collections,
   inventoryAvailability,
+  caseAvailability,
 }: Props) {
   const router = useRouter()
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
@@ -91,8 +94,10 @@ export default function StorefrontOrderBuilder({
   }
 
   function maxQuantityForCase(item: ChristmasCardCuratedCase) {
-    let maxCases = 999
+    const reservedAvailability = caseAvailability[item.id]
+    if (reservedAvailability !== undefined) return reservedAvailability
 
+    let maxCases = 999
     for (const component of item.components) {
       const availability = inventoryAvailability[component.boxId]
       if (!availability) continue
@@ -101,7 +106,6 @@ export default function StorefrontOrderBuilder({
         maxCases = Math.min(maxCases, Math.floor(availability.availableBoxes / component.quantityBoxes))
       }
     }
-
     return maxCases
   }
 
@@ -391,24 +395,11 @@ export default function StorefrontOrderBuilder({
 
               <div className="ccic-summary-total">
                 <div className="ccic-summary-line"><span>Subtotal</span><strong>{formatChristmasCardMoney(calculatedOrder.subtotalCents)}</strong></div>
-                <div className="ccic-summary-line">
-                  <span>{fulfillmentMethod === 'shipping' ? 'Shipping' : 'Pickup'}</span>
-                  <strong>{formatChristmasCardMoney(calculatedOrder.shippingCents)}</strong>
-                </div>
-                <div className="ccic-summary-line ccic-total-line"><span>Estimated total</span><strong>{formatChristmasCardMoney(calculatedOrder.totalCents)}</strong></div>
+                <div className="ccic-summary-line"><span>Shipping</span><strong>{formatChristmasCardMoney(calculatedOrder.shippingCents)}</strong></div>
+                <div className="ccic-summary-line ccic-total-line"><span>Total</span><strong>{formatChristmasCardMoney(calculatedOrder.totalCents)}</strong></div>
               </div>
 
-              <p className="ccic-summary-count">
-                {calculatedOrder.hasOrder
-                  ? `${calculatedOrder.totalSelectedCases} case${calculatedOrder.totalSelectedCases === 1 ? '' : 's'} / ${calculatedOrder.totalSelectedBoxes} boxes selected`
-                  : 'Pickup is free. Shipping is a flat $36 per order.'}
-              </p>
-              <button
-                type="button"
-                className="ccic-primary-button"
-                disabled={!calculatedOrder.hasOrder}
-                onClick={reviewOrder}
-              >
+              <button type="button" className="ccic-primary-button" onClick={reviewOrder} disabled={!calculatedOrder.hasOrder}>
                 Review order
               </button>
             </div>
