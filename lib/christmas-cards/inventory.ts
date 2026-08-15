@@ -25,6 +25,7 @@ export type CcicInventoryAllocation = {
 export type CcicCaseReserve = {
   caseCatalogId: string
   reservedCases: number
+  backedCases: number
   committedCases: number
   availableCases: number
 }
@@ -100,10 +101,14 @@ async function getCcicReserveState() {
     { data: settingsData, error: settingsError },
     { data: componentsData, error: componentsError },
     { data: classicLineData, error: classicLineError },
+    { data: inventoryData, error: inventoryError },
+    { data: allocationData, error: allocationError },
   ] = await Promise.all([
     admin.from('ccic_case_reserve_settings').select('case_catalog_id, reserved_cases'),
     admin.from('ccic_case_reserve_components').select('case_catalog_id, catalog_id, quantity_per_case'),
     admin.from('ccic_order_lines').select('order_id, catalog_id, quantity').eq('line_type', 'classic_case'),
+    admin.from('ccic_store_inventory').select('catalog_id, sku, title, stock_on_hand, is_store_enabled'),
+    admin.from('ccic_order_inventory_allocations').select('order_id, catalog_id, quantity_boxes'),
   ])
 
   if (settingsError?.code === '42P01' || componentsError?.code === '42P01') {
@@ -115,40 +120,80 @@ async function getCcicReserveState() {
   if (settingsError) throw new Error(`Unable to load CCIC case reserve settings: ${settingsError.message}`)
   if (componentsError) throw new Error(`Unable to load CCIC case reserve components: ${componentsError.message}`)
   if (classicLineError) throw new Error(`Unable to load CCIC classic case commitments: ${classicLineError.message}`)
+  if (inventoryError) throw new Error(`Unable to load CCIC inventory for case reserve: ${inventoryError.message}`)
+  if (allocationError) throw new Error(`Unable to load CCIC allocations for case reserve: ${allocationError.message}`)
 
   const classicLines = (classicLineData ?? []) as ClassicCaseOrderLineRow[]
-  const classicOrderIds = [...new Set(classicLines.map((row) => row.order_id))]
-  const activeClassicOrderIds = new Set<string>()
+  const allocations = (allocationData ?? []) as AllocationRow[]
+  const relevantOrderIds = [...new Set([
+    ...classicLines.map((row) => row.order_id),
+    ...allocations.map((row) => row.order_id),
+  ])]
+  const activeOrderIds = new Set<string>()
 
-  if (classicOrderIds.length) {
+  if (relevantOrderIds.length) {
     const { data: orderData, error: orderError } = await admin
       .from('ccic_orders')
       .select('id, status_code')
-      .in('id', classicOrderIds)
+      .in('id', relevantOrderIds)
 
-    if (orderError) throw new Error(`Unable to load CCIC classic case order statuses: ${orderError.message}`)
+    if (orderError) throw new Error(`Unable to load CCIC reserve order statuses: ${orderError.message}`)
     for (const order of (orderData ?? []) as OrderStatusRow[]) {
-      if (order.status_code !== 'cancelled') activeClassicOrderIds.add(order.id)
+      if (order.status_code !== 'cancelled') activeOrderIds.add(order.id)
     }
   }
 
   const committedCasesByCaseCatalog = new Map<string, number>()
   for (const line of classicLines) {
-    if (!activeClassicOrderIds.has(line.order_id)) continue
+    if (!activeOrderIds.has(line.order_id)) continue
     committedCasesByCaseCatalog.set(
       line.catalog_id,
       (committedCasesByCaseCatalog.get(line.catalog_id) ?? 0) + line.quantity
     )
   }
 
+  const committedByCatalog = new Map<string, number>()
+  for (const allocation of allocations) {
+    if (!activeOrderIds.has(allocation.order_id)) continue
+    committedByCatalog.set(
+      allocation.catalog_id,
+      (committedByCatalog.get(allocation.catalog_id) ?? 0) + allocation.quantity_boxes
+    )
+  }
+
+  const inventoryByCatalog = new Map(
+    ((inventoryData ?? []) as InventoryRow[]).map((row) => [row.catalog_id, row] as const)
+  )
   const settings = (settingsData ?? []) as CaseReserveSettingRow[]
   const components = (componentsData ?? []) as CaseReserveComponentRow[]
   const reservedBoxesByCatalog = new Map<string, number>()
+
   const reserves: CcicCaseReserve[] = settings.map((setting) => {
     const committedCases = committedCasesByCaseCatalog.get(setting.case_catalog_id) ?? 0
-    const availableCases = Math.max(0, setting.reserved_cases - committedCases)
+    const targetAvailableCases = Math.max(0, setting.reserved_cases - committedCases)
+    const caseComponents = components.filter((item) => item.case_catalog_id === setting.case_catalog_id)
+    let physicalAvailableCases = 999999
+    let hasTrackedComponent = false
 
-    for (const component of components.filter((item) => item.case_catalog_id === setting.case_catalog_id)) {
+    for (const component of caseComponents) {
+      const inventory = inventoryByCatalog.get(component.catalog_id)
+      if (!inventory || inventory.stock_on_hand === null) continue
+      hasTrackedComponent = true
+      const committedBoxes = committedByCatalog.get(component.catalog_id) ?? 0
+      const uncommittedBoxes = Math.max(0, inventory.stock_on_hand - committedBoxes)
+      physicalAvailableCases = Math.min(
+        physicalAvailableCases,
+        Math.floor(uncommittedBoxes / component.quantity_per_case)
+      )
+    }
+
+    const availableCases = Math.min(
+      targetAvailableCases,
+      hasTrackedComponent ? physicalAvailableCases : targetAvailableCases
+    )
+    const backedCases = committedCases + availableCases
+
+    for (const component of caseComponents) {
       reservedBoxesByCatalog.set(
         component.catalog_id,
         (reservedBoxesByCatalog.get(component.catalog_id) ?? 0) + availableCases * component.quantity_per_case
@@ -158,6 +203,7 @@ async function getCcicReserveState() {
     return {
       caseCatalogId: setting.case_catalog_id,
       reservedCases: setting.reserved_cases,
+      backedCases,
       committedCases,
       availableCases,
     }
@@ -168,30 +214,7 @@ async function getCcicReserveState() {
 
 export async function getCcicCaseReserves() {
   const reserveState = await getCcicReserveState()
-  if (!reserveState.reserves.length) return reserveState.reserves
-
-  const availability = await getCcicStoreAvailabilityMap()
-
-  return reserveState.reserves.map((reserve) => {
-    const curatedCase = CHRISTMAS_CARD_CURATED_CASES.find((item) => item.id === reserve.caseCatalogId)
-    if (!curatedCase) return reserve
-
-    let physicalAvailableCases = 999999
-    for (const component of curatedCase.components) {
-      const row = availability[component.boxId]
-      if (!row || row.stockOnHand === null) continue
-      const uncommittedBoxes = Math.max(0, row.stockOnHand - row.committedBoxes)
-      physicalAvailableCases = Math.min(
-        physicalAvailableCases,
-        Math.floor(uncommittedBoxes / component.quantityBoxes)
-      )
-    }
-
-    return {
-      ...reserve,
-      availableCases: Math.min(reserve.availableCases, physicalAvailableCases),
-    }
-  })
+  return reserveState.reserves
 }
 
 export async function getCcicStoreAvailabilityMap(): Promise<CcicStoreAvailabilityMap> {
