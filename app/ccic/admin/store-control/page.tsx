@@ -1,12 +1,16 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
+import { CHRISTMAS_CARD_CURATED_CASES } from '@/lib/christmas-cards/catalog'
 import {
+  getCcicCaseReserves,
   getCcicInventoryCatalogItems,
   getCcicStoreAvailabilityMap,
   syncCcicStoreInventoryCatalog,
 } from '@/lib/christmas-cards/inventory'
 import {
   adjustCcicInventoryStock,
+  setCcicClassicCaseReserve,
   setCcicInventoryStock,
   toggleCcicInventoryStore,
 } from './actions'
@@ -31,6 +35,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   'negative-stock': 'That adjustment would make the stock count negative.',
   'stock-update': 'The stock quantity could not be updated.',
   'store-toggle': 'The storefront availability could not be changed.',
+  'invalid-case': 'That Classic Case could not be found.',
+  'invalid-reserve': 'Enter a whole number of reserved cases, zero or more.',
+  'reserve-below-committed': 'The reserve cannot be lower than the number of Classic Cases already committed to active orders.',
+  'reserve-exceeds-stock': 'There is not enough remaining inventory across all 16 designs to reserve that many Classic Cases.',
+  'reserve-update': 'The Classic Case reserve could not be updated.',
 }
 
 const UPDATED_MESSAGES: Record<string, string> = {
@@ -38,6 +47,7 @@ const UPDATED_MESSAGES: Record<string, string> = {
   adjustment: 'The manual stock adjustment was applied.',
   enabled: 'The card is available in the store again.',
   disabled: 'The card is now marked sold out in the store.',
+  reserve: 'The Classic Case reserve was updated. Released boxes are immediately available for individual orders.',
 }
 
 export default async function CcicStoreControlPage({
@@ -55,7 +65,10 @@ export default async function CcicStoreControlPage({
   const errorMessage = ERROR_MESSAGES[stringParam(params.error) || '']
   const updatedMessage = UPDATED_MESSAGES[stringParam(params.updated) || '']
   const items = getCcicInventoryCatalogItems()
-  const availability = await getCcicStoreAvailabilityMap()
+  const [availability, caseReserves] = await Promise.all([
+    getCcicStoreAvailabilityMap(),
+    getCcicCaseReserves(),
+  ])
 
   const trackedCount = items.filter((item) => availability[item.catalogId]?.stockOnHand !== null).length
   const manualOffCount = items.filter((item) => availability[item.catalogId]?.isStoreEnabled === false).length
@@ -67,9 +80,12 @@ export default async function CcicStoreControlPage({
   return (
     <main className="ccic-admin-page ccic-store-control-page">
       <header className="ccic-admin-header">
-        <div>
-          <p>Celebrate Christ in Christmas</p>
-          <h1>Store control</h1>
+        <div className="ccic-admin-heading-brand">
+          <Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={82} height={82} className="ccic-admin-logo" priority />
+          <div>
+            <p>Celebrate Christ in Christmas</p>
+            <h1>Store control</h1>
+          </div>
         </div>
         <div className="ccic-admin-header-actions">
           <Link href="/ccic/admin/orders">Orders</Link>
@@ -88,6 +104,51 @@ export default async function CcicStoreControlPage({
         <article><strong>{manualOffCount}</strong><span>Manually turned off</span></article>
       </section>
 
+      <section className="ccic-admin-panel ccic-case-reserve-panel">
+        <div className="ccic-admin-panel-heading">
+          <div>
+            <h2>Classic Case reserve</h2>
+            <p className="ccic-store-muted">Inventory held here is protected from individual-box sales.</p>
+          </div>
+          <span>2 boxes of each of 16 designs per case</span>
+        </div>
+
+        {CHRISTMAS_CARD_CURATED_CASES.map((item) => {
+          const reserve = caseReserves.find((row) => row.caseCatalogId === item.id) ?? {
+            caseCatalogId: item.id,
+            reservedCases: 0,
+            committedCases: 0,
+            availableCases: 0,
+          }
+
+          return (
+            <div className="ccic-case-reserve-row" key={item.id}>
+              <div>
+                <strong>{item.title}</strong>
+                <span>{item.sku}</span>
+              </div>
+              <dl>
+                <div><dt>Reserved</dt><dd>{reserve.reservedCases}</dd></div>
+                <div><dt>Committed</dt><dd>{reserve.committedCases}</dd></div>
+                <div><dt>Available cases</dt><dd>{reserve.availableCases}</dd></div>
+                <div><dt>Boxes held</dt><dd>{reserve.availableCases * item.boxesPerCase}</dd></div>
+              </dl>
+              <form action={setCcicClassicCaseReserve} className="ccic-case-reserve-form">
+                <input type="hidden" name="case_catalog_id" value={item.id} />
+                <label>
+                  <span>Set reserved cases</span>
+                  <input type="number" name="reserved_cases" min={reserve.committedCases} step="1" defaultValue={reserve.reservedCases} required />
+                </label>
+                <button type="submit">Update reserve</button>
+              </form>
+            </div>
+          )
+        })}
+        <p className="ccic-case-reserve-note">
+          Lowering the reserve releases the corresponding boxes back into individual inventory immediately. The reserve cannot be reduced below cases already committed to active orders.
+        </p>
+      </section>
+
       <section className="ccic-admin-panel ccic-store-control-intro">
         <div>
           <h2>Lightweight stock control</h2>
@@ -97,7 +158,7 @@ export default async function CcicStoreControlPage({
           </p>
         </div>
         <p>
-          Leaving stock blank means the design is not quantity-limited. Turning a design off replaces its quantity selector with a Sold out label while keeping its card preview available.
+          Leaving stock blank means the design is not quantity-limited. Reserved Classic Case boxes are withheld from the individual-box availability shown below.
         </p>
       </section>
 
@@ -114,6 +175,7 @@ export default async function CcicStoreControlPage({
                 <th>Card</th>
                 <th>Stock</th>
                 <th>Committed</th>
+                <th>Held for cases</th>
                 <th>Available</th>
                 <th>Store status</th>
                 <th>Set stock</th>
@@ -126,6 +188,7 @@ export default async function CcicStoreControlPage({
                   isStoreEnabled: true,
                   stockOnHand: null,
                   committedBoxes: 0,
+                  reservedBoxes: 0,
                   availableBoxes: null,
                 }
                 const isManualOff = !row.isStoreEnabled
@@ -144,6 +207,7 @@ export default async function CcicStoreControlPage({
                     </td>
                     <td>{row.stockOnHand === null ? 'Not tracked' : row.stockOnHand}</td>
                     <td>{row.committedBoxes}</td>
+                    <td>{row.reservedBoxes || '—'}</td>
                     <td>{row.availableBoxes === null ? 'Not limited' : row.availableBoxes}</td>
                     <td>
                       <span className={`ccic-store-status is-${isManualOff ? 'off' : isAutomaticallySoldOut ? 'sold-out' : 'available'}`}>
