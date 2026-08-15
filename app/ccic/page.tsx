@@ -10,6 +10,7 @@ import {
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
 import {
+  getCcicCaseReserves,
   getCcicStoreAvailabilityMap,
   syncCcicStoreInventoryCatalog,
 } from '@/lib/christmas-cards/inventory'
@@ -31,7 +32,13 @@ export const metadata = {
 
 export default async function CcicPage() {
   await syncCcicStoreInventoryCatalog()
-  const inventoryAvailability = await getCcicStoreAvailabilityMap()
+  const [inventoryAvailability, caseReserves] = await Promise.all([
+    getCcicStoreAvailabilityMap(),
+    getCcicCaseReserves(),
+  ])
+  const caseAvailability = Object.fromEntries(
+    caseReserves.map((reserve) => [reserve.caseCatalogId, reserve.availableCases])
+  )
 
   return (
     <CcicCartProvider>
@@ -92,6 +99,7 @@ export default async function CcicPage() {
           boxes={CHRISTMAS_CARD_BOXES}
           collections={CHRISTMAS_CARD_COLLECTIONS}
           inventoryAvailability={inventoryAvailability}
+          caseAvailability={caseAvailability}
         />
 
         <section className="ccic-support-banner" aria-label="Thank you for your support">
