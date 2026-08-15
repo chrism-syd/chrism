@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecords } from '@/lib/security/pii'
@@ -157,9 +158,12 @@ export default async function CcicPackingListPage({
   return (
     <main className="ccic-admin-page ccic-packing-page">
       <header className="ccic-admin-header">
-        <div>
-          <p>Celebrate Christ in Christmas</p>
-          <h1>Packing list</h1>
+        <div className="ccic-admin-heading-brand">
+          <Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={82} height={82} className="ccic-admin-logo" priority />
+          <div>
+            <p>Celebrate Christ in Christmas</p>
+            <h1>Packing list</h1>
+          </div>
         </div>
         <div className="ccic-admin-header-actions">
           <Link href="/ccic/admin/orders">View orders</Link>
