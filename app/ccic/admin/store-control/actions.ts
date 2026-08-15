@@ -22,6 +22,12 @@ function finish(message: string): never {
   redirect(`/ccic/admin/store-control?${message}`)
 }
 
+async function minimumProtectedStock(catalogId: string) {
+  const availability = await getCcicStoreAvailabilityMap()
+  const row = availability[catalogId]
+  return row ? row.committedBoxes + row.reservedBoxes : 0
+}
+
 export async function setCcicInventoryStock(formData: FormData) {
   await requireCcicOrderAdmin('/ccic/admin/store-control')
 
@@ -33,6 +39,11 @@ export async function setCcicInventoryStock(formData: FormData) {
   const stockOnHand = rawStock === '' ? null : Number(rawStock)
   if (stockOnHand !== null && (!Number.isInteger(stockOnHand) || stockOnHand < 0 || stockOnHand > 999999)) {
     finish('error=invalid-stock')
+  }
+
+  if (stockOnHand !== null) {
+    const protectedStock = await minimumProtectedStock(catalogId)
+    if (stockOnHand < protectedStock) finish('error=stock-below-reserve')
   }
 
   const admin = createAdminClient()
@@ -81,6 +92,9 @@ export async function adjustCcicInventoryStock(formData: FormData) {
 
   const nextStock = Number(data.stock_on_hand) + adjustment
   if (nextStock < 0) finish('error=negative-stock')
+
+  const protectedStock = await minimumProtectedStock(catalogId)
+  if (nextStock < protectedStock) finish('error=stock-below-reserve')
 
   const { error } = await admin
     .from('ccic_store_inventory')
@@ -150,8 +164,8 @@ export async function setCcicClassicCaseReserve(formData: FormData) {
   for (const component of curatedCase.components) {
     const row = availability[component.boxId]
     if (!row || row.stockOnHand === null) continue
-    const boxesOutsideCurrentReserve = (row.availableBoxes ?? 0) + row.reservedBoxes
-    const componentCapacity = committedCases + Math.floor(boxesOutsideCurrentReserve / component.quantityBoxes)
+    const uncommittedBoxes = Math.max(0, row.stockOnHand - row.committedBoxes)
+    const componentCapacity = committedCases + Math.floor(uncommittedBoxes / component.quantityBoxes)
     maxReservableCases = Math.min(maxReservableCases, componentCapacity)
   }
 
