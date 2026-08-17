@@ -28,6 +28,10 @@
   text-transform: uppercase;
 }
 
+.ccic-collection:last-child {
+  border-bottom: 0;
+}
+
 .ccic-support-banner {
   margin-top: 64px;
   padding: 44px 32px;
