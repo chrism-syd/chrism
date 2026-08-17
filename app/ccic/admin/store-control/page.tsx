@@ -71,6 +71,7 @@ export default async function CcicStoreControlPage({
   ])
 
   const trackedCount = items.filter((item) => availability[item.catalogId]?.stockOnHand !== null).length
+  const untrackedCount = items.length - trackedCount
   const manualOffCount = items.filter((item) => availability[item.catalogId]?.isStoreEnabled === false).length
   const soldOutCount = items.filter((item) => {
     const row = availability[item.catalogId]
@@ -98,9 +99,13 @@ export default async function CcicStoreControlPage({
       {errorMessage ? <p className="ccic-admin-error">{errorMessage}</p> : null}
 
       <section className="ccic-store-control-summary" aria-label="Inventory summary">
-        <article><strong>{items.length}</strong><span>Coded card designs</span></article>
-        <article><strong>{trackedCount}</strong><span>Inventory tracked</span></article>
-        <article><strong>{soldOutCount}</strong><span>Automatically sold out</span></article>
+        <article><strong>{items.length}</strong><span>Card designs</span></article>
+        <article>
+          <strong>{trackedCount}</strong>
+          <span>Inventory tracked</span>
+          <small>{untrackedCount} inventory not being tracked</small>
+        </article>
+        <article><strong>{soldOutCount}</strong><span>Sold out</span></article>
         <article><strong>{manualOffCount}</strong><span>Manually turned off</span></article>
       </section>
 
