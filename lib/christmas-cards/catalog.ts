@@ -76,7 +76,7 @@ export const CHRISTMAS_CARD_COLLECTIONS: ChristmasCardCollection[] = [
   {
     id: 'catholic-prayer-cards',
     title: 'Catholic Prayer Cards',
-    description: 'Sold by the box for $9.00 and not included in case pricing.',
+    description: 'Sold by the box for $12.00 and not included in case pricing.',
     sortOrder: 50,
   },
 ]
@@ -260,7 +260,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Mary'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 170,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
   createChristmasCardBox({
@@ -270,7 +270,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Mary'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 180,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
   createChristmasCardBox({
@@ -280,7 +280,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Christ Child'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 190,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
   createChristmasCardBox({
@@ -290,7 +290,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Shepherds'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 200,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
   createChristmasCardBox({
@@ -300,7 +300,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Bethlehem'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 210,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
   createChristmasCardBox({
@@ -310,7 +310,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Madonna & Child'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 220,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
   createChristmasCardBox({
@@ -320,7 +320,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     themeTags: ['Nativity'],
     collectionId: 'catholic-prayer-cards',
     sortOrder: 230,
-    priceCents: 900,
+    priceCents: 1200,
     isCasePricingEligible: false,
   }),
 ]
