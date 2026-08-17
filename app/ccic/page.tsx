@@ -109,17 +109,18 @@ export default async function CcicPage() {
         </section>
 
         <footer className="ccic-footer ccic-footer-powered">
-          <div className="ccic-footer-brand">
-            <div className="ccic-photo-credits" aria-label="Header image credits">
-              <p>
-                Page Header Background Image credits:{' '}
-                <a href="https://unsplash.com/@anniespratt?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Annie Spratt</a>
-                {' / '}
-                <a href="https://unsplash.com/@joannakosinska?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joanna Kosinska</a>
-                {' on '}
-                <a href="https://unsplash.com">Unsplash</a>
-              </p>
-            </div>
+          <div className="ccic-photo-credits" aria-label="Header image credits">
+            <p>
+              Page Header Background Image credits:
+              <br className="ccic-photo-credit-break" />
+              <a href="https://unsplash.com/@anniespratt?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Annie Spratt</a>
+              {' / '}
+              <a href="https://unsplash.com/@joannakosinska?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joanna Kosinska</a>
+              {' on '}
+              <a href="https://unsplash.com">Unsplash</a>
+            </p>
+          </div>
+          <div className="ccic-footer-powered-center">
             <span>Powered by</span>
             <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
               <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
