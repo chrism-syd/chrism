@@ -49,6 +49,24 @@
   margin-top: 0;
 }
 
+.ccic-photo-credits {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  color: #8a847f;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.ccic-photo-credits p {
+  margin: 0;
+}
+
+.ccic-photo-credits a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
 @media (max-width: 640px) {
   .ccic-custom-case-banner {
     grid-template-columns: 1fr;
@@ -67,5 +85,9 @@
   .ccic-support-banner {
     margin-top: 48px;
     padding: 36px 22px;
+  }
+
+  .ccic-photo-credits {
+    font-size: 8px;
   }
 }
