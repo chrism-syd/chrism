@@ -110,10 +110,6 @@ export default async function CcicPage() {
 
         <footer className="ccic-footer ccic-footer-powered">
           <div className="ccic-footer-brand">
-            <span>Powered by</span>
-            <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
-              <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
-            </a>
             <div className="ccic-photo-credits" aria-label="Header image credits">
               <p>
                 Page Header Background Image credits:{' '}
@@ -124,6 +120,10 @@ export default async function CcicPage() {
                 <a href="https://unsplash.com">Unsplash</a>
               </p>
             </div>
+            <span>Powered by</span>
+            <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
+              <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
+            </a>
           </div>
           <Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link>
         </footer>
