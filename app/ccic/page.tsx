@@ -114,6 +114,14 @@ export default async function CcicPage() {
             <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
               <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
             </a>
+            <div className="ccic-photo-credits" aria-label="Header image credits">
+              <p>
+                Photo by <a href="https://unsplash.com/@anniespratt?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Annie Spratt</a> on <a href="https://unsplash.com/photos/assorted-type-of-leaves-lying-on-white-panel-VDXtVYJVj7A?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+              </p>
+              <p>
+                Photo by <a href="https://unsplash.com/@joannakosinska?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joanna Kosinska</a> on <a href="https://unsplash.com/photos/beaded-of-white-string-light-dka5C8Ct2Fw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+              </p>
+            </div>
           </div>
           <Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link>
         </footer>
