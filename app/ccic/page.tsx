@@ -116,10 +116,12 @@ export default async function CcicPage() {
             </a>
             <div className="ccic-photo-credits" aria-label="Header image credits">
               <p>
-                Photo by <a href="https://unsplash.com/@anniespratt?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Annie Spratt</a> on <a href="https://unsplash.com/photos/assorted-type-of-leaves-lying-on-white-panel-VDXtVYJVj7A?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
-              </p>
-              <p>
-                Photo by <a href="https://unsplash.com/@joannakosinska?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joanna Kosinska</a> on <a href="https://unsplash.com/photos/beaded-of-white-string-light-dka5C8Ct2Fw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
+                Page Header Background Image credits:{' '}
+                <a href="https://unsplash.com/@anniespratt?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Annie Spratt</a>
+                {' / '}
+                <a href="https://unsplash.com/@joannakosinska?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joanna Kosinska</a>
+                {' on '}
+                <a href="https://unsplash.com">Unsplash</a>
               </p>
             </div>
           </div>
