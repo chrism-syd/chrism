@@ -61,6 +61,7 @@ export default function StorefrontOrderBuilder({
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [boxQuantities, setBoxQuantities] = useState<QuantityMap>({})
   const [fulfillmentMethod, setFulfillmentMethod] = useState<CcicFulfillmentMethod>('pickup')
+  const [hasHydratedDraft, setHasHydratedDraft] = useState(false)
   const { isOpen, closeCart, setSummary } = useCcicCart()
 
   const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
@@ -112,15 +113,26 @@ export default function StorefrontOrderBuilder({
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const storedDraft = readStoredDraft()
-      if (!storedDraft) return
-
-      setCaseQuantities(storedDraft.caseQuantities)
-      setBoxQuantities(storedDraft.boxQuantities)
-      setFulfillmentMethod(storedDraft.fulfillmentMethod)
+      if (storedDraft) {
+        setCaseQuantities(storedDraft.caseQuantities)
+        setBoxQuantities(storedDraft.boxQuantities)
+        setFulfillmentMethod(storedDraft.fulfillmentMethod)
+      }
+      setHasHydratedDraft(true)
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
   }, [])
+
+  useEffect(() => {
+    if (!hasHydratedDraft) return
+
+    if (calculatedOrder.hasOrder) {
+      window.sessionStorage.setItem(CCIC_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draftInput))
+    } else {
+      window.sessionStorage.removeItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
+    }
+  }, [calculatedOrder.hasOrder, draftInput, hasHydratedDraft])
 
   useEffect(() => {
     setSummary({
