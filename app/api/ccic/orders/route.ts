@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { NextResponse, type NextRequest } from 'next/server'
 import { sendBrevoTransactionalEmail } from '@/lib/email/brevo'
@@ -100,8 +101,8 @@ function escapeHtml(value: string) {
 }
 
 function makeOrderNumber() {
-  const year = new Date().getUTCFullYear()
-  const token = crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()
+  const year = String(new Date().getUTCFullYear()).slice(-2)
+  const token = randomInt(0, 10000).toString().padStart(4, '0')
   return `CCIC-${year}-${token}`
 }
 
@@ -261,7 +262,6 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const orderNumber = makeOrderNumber()
   const protectedContact = protectPeoplePayload({
     email: contact.email,
     cell_phone: contact.phone,
@@ -273,28 +273,42 @@ export async function POST(request: NextRequest) {
     country_code: 'CA',
   })
 
-  const { data: order, error: orderError } = await admin
-    .from('ccic_orders')
-    .insert({
-      order_number: orderNumber,
-      status_code: 'received',
-      contact_name: contact.contactName,
-      organization_name: contact.organizationName,
-      ...protectedContact,
-      fulfillment_method: draft.fulfillmentMethod,
-      regular_subtotal_cents: calculated.regularSubtotalCents,
-      custom_case_count: calculated.customCaseCount,
-      custom_case_discount_cents: calculated.customCaseDiscountCents,
-      subtotal_cents: calculated.subtotalCents,
-      shipping_cents: calculated.shippingCents,
-      total_cents: calculated.totalCents,
-      currency_code: 'CAD',
-    })
-    .select('id, order_number')
-    .single()
+  let order: { id: string; order_number: string } | null = null
+  let lastOrderError: unknown = null
 
-  if (orderError || !order) {
-    console.error('CCIC order insert failed', orderError)
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const orderNumber = makeOrderNumber()
+    const { data, error } = await admin
+      .from('ccic_orders')
+      .insert({
+        order_number: orderNumber,
+        status_code: 'received',
+        contact_name: contact.contactName,
+        organization_name: contact.organizationName,
+        ...protectedContact,
+        fulfillment_method: draft.fulfillmentMethod,
+        regular_subtotal_cents: calculated.regularSubtotalCents,
+        custom_case_count: calculated.customCaseCount,
+        custom_case_discount_cents: calculated.customCaseDiscountCents,
+        subtotal_cents: calculated.subtotalCents,
+        shipping_cents: calculated.shippingCents,
+        total_cents: calculated.totalCents,
+        currency_code: 'CAD',
+      })
+      .select('id, order_number')
+      .single()
+
+    if (!error && data) {
+      order = data
+      break
+    }
+
+    lastOrderError = error
+    if (error?.code !== '23505') break
+  }
+
+  if (!order) {
+    console.error('CCIC order insert failed', lastOrderError)
     return NextResponse.json({ error: 'We could not save your order. Please try again.' }, { status: 500 })
   }
 
