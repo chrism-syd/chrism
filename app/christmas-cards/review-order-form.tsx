@@ -208,7 +208,10 @@ export default function ReviewOrderForm() {
           <fieldset className="ccic-review-address">
             <legend>Shipping address</legend>
 
-            <GoogleAddressAutocomplete onAddressSelected={revealAddressFields} />
+            <GoogleAddressAutocomplete
+              onAddressSelected={revealAddressFields}
+              onUnavailable={revealAddressFields}
+            />
 
             {!showAddressFields ? (
               <button
