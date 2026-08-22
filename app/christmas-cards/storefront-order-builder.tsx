@@ -242,7 +242,7 @@ export default function StorefrontOrderBuilder({
           <section className="ccic-ordering-steps" aria-labelledby="ordering-is-easy">
             <h2 id="ordering-is-easy">Ordering is easy</h2>
             <div>
-              <article><strong>1. Make your selection</strong><p>Select a Classic Case or choose individual boxes.</p></article>
+              <article><strong>1. Make your selection</strong><p>Select a Classic Case or individual boxes.</p></article>
               <article><strong>2. Review your order</strong><p>Open the cart at any time to review quantities and pricing.</p></article>
               <article><strong>3. Place your order</strong><p>Choose pickup or shipping, then confirm your details.</p></article>
             </div>
@@ -407,10 +407,6 @@ export default function StorefrontOrderBuilder({
 
               <div className="ccic-summary-total">
                 <div className="ccic-summary-line"><span>Subtotal</span><strong>{formatChristmasCardMoney(calculatedOrder.subtotalCents)}</strong></div>
-                <div className="ccic-summary-line">
-                  <span>Shipping</span>
-                  <strong>{fulfillmentMethod === 'shipping' ? 'Calculated on next screen' : '$0.00'}</strong>
-                </div>
                 <div className="ccic-summary-line ccic-total-line"><span>Total</span><strong>{formatChristmasCardMoney(calculatedOrder.totalCents)}</strong></div>
               </div>
 
