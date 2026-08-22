@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import GoogleAddressAutocomplete from './google-address-autocomplete'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import {
@@ -42,6 +42,8 @@ export default function ReviewOrderForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SubmissionResult | null>(null)
+  const [showAddressFields, setShowAddressFields] = useState(false)
+  const revealAddressFields = useCallback(() => setShowAddressFields(true), [])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -206,45 +208,58 @@ export default function ReviewOrderForm() {
           <fieldset className="ccic-review-address">
             <legend>Shipping address</legend>
 
-            <GoogleAddressAutocomplete />
+            <GoogleAddressAutocomplete onAddressSelected={revealAddressFields} />
 
-            <div className="ccic-review-fields">
-              <label className="ccic-review-field-wide">
-                <span>Address</span>
-                <input name="address_line_1" autoComplete="address-line1" required />
-              </label>
+            {!showAddressFields ? (
+              <button
+                className="ccic-review-manual-address-toggle"
+                type="button"
+                onClick={revealAddressFields}
+              >
+                Enter address manually
+              </button>
+            ) : null}
 
-              <label className="ccic-review-field-wide">
-                <span>Unit, suite, or additional address details</span>
-                <input name="address_line_2" autoComplete="address-line2" />
-              </label>
+            <div className={`ccic-review-address-fields${showAddressFields ? ' is-visible' : ''}`} aria-hidden={!showAddressFields}>
+              <div className="ccic-review-fields">
+                <label className="ccic-review-field-wide">
+                  <span>Address</span>
+                  <input name="address_line_1" autoComplete="address-line1" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} />
+                </label>
 
-              <label>
-                <span>City</span>
-                <input name="city" autoComplete="address-level2" required />
-              </label>
+                <label className="ccic-review-field-wide">
+                  <span>Unit, suite, or additional address details</span>
+                  <input name="address_line_2" autoComplete="address-line2" tabIndex={showAddressFields ? undefined : -1} />
+                </label>
 
-              <label>
-                <span>Province</span>
-                <input name="province" autoComplete="address-level1" defaultValue="Ontario" required />
-              </label>
+                <label>
+                  <span>City</span>
+                  <input name="city" autoComplete="address-level2" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} />
+                </label>
 
-              <label>
-                <span>Postal code</span>
-                <input
-                  name="postal_code"
-                  autoComplete="postal-code"
-                  inputMode="text"
-                  maxLength={7}
-                  pattern="[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ] ?[0-9][ABCEGHJ-NPRSTVWXYZ][0-9]"
-                  placeholder="A1A 1A1"
-                  title="Enter a valid Canadian postal code, for example A1A 1A1."
-                  onInput={(event) => {
-                    event.currentTarget.value = normalizeCanadianPostalCode(event.currentTarget.value)
-                  }}
-                  required
-                />
-              </label>
+                <label>
+                  <span>Province</span>
+                  <input name="province" autoComplete="address-level1" defaultValue="Ontario" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} />
+                </label>
+
+                <label>
+                  <span>Postal code</span>
+                  <input
+                    name="postal_code"
+                    autoComplete="postal-code"
+                    inputMode="text"
+                    maxLength={7}
+                    pattern="[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ] ?[0-9][ABCEGHJ-NPRSTVWXYZ][0-9]"
+                    placeholder="A1A 1A1"
+                    title="Enter a valid Canadian postal code, for example A1A 1A1."
+                    onInput={(event) => {
+                      event.currentTarget.value = normalizeCanadianPostalCode(event.currentTarget.value)
+                    }}
+                    required={showAddressFields}
+                    tabIndex={showAddressFields ? undefined : -1}
+                  />
+                </label>
+              </div>
             </div>
           </fieldset>
         ) : null}
