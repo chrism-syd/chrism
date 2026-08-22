@@ -22,10 +22,7 @@ export type CcicShippingQuote =
   | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage }
   | { status: 'pending'; provisional: true; reason: 'packing_required' | 'rate_unavailable'; message: string }
 
-type CanadaPostTokenResponse = {
-  access_token?: string
-}
-
+type CanadaPostTokenResponse = { access_token?: string }
 type CanadaPostRateResponse = Array<{
   serviceCode?: string
   serviceName?: string
@@ -33,6 +30,9 @@ type CanadaPostRateResponse = Array<{
   serviceStandard?: { expectedTransitTime?: number }
 }>
 
+// Temporary test profile based on the currently defined 32-box case.
+// Replace these values with measured packed dimensions and weight when the
+// physical product and shipping carton are available.
 const PROVISIONAL_FULL_CASE: CcicShippingPackage = {
   weightKg: 6.5,
   lengthCm: 45.7,
@@ -62,25 +62,16 @@ async function getAccessToken() {
       authorization: `Basic ${basic}`,
       'content-type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      scope: 'merchant',
-    }),
+    body: new URLSearchParams({ grant_type: 'client_credentials', scope: 'merchant' }),
     cache: 'no-store',
   })
 
   const payload = await response.json().catch(() => null) as CanadaPostTokenResponse | null
-  if (!response.ok || !payload?.access_token) {
-    throw new Error(`Canada Post authentication failed (${response.status}).`)
-  }
-
+  if (!response.ok || !payload?.access_token) throw new Error(`Canada Post authentication failed (${response.status}).`)
   return payload.access_token
 }
 
-export async function getCcicCanadaPostRates(args: {
-  destinationPostalCode: string
-  parcel: CcicShippingPackage
-}) {
+export async function getCcicCanadaPostRates(args: { destinationPostalCode: string; parcel: CcicShippingPackage }) {
   const customerNumber = requiredEnvironment('CANADA_POST_CUSTOMER_NUMBER')
   const token = await getAccessToken()
 
@@ -97,20 +88,12 @@ export async function getCcicCanadaPostRates(args: {
       quoteType: 'commercial',
       parcelCharacteristics: {
         weight: args.parcel.weightKg,
-        dimensions: {
-          length: args.parcel.lengthCm,
-          width: args.parcel.widthCm,
-          height: args.parcel.heightCm,
-        },
+        dimensions: { length: args.parcel.lengthCm, width: args.parcel.widthCm, height: args.parcel.heightCm },
         unpackaged: false,
         mailingTube: false,
       },
       originPostalCode: CCIC_SHIPPING_ORIGIN_POSTAL_CODE,
-      destination: {
-        domestic: {
-          postalCode: compactPostalCode(args.destinationPostalCode),
-        },
-      },
+      destination: { domestic: { postalCode: compactPostalCode(args.destinationPostalCode) } },
     }),
     cache: 'no-store',
   })
@@ -128,9 +111,7 @@ export async function getCcicCanadaPostRates(args: {
       serviceCode: rate.serviceCode,
       serviceName: rate.serviceName,
       amountCents: Math.round(due * 100),
-      expectedTransitTime: typeof rate.serviceStandard?.expectedTransitTime === 'number'
-        ? rate.serviceStandard.expectedTransitTime
-        : null,
+      expectedTransitTime: typeof rate.serviceStandard?.expectedTransitTime === 'number' ? rate.serviceStandard.expectedTransitTime : null,
     }]
   })
 }
@@ -141,42 +122,21 @@ export function selectCcicShippingRate(rates: CcicShippingRate[]) {
     ?? rates.reduce<CcicShippingRate | null>((best, rate) => !best || rate.amountCents < best.amountCents ? rate : best, null)
 }
 
-export async function quoteCcicShipping(args: {
-  destinationPostalCode: string
-  totalBoxes: number
-}): Promise<CcicShippingQuote> {
-  if (args.totalBoxes > 32) {
-    return {
-      status: 'pending',
-      provisional: true,
-      reason: 'packing_required',
-      message: CCIC_MANUAL_SHIPPING_MESSAGE,
-    }
+export async function quoteCcicShipping(args: { destinationPostalCode: string; totalBoxes: number }): Promise<CcicShippingQuote> {
+  // At present, 32 boxes is the only order size for which we have even a
+  // provisional packed-parcel profile. Do not manufacture a live price for
+  // loose boxes or multi-case orders until those packing rules are measured.
+  if (args.totalBoxes !== 32) {
+    return { status: 'pending', provisional: true, reason: 'packing_required', message: CCIC_MANUAL_SHIPPING_MESSAGE }
   }
 
   try {
-    const rates = await getCcicCanadaPostRates({
-      destinationPostalCode: args.destinationPostalCode,
-      parcel: PROVISIONAL_FULL_CASE,
-    })
+    const rates = await getCcicCanadaPostRates({ destinationPostalCode: args.destinationPostalCode, parcel: PROVISIONAL_FULL_CASE })
     const rate = selectCcicShippingRate(rates)
-    if (!rate) {
-      return {
-        status: 'pending',
-        provisional: true,
-        reason: 'rate_unavailable',
-        message: CCIC_MANUAL_SHIPPING_MESSAGE,
-      }
-    }
-
+    if (!rate) return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
     return { status: 'priced', provisional: true, rate, rates, parcel: PROVISIONAL_FULL_CASE }
   } catch (error) {
     console.error('CCIC Canada Post rating failed', error)
-    return {
-      status: 'pending',
-      provisional: true,
-      reason: 'rate_unavailable',
-      message: CCIC_MANUAL_SHIPPING_MESSAGE,
-    }
+    return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
   }
 }
