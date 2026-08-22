@@ -116,6 +116,67 @@
   line-height: 1.55;
 }
 
+.ccic-google-address {
+  display: grid;
+  gap: 8px;
+}
+
+.ccic-google-address label {
+  display: grid;
+  gap: 8px;
+}
+
+.ccic-google-address label > span {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+.ccic-google-address-control {
+  min-height: 48px;
+}
+
+.ccic-google-address-loading,
+.ccic-google-address-status {
+  color: #6a6460;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ccic-google-address-status {
+  margin: 2px 0 0;
+}
+
+.ccic-review-manual-address-toggle {
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4f4a47;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ccic-review-manual-address-toggle:hover,
+.ccic-review-manual-address-toggle:focus-visible {
+  color: #202020;
+}
+
+.ccic-review-address-fields {
+  display: none;
+}
+
+.ccic-review-address-fields.is-visible {
+  display: block;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid #e8e5e2;
+}
+
 .ccic-review-actions {
   display: flex;
   gap: 18px;
