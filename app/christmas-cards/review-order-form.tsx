@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import GoogleAddressAutocomplete from './google-address-autocomplete'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import {
   CCIC_ORDER_DRAFT_STORAGE_KEY,
@@ -204,6 +205,8 @@ export default function ReviewOrderForm() {
         {requiresAddress ? (
           <fieldset className="ccic-review-address">
             <legend>Shipping address</legend>
+
+            <GoogleAddressAutocomplete />
 
             <div className="ccic-review-fields">
               <label className="ccic-review-field-wide">
