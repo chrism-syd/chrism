@@ -79,12 +79,48 @@ export default function StorefrontOrderBuilder({
   const calculatedOrder = useMemo(() => calculateCcicOrder(draftInput), [draftInput])
   const selectedClassicLines = calculatedOrder.lines.filter((line) => line.lineType === 'classic_case')
   const selectedIndividualLines = calculatedOrder.lines.filter((line) => line.lineType === 'individual_box')
-  const selectedCaseEligibleBoxCount = selectedIndividualLines.reduce(
-    (sum, line) => sum + (caseEligibleBoxIds.has(line.catalogId) ? line.quantity : 0),
-    0
-  )
+
+  const { customCaseLines, looseIndividualLines, looseCaseEligibleBoxCount } = useMemo(() => {
+    let boxesToAllocateToCases = calculatedOrder.customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+    const customLines = [] as typeof selectedIndividualLines
+    const looseLines = [] as typeof selectedIndividualLines
+    let looseEligibleCount = 0
+
+    for (const line of selectedIndividualLines) {
+      const isCaseEligible = caseEligibleBoxIds.has(line.catalogId)
+      const customQuantity = isCaseEligible
+        ? Math.min(line.quantity, boxesToAllocateToCases)
+        : 0
+      const looseQuantity = line.quantity - customQuantity
+
+      if (customQuantity > 0) {
+        customLines.push({
+          ...line,
+          quantity: customQuantity,
+          lineTotalCents: customQuantity * line.unitPriceCents,
+        })
+        boxesToAllocateToCases -= customQuantity
+      }
+
+      if (looseQuantity > 0) {
+        looseLines.push({
+          ...line,
+          quantity: looseQuantity,
+          lineTotalCents: looseQuantity * line.unitPriceCents,
+        })
+        if (isCaseEligible) looseEligibleCount += looseQuantity
+      }
+    }
+
+    return {
+      customCaseLines: customLines,
+      looseIndividualLines: looseLines,
+      looseCaseEligibleBoxCount: looseEligibleCount,
+    }
+  }, [calculatedOrder.customCaseCount, caseEligibleBoxIds, selectedIndividualLines])
+
   const progressPercent = Math.round(
-    (calculatedOrder.currentCaseProgress / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100
+    (looseCaseEligibleBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100
   )
 
   function maxQuantityForBox(catalogId: string) {
@@ -295,7 +331,7 @@ export default function StorefrontOrderBuilder({
 
               <div className="ccic-summary-scroll">
                 {selectedClassicLines.length ? (
-                  <div className="ccic-summary-section">
+                  <div className="ccic-summary-section" style={{ borderTop: 0 }}>
                     <h3>Classic cases</h3>
                     {selectedClassicLines.map((line) => (
                       <div className="ccic-cart-item-row" key={line.catalogId}>
@@ -316,23 +352,18 @@ export default function StorefrontOrderBuilder({
                   </div>
                 ) : null}
 
-                {selectedIndividualLines.length ? (
-                  <div className="ccic-summary-section">
-                    <h3>Individual selections</h3>
-                    {selectedCaseEligibleBoxCount > 0 ? (
-                      <div className="ccic-case-progress">
-                        <div className="ccic-case-progress-copy">
-                          <strong>{calculatedOrder.currentCaseProgress} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
-                          <span>boxes toward current custom case</span>
-                        </div>
-                        <div className="ccic-progress-track" aria-hidden="true">
-                          <span style={{ width: `${progressPercent}%` }} />
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {selectedIndividualLines.map((line) => (
-                      <div className="ccic-cart-item-row" key={line.catalogId}>
+                {customCaseLines.length ? (
+                  <div
+                    className="ccic-summary-section"
+                    style={!selectedClassicLines.length ? { borderTop: 0 } : undefined}
+                  >
+                    <h3>
+                      {calculatedOrder.customCaseCount === 1
+                        ? 'Custom case'
+                        : `Custom cases ×${calculatedOrder.customCaseCount}`}
+                    </h3>
+                    {customCaseLines.map((line) => (
+                      <div className="ccic-cart-item-row" key={`custom-${line.catalogId}`}>
                         <div className="ccic-summary-line">
                           <span>{line.quantity} × {line.title}</span>
                           <strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong>
@@ -347,29 +378,68 @@ export default function StorefrontOrderBuilder({
                         </button>
                       </div>
                     ))}
+                  </div>
+                ) : null}
 
-                    {calculatedOrder.customCaseCount ? (
-                      <div className="ccic-summary-line ccic-pricing-adjustment">
-                        <span>
-                          Custom Case pricing ({calculatedOrder.customCaseCount} complete case{calculatedOrder.customCaseCount === 1 ? '' : 's'})
-                        </span>
-                        <strong>−{formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}</strong>
+                {looseIndividualLines.length ? (
+                  <div
+                    className="ccic-summary-section"
+                    style={!selectedClassicLines.length && !customCaseLines.length ? { borderTop: 0 } : undefined}
+                  >
+                    <h3>Individual selections</h3>
+                    {looseCaseEligibleBoxCount > 0 ? (
+                      <div className="ccic-case-progress">
+                        <div className="ccic-case-progress-copy">
+                          <strong>{looseCaseEligibleBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
+                          <span>boxes toward current custom case</span>
+                        </div>
+                        <div className="ccic-progress-track" aria-hidden="true">
+                          <span style={{ width: `${progressPercent}%` }} />
+                        </div>
                       </div>
                     ) : null}
+
+                    {looseIndividualLines.map((line) => (
+                      <div className="ccic-cart-item-row" key={`loose-${line.catalogId}`}>
+                        <div className="ccic-summary-line">
+                          <span>{line.quantity} × {line.title}</span>
+                          <strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong>
+                        </div>
+                        <button
+                          type="button"
+                          className="ccic-cart-remove-item"
+                          onClick={() => setBoxQuantities((current) => setQuantityValue(current, line.catalogId, 0))}
+                          aria-label={`Remove ${line.title} from order`}
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {calculatedOrder.customCaseCount ? (
+                  <div className="ccic-summary-section ccic-custom-case-savings">
+                    <div className="ccic-summary-line ccic-pricing-adjustment">
+                      <span>
+                        Custom Case pricing ({calculatedOrder.customCaseCount} complete case{calculatedOrder.customCaseCount === 1 ? '' : 's'})
+                      </span>
+                      <strong>−{formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}</strong>
+                    </div>
 
                     {calculatedOrder.customCaseDiscountCents ? (
                       <p className="ccic-good-news">
                         Custom Case pricing saved {formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}.
                       </p>
                     ) : null}
-
-                    {calculatedOrder.boxesUntilNextCase > 0 && calculatedOrder.remainingLooseBoxes >= 16 ? (
-                      <p className="ccic-nudge">
-                        <Image src="/chrism_star.png" alt="" width={24} height={24} />
-                        Add {calculatedOrder.boxesUntilNextCase} more boxes and receive Custom Case pricing.
-                      </p>
-                    ) : null}
                   </div>
+                ) : null}
+
+                {calculatedOrder.boxesUntilNextCase > 0 && calculatedOrder.remainingLooseBoxes >= 16 ? (
+                  <p className="ccic-nudge">
+                    <Image src="/chrism_star.png" alt="" width={24} height={24} />
+                    Add {calculatedOrder.boxesUntilNextCase} more boxes and receive Custom Case pricing.
+                  </p>
                 ) : null}
               </div>
 
