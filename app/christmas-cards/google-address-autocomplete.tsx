@@ -11,7 +11,7 @@ type PlaceAutocompleteElement = HTMLElement & { includedRegionCodes: string[]; p
 type GoogleMapsWindow = Window & { google?: { maps?: { places?: { PlaceAutocompleteElement?: new () => PlaceAutocompleteElement } } } }
 
 type GoogleAddressAutocompleteProps = {
-  onAddressSelected?: () => void
+  onAddressSelected?: (postalCode: string) => void
   onUnavailable?: () => void
 }
 
@@ -114,11 +114,12 @@ export default function GoogleAddressAutocomplete({
           const components = place.addressComponents || []
           const streetAddress = [componentValue(components, 'street_number'), componentValue(components, 'route')].filter(Boolean).join(' ')
           const city = componentValue(components, 'locality') || componentValue(components, 'postal_town') || componentValue(components, 'sublocality_level_1')
+          const postalCode = componentValue(components, 'postal_code').toUpperCase()
           setFormField('address_line_1', streetAddress)
           setFormField('city', city)
           setFormField('province', componentValue(components, 'administrative_area_level_1'))
-          setFormField('postal_code', componentValue(components, 'postal_code').toUpperCase())
-          selectedCallbackRef.current?.()
+          setFormField('postal_code', postalCode)
+          selectedCallbackRef.current?.(postalCode)
           setStatus(streetAddress ? 'Address found. Please review the details below.' : 'Address found. Please review and complete the details below.')
         } catch (error) {
           console.error('CCIC Google address selection failed', error)
