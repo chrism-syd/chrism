@@ -65,6 +65,30 @@ function canadaPostErrorDetail(payload: CanadaPostErrorResponse | null) {
   return [code, message].filter(Boolean).join(': ')
 }
 
+function logRatingRequest(args: {
+  destinationPostalCode: string
+  parcel: CcicShippingPackage
+  hasContractId: boolean
+}) {
+  console.info('CCIC Canada Post rating request', {
+    originPostalCode: CCIC_SHIPPING_ORIGIN_POSTAL_CODE,
+    destinationPostalCode: compactPostalCode(args.destinationPostalCode),
+    parcel: args.parcel,
+    hasContractId: args.hasContractId,
+  })
+}
+
+function logRatingResponse(payload: CanadaPostRateResponse) {
+  console.info('CCIC Canada Post rating response', payload.map((rate) => ({
+    serviceCode: rate.serviceCode ?? null,
+    serviceName: rate.serviceName ?? null,
+    due: typeof rate.priceDetails?.due === 'number' ? rate.priceDetails.due : null,
+    expectedTransitTime: typeof rate.serviceStandard?.expectedTransitTime === 'number'
+      ? rate.serviceStandard.expectedTransitTime
+      : null,
+  })))
+}
+
 async function getAccessToken() {
   const clientId = requiredEnvironment('CANADA_POST_CLIENT_ID')
   const clientSecret = requiredEnvironment('CANADA_POST_CLIENT_SECRET')
@@ -138,6 +162,12 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
   const contractId = optionalEnvironment('CANADA_POST_CONTRACT_ID')
   const token = await getAccessToken()
 
+  logRatingRequest({
+    destinationPostalCode: args.destinationPostalCode,
+    parcel: args.parcel,
+    hasContractId: Boolean(contractId),
+  })
+
   let attempt = await requestRates(token, buildRatingBody({
     customerNumber,
     contractId,
@@ -145,16 +175,13 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
     parcel: args.parcel,
   }))
 
-  // The OAuth-based Rating API is strict about its JSON schema. Some account
-  // configurations expose a contract in service links but do not accept
-  // contractId in the /prices body. If that field causes schema validation,
-  // retry the same authenticated customer request without it.
   if (
     contractId
     && attempt.response.status === 400
     && !Array.isArray(attempt.payload)
     && canadaPostErrorDetail(attempt.payload).toLowerCase().includes('schema validation')
   ) {
+    console.info('CCIC Canada Post retrying rating request without contractId')
     attempt = await requestRates(token, buildRatingBody({
       customerNumber,
       destinationPostalCode: args.destinationPostalCode,
@@ -167,6 +194,8 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
     const detail = payload && !Array.isArray(payload) ? canadaPostErrorDetail(payload) : ''
     throw new Error(`Canada Post rating failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
+
+  logRatingResponse(payload)
 
   return payload.flatMap((rate): CcicShippingRate[] => {
     const due = rate.priceDetails?.due
