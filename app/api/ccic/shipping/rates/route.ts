@@ -1,18 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { getCcicCanadaPostRates, selectCcicShippingRate } from '@/lib/christmas-cards/canada-post'
+import { quoteCcicShipping } from '@/lib/christmas-cards/canada-post'
 
 export const runtime = 'nodejs'
-
-// Provisional full-case parcel profile. Replace with measured packed dimensions
-// and weight once the finished CCIC cards and shipping cartons are in hand.
-const PROVISIONAL_FULL_CASE = {
-  weightKg: 6.5,
-  lengthCm: 45.7,
-  widthCm: 30.5,
-  heightCm: 12.7,
-}
-
-const MANUAL_SHIPPING_MESSAGE = 'Shipping will be calculated after your order has been reviewed for packing. We will email you with the shipping cost before payment.'
 
 function normalizePostalCode(value: unknown) {
   if (typeof value !== 'string') return ''
@@ -37,48 +26,21 @@ export async function POST(request: NextRequest) {
     ? Math.max(1, Math.floor(body.totalBoxes))
     : 1
 
-  // Until physical samples arrive, rate one provisional full case only for
-  // orders up to 32 boxes. Larger orders deliberately fall back to manual
-  // shipping review rather than presenting a fabricated live price.
-  if (totalBoxes > 32) {
+  const quote = await quoteCcicShipping({ destinationPostalCode: postalCode, totalBoxes })
+  if (quote.status === 'pending') {
     return NextResponse.json({
       available: false,
-      provisional: true,
-      reason: 'packing_required',
-      message: MANUAL_SHIPPING_MESSAGE,
+      provisional: quote.provisional,
+      reason: quote.reason,
+      message: quote.message,
     })
   }
 
-  try {
-    const rates = await getCcicCanadaPostRates({
-      destinationPostalCode: postalCode,
-      parcel: PROVISIONAL_FULL_CASE,
-    })
-    const selected = selectCcicShippingRate(rates)
-
-    if (!selected) {
-      return NextResponse.json({
-        available: false,
-        provisional: true,
-        reason: 'rate_unavailable',
-        message: MANUAL_SHIPPING_MESSAGE,
-      })
-    }
-
-    return NextResponse.json({
-      available: true,
-      provisional: true,
-      rate: selected,
-      rates,
-      parcel: PROVISIONAL_FULL_CASE,
-    })
-  } catch (error) {
-    console.error('CCIC Canada Post rating failed', error)
-    return NextResponse.json({
-      available: false,
-      provisional: true,
-      reason: 'rate_unavailable',
-      message: MANUAL_SHIPPING_MESSAGE,
-    })
-  }
+  return NextResponse.json({
+    available: true,
+    provisional: quote.provisional,
+    rate: quote.rate,
+    rates: quote.rates,
+    parcel: quote.parcel,
+  })
 }
