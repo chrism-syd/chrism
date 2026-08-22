@@ -2,16 +2,20 @@
 
 import { useState } from 'react'
 
-export default function PaymentOptionsDetails() {
+type Props = {
+  linkText?: string
+  sentenceSuffix?: string
+}
+
+export default function PaymentOptionsDetails({ linkText = 'Payment options', sentenceSuffix = 'best suited to you.' }: Props) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
     <>
       <span className="ccic-payment-sentence">
         <button type="button" className="ccic-inline-text-button" onClick={() => setIsOpen(true)}>
-          Payment options <span aria-hidden="true" className="ccic-open-link-icon">↗</span>
-        </button>{' '}
-        best suited to you.
+          {linkText} <span aria-hidden="true" className="ccic-open-link-icon">↗</span>
+        </button>{sentenceSuffix ? <> {sentenceSuffix}</> : null}
       </span>
 
       {isOpen ? (
