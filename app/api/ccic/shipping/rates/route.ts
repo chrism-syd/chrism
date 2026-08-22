@@ -12,6 +12,8 @@ const PROVISIONAL_FULL_CASE = {
   heightCm: 12.7,
 }
 
+const MANUAL_SHIPPING_MESSAGE = 'Shipping will be calculated after your order has been reviewed for packing. We will email you with the shipping cost before payment.'
+
 function normalizePostalCode(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '')
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
       available: false,
       provisional: true,
       reason: 'packing_required',
-      message: 'Shipping will be confirmed after we review the best packing option for this order.',
+      message: MANUAL_SHIPPING_MESSAGE,
     })
   }
 
@@ -58,7 +60,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         available: false,
         provisional: true,
-        message: 'A live Canada Post rate is not available for this postal code right now.',
+        reason: 'rate_unavailable',
+        message: MANUAL_SHIPPING_MESSAGE,
       })
     }
 
@@ -74,7 +77,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       available: false,
       provisional: true,
-      message: 'We could not retrieve a live Canada Post rate right now. Shipping can still be reviewed with your order.',
+      reason: 'rate_unavailable',
+      message: MANUAL_SHIPPING_MESSAGE,
     })
   }
 }
