@@ -136,7 +136,7 @@ export default function GoogleAddressAutocomplete() {
   return (
     <div className="ccic-google-address">
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&loading=async&v=weekly`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&v=weekly&libraries=places`}
         strategy="afterInteractive"
         onLoad={() => setScriptReady(true)}
       />
