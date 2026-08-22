@@ -20,6 +20,11 @@ function fieldValue(formData: FormData, key: string) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function normalizeCanadianPostalCode(value: string) {
+  const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  return compact.length > 3 ? `${compact.slice(0, 3)} ${compact.slice(3)}` : compact
+}
+
 function readStoredDraft() {
   const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
   if (!storedDraft) return null
@@ -72,7 +77,7 @@ export default function ReviewOrderForm() {
           addressLine2: fieldValue(formData, 'address_line_2'),
           city: fieldValue(formData, 'city'),
           province: fieldValue(formData, 'province'),
-          postalCode: fieldValue(formData, 'postal_code'),
+          postalCode: normalizeCanadianPostalCode(fieldValue(formData, 'postal_code')),
         },
       }),
     })
@@ -223,7 +228,19 @@ export default function ReviewOrderForm() {
 
               <label>
                 <span>Postal code</span>
-                <input name="postal_code" autoComplete="postal-code" required />
+                <input
+                  name="postal_code"
+                  autoComplete="postal-code"
+                  inputMode="text"
+                  maxLength={7}
+                  pattern="[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ] ?[0-9][ABCEGHJ-NPRSTVWXYZ][0-9]"
+                  placeholder="A1A 1A1"
+                  title="Enter a valid Canadian postal code, for example A1A 1A1."
+                  onInput={(event) => {
+                    event.currentTarget.value = normalizeCanadianPostalCode(event.currentTarget.value)
+                  }}
+                  required
+                />
               </label>
             </div>
           </fieldset>
