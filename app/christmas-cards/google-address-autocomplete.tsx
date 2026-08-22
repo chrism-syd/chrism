@@ -55,7 +55,11 @@ function setFormField(name: string, value: string) {
   field.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
-export default function GoogleAddressAutocomplete() {
+export default function GoogleAddressAutocomplete({
+  onAddressSelected,
+}: {
+  onAddressSelected?: () => void
+}) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [scriptReady, setScriptReady] = useState(false)
   const [status, setStatus] = useState('')
@@ -102,6 +106,7 @@ export default function GoogleAddressAutocomplete() {
             setFormField('city', city)
             setFormField('province', province)
             setFormField('postal_code', postalCode)
+            onAddressSelected?.()
 
             setStatus(streetAddress
               ? 'Address found. Please review the details below.'
@@ -125,7 +130,7 @@ export default function GoogleAddressAutocomplete() {
       disposed = true
       if (autocomplete?.parentNode === host) host.removeChild(autocomplete)
     }
-  }, [scriptReady])
+  }, [onAddressSelected, scriptReady])
 
   if (!GOOGLE_MAPS_API_KEY) return null
 
@@ -144,9 +149,6 @@ export default function GoogleAddressAutocomplete() {
         </div>
       </label>
 
-      <p className="ccic-google-address-help">
-        Start typing and choose your address from Google, or enter the shipping details manually below.
-      </p>
       {status ? <p className="ccic-google-address-status" role="status">{status}</p> : null}
     </div>
   )
