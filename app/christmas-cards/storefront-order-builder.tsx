@@ -146,6 +146,13 @@ export default function StorefrontOrderBuilder({
     return maxCases
   }
 
+  function removeDisplayedBoxQuantity(catalogId: string, quantity: number) {
+    setBoxQuantities((current) => {
+      const nextQuantity = Math.max(0, quantityFromMap(current, catalogId) - quantity)
+      return setQuantityValue(current, catalogId, nextQuantity)
+    })
+  }
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const storedDraft = readStoredDraft()
@@ -371,7 +378,7 @@ export default function StorefrontOrderBuilder({
                         <button
                           type="button"
                           className="ccic-cart-remove-item"
-                          onClick={() => setBoxQuantities((current) => setQuantityValue(current, line.catalogId, 0))}
+                          onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)}
                           aria-label={`Remove ${line.title} from order`}
                         >
                           <span aria-hidden="true">×</span>
@@ -408,7 +415,7 @@ export default function StorefrontOrderBuilder({
                         <button
                           type="button"
                           className="ccic-cart-remove-item"
-                          onClick={() => setBoxQuantities((current) => setQuantityValue(current, line.catalogId, 0))}
+                          onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)}
                           aria-label={`Remove ${line.title} from order`}
                         >
                           <span aria-hidden="true">×</span>
