@@ -35,6 +35,12 @@ type CanadaPostErrorResponse = {
   errorDescription?: string
   code?: string
   message?: string
+  title?: string
+  detail?: string
+  errors?: Array<{
+    errorCode?: string
+    message?: string
+  }>
 }
 
 const PROVISIONAL_FULL_CASE: CcicShippingPackage = {
@@ -60,8 +66,16 @@ function compactPostalCode(value: string) {
 
 function canadaPostErrorDetail(payload: CanadaPostErrorResponse | null) {
   if (!payload) return ''
+
+  const nested = payload.errors
+    ?.map((error) => [error.errorCode, error.message].filter(Boolean).join(': '))
+    .filter(Boolean)
+    .join(' | ')
+
+  if (nested) return nested
+
   const code = payload.errorCode || payload.code || ''
-  const message = payload.errorDescription || payload.errorMessage || payload.message || ''
+  const message = payload.errorDescription || payload.errorMessage || payload.message || payload.detail || payload.title || ''
   return [code, message].filter(Boolean).join(': ')
 }
 
@@ -74,6 +88,7 @@ function logRatingRequest(args: {
     originPostalCode: CCIC_SHIPPING_ORIGIN_POSTAL_CODE,
     destinationPostalCode: compactPostalCode(args.destinationPostalCode),
     parcel: args.parcel,
+    quoteType: 'commercial',
     hasContractId: args.hasContractId,
   })
 }
@@ -123,6 +138,7 @@ function buildRatingBody(args: {
   return {
     customerNumber: args.customerNumber,
     ...(args.contractId ? { contractId: args.contractId } : {}),
+    quoteType: 'commercial' as const,
     parcelCharacteristics: {
       weight: args.parcel.weightKg,
       dimensions: {
@@ -130,6 +146,9 @@ function buildRatingBody(args: {
         width: args.parcel.widthCm,
         height: args.parcel.heightCm,
       },
+      unpackaged: false,
+      mailingTube: false,
+      oversized: false,
     },
     originPostalCode: CCIC_SHIPPING_ORIGIN_POSTAL_CODE,
     destination: {
@@ -179,14 +198,18 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
     contractId
     && attempt.response.status === 400
     && !Array.isArray(attempt.payload)
-    && canadaPostErrorDetail(attempt.payload).toLowerCase().includes('schema validation')
   ) {
-    console.info('CCIC Canada Post retrying rating request without contractId')
-    attempt = await requestRates(token, buildRatingBody({
-      customerNumber,
-      destinationPostalCode: args.destinationPostalCode,
-      parcel: args.parcel,
-    }))
+    const detail = canadaPostErrorDetail(attempt.payload)
+    console.info('CCIC Canada Post contract rating rejected', detail || 'No validation detail returned')
+
+    if (detail.toLowerCase().includes('contract') || detail.toLowerCase().includes('schema validation')) {
+      console.info('CCIC Canada Post retrying rating request without contractId')
+      attempt = await requestRates(token, buildRatingBody({
+        customerNumber,
+        destinationPostalCode: args.destinationPostalCode,
+        parcel: args.parcel,
+      }))
+    }
   }
 
   const { response, payload } = attempt
