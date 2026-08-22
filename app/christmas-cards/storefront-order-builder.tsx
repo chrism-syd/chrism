@@ -385,6 +385,12 @@ export default function StorefrontOrderBuilder({
                         </button>
                       </div>
                     ))}
+
+                    {calculatedOrder.customCaseDiscountCents ? (
+                      <p className="ccic-good-news">
+                        Custom Case pricing saved {formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}.
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -398,7 +404,7 @@ export default function StorefrontOrderBuilder({
                       <div className="ccic-case-progress">
                         <div className="ccic-case-progress-copy">
                           <strong>{looseCaseEligibleBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong>
-                          <span>boxes toward current custom case</span>
+                          <span>boxes toward custom case</span>
                         </div>
                         <div className="ccic-progress-track" aria-hidden="true">
                           <span style={{ width: `${progressPercent}%` }} />
@@ -422,23 +428,6 @@ export default function StorefrontOrderBuilder({
                         </button>
                       </div>
                     ))}
-                  </div>
-                ) : null}
-
-                {calculatedOrder.customCaseCount ? (
-                  <div className="ccic-summary-section ccic-custom-case-savings">
-                    <div className="ccic-summary-line ccic-pricing-adjustment">
-                      <span>
-                        Custom Case pricing ({calculatedOrder.customCaseCount} complete case{calculatedOrder.customCaseCount === 1 ? '' : 's'})
-                      </span>
-                      <strong>−{formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}</strong>
-                    </div>
-
-                    {calculatedOrder.customCaseDiscountCents ? (
-                      <p className="ccic-good-news">
-                        Custom Case pricing saved {formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}.
-                      </p>
-                    ) : null}
                   </div>
                 ) : null}
 
