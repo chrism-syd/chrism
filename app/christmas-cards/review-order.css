@@ -136,6 +136,38 @@
   min-height: 48px;
 }
 
+.ccic-google-address-control gmp-place-autocomplete {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #cbc6c2;
+  border-radius: 3px;
+  background: #fff;
+  color: #202020;
+  color-scheme: light;
+  font: inherit;
+  line-height: normal;
+  box-sizing: border-box;
+}
+
+.ccic-google-address-control gmp-place-autocomplete::part(input) {
+  min-height: 46px;
+  padding: 10px 12px;
+  color: #202020;
+  font: inherit;
+}
+
+.ccic-google-address-control gmp-place-autocomplete:focus-within {
+  border-color: #202020;
+  outline: 2px solid rgba(32, 32, 32, .12);
+  outline-offset: 1px;
+}
+
+.ccic-google-address-control gmp-place-autocomplete::part(focus-ring) {
+  outline: 0;
+  box-shadow: none;
+}
+
 .ccic-google-address-loading,
 .ccic-google-address-status {
   color: #6a6460;
