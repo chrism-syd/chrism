@@ -166,6 +166,10 @@
   padding-right: 0;
 }
 
+.ccic-cart-drawer .ccic-summary-section {
+  border-top-color: var(--ccic-ink);
+}
+
 .ccic-cart-drawer .ccic-fulfillment-choice,
 .ccic-cart-drawer .ccic-summary-total {
   flex: 0 0 auto;
