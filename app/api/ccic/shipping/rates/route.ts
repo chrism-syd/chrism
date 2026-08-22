@@ -42,5 +42,6 @@ export async function POST(request: NextRequest) {
     rate: quote.rate,
     rates: quote.rates,
     parcel: quote.parcel,
+    parcelCount: quote.parcelCount,
   })
 }
