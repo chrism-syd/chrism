@@ -19,32 +19,16 @@ export type CcicShippingRate = {
 }
 
 export type CcicShippingQuote =
-  | {
-      status: 'priced'
-      provisional: true
-      rate: CcicShippingRate
-      rates: CcicShippingRate[]
-      parcel: CcicShippingPackage
-      parcelCount: number
-    }
-  | {
-      status: 'pending'
-      provisional: true
-      reason: 'packing_required' | 'rate_unavailable'
-      message: string
-    }
+  | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage; parcelCount: number }
+  | { status: 'pending'; provisional: true; reason: 'packing_required' | 'rate_unavailable'; message: string }
 
-type CanadaPostTokenResponse = {
-  access_token?: string
-}
-
+type CanadaPostTokenResponse = { access_token?: string }
 type CanadaPostRateResponse = Array<{
   serviceCode?: string
   serviceName?: string
   priceDetails?: { due?: number }
   serviceStandard?: { expectedTransitTime?: number }
 }>
-
 type CanadaPostErrorResponse = {
   errorCode?: string
   errorMessage?: string
@@ -53,9 +37,6 @@ type CanadaPostErrorResponse = {
   message?: string
 }
 
-// Temporary test profile based on the currently defined 32-box case.
-// Replace these values with measured packed dimensions and weight when the
-// physical product and shipping carton are available.
 const PROVISIONAL_FULL_CASE: CcicShippingPackage = {
   weightKg: 6.5,
   lengthCm: 45.7,
@@ -109,14 +90,15 @@ async function getAccessToken() {
   return payload.access_token
 }
 
-export async function getCcicCanadaPostRates(args: { destinationPostalCode: string; parcel: CcicShippingPackage }) {
-  const customerNumber = requiredEnvironment('CANADA_POST_CUSTOMER_NUMBER')
-  const contractId = optionalEnvironment('CANADA_POST_CONTRACT_ID')
-  const token = await getAccessToken()
-
-  const requestBody = {
-    customerNumber,
-    ...(contractId ? { contractId } : {}),
+function buildRatingBody(args: {
+  customerNumber: string
+  contractId?: string | null
+  destinationPostalCode: string
+  parcel: CcicShippingPackage
+}) {
+  return {
+    customerNumber: args.customerNumber,
+    ...(args.contractId ? { contractId: args.contractId } : {}),
     parcelCharacteristics: {
       weight: args.parcel.weightKg,
       dimensions: {
@@ -132,7 +114,9 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
       },
     },
   }
+}
 
+async function requestRates(token: string, body: ReturnType<typeof buildRatingBody>) {
   const response = await fetch(CANADA_POST_RATING_URL, {
     method: 'POST',
     headers: {
@@ -141,11 +125,44 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify(requestBody),
+    body: JSON.stringify(body),
     cache: 'no-store',
   })
 
   const payload = await response.json().catch(() => null) as CanadaPostRateResponse | CanadaPostErrorResponse | null
+  return { response, payload }
+}
+
+export async function getCcicCanadaPostRates(args: { destinationPostalCode: string; parcel: CcicShippingPackage }) {
+  const customerNumber = requiredEnvironment('CANADA_POST_CUSTOMER_NUMBER')
+  const contractId = optionalEnvironment('CANADA_POST_CONTRACT_ID')
+  const token = await getAccessToken()
+
+  let attempt = await requestRates(token, buildRatingBody({
+    customerNumber,
+    contractId,
+    destinationPostalCode: args.destinationPostalCode,
+    parcel: args.parcel,
+  }))
+
+  // The OAuth-based Rating API is strict about its JSON schema. Some account
+  // configurations expose a contract in service links but do not accept
+  // contractId in the /prices body. If that field causes schema validation,
+  // retry the same authenticated customer request without it.
+  if (
+    contractId
+    && attempt.response.status === 400
+    && !Array.isArray(attempt.payload)
+    && canadaPostErrorDetail(attempt.payload).toLowerCase().includes('schema validation')
+  ) {
+    attempt = await requestRates(token, buildRatingBody({
+      customerNumber,
+      destinationPostalCode: args.destinationPostalCode,
+      parcel: args.parcel,
+    }))
+  }
+
+  const { response, payload } = attempt
   if (!response.ok || !Array.isArray(payload)) {
     const detail = payload && !Array.isArray(payload) ? canadaPostErrorDetail(payload) : ''
     throw new Error(`Canada Post rating failed (${response.status}).${detail ? ` ${detail}` : ''}`)
@@ -154,14 +171,11 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
   return payload.flatMap((rate): CcicShippingRate[] => {
     const due = rate.priceDetails?.due
     if (!rate.serviceCode || !rate.serviceName || typeof due !== 'number') return []
-
     return [{
       serviceCode: rate.serviceCode,
       serviceName: rate.serviceName,
       amountCents: Math.round(due * 100),
-      expectedTransitTime: typeof rate.serviceStandard?.expectedTransitTime === 'number'
-        ? rate.serviceStandard.expectedTransitTime
-        : null,
+      expectedTransitTime: typeof rate.serviceStandard?.expectedTransitTime === 'number' ? rate.serviceStandard.expectedTransitTime : null,
     }]
   })
 }
@@ -169,57 +183,27 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
 export function selectCcicShippingRate(rates: CcicShippingRate[]) {
   return rates.find((rate) => rate.serviceCode === 'DOM.EP')
     ?? rates.find((rate) => rate.serviceCode === 'DOM.RP')
-    ?? rates.reduce<CcicShippingRate | null>(
-      (best, rate) => !best || rate.amountCents < best.amountCents ? rate : best,
-      null
-    )
+    ?? rates.reduce<CcicShippingRate | null>((best, rate) => !best || rate.amountCents < best.amountCents ? rate : best, null)
 }
 
 function multiplyRate(rate: CcicShippingRate, parcelCount: number): CcicShippingRate {
   if (parcelCount <= 1) return rate
-
-  return {
-    ...rate,
-    serviceName: `${rate.serviceName} (${parcelCount} parcels)`,
-    amountCents: rate.amountCents * parcelCount,
-  }
+  return { ...rate, serviceName: `${rate.serviceName} (${parcelCount} parcels)`, amountCents: rate.amountCents * parcelCount }
 }
 
-export async function quoteCcicShipping(args: {
-  destinationPostalCode: string
-  totalBoxes: number
-}): Promise<CcicShippingQuote> {
+export async function quoteCcicShipping(args: { destinationPostalCode: string; totalBoxes: number }): Promise<CcicShippingQuote> {
   const boxesPerCase = 32
 
-  // We currently know how to pack a full 32-box case. That means we can quote
-  // one or more complete cases as separate identical parcels. Any remainder
-  // still needs manual packing until the loose-box carton profiles are measured.
   if (args.totalBoxes < boxesPerCase || args.totalBoxes % boxesPerCase !== 0) {
-    return {
-      status: 'pending',
-      provisional: true,
-      reason: 'packing_required',
-      message: CCIC_MANUAL_SHIPPING_MESSAGE,
-    }
+    return { status: 'pending', provisional: true, reason: 'packing_required', message: CCIC_MANUAL_SHIPPING_MESSAGE }
   }
 
   const parcelCount = args.totalBoxes / boxesPerCase
 
   try {
-    const singleParcelRates = await getCcicCanadaPostRates({
-      destinationPostalCode: args.destinationPostalCode,
-      parcel: PROVISIONAL_FULL_CASE,
-    })
+    const singleParcelRates = await getCcicCanadaPostRates({ destinationPostalCode: args.destinationPostalCode, parcel: PROVISIONAL_FULL_CASE })
     const singleParcelRate = selectCcicShippingRate(singleParcelRates)
-
-    if (!singleParcelRate) {
-      return {
-        status: 'pending',
-        provisional: true,
-        reason: 'rate_unavailable',
-        message: CCIC_MANUAL_SHIPPING_MESSAGE,
-      }
-    }
+    if (!singleParcelRate) return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
 
     return {
       status: 'priced',
@@ -231,11 +215,6 @@ export async function quoteCcicShipping(args: {
     }
   } catch (error) {
     console.error('CCIC Canada Post rating failed', error)
-    return {
-      status: 'pending',
-      provisional: true,
-      reason: 'rate_unavailable',
-      message: CCIC_MANUAL_SHIPPING_MESSAGE,
-    }
+    return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
   }
 }
