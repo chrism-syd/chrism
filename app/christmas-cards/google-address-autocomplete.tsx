@@ -27,14 +27,12 @@ type PlaceAutocompleteElement = HTMLElement & {
   placeholder: string
 }
 
-type PlacesLibrary = {
-  PlaceAutocompleteElement: new () => PlaceAutocompleteElement
-}
-
 type GoogleMapsWindow = Window & {
   google?: {
     maps?: {
-      importLibrary?: (library: string) => Promise<unknown>
+      places?: {
+        PlaceAutocompleteElement?: new () => PlaceAutocompleteElement
+      }
     }
   }
 }
@@ -69,16 +67,14 @@ export default function GoogleAddressAutocomplete() {
     let autocomplete: PlaceAutocompleteElement | null = null
     let disposed = false
 
-    async function initialize() {
+    function initialize() {
       try {
         const mapsWindow = window as GoogleMapsWindow
-        const importLibrary = mapsWindow.google?.maps?.importLibrary
-        if (!importLibrary) throw new Error('Google Maps library is unavailable.')
-
-        const places = await importLibrary('places') as PlacesLibrary
+        const PlaceAutocompleteElement = mapsWindow.google?.maps?.places?.PlaceAutocompleteElement
+        if (!PlaceAutocompleteElement) throw new Error('Google Places library is unavailable.')
         if (disposed) return
 
-        autocomplete = new places.PlaceAutocompleteElement()
+        autocomplete = new PlaceAutocompleteElement()
         autocomplete.includedRegionCodes = ['ca']
         autocomplete.placeholder = 'Start typing your Canadian address'
         autocomplete.setAttribute('aria-label', 'Search for your Canadian shipping address')
@@ -123,7 +119,7 @@ export default function GoogleAddressAutocomplete() {
       }
     }
 
-    void initialize()
+    initialize()
 
     return () => {
       disposed = true
