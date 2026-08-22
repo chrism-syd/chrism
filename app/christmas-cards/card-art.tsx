@@ -52,7 +52,7 @@ export default function CardArt({ title, imageUrl, images, size = 'large' }: Car
             fill
             sizes={size === 'small' ? '120px' : '(max-width: 640px) 100vw, 280px'}
             unoptimized
-            loading="eager"
+            loading="lazy"
             onError={() => setFailed(true)}
           />
           <span className="ccic-quick-view">Quick View</span>
