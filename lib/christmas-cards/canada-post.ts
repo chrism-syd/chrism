@@ -49,6 +49,8 @@ type CanadaPostErrorResponse = {
   errorCode?: string
   errorMessage?: string
   errorDescription?: string
+  code?: string
+  message?: string
 }
 
 // Temporary test profile based on the currently defined 32-box case.
@@ -75,6 +77,13 @@ function compactPostalCode(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '')
 }
 
+function canadaPostErrorDetail(payload: CanadaPostErrorResponse | null) {
+  if (!payload) return ''
+  const code = payload.errorCode || payload.code || ''
+  const message = payload.errorDescription || payload.errorMessage || payload.message || ''
+  return [code, message].filter(Boolean).join(': ')
+}
+
 async function getAccessToken() {
   const clientId = requiredEnvironment('CANADA_POST_CLIENT_ID')
   const clientSecret = requiredEnvironment('CANADA_POST_CLIENT_SECRET')
@@ -93,12 +102,8 @@ async function getAccessToken() {
 
   const payload = await response.json().catch(() => null) as CanadaPostTokenResponse | CanadaPostErrorResponse | null
   if (!response.ok || !payload || !('access_token' in payload) || !payload.access_token) {
-    const detail = payload && 'errorDescription' in payload && payload.errorDescription
-      ? ` ${payload.errorDescription}`
-      : payload && 'errorMessage' in payload && payload.errorMessage
-        ? ` ${payload.errorMessage}`
-        : ''
-    throw new Error(`Canada Post authentication failed (${response.status}).${detail}`)
+    const detail = canadaPostErrorDetail(payload && !('access_token' in payload) ? payload : null)
+    throw new Error(`Canada Post authentication failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
 
   return payload.access_token
@@ -112,7 +117,6 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
   const requestBody = {
     customerNumber,
     ...(contractId ? { contractId } : {}),
-    quoteType: 'commercial',
     parcelCharacteristics: {
       weight: args.parcel.weightKg,
       dimensions: {
@@ -120,8 +124,6 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
         width: args.parcel.widthCm,
         height: args.parcel.heightCm,
       },
-      unpackaged: false,
-      mailingTube: false,
     },
     originPostalCode: CCIC_SHIPPING_ORIGIN_POSTAL_CODE,
     destination: {
@@ -145,9 +147,7 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
 
   const payload = await response.json().catch(() => null) as CanadaPostRateResponse | CanadaPostErrorResponse | null
   if (!response.ok || !Array.isArray(payload)) {
-    const detail = payload && !Array.isArray(payload)
-      ? payload.errorDescription || payload.errorMessage || ''
-      : ''
+    const detail = payload && !Array.isArray(payload) ? canadaPostErrorDetail(payload) : ''
     throw new Error(`Canada Post rating failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
 
