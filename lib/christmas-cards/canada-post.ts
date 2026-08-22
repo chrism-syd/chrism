@@ -2,6 +2,7 @@ const CANADA_POST_TOKEN_URL = 'https://api.canadapost-postescanada.ca/prod/devpo
 const CANADA_POST_RATING_URL = 'https://api.canadapost-postescanada.ca/prod/devportal-portaildesdeveloppeurs/rating/v1/prices'
 
 export const CCIC_SHIPPING_ORIGIN_POSTAL_CODE = 'L3P4N1'
+export const CCIC_MANUAL_SHIPPING_MESSAGE = 'Shipping will be calculated after your order has been reviewed for packing. We will email you with the shipping cost before payment.'
 
 export type CcicShippingPackage = {
   weightKg: number
@@ -17,6 +18,10 @@ export type CcicShippingRate = {
   expectedTransitTime: number | null
 }
 
+export type CcicShippingQuote =
+  | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage }
+  | { status: 'pending'; provisional: true; reason: 'packing_required' | 'rate_unavailable'; message: string }
+
 type CanadaPostTokenResponse = {
   access_token?: string
 }
@@ -27,6 +32,13 @@ type CanadaPostRateResponse = Array<{
   priceDetails?: { due?: number }
   serviceStandard?: { expectedTransitTime?: number }
 }>
+
+const PROVISIONAL_FULL_CASE: CcicShippingPackage = {
+  weightKg: 6.5,
+  lengthCm: 45.7,
+  widthCm: 30.5,
+  heightCm: 12.7,
+}
 
 function requiredEnvironment(name: string) {
   const value = process.env[name]?.trim()
@@ -127,4 +139,44 @@ export function selectCcicShippingRate(rates: CcicShippingRate[]) {
   return rates.find((rate) => rate.serviceCode === 'DOM.EP')
     ?? rates.find((rate) => rate.serviceCode === 'DOM.RP')
     ?? rates.reduce<CcicShippingRate | null>((best, rate) => !best || rate.amountCents < best.amountCents ? rate : best, null)
+}
+
+export async function quoteCcicShipping(args: {
+  destinationPostalCode: string
+  totalBoxes: number
+}): Promise<CcicShippingQuote> {
+  if (args.totalBoxes > 32) {
+    return {
+      status: 'pending',
+      provisional: true,
+      reason: 'packing_required',
+      message: CCIC_MANUAL_SHIPPING_MESSAGE,
+    }
+  }
+
+  try {
+    const rates = await getCcicCanadaPostRates({
+      destinationPostalCode: args.destinationPostalCode,
+      parcel: PROVISIONAL_FULL_CASE,
+    })
+    const rate = selectCcicShippingRate(rates)
+    if (!rate) {
+      return {
+        status: 'pending',
+        provisional: true,
+        reason: 'rate_unavailable',
+        message: CCIC_MANUAL_SHIPPING_MESSAGE,
+      }
+    }
+
+    return { status: 'priced', provisional: true, rate, rates, parcel: PROVISIONAL_FULL_CASE }
+  } catch (error) {
+    console.error('CCIC Canada Post rating failed', error)
+    return {
+      status: 'pending',
+      provisional: true,
+      reason: 'rate_unavailable',
+      message: CCIC_MANUAL_SHIPPING_MESSAGE,
+    }
+  }
 }
