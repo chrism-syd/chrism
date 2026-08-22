@@ -10,7 +10,13 @@ type PlaceSelectEvent = Event & { placePrediction?: PlacePrediction }
 type PlaceAutocompleteElement = HTMLElement & { includedRegionCodes: string[]; placeholder: string }
 type GoogleMapsWindow = Window & { google?: { maps?: { places?: { PlaceAutocompleteElement?: new () => PlaceAutocompleteElement } } } }
 
+type GoogleAddressAutocompleteProps = {
+  onAddressSelected?: () => void
+  onUnavailable?: () => void
+}
+
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+const SLOW_LOAD_MS = 4000
 
 function componentValue(components: AddressComponent[], type: string) {
   return components.find((item) => item.types?.includes(type))?.longText || ''
@@ -25,17 +31,49 @@ function setFormField(name: string, value: string) {
   field.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
-export default function GoogleAddressAutocomplete({ onAddressSelected }: { onAddressSelected?: () => void }) {
+export default function GoogleAddressAutocomplete({
+  onAddressSelected,
+  onUnavailable,
+}: GoogleAddressAutocompleteProps) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const callbackRef = useRef(onAddressSelected)
+  const selectedCallbackRef = useRef(onAddressSelected)
+  const unavailableCallbackRef = useRef(onUnavailable)
+  const readyRef = useRef(false)
+  const fallbackShownRef = useRef(false)
   const [scriptReady, setScriptReady] = useState(false)
   const [status, setStatus] = useState('')
 
-  useEffect(() => { callbackRef.current = onAddressSelected }, [onAddressSelected])
+  useEffect(() => { selectedCallbackRef.current = onAddressSelected }, [onAddressSelected])
+  useEffect(() => { unavailableCallbackRef.current = onUnavailable }, [onUnavailable])
+
+  function showFallback(message: string) {
+    if (fallbackShownRef.current) return
+    fallbackShownRef.current = true
+    setStatus(message)
+    unavailableCallbackRef.current?.()
+  }
 
   useEffect(() => {
     const PlaceAutocompleteElement = (window as GoogleMapsWindow).google?.maps?.places?.PlaceAutocompleteElement
-    if (PlaceAutocompleteElement) setScriptReady(true)
+    if (PlaceAutocompleteElement) {
+      readyRef.current = true
+      setScriptReady(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      showFallback('Address search is unavailable. Please enter your shipping address below.')
+      return
+    }
+
+    const slowTimer = window.setTimeout(() => {
+      if (!readyRef.current) {
+        showFallback('Address search is taking longer than expected. Please enter your shipping address below.')
+      }
+    }, SLOW_LOAD_MS)
+
+    return () => window.clearTimeout(slowTimer)
   }, [])
 
   useEffect(() => {
@@ -56,10 +94,12 @@ export default function GoogleAddressAutocomplete({ onAddressSelected }: { onAdd
           return
         }
         console.error('CCIC Google address autocomplete failed to initialize: Google Places library is unavailable.')
-        setStatus('Address search is unavailable right now. Please enter your address manually below.')
+        showFallback('Address search is unavailable. Please enter your shipping address below.')
         return
       }
 
+      readyRef.current = true
+      setStatus('')
       autocomplete = new PlaceAutocompleteElement()
       autocomplete.includedRegionCodes = ['ca']
       autocomplete.placeholder = 'Start typing your Canadian address'
@@ -78,11 +118,11 @@ export default function GoogleAddressAutocomplete({ onAddressSelected }: { onAdd
           setFormField('city', city)
           setFormField('province', componentValue(components, 'administrative_area_level_1'))
           setFormField('postal_code', componentValue(components, 'postal_code').toUpperCase())
-          callbackRef.current?.()
+          selectedCallbackRef.current?.()
           setStatus(streetAddress ? 'Address found. Please review the details below.' : 'Address found. Please review and complete the details below.')
         } catch (error) {
           console.error('CCIC Google address selection failed', error)
-          setStatus('We could not fill that address automatically. Please enter it manually below.')
+          showFallback('We could not fill that address automatically. Please enter your shipping address below.')
         }
       })
       host.replaceChildren(autocomplete)
@@ -96,17 +136,24 @@ export default function GoogleAddressAutocomplete({ onAddressSelected }: { onAdd
     }
   }, [scriptReady])
 
-  if (!GOOGLE_MAPS_API_KEY) return null
   return (
     <div className="ccic-google-address">
-      <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&loading=async&v=weekly&libraries=places`}
-        strategy="afterInteractive"
-        onReady={() => setScriptReady(true)}
-      />
+      {GOOGLE_MAPS_API_KEY ? (
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&loading=async&v=weekly&libraries=places`}
+          strategy="afterInteractive"
+          onReady={() => {
+            readyRef.current = true
+            setScriptReady(true)
+          }}
+          onError={() => showFallback('Address search is unavailable. Please enter your shipping address below.')}
+        />
+      ) : null}
       <label className="ccic-review-field-wide">
         <span>Find your address</span>
-        <div ref={hostRef} className="ccic-google-address-control">{!scriptReady ? <span className="ccic-google-address-loading">Loading address search…</span> : null}</div>
+        <div ref={hostRef} className="ccic-google-address-control">
+          {!scriptReady && !status ? <span className="ccic-google-address-loading">Loading address search…</span> : null}
+        </div>
       </label>
       {status ? <p className="ccic-google-address-status" role="status">{status}</p> : null}
     </div>
