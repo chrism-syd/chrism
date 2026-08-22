@@ -5,7 +5,6 @@ import {
 } from './catalog'
 
 export const CCIC_ORDER_DRAFT_STORAGE_KEY = 'ccic-order-draft-v1'
-export const CCIC_SHIPPING_RATE_CENTS = 3600
 
 export type CcicFulfillmentMethod = 'pickup' | 'shipping'
 
@@ -138,10 +137,10 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
   )
   const subtotalCents = regularSubtotalCents - customCaseDiscountCents
   const hasOrder = subtotalCents > 0
-  const shippingCents = hasOrder && normalizedInput.fulfillmentMethod === 'shipping'
-    ? CCIC_SHIPPING_RATE_CENTS
-    : 0
-  const totalCents = subtotalCents + shippingCents
+  // Shipping is intentionally not priced here. It is destination-dependent and
+  // is calculated by the server-side Canada Post rating endpoint at checkout.
+  const shippingCents = 0
+  const totalCents = subtotalCents
   const totalSelectedBoxes = lines.reduce(
     (sum, line) => sum + line.quantity * line.boxesPerUnit,
     0
