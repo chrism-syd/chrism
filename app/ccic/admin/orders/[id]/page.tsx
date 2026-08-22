@@ -64,7 +64,6 @@ function stringParam(value: string | string[] | undefined) {
 
 function formatDate(value: string | null) {
   if (!value) return 'Not yet'
-
   return new Intl.DateTimeFormat('en-CA', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -72,9 +71,7 @@ function formatDate(value: string | null) {
   }).format(new Date(value))
 }
 
-export const metadata = {
-  title: 'CCIC Order Details | Chrism',
-}
+export const metadata = { title: 'CCIC Order Details | Chrism' }
 
 export default async function CcicOrderDetailPage({
   params,
@@ -101,22 +98,15 @@ export default async function CcicOrderDetailPage({
 
   const order = decryptPeopleRecord(orderData as OrderRow)
   const lines = (lineData ?? []) as OrderLine[]
-  const address = [
-    order.address_line_1,
-    order.address_line_2,
-    [order.city, order.state_province].filter(Boolean).join(', '),
-    order.postal_code,
-  ].filter(Boolean)
+  const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean)
+  const shippingPending = order.fulfillment_method === 'shipping' && order.shipping_cents === 0
 
   return (
     <main className="ccic-admin-page">
       <header className="ccic-admin-header">
         <div className="ccic-admin-heading-brand">
           <Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={82} height={82} className="ccic-admin-logo" priority />
-          <div>
-            <p>CCIC order</p>
-            <h1>{order.order_number}</h1>
-          </div>
+          <div><p>CCIC order</p><h1>{order.order_number}</h1></div>
         </div>
         <div className="ccic-admin-header-actions">
           <Link href="/ccic/admin/packing-list">Packing list</Link>
@@ -132,24 +122,18 @@ export default async function CcicOrderDetailPage({
           <section className="ccic-admin-panel ccic-admin-status-panel">
             <div className="ccic-admin-panel-heading">
               <h2>Order status</h2>
-              <span className={`ccic-admin-status is-${order.status_code}`}>
-                {getCcicOrderStatusLabel(order.status_code)}
-              </span>
+              <span className={`ccic-admin-status is-${order.status_code}`}>{getCcicOrderStatusLabel(order.status_code)}</span>
             </div>
-
             <form action={updateCcicOrderStatus} className="ccic-admin-status-form">
               <input type="hidden" name="order_id" value={order.id} />
               <label htmlFor="status">Update workflow status</label>
               <div>
                 <select id="status" name="status" defaultValue={order.status_code}>
-                  {CCIC_ORDER_STATUSES.map((status) => (
-                    <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>
-                  ))}
+                  {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
                 </select>
                 <button type="submit">Save status</button>
               </div>
             </form>
-
             <dl className="ccic-admin-workflow-dates">
               <div><dt>Received</dt><dd>{formatDate(order.created_at)}</dd></div>
               <div><dt>Paid</dt><dd>{formatDate(order.paid_at)}</dd></div>
@@ -163,18 +147,13 @@ export default async function CcicOrderDetailPage({
               <h2>Order items</h2>
               <span>{lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)} boxes</span>
             </div>
-
             <div className="ccic-admin-order-lines">
               {lines.map((line) => (
                 <div key={line.id}>
-                  <span>
-                    <strong>{line.quantity} × {line.title}</strong>
-                    <small>{line.sku} · {line.line_type === 'classic_case' ? `${line.boxes_per_unit} boxes per case` : 'Individual box'}</small>
-                  </span>
+                  <span><strong>{line.quantity} × {line.title}</strong><small>{line.sku} · {line.line_type === 'classic_case' ? `${line.boxes_per_unit} boxes per case` : 'Individual box'}</small></span>
                   <strong>{formatChristmasCardMoney(line.line_total_cents)}</strong>
                 </div>
               ))}
-
               {order.custom_case_discount_cents ? (
                 <div className="ccic-admin-discount">
                   <span>Custom Case pricing ({order.custom_case_count} complete case{order.custom_case_count === 1 ? '' : 's'})</span>
@@ -185,9 +164,16 @@ export default async function CcicOrderDetailPage({
 
             <div className="ccic-admin-totals">
               <div><span>Subtotal</span><strong>{formatChristmasCardMoney(order.subtotal_cents)}</strong></div>
-              <div><span>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</span><strong>{formatChristmasCardMoney(order.shipping_cents)}</strong></div>
-              <div className="ccic-admin-total"><span>Estimated total</span><strong>{formatChristmasCardMoney(order.total_cents)}</strong></div>
+              <div>
+                <span>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</span>
+                <strong>{shippingPending ? 'Not yet priced' : formatChristmasCardMoney(order.shipping_cents)}</strong>
+              </div>
+              <div className="ccic-admin-total">
+                <span>{shippingPending ? 'Current subtotal' : 'Estimated total'}</span>
+                <strong>{formatChristmasCardMoney(order.total_cents)}</strong>
+              </div>
             </div>
+            {shippingPending ? <p className="ccic-admin-email-error">Shipping still needs to be priced after the order is reviewed for packing. Confirm the final shipping cost with the customer before payment.</p> : null}
           </section>
         </div>
 
@@ -199,10 +185,7 @@ export default async function CcicOrderDetailPage({
             <div><dt>Email</dt><dd><a href={`mailto:${order.email}`}>{order.email}</a></dd></div>
             <div><dt>Phone</dt><dd><a href={`tel:${order.cell_phone}`}>{order.cell_phone}</a></dd></div>
             <div><dt>Fulfilment</dt><dd>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</dd></div>
-            <div>
-              <dt>Address</dt>
-              <dd>{address.length ? address.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</dd>
-            </div>
+            <div><dt>Address</dt><dd>{address.length ? address.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</dd></div>
             <div><dt>Submitted</dt><dd>{formatDate(order.created_at)}</dd></div>
             <div><dt>Customer email</dt><dd>{formatDate(order.confirmation_email_sent_at)}</dd></div>
             <div><dt>Admin email</dt><dd>{formatDate(order.admin_email_sent_at)}</dd></div>
