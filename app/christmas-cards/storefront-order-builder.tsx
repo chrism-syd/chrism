@@ -400,14 +400,17 @@ export default function StorefrontOrderBuilder({
                     onClick={() => setFulfillmentMethod('shipping')}
                   >
                     <span>Shipping</span>
-                    <strong>$36</strong>
+                    <strong>Calculated on next screen</strong>
                   </button>
                 </div>
               </div>
 
               <div className="ccic-summary-total">
                 <div className="ccic-summary-line"><span>Subtotal</span><strong>{formatChristmasCardMoney(calculatedOrder.subtotalCents)}</strong></div>
-                <div className="ccic-summary-line"><span>Shipping</span><strong>{formatChristmasCardMoney(calculatedOrder.shippingCents)}</strong></div>
+                <div className="ccic-summary-line">
+                  <span>Shipping</span>
+                  <strong>{fulfillmentMethod === 'shipping' ? 'Calculated on next screen' : '$0.00'}</strong>
+                </div>
                 <div className="ccic-summary-line ccic-total-line"><span>Total</span><strong>{formatChristmasCardMoney(calculatedOrder.totalCents)}</strong></div>
               </div>
 
