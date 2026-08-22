@@ -2,7 +2,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import ReviewOrderForm from '../../christmas-cards/review-order-form'
 import '../../christmas-cards/storefront.css'
+import '../../christmas-cards/payment-polish.css'
 import '../../christmas-cards/storefront-redesign.css'
+import '../../christmas-cards/storefront-review-polish.css'
 import '../../christmas-cards/review-order.css'
 
 export const metadata = {
