@@ -60,27 +60,32 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
   const calculatedOrder = useMemo(() => calculateCcicOrder(draftInput), [draftInput])
   const selectedClassicLines = calculatedOrder.lines.filter((line) => line.lineType === 'classic_case')
   const selectedIndividualLines = calculatedOrder.lines.filter((line) => line.lineType === 'individual_box')
+  const selectedCaseEligibleLines = selectedIndividualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
+  const nonCaseEligibleIndividualLines = selectedIndividualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId))
 
   const { customCaseLines, looseIndividualLines, looseCaseEligibleBoxCount } = useMemo(() => {
     let boxesToAllocateToCases = calculatedOrder.customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
     const customLines = [] as typeof selectedIndividualLines
     const looseLines = [] as typeof selectedIndividualLines
     let looseEligibleCount = 0
-    for (const line of selectedIndividualLines) {
-      const isCaseEligible = caseEligibleBoxIds.has(line.catalogId)
-      const customQuantity = isCaseEligible ? Math.min(line.quantity, boxesToAllocateToCases) : 0
+
+    for (const line of selectedCaseEligibleLines) {
+      const customQuantity = Math.min(line.quantity, boxesToAllocateToCases)
       const looseQuantity = line.quantity - customQuantity
+
       if (customQuantity > 0) {
         customLines.push({ ...line, quantity: customQuantity, lineTotalCents: customQuantity * line.unitPriceCents })
         boxesToAllocateToCases -= customQuantity
       }
+
       if (looseQuantity > 0) {
         looseLines.push({ ...line, quantity: looseQuantity, lineTotalCents: looseQuantity * line.unitPriceCents })
-        if (isCaseEligible) looseEligibleCount += looseQuantity
+        looseEligibleCount += looseQuantity
       }
     }
+
     return { customCaseLines: customLines, looseIndividualLines: looseLines, looseCaseEligibleBoxCount: looseEligibleCount }
-  }, [calculatedOrder.customCaseCount, caseEligibleBoxIds, selectedIndividualLines])
+  }, [calculatedOrder.customCaseCount, selectedCaseEligibleLines, selectedIndividualLines])
 
   const progressPercent = Math.round((looseCaseEligibleBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100)
 
@@ -187,6 +192,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
           {selectedClassicLines.length ? <div className="ccic-summary-section" style={{ borderTop: 0 }}><h3>Classic cases</h3>{selectedClassicLines.map((line) => <div className="ccic-cart-item-row" key={line.catalogId}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => setCaseQuantities((current) => setQuantityValue(current, line.catalogId, 0))} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}</div> : null}
           {customCaseLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length ? { borderTop: 0 } : undefined}><h3>{calculatedOrder.customCaseCount === 1 ? 'Custom case' : `Custom cases ×${calculatedOrder.customCaseCount}`}</h3>{customCaseLines.map((line) => <div className="ccic-cart-item-row" key={`custom-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}{calculatedOrder.customCaseDiscountCents ? <p className="ccic-good-news">Custom Case pricing saved {formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}.</p> : null}</div> : null}
           {looseIndividualLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length && !customCaseLines.length ? { borderTop: 0 } : undefined}><h3>Individual selections</h3>{looseCaseEligibleBoxCount > 0 ? <div className="ccic-case-progress"><div className="ccic-case-progress-copy"><strong>{looseCaseEligibleBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong><span>boxes toward custom case</span></div><div className="ccic-progress-track" aria-hidden="true"><span style={{ width: `${progressPercent}%` }} /></div></div> : null}{looseIndividualLines.map((line) => <div className="ccic-cart-item-row" key={`loose-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}</div> : null}
+          {nonCaseEligibleIndividualLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length && !customCaseLines.length && !looseIndividualLines.length ? { borderTop: 0 } : undefined}><h3>Individual cards (not eligible for case pricing)</h3>{nonCaseEligibleIndividualLines.map((line) => <div className="ccic-cart-item-row" key={`non-case-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}</div> : null}
           {calculatedOrder.boxesUntilNextCase > 0 && calculatedOrder.remainingLooseBoxes >= 16 ? <p className="ccic-nudge"><Image src="/chrism_star.png" alt="" width={24} height={24} />Add {calculatedOrder.boxesUntilNextCase} more boxes and receive Custom Case pricing.</p> : null}
         </div>
         <div className="ccic-fulfillment-choice" aria-label="Fulfilment method"><span className="ccic-fulfillment-label">Fulfilment</span><div className="ccic-fulfillment-toggle" role="group" aria-label="Choose pickup or shipping"><button type="button" className={fulfillmentMethod === 'pickup' ? 'is-selected' : ''} aria-pressed={fulfillmentMethod === 'pickup'} onClick={() => setFulfillmentMethod('pickup')}><span>Pickup</span><strong>$0</strong></button><button type="button" className={fulfillmentMethod === 'shipping' ? 'is-selected' : ''} aria-pressed={fulfillmentMethod === 'shipping'} onClick={() => setFulfillmentMethod('shipping')}><span>Shipping</span><strong>Calculated on next screen</strong></button></div></div>
