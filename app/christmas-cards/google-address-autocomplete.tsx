@@ -34,6 +34,11 @@ export default function GoogleAddressAutocomplete({ onAddressSelected }: { onAdd
   useEffect(() => { callbackRef.current = onAddressSelected }, [onAddressSelected])
 
   useEffect(() => {
+    const PlaceAutocompleteElement = (window as GoogleMapsWindow).google?.maps?.places?.PlaceAutocompleteElement
+    if (PlaceAutocompleteElement) setScriptReady(true)
+  }, [])
+
+  useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY || !scriptReady || !hostRef.current) return
     const host = hostRef.current
     let autocomplete: PlaceAutocompleteElement | null = null
@@ -94,7 +99,11 @@ export default function GoogleAddressAutocomplete({ onAddressSelected }: { onAdd
   if (!GOOGLE_MAPS_API_KEY) return null
   return (
     <div className="ccic-google-address">
-      <Script src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&loading=async&v=weekly&libraries=places`} strategy="afterInteractive" onLoad={() => setScriptReady(true)} />
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&loading=async&v=weekly&libraries=places`}
+        strategy="afterInteractive"
+        onReady={() => setScriptReady(true)}
+      />
       <label className="ccic-review-field-wide">
         <span>Find your address</span>
         <div ref={hostRef} className="ccic-google-address-control">{!scriptReady ? <span className="ccic-google-address-loading">Loading address search…</span> : null}</div>
