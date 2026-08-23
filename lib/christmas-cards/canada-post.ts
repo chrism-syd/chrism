@@ -18,6 +18,7 @@ type CanadaPostRateResponse = Array<{ serviceCode?: string; serviceName?: string
 type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; errorDescription?: string; code?: string; message?: string; title?: string; detail?: string; errors?: Array<{ errorCode?: string; message?: string }> }
 
 const PROVISIONAL_FULL_CASE: CcicShippingPackage = { weightKg: 6.5, lengthCm: 45.7, widthCm: 30.5, heightCm: 12.7 }
+const PROVISIONAL_BOXES_PER_PARCEL = 32
 
 function requiredEnvironment(name: string) { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is not configured.`); return value }
 function optionalEnvironment(name: string) { return process.env[name]?.trim() || null }
@@ -78,9 +79,7 @@ function multiplyRate(rate: CcicShippingRate, parcelCount: number): CcicShipping
 }
 
 export async function quoteCcicShipping(args: { destination: CcicShippingDestination; totalBoxes: number }): Promise<CcicShippingQuote> {
-  const boxesPerCase = 32
-  if (args.totalBoxes < boxesPerCase || args.totalBoxes % boxesPerCase !== 0) return { status: 'pending', provisional: true, reason: 'packing_required', message: CCIC_MANUAL_SHIPPING_MESSAGE }
-  const parcelCount = args.totalBoxes / boxesPerCase
+  const parcelCount = Math.max(1, Math.ceil(args.totalBoxes / PROVISIONAL_BOXES_PER_PARCEL))
   try {
     const singleParcelRates = await getCcicShipTimeCanadaPostRates({
       destinationPostalCode: args.destination.postalCode,
@@ -93,7 +92,8 @@ export async function quoteCcicShipping(args: { destination: CcicShippingDestina
     })
     const singleParcelRate = selectCcicShippingRate(singleParcelRates)
     if (!singleParcelRate) return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
-    return { status: 'priced', provisional: true, rate: multiplyRate(singleParcelRate, parcelCount), rates: [multiplyRate(singleParcelRate, parcelCount)], parcel: PROVISIONAL_FULL_CASE, parcelCount }
+    const rate = multiplyRate(singleParcelRate, parcelCount)
+    return { status: 'priced', provisional: true, rate, rates: [rate], parcel: PROVISIONAL_FULL_CASE, parcelCount }
   } catch (error) {
     console.error('CCIC ShipTime Canada Post rating failed', error)
     return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
