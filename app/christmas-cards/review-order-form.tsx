@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import GoogleAddressAutocomplete from './google-address-autocomplete'
+import GoogleAddressAutocomplete, { type CcicSelectedAddress } from './google-address-autocomplete'
 import PaymentOptionsDetails from './payment-options-details'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import {
@@ -12,11 +12,7 @@ import {
   type CcicOrderDraftInput,
 } from '@/lib/christmas-cards/order'
 
-type SubmissionResult = {
-  orderNumber: string
-  confirmationEmailSent: boolean
-}
-
+type SubmissionResult = { orderNumber: string; confirmationEmailSent: boolean }
 type ShippingState =
   | { status: 'waiting' }
   | { status: 'calculating' }
@@ -35,22 +31,21 @@ function normalizeCanadianPostalCode(value: string) {
   return compact.length > 3 ? `${compact.slice(0, 3)} ${compact.slice(3)}` : compact
 }
 
-function compactCanadianPostalCode(value: string) {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '')
-}
-
-function isCanadianPostalCode(value: string) {
-  return /^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ][0-9][ABCEGHJ-NPRSTVWXYZ][0-9]$/.test(compactCanadianPostalCode(value))
-}
-
+function compactCanadianPostalCode(value: string) { return value.toUpperCase().replace(/[^A-Z0-9]/g, '') }
+function isCanadianPostalCode(value: string) { return /^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ][0-9][ABCEGHJ-NPRSTVWXYZ][0-9]$/.test(compactCanadianPostalCode(value)) }
 function readStoredDraft() {
   const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
   if (!storedDraft) return null
+  try { return parseCcicOrderDraftInput(JSON.parse(storedDraft)) } catch { return null }
+}
 
-  try {
-    return parseCcicOrderDraftInput(JSON.parse(storedDraft))
-  } catch {
-    return null
+function addressFromForm(form: HTMLFormElement, postalCode: string): CcicSelectedAddress {
+  const data = new FormData(form)
+  return {
+    addressLine1: fieldValue(data, 'address_line_1'),
+    city: fieldValue(data, 'city'),
+    province: fieldValue(data, 'province'),
+    postalCode,
   }
 }
 
@@ -64,48 +59,45 @@ export default function ReviewOrderForm() {
   const revealAddressFields = useCallback(() => setShowAddressFields(true), [])
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setDraftInput(readStoredDraft())
-    }, 0)
-
+    const timeoutId = window.setTimeout(() => setDraftInput(readStoredDraft()), 0)
     return () => window.clearTimeout(timeoutId)
   }, [])
 
-  const calculatedOrder = useMemo(
-    () => draftInput ? calculateCcicOrder(draftInput) : null,
-    [draftInput]
-  )
+  const calculatedOrder = useMemo(() => draftInput ? calculateCcicOrder(draftInput) : null, [draftInput])
 
-  const requestShippingRate = useCallback(async (postalCode: string) => {
-    if (!calculatedOrder || !isCanadianPostalCode(postalCode)) {
+  const requestShippingRate = useCallback(async (address: CcicSelectedAddress) => {
+    if (!calculatedOrder || !isCanadianPostalCode(address.postalCode) || !address.addressLine1 || !address.city || !address.province) {
       setShipping({ status: 'waiting' })
       return
     }
 
     setShipping({ status: 'calculating' })
-
     try {
       const response = await fetch('/api/ccic/shipping/rates', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ postalCode: compactCanadianPostalCode(postalCode), totalBoxes: calculatedOrder.totalSelectedBoxes }),
+        body: JSON.stringify({
+          postalCode: compactCanadianPostalCode(address.postalCode),
+          addressLine1: address.addressLine1,
+          city: address.city,
+          province: address.province,
+          totalBoxes: calculatedOrder.totalSelectedBoxes,
+        }),
       })
       const payload = await response.json().catch(() => null) as { available?: boolean; message?: string; rate?: { amountCents?: number; serviceName?: string } } | null
-
       if (response.ok && payload?.available && typeof payload.rate?.amountCents === 'number') {
         setShipping({ status: 'priced', amountCents: payload.rate.amountCents, serviceName: payload.rate.serviceName || 'Canada Post' })
         return
       }
-
       setShipping({ status: 'pending', message: payload?.message || MANUAL_SHIPPING_MESSAGE })
     } catch {
       setShipping({ status: 'pending', message: MANUAL_SHIPPING_MESSAGE })
     }
   }, [calculatedOrder])
 
-  const handleAutocompleteAddressSelected = useCallback((postalCode: string) => {
+  const handleAutocompleteAddressSelected = useCallback((address: CcicSelectedAddress) => {
     revealAddressFields()
-    if (isCanadianPostalCode(postalCode)) void requestShippingRate(postalCode)
+    if (isCanadianPostalCode(address.postalCode)) void requestShippingRate(address)
     else setShipping({ status: 'waiting' })
   }, [requestShippingRate, revealAddressFields])
 
@@ -139,5 +131,5 @@ export default function ReviewOrderForm() {
     return <section className="ccic-review-success"><p className="ccic-eyebrow">Order received</p><h1>Thank you. Your order request has been submitted.</h1><p className="ccic-review-order-number">Order number: <strong>{result.orderNumber}</strong></p><p>{result.confirmationEmailSent ? 'A copy of your order and these payment instructions has been emailed to you.' : 'Your order was saved successfully. Please keep the payment instructions below for your records.'}</p>{shippingPending ? <p className="ccic-review-note"><strong>Shipping is not yet priced.</strong> {MANUAL_SHIPPING_MESSAGE}</p> : null}<div className="ccic-review-payment-details"><div className="ccic-review-payment-heading"><p className="ccic-eyebrow">Payment options</p><h2>{shippingPending ? 'Payment details will follow' : 'Choose what works best'}</h2></div>{shippingPending ? <p>Please wait for our email confirming the shipping cost and final total before sending payment.</p> : <div className="ccic-review-payment-grid"><section><h3>E-transfer</h3><p>Please send an e-transfer for <strong>{totalLabel}</strong> to <a href="mailto:treasurer@kofc7689.org">treasurer@kofc7689.org</a> and include your order number <strong>{result.orderNumber}</strong> in the e-transfer message.</p></section><section><h3>Cheque</h3><p><strong>Make cheque payable to:</strong><br />Knights of Columbus #7689</p><p><strong>Mail to:</strong><br />Kerry Mendonca, CCIC<br />37 White Ash Drive<br />Markham, ON L3P 4N1</p><p>Please include your CCIC order number <strong>{result.orderNumber}</strong> in the Memo field.</p></section></div>}</div><Link className="ccic-review-primary-link" href="/ccic">Return to the CCIC collection</Link></section>
   }
 
-  return <div className="ccic-review-layout"><form className="ccic-review-form" onSubmit={submitOrder} onInput={(event) => { const target = event.target as HTMLInputElement; if (target?.name === 'postal_code') { const formatted = normalizeCanadianPostalCode(target.value); target.value = formatted; if (isCanadianPostalCode(formatted)) void requestShippingRate(formatted); else setShipping({ status: 'waiting' }) } }}><div className="ccic-review-heading"><p className="ccic-eyebrow">Contact information</p><h1>Review and submit your order</h1><p>We will only use these details for communication about this order.</p></div><div className="ccic-review-fields"><label><span>Your name</span><input name="contact_name" autoComplete="name" required /></label><label><span>Organization name</span><input name="organization_name" autoComplete="organization" required /></label><label><span>Email address</span><input name="email" type="email" autoComplete="email" required /></label><label><span>Phone number</span><input name="phone" type="tel" autoComplete="tel" required /></label></div>{requiresAddress ? <fieldset className="ccic-review-address"><legend>Shipping address</legend><GoogleAddressAutocomplete onAddressSelected={handleAutocompleteAddressSelected} onUnavailable={revealAddressFields} />{!showAddressFields ? <button className="ccic-review-manual-address-toggle" type="button" onClick={revealAddressFields}>Enter address manually</button> : null}<div className={`ccic-review-address-fields${showAddressFields ? ' is-visible' : ''}`} aria-hidden={!showAddressFields}><div className="ccic-review-fields"><label className="ccic-review-field-wide"><span>Address</span><input name="address_line_1" autoComplete="address-line1" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label><label className="ccic-review-field-wide"><span>Unit, suite, or additional address details</span><input name="address_line_2" autoComplete="address-line2" tabIndex={showAddressFields ? undefined : -1} /></label><label><span>City</span><input name="city" autoComplete="address-level2" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label><label><span>Province</span><input name="province" autoComplete="address-level1" defaultValue="Ontario" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label><label><span>Postal code</span><input name="postal_code" autoComplete="postal-code" inputMode="text" maxLength={7} pattern="[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ] ?[0-9][ABCEGHJ-NPRSTVWXYZ][0-9]" placeholder="A1A 1A1" title="Enter a valid Canadian postal code, for example A1A 1A1." required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label></div></div></fieldset> : null}{error ? <p className="ccic-review-error" role="alert">{error}</p> : null}<div className="ccic-review-actions"><Link href="/ccic">Return to make changes</Link><button type="submit" disabled={submitting}>{submitting ? 'Submitting order…' : 'Submit order request'}</button></div></form><aside className="ccic-review-summary" aria-label="Order summary"><p className="ccic-eyebrow">Your order</p><h2>Order summary</h2><div className="ccic-review-lines">{calculatedOrder.lines.map((line) => <div className="ccic-review-line" key={`${line.lineType}-${line.catalogId}`}><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div>)}{calculatedOrder.customCaseDiscountCents ? <div className="ccic-review-line ccic-review-discount"><span>Custom Case pricing</span><strong>−{formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}</strong></div> : null}</div><div className="ccic-review-totals"><div><span>Subtotal</span><strong>{formatChristmasCardMoney(calculatedOrder.subtotalCents)}</strong></div><div><span>{requiresAddress ? 'Shipping' : 'Pickup'}</span><strong>{!requiresAddress ? formatChristmasCardMoney(0) : shipping.status === 'priced' ? formatChristmasCardMoney(shipping.amountCents) : shipping.status === 'calculating' ? 'Calculating…' : 'To be calculated'}</strong></div><div className="ccic-review-total"><span>{shippingPending ? 'Current subtotal' : 'Estimated total'}</span><strong>{formatChristmasCardMoney(displayedTotalCents)}</strong></div></div>{requiresAddress && shipping.status === 'priced' ? <p className="ccic-review-note">Shipping calculated using {shipping.serviceName} for the postal code provided.</p> : null}{requiresAddress && shipping.status === 'pending' ? <p className="ccic-review-shipping-warning"><strong>Shipping is not yet priced</strong> and will be calculated after your order has been reviewed for packing. <strong>Please wait for this email before you send payment.</strong></p> : null}{requiresAddress && shipping.status === 'waiting' ? <p className="ccic-review-note">Enter your shipping address to calculate shipping.</p> : null}<p className="ccic-review-note">No payment is collected online. <PaymentOptionsDetails linkText="Payment options can be viewed here" sentenceSuffix="and are included in the Order Confirmation email." /></p></aside></div>
+  return <div className="ccic-review-layout"><form className="ccic-review-form" onSubmit={submitOrder} onInput={(event) => { const target = event.target as HTMLInputElement; if (target?.name === 'postal_code') { const formatted = normalizeCanadianPostalCode(target.value); target.value = formatted; if (isCanadianPostalCode(formatted)) void requestShippingRate(addressFromForm(event.currentTarget, formatted)); else setShipping({ status: 'waiting' }) } }}><div className="ccic-review-heading"><p className="ccic-eyebrow">Contact information</p><h1>Review and submit your order</h1><p>We will only use these details for communication about this order.</p></div><div className="ccic-review-fields"><label><span>Your name</span><input name="contact_name" autoComplete="name" required /></label><label><span>Organization name</span><input name="organization_name" autoComplete="organization" required /></label><label><span>Email address</span><input name="email" type="email" autoComplete="email" required /></label><label><span>Phone number</span><input name="phone" type="tel" autoComplete="tel" required /></label></div>{requiresAddress ? <fieldset className="ccic-review-address"><legend>Shipping address</legend><GoogleAddressAutocomplete onAddressSelected={handleAutocompleteAddressSelected} onUnavailable={revealAddressFields} />{!showAddressFields ? <button className="ccic-review-manual-address-toggle" type="button" onClick={revealAddressFields}>Enter address manually</button> : null}<div className={`ccic-review-address-fields${showAddressFields ? ' is-visible' : ''}`} aria-hidden={!showAddressFields}><div className="ccic-review-fields"><label className="ccic-review-field-wide"><span>Address</span><input name="address_line_1" autoComplete="address-line1" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label><label className="ccic-review-field-wide"><span>Unit, suite, or additional address details</span><input name="address_line_2" autoComplete="address-line2" tabIndex={showAddressFields ? undefined : -1} /></label><label><span>City</span><input name="city" autoComplete="address-level2" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label><label><span>Province</span><input name="province" autoComplete="address-level1" defaultValue="ON" required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label><label><span>Postal code</span><input name="postal_code" autoComplete="postal-code" inputMode="text" maxLength={7} pattern="[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ] ?[0-9][ABCEGHJ-NPRSTVWXYZ][0-9]" placeholder="A1A 1A1" title="Enter a valid Canadian postal code, for example A1A 1A1." required={showAddressFields} tabIndex={showAddressFields ? undefined : -1} /></label></div></div></fieldset> : null}{error ? <p className="ccic-review-error" role="alert">{error}</p> : null}<div className="ccic-review-actions"><Link href="/ccic">Return to make changes</Link><button type="submit" disabled={submitting}>{submitting ? 'Submitting order…' : 'Submit order request'}</button></div></form><aside className="ccic-review-summary" aria-label="Order summary"><p className="ccic-eyebrow">Your order</p><h2>Order summary</h2><div className="ccic-review-lines">{calculatedOrder.lines.map((line) => <div className="ccic-review-line" key={`${line.lineType}-${line.catalogId}`}><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div>)}{calculatedOrder.customCaseDiscountCents ? <div className="ccic-review-line ccic-review-discount"><span>Custom Case pricing</span><strong>−{formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}</strong></div> : null}</div><div className="ccic-review-totals"><div><span>Subtotal</span><strong>{formatChristmasCardMoney(calculatedOrder.subtotalCents)}</strong></div><div><span>{requiresAddress ? 'Shipping' : 'Pickup'}</span><strong>{!requiresAddress ? formatChristmasCardMoney(0) : shipping.status === 'priced' ? formatChristmasCardMoney(shipping.amountCents) : shipping.status === 'calculating' ? 'Calculating…' : 'To be calculated'}</strong></div><div className="ccic-review-total"><span>{shippingPending ? 'Current subtotal' : 'Estimated total'}</span><strong>{formatChristmasCardMoney(displayedTotalCents)}</strong></div></div>{requiresAddress && shipping.status === 'priced' ? <p className="ccic-review-note">Shipping calculated using {shipping.serviceName} for the address provided.</p> : null}{requiresAddress && shipping.status === 'pending' ? <p className="ccic-review-shipping-warning"><strong>Shipping is not yet priced</strong> and will be calculated after your order has been reviewed for packing. <strong>Please wait for this email before you send payment.</strong></p> : null}{requiresAddress && shipping.status === 'waiting' ? <p className="ccic-review-note">Enter your shipping address to calculate shipping.</p> : null}<p className="ccic-review-note">No payment is collected online. <PaymentOptionsDetails linkText="Payment options can be viewed here" sentenceSuffix="and are included in the Order Confirmation email." /></p></aside></div>
 }
