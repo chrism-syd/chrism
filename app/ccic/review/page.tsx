@@ -4,7 +4,11 @@ import ReviewOrderForm from '../../christmas-cards/review-order-form'
 import '../../christmas-cards/storefront.css'
 import '../../christmas-cards/payment-polish.css'
 import '../../christmas-cards/storefront-redesign.css'
+import '../../christmas-cards/storefront-header-polish.css'
+import '../../christmas-cards/storefront-cart-drawer.css'
 import '../../christmas-cards/storefront-review-polish.css'
+import '../../christmas-cards/storefront-inventory.css'
+import '../../christmas-cards/storefront-final-polish.css'
 import '../../christmas-cards/review-order.css'
 
 export const metadata = {
