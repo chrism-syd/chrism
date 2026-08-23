@@ -48,7 +48,7 @@ async function getAccessToken() {
     body: new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: requiredEnvironment('SHIPTIME_CLIENT_ID'),
-      client_secret: requiredEnvironment('SHIPTIME_API_SECRET'),
+      client_secret: requiredEnvironment('SHIPTIME_CLIENT_SECRET'),
     }),
     cache: 'no-store',
   })
