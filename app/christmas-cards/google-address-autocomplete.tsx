@@ -10,7 +10,8 @@ type PlaceSelectEvent = Event & { placePrediction?: PlacePrediction }
 type PlaceAutocompleteElement = HTMLElement & { includedRegionCodes: string[]; placeholder: string }
 type GoogleMapsWindow = Window & { google?: { maps?: { places?: { PlaceAutocompleteElement?: new () => PlaceAutocompleteElement } } } }
 
-type GoogleAddressAutocompleteProps = { onAddressSelected?: (postalCode: string) => void; onUnavailable?: () => void }
+export type CcicSelectedAddress = { addressLine1: string; city: string; province: string; postalCode: string }
+type GoogleAddressAutocompleteProps = { onAddressSelected?: (address: CcicSelectedAddress) => void; onUnavailable?: () => void }
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 const SLOW_LOAD_MS = 4000
 function componentValue(components: AddressComponent[], type: string) { return components.find((item) => item.types?.includes(type))?.longText || '' }
@@ -39,7 +40,8 @@ export default function GoogleAddressAutocomplete({ onAddressSelected, onUnavail
           const city = componentValue(components, 'locality') || componentValue(components, 'postal_town') || componentValue(components, 'sublocality_level_1')
           const province = componentShortValue(components, 'administrative_area_level_1') || componentValue(components, 'administrative_area_level_1')
           const postalCode = componentValue(components, 'postal_code').toUpperCase()
-          setFormField('address_line_1', streetAddress); setFormField('city', city); setFormField('province', province); setFormField('postal_code', postalCode); selectedCallbackRef.current?.(postalCode)
+          const selectedAddress = { addressLine1: streetAddress, city, province, postalCode }
+          setFormField('address_line_1', streetAddress); setFormField('city', city); setFormField('province', province); setFormField('postal_code', postalCode); selectedCallbackRef.current?.(selectedAddress)
           setStatus(streetAddress ? 'Address found. Please review the details below.' : 'Address found. Please review and complete the details below.')
         } catch (error) { console.error('CCIC Google address selection failed', error); showFallback('We could not fill that address automatically. Please enter your shipping address below.') }
       }); host.replaceChildren(autocomplete)
