@@ -31,8 +31,10 @@ function normalizeCanadianPostalCode(value: string) {
   return compact.length > 3 ? `${compact.slice(0, 3)} ${compact.slice(3)}` : compact
 }
 
-function compactCanadianPostalCode(value: string) { return value.toUpperCase().replace(/[^A-Z0-9]/g, '') }
-function isCanadianPostalCode(value: string) { return /^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ][0-9][ABCEGHJ-NPRSTVWXYZ][0-9]$/.test(compactCanadianPostalCode(value)) }
+function compactCanadianPostalCode(value: unknown) {
+  return typeof value === 'string' ? value.toUpperCase().replace(/[^A-Z0-9]/g, '') : ''
+}
+function isCanadianPostalCode(value: unknown) { return /^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ][0-9][ABCEGHJ-NPRSTVWXYZ][0-9]$/.test(compactCanadianPostalCode(value)) }
 function readStoredDraft() {
   const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY)
   if (!storedDraft) return null
@@ -95,9 +97,20 @@ export default function ReviewOrderForm() {
     }
   }, [calculatedOrder])
 
-  const handleAutocompleteAddressSelected = useCallback((address: CcicSelectedAddress) => {
+  const handleAutocompleteAddressSelected = useCallback((selected: CcicSelectedAddress | string) => {
     revealAddressFields()
-    if (isCanadianPostalCode(address.postalCode)) void requestShippingRate(address)
+
+    if (typeof selected === 'string') {
+      const form = document.querySelector<HTMLFormElement>('form.ccic-review-form')
+      if (!form || !isCanadianPostalCode(selected)) {
+        setShipping({ status: 'waiting' })
+        return
+      }
+      void requestShippingRate(addressFromForm(form, selected))
+      return
+    }
+
+    if (isCanadianPostalCode(selected?.postalCode)) void requestShippingRate(selected)
     else setShipping({ status: 'waiting' })
   }, [requestShippingRate, revealAddressFields])
 
