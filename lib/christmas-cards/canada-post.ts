@@ -8,6 +8,7 @@ export const CCIC_MANUAL_SHIPPING_MESSAGE = 'Shipping will be calculated after y
 
 export type CcicShippingPackage = { weightKg: number; lengthCm: number; widthCm: number; heightCm: number }
 export type CcicShippingRate = { serviceCode: string; serviceName: string; amountCents: number; expectedTransitTime: number | null }
+export type CcicShippingDestination = { addressLine1: string; city: string; province: string; postalCode: string }
 export type CcicShippingQuote =
   | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage; parcelCount: number }
   | { status: 'pending'; provisional: true; reason: 'packing_required' | 'rate_unavailable'; message: string }
@@ -76,12 +77,20 @@ function multiplyRate(rate: CcicShippingRate, parcelCount: number): CcicShipping
   return { ...rate, serviceName: `${rate.serviceName} (${parcelCount} parcels)`, amountCents: rate.amountCents * parcelCount }
 }
 
-export async function quoteCcicShipping(args: { destinationPostalCode: string; totalBoxes: number }): Promise<CcicShippingQuote> {
+export async function quoteCcicShipping(args: { destination: CcicShippingDestination; totalBoxes: number }): Promise<CcicShippingQuote> {
   const boxesPerCase = 32
   if (args.totalBoxes < boxesPerCase || args.totalBoxes % boxesPerCase !== 0) return { status: 'pending', provisional: true, reason: 'packing_required', message: CCIC_MANUAL_SHIPPING_MESSAGE }
   const parcelCount = args.totalBoxes / boxesPerCase
   try {
-    const singleParcelRates = await getCcicShipTimeCanadaPostRates({ destinationPostalCode: args.destinationPostalCode, parcel: PROVISIONAL_FULL_CASE })
+    const singleParcelRates = await getCcicShipTimeCanadaPostRates({
+      destinationPostalCode: args.destination.postalCode,
+      destinationAddress: {
+        addressLine1: args.destination.addressLine1,
+        city: args.destination.city,
+        province: args.destination.province,
+      },
+      parcel: PROVISIONAL_FULL_CASE,
+    })
     const singleParcelRate = selectCcicShippingRate(singleParcelRates)
     if (!singleParcelRate) return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
     return { status: 'priced', provisional: true, rate: multiplyRate(singleParcelRate, parcelCount), rates: [multiplyRate(singleParcelRate, parcelCount)], parcel: PROVISIONAL_FULL_CASE, parcelCount }
