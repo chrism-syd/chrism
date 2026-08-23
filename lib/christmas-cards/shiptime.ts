@@ -62,6 +62,11 @@ async function getAccessToken() {
 
 export async function getCcicShipTimeCanadaPostRates(args: {
   destinationPostalCode: string
+  destinationAddress: {
+    addressLine1: string
+    city: string
+    province: string
+  }
   parcel: CcicShippingPackage
 }) {
   const token = await getAccessToken()
@@ -77,10 +82,10 @@ export async function getCcicShipTimeCanadaPostRates(args: {
       from: ORIGIN,
       to: {
         companyName: 'CCIC Customer',
-        streetAddress: 'Shipping address',
-        city: 'Destination',
+        streetAddress: args.destinationAddress.addressLine1 || 'Shipping address',
+        city: args.destinationAddress.city,
         countryCode: 'CA',
-        state: '',
+        state: args.destinationAddress.province,
         postalCode: destinationPostalCode,
         attention: 'CCIC Customer',
         phone: '9055550101',
