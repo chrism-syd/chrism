@@ -1,0 +1,58 @@
+.ccic-admin-copy-all-wrap {
+  margin-top: 20px;
+}
+
+.ccic-admin-copy-all,
+.ccic-admin-copy-field {
+  appearance: none;
+  border: 1px solid #cfcac5;
+  background: #fff;
+  color: #202020;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.ccic-admin-copy-all {
+  width: 100%;
+  padding: 10px 12px;
+  border-color: #202020;
+  background: #202020;
+  color: #fff;
+  font-size: 12px;
+}
+
+.ccic-admin-copy-field {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.ccic-admin-copy-details dd {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.ccic-admin-copy-details dd > span:first-child,
+.ccic-admin-copy-details dd > a:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ccic-admin-copy-address > span:first-child > span {
+  display: block;
+}
+
+.ccic-admin-copy-all:hover,
+.ccic-admin-copy-field:hover {
+  opacity: .78;
+}
+
+.ccic-admin-copy-all:focus-visible,
+.ccic-admin-copy-field:focus-visible {
+  outline: 2px solid #202020;
+  outline-offset: 2px;
+}
