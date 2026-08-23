@@ -9,6 +9,7 @@ type CopyCustomerDetailsProps = {
   email: string | null
   phone: string | null
   addressLines: string[]
+  showShippingDetails?: boolean
 }
 
 type CopyFieldButtonProps = {
@@ -48,6 +49,7 @@ export default function CopyCustomerDetails({
   email,
   phone,
   addressLines,
+  showShippingDetails = false,
 }: CopyCustomerDetailsProps) {
   const [allCopied, setAllCopied] = useState(false)
   const address = addressLines.join('\n')
@@ -71,11 +73,13 @@ export default function CopyCustomerDetails({
 
   return (
     <>
-      <div className="ccic-admin-copy-all-wrap">
-        <button type="button" className="ccic-admin-copy-all" onClick={copyAll}>
-          {allCopied ? 'Shipping details copied' : 'Copy shipping details'}
-        </button>
-      </div>
+      {showShippingDetails ? (
+        <div className="ccic-admin-copy-all-wrap">
+          <button type="button" className="ccic-admin-copy-all" onClick={copyAll}>
+            {allCopied ? 'Shipping details copied' : 'Copy shipping details'}
+          </button>
+        </div>
+      ) : null}
 
       <dl className="ccic-admin-copy-details">
         <div>
@@ -94,13 +98,15 @@ export default function CopyCustomerDetails({
           <dt>Phone</dt>
           <dd>{phone ? <><a href={`tel:${phone}`}>{phone}</a><CopyFieldButton label="phone" value={phone} /></> : <span>Not provided</span>}</dd>
         </div>
-        <div>
-          <dt>Address</dt>
-          <dd className="ccic-admin-copy-address">
-            <span>{addressLines.length ? addressLines.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</span>
-            {address ? <CopyFieldButton label="address" value={address} /> : null}
-          </dd>
-        </div>
+        {showShippingDetails ? (
+          <div>
+            <dt>Address</dt>
+            <dd className="ccic-admin-copy-address">
+              <span>{addressLines.length ? addressLines.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</span>
+              {address ? <CopyFieldButton label="address" value={address} /> : null}
+            </dd>
+          </div>
+        ) : null}
       </dl>
     </>
   )
