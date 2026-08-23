@@ -12,6 +12,7 @@ import {
   type CcicOrderStatus,
 } from '@/lib/christmas-cards/admin-order-status'
 import { updateCcicOrderStatus } from '../actions'
+import CopyCustomerDetails from './copy-customer-details'
 import '../../../../christmas-cards/admin-orders.css'
 
 type OrderRow = {
@@ -98,7 +99,7 @@ export default async function CcicOrderDetailPage({
 
   const order = decryptPeopleRecord(orderData as OrderRow)
   const lines = (lineData ?? []) as OrderLine[]
-  const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean)
+  const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean) as string[]
   const shippingPending = order.fulfillment_method === 'shipping' && order.shipping_cents === 0
 
   return (
@@ -179,13 +180,25 @@ export default async function CcicOrderDetailPage({
 
         <aside className="ccic-admin-panel ccic-admin-contact-card">
           <h2>Customer details</h2>
+          {order.fulfillment_method === 'shipping' ? (
+            <CopyCustomerDetails
+              organization={order.organization_name}
+              contact={order.contact_name}
+              email={order.email}
+              phone={order.cell_phone}
+              addressLines={address}
+            />
+          ) : (
+            <dl>
+              <div><dt>Organization</dt><dd>{order.organization_name}</dd></div>
+              <div><dt>Contact</dt><dd>{order.contact_name}</dd></div>
+              <div><dt>Email</dt><dd><a href={`mailto:${order.email}`}>{order.email}</a></dd></div>
+              <div><dt>Phone</dt><dd><a href={`tel:${order.cell_phone}`}>{order.cell_phone}</a></dd></div>
+            </dl>
+          )}
           <dl>
-            <div><dt>Organization</dt><dd>{order.organization_name}</dd></div>
-            <div><dt>Contact</dt><dd>{order.contact_name}</dd></div>
-            <div><dt>Email</dt><dd><a href={`mailto:${order.email}`}>{order.email}</a></dd></div>
-            <div><dt>Phone</dt><dd><a href={`tel:${order.cell_phone}`}>{order.cell_phone}</a></dd></div>
             <div><dt>Fulfilment</dt><dd>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</dd></div>
-            <div><dt>Address</dt><dd>{address.length ? address.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</dd></div>
+            {order.fulfillment_method !== 'shipping' ? <div><dt>Address</dt><dd>{address.length ? address.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</dd></div> : null}
             <div><dt>Submitted</dt><dd>{formatDate(order.created_at)}</dd></div>
             <div><dt>Customer email</dt><dd>{formatDate(order.confirmation_email_sent_at)}</dd></div>
             <div><dt>Admin email</dt><dd>{formatDate(order.admin_email_sent_at)}</dd></div>
