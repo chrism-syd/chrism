@@ -58,7 +58,10 @@
 .ccic-review-shipping-price { flex: 0 0 auto; font-size: 17px !important; }
 .ccic-review-shipping-card-success { width: min(520px,100%); margin: 24px auto 0; background: #fff; }
 .ccic-review-shipping-calculating { display: inline-flex; align-items: center; gap: 7px; }
-.ccic-review-shipping-warning { margin: 18px 0 0; padding: 14px 16px; background: #ffbf00; color: #202020; font-size: 13px; line-height: 1.55; }
+.ccic-review-shipping-warning { display: grid; gap: 7px; margin: 18px 0 0; padding: 14px 16px; background: #ffbf00; color: #202020; font-size: 13px; line-height: 1.55; }
+.ccic-review-shipping-warning span { display: block; }
+.ccic-review-shipping-warning button { justify-self: start; margin-top: 3px; padding: 0; border: 0; background: transparent; color: #202020; cursor: pointer; font: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.ccic-review-shipping-warning button:hover,.ccic-review-shipping-warning button:focus-visible { opacity: .7; }
 .ccic-review-note .ccic-payment-sentence { display: inline; }
 .ccic-review-note .ccic-inline-text-button { color: inherit; font-size: inherit; }
 .ccic-review-empty,.ccic-review-success,.ccic-review-loading { width: min(760px, calc(100% - 48px)); margin: 54px auto; padding: clamp(30px, 6vw, 64px); text-align: center; }
