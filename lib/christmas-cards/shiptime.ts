@@ -11,12 +11,12 @@ const ORIGIN = {
   state: 'ON',
   postalCode: 'L3P4N1',
   attention: 'CCIC Shipping',
-  phone: '9055550100',
+  phone: '905 555 0100',
   residential: false,
   notify: false,
 }
 
-type ShipTimeTokenResponse = { access_token?: string }
+type ShipTimeTokenResponse = { access_token?: string; error?: string; error_description?: string }
 type ShipTimeMoney = { currency?: string; amount?: number }
 type ShipTimeRate = {
   carrierName?: string
@@ -41,6 +41,17 @@ function compactPostalCode(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '')
 }
 
+function nextBusinessShipDate() {
+  const date = new Date()
+  date.setUTCHours(12, 0, 0, 0)
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) date.setUTCDate(date.getUTCDate() + 1)
+  return date.toISOString().slice(0, 10)
+}
+
+function isCanadaPostCarrier(name: string | undefined) {
+  return Boolean(name && name.toLowerCase().replace(/[^a-z]/g, '').includes('canadapost'))
+}
+
 async function getAccessToken() {
   const response = await fetch(SHIPTIME_TOKEN_URL, {
     method: 'POST',
@@ -55,7 +66,8 @@ async function getAccessToken() {
 
   const payload = await response.json().catch(() => null) as ShipTimeTokenResponse | null
   if (!response.ok || !payload?.access_token) {
-    throw new Error(`ShipTime authentication failed (${response.status}).`)
+    const detail = [payload?.error, payload?.error_description].filter(Boolean).join(': ')
+    throw new Error(`ShipTime authentication failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
   return payload.access_token
 }
@@ -88,7 +100,7 @@ export async function getCcicShipTimeCanadaPostRates(args: {
         state: args.destinationAddress.province,
         postalCode: destinationPostalCode,
         attention: 'CCIC Customer',
-        phone: '9055550101',
+        phone: '905 555 0101',
         residential: true,
         notify: false,
       },
@@ -102,7 +114,7 @@ export async function getCcicShipTimeCanadaPostRates(args: {
         description: 'Christmas greeting cards',
       }],
       unitOfMeasurement: 'METRIC',
-      shipDate: new Date().toISOString(),
+      shipDate: nextBusinessShipDate(),
       waitTimeLimit: 30,
     }),
     cache: 'no-store',
@@ -114,8 +126,16 @@ export async function getCcicShipTimeCanadaPostRates(args: {
     throw new Error(`ShipTime rating failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
 
+  console.info('CCIC ShipTime carriers returned', payload.availableRates.map((rate) => ({
+    carrierName: rate.carrierName,
+    serviceId: rate.serviceId,
+    serviceName: rate.serviceName,
+    currency: rate.totalCharge?.currency,
+    amount: rate.totalCharge?.amount,
+  })))
+
   const rates = payload.availableRates.flatMap((rate): CcicShippingRate[] => {
-    if (rate.carrierName !== 'Canada Post') return []
+    if (!isCanadaPostCarrier(rate.carrierName)) return []
     if (!rate.serviceId || !rate.serviceName || rate.totalCharge?.currency !== 'CAD' || typeof rate.totalCharge.amount !== 'number') return []
     return [{
       serviceCode: rate.serviceId,
@@ -124,6 +144,11 @@ export async function getCcicShipTimeCanadaPostRates(args: {
       expectedTransitTime: typeof rate.transitDays === 'number' ? rate.transitDays : null,
     }]
   })
+
+  if (!rates.length) {
+    const carriers = [...new Set(payload.availableRates.map((rate) => rate.carrierName).filter(Boolean))].join(', ')
+    throw new Error(`ShipTime returned rates, but no Canada Post rate matched.${carriers ? ` Carriers returned: ${carriers}.` : ''}`)
+  }
 
   console.info('CCIC ShipTime Canada Post rating response', rates)
   return rates
