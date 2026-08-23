@@ -4,7 +4,7 @@ const CANADA_POST_TOKEN_URL = 'https://api.canadapost-postescanada.ca/prod/devpo
 const CANADA_POST_RATING_URL = 'https://api.canadapost-postescanada.ca/prod/devportal-portaildesdeveloppeurs/rating/v1/prices'
 
 export const CCIC_SHIPPING_ORIGIN_POSTAL_CODE = 'L3P4N1'
-export const CCIC_MANUAL_SHIPPING_MESSAGE = 'Shipping will be calculated after your order has been reviewed for packing. We will email you with the shipping cost before payment.'
+export const CCIC_MANUAL_SHIPPING_MESSAGE = 'Shipping & Handling will be calculated after your order has been reviewed for packing. We will email you with the final amount before payment.'
 
 export type CcicShippingPackage = { weightKg: number; lengthCm: number; widthCm: number; heightCm: number }
 export type CcicShippingRate = { serviceCode: string; serviceName: string; amountCents: number; expectedTransitTime: number | null }
