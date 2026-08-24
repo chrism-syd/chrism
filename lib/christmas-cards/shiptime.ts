@@ -24,6 +24,8 @@ type ShipTimeRate = {
   serviceName?: string
   transitDays?: number
   totalCharge?: ShipTimeMoney
+  totalBeforeTaxes?: ShipTimeMoney
+  isShipTimeCarrier?: boolean
 }
 type ShipTimeRatesResponse = {
   availableRates?: ShipTimeRate[]
@@ -80,6 +82,7 @@ export async function getCcicShipTimeCanadaPostRates(args: {
     province: string
   }
   parcel: CcicShippingPackage
+  declaredValueCents: number
 }) {
   const token = await getAccessToken()
   const destinationPostalCode = compactPostalCode(args.destinationPostalCode)
@@ -110,10 +113,12 @@ export async function getCcicShipTimeCanadaPostRates(args: {
         width: args.parcel.widthCm,
         height: args.parcel.heightCm,
         weight: args.parcel.weightKg,
-        declaredValue: { currency: 'CAD', amount: 0 },
+        declaredValue: { currency: 'CAD', amount: Math.max(1, Math.round(args.declaredValueCents)) },
         description: 'Christmas greeting cards',
       }],
       unitOfMeasurement: 'METRIC',
+      serviceOptions: ['SIGNATURE'],
+      insuranceType: 'SHIPTIME',
       shipDate: nextBusinessShipDate(),
       waitTimeLimit: 30,
     }),
@@ -126,16 +131,21 @@ export async function getCcicShipTimeCanadaPostRates(args: {
     throw new Error(`ShipTime rating failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
 
-  console.info('CCIC ShipTime carriers returned', payload.availableRates.map((rate) => ({
+  const canadaPostRates = payload.availableRates.filter((rate) => isCanadaPostCarrier(rate.carrierName))
+  const connectedAccountRates = canadaPostRates.filter((rate) => rate.isShipTimeCarrier === false)
+  const preferredRates = connectedAccountRates.length ? connectedAccountRates : canadaPostRates
+
+  console.info('CCIC ShipTime Canada Post rating candidates', preferredRates.map((rate) => ({
     carrierName: rate.carrierName,
     serviceId: rate.serviceId,
     serviceName: rate.serviceName,
+    connectedAccount: rate.isShipTimeCarrier === false,
     currency: rate.totalCharge?.currency,
-    amount: rate.totalCharge?.amount,
+    totalCharge: rate.totalCharge?.amount,
+    totalBeforeTaxes: rate.totalBeforeTaxes?.amount,
   })))
 
-  const rates = payload.availableRates.flatMap((rate): CcicShippingRate[] => {
-    if (!isCanadaPostCarrier(rate.carrierName)) return []
+  const rates = preferredRates.flatMap((rate): CcicShippingRate[] => {
     if (!rate.serviceId || !rate.serviceName || rate.totalCharge?.currency !== 'CAD' || typeof rate.totalCharge.amount !== 'number') return []
     return [{
       serviceCode: rate.serviceId,
@@ -150,6 +160,5 @@ export async function getCcicShipTimeCanadaPostRates(args: {
     throw new Error(`ShipTime returned rates, but no Canada Post rate matched.${carriers ? ` Carriers returned: ${carriers}.` : ''}`)
   }
 
-  console.info('CCIC ShipTime Canada Post rating response', rates)
   return rates
 }
