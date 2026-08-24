@@ -21,6 +21,7 @@ type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; erro
 const KG_PER_RETAIL_BOX = 6.5 / 32
 const CARDS_PER_RETAIL_BOX = 12
 const COST_PER_CARD_CENTS = 64
+const SHIPPING_HANDLING_FEE_CENTS = 200
 const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86 }
 const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32 }
 
@@ -119,7 +120,7 @@ function combineSelectedParcelRates(selectedRates: CcicShippingRate[]): CcicShip
       : sameService
         ? `${selectedRates[0].serviceName} (${selectedRates.length} parcels)`
         : `Shipping (${selectedRates.length} parcels)`,
-    amountCents: selectedRates.reduce((sum, rate) => sum + rate.amountCents, 0),
+    amountCents: selectedRates.reduce((sum, rate) => sum + rate.amountCents, 0) + SHIPPING_HANDLING_FEE_CENTS,
     expectedTransitTime: transitTimes.length === selectedRates.length ? Math.max(...transitTimes) : null,
   }
 }
