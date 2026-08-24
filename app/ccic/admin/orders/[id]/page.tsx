@@ -185,35 +185,34 @@ export default async function CcicOrderDetailPage({
               </div>
             </div>
 
-            {order.fulfillment_method === 'shipping' ? (
-              <div className="ccic-admin-shipping-plan">
-                <div className="ccic-admin-panel-heading">
-                  <h2>Shipping quote packing plan</h2>
-                  <span>{packingPlan.length} parcel{packingPlan.length === 1 ? '' : 's'}</span>
-                </div>
-                <p className="ccic-admin-note">This is the carton plan used by the CCIC shipping calculator. Confirm the final packed weight before creating the label.</p>
-                <dl className="ccic-admin-workflow-dates">
-                  {packingPlan.map((packed, index) => {
-                    const insuredValueCents = packed.boxCount * CARDS_PER_RETAIL_BOX * COST_PER_CARD_CENTS
-                    return (
-                      <div key={`${packed.carton}-${index}`}>
-                        <dt>Parcel {index + 1}</dt>
-                        <dd>
-                          <strong>{packed.boxCount} boxes</strong><br />
-                          {cartonLabel(packed.carton)}<br />
-                          Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg<br />
-                          Insured product value: {formatChristmasCardMoney(insuredValueCents)}
-                        </dd>
-                      </div>
-                    )
-                  })}
-                </dl>
-                <p className="ccic-admin-note">Shipping & Handling also includes the $2.00 order handling allowance.</p>
-              </div>
-            ) : null}
-
             {shippingPending ? <p className="ccic-admin-email-error">Shipping & Handling still needs to be priced after the order is reviewed for packing. Confirm the final shipping cost with the customer before payment.</p> : null}
           </section>
+
+          {order.fulfillment_method === 'shipping' ? (
+            <section className="ccic-admin-panel ccic-admin-shipping-plan">
+              <div className="ccic-admin-panel-heading">
+                <h2>Shipping quote packing plan</h2>
+                <span>{packingPlan.length} parcel{packingPlan.length === 1 ? '' : 's'}</span>
+              </div>
+              <p className="ccic-admin-note">This is the carton plan used by the CCIC shipping calculator. Confirm the final packed weight before creating the label.</p>
+              <dl className="ccic-admin-workflow-dates">
+                {packingPlan.map((packed, index) => {
+                  const insuredValueCents = packed.boxCount * CARDS_PER_RETAIL_BOX * COST_PER_CARD_CENTS
+                  return (
+                    <div key={`${packed.carton}-${index}`}>
+                      <dt>Parcel {index + 1}</dt>
+                      <dd>
+                        <strong>{packed.boxCount} boxes</strong><br />
+                        {cartonLabel(packed.carton)}<br />
+                        Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg<br />
+                        Insured product value: {formatChristmasCardMoney(insuredValueCents)}
+                      </dd>
+                    </div>
+                  )
+                })}
+              </dl>
+            </section>
+          ) : null}
         </div>
 
         <aside className="ccic-admin-panel ccic-admin-contact-card">
