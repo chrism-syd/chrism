@@ -19,6 +19,8 @@ type CanadaPostRateResponse = Array<{ serviceCode?: string; serviceName?: string
 type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; errorDescription?: string; code?: string; message?: string; title?: string; detail?: string; errors?: Array<{ errorCode?: string; message?: string }> }
 
 const KG_PER_RETAIL_BOX = 6.5 / 32
+const CARDS_PER_RETAIL_BOX = 12
+const COST_PER_CARD_CENTS = 64
 const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86 }
 const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32 }
 
@@ -125,7 +127,8 @@ function combineSelectedParcelRates(selectedRates: CcicShippingRate[]): CcicShip
 export async function quoteCcicShipping(args: { destination: CcicShippingDestination; totalBoxes: number }): Promise<CcicShippingQuote> {
   const parcels = buildCcicPackingPlan(args.totalBoxes)
   try {
-    const selectedParcelRates = await Promise.all(parcels.map(async ({ parcel }) => {
+    const selectedParcelRates = await Promise.all(parcels.map(async ({ parcel, boxCount }) => {
+      const declaredValueCents = boxCount * CARDS_PER_RETAIL_BOX * COST_PER_CARD_CENTS
       const rates = await getCcicShipTimeCanadaPostRates({
         destinationPostalCode: args.destination.postalCode,
         destinationAddress: {
@@ -134,6 +137,7 @@ export async function quoteCcicShipping(args: { destination: CcicShippingDestina
           province: args.destination.province,
         },
         parcel,
+        declaredValueCents,
       })
       const selected = selectCcicShippingRate(rates)
       if (!selected) throw new Error('ShipTime returned no usable Canada Post rate for one of the packed parcels.')
