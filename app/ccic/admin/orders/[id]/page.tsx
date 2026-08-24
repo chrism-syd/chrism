@@ -194,7 +194,7 @@ export default async function CcicOrderDetailPage({
                 <h2>Shipping quote packing plan</h2>
                 <span>{packingPlan.length} parcel{packingPlan.length === 1 ? '' : 's'}</span>
               </div>
-              <p className="ccic-admin-note">This is the carton plan used by the CCIC shipping calculator. Confirm the final packed weight before creating the label.</p>
+              <p className="ccic-admin-note">Packing plan by the custom CCIC shipping calculator, using Canada Post via ShipTime. Confirm the final packed weight before creating the label.</p>
               <dl className="ccic-admin-workflow-dates">
                 {packingPlan.map((packed, index) => {
                   const insuredValueCents = packed.boxCount * CARDS_PER_RETAIL_BOX * COST_PER_CARD_CENTS
