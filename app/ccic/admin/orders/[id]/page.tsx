@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
+import { buildCcicPackingPlan } from '@/lib/christmas-cards/canada-post'
 import {
   CCIC_ORDER_STATUSES,
   CCIC_ORDER_STATUS_LABELS,
@@ -59,6 +60,9 @@ type OrderLine = {
   sort_order: number
 }
 
+const CARDS_PER_RETAIL_BOX = 12
+const COST_PER_CARD_CENTS = 64
+
 function stringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }
@@ -70,6 +74,10 @@ function formatDate(value: string | null) {
     timeStyle: 'short',
     timeZone: 'America/Toronto',
   }).format(new Date(value))
+}
+
+function cartonLabel(carton: 'medium' | 'large') {
+  return carton === 'large' ? '16 × 12 × 8 in' : '12 × 9 × 9 in'
 }
 
 export const metadata = { title: 'CCIC Order Details | Chrism' }
@@ -101,6 +109,8 @@ export default async function CcicOrderDetailPage({
   const lines = (lineData ?? []) as OrderLine[]
   const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean) as string[]
   const shippingPending = order.fulfillment_method === 'shipping' && order.shipping_cents === 0
+  const totalBoxes = lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)
+  const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes) : []
 
   return (
     <main className="ccic-admin-page">
@@ -146,7 +156,7 @@ export default async function CcicOrderDetailPage({
           <section className="ccic-admin-panel">
             <div className="ccic-admin-panel-heading">
               <h2>Order items</h2>
-              <span>{lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)} boxes</span>
+              <span>{totalBoxes} boxes</span>
             </div>
             <div className="ccic-admin-order-lines">
               {lines.map((line) => (
@@ -170,10 +180,38 @@ export default async function CcicOrderDetailPage({
                 <strong>{shippingPending ? 'Not yet priced' : formatChristmasCardMoney(order.shipping_cents)}</strong>
               </div>
               <div className="ccic-admin-total">
-                <span>{shippingPending ? 'Current subtotal' : 'Estimated total'}</span>
+                <span>{shippingPending ? 'Current subtotal' : 'Total'}</span>
                 <strong>{formatChristmasCardMoney(order.total_cents)}</strong>
               </div>
             </div>
+
+            {order.fulfillment_method === 'shipping' ? (
+              <div className="ccic-admin-shipping-plan">
+                <div className="ccic-admin-panel-heading">
+                  <h2>Shipping quote packing plan</h2>
+                  <span>{packingPlan.length} parcel{packingPlan.length === 1 ? '' : 's'}</span>
+                </div>
+                <p className="ccic-admin-note">This is the carton plan used by the CCIC shipping calculator. Confirm the final packed weight before creating the label.</p>
+                <dl className="ccic-admin-workflow-dates">
+                  {packingPlan.map((packed, index) => {
+                    const insuredValueCents = packed.boxCount * CARDS_PER_RETAIL_BOX * COST_PER_CARD_CENTS
+                    return (
+                      <div key={`${packed.carton}-${index}`}>
+                        <dt>Parcel {index + 1}</dt>
+                        <dd>
+                          <strong>{packed.boxCount} boxes</strong><br />
+                          {cartonLabel(packed.carton)}<br />
+                          Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg<br />
+                          Insured product value: {formatChristmasCardMoney(insuredValueCents)}
+                        </dd>
+                      </div>
+                    )
+                  })}
+                </dl>
+                <p className="ccic-admin-note">Shipping & Handling also includes the $2.00 order handling allowance.</p>
+              </div>
+            ) : null}
+
             {shippingPending ? <p className="ccic-admin-email-error">Shipping & Handling still needs to be priced after the order is reviewed for packing. Confirm the final shipping cost with the customer before payment.</p> : null}
           </section>
         </div>
