@@ -9,16 +9,18 @@ export const CCIC_MANUAL_SHIPPING_MESSAGE = 'Shipping & Handling will be calcula
 export type CcicShippingPackage = { weightKg: number; lengthCm: number; widthCm: number; heightCm: number }
 export type CcicShippingRate = { serviceCode: string; serviceName: string; amountCents: number; expectedTransitTime: number | null }
 export type CcicShippingDestination = { addressLine1: string; city: string; province: string; postalCode: string }
+export type CcicPackedShippingParcel = { carton: 'medium' | 'large'; boxCount: number; parcel: CcicShippingPackage }
 export type CcicShippingQuote =
-  | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage; parcelCount: number }
+  | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage; parcels: CcicPackedShippingParcel[]; parcelCount: number }
   | { status: 'pending'; provisional: true; reason: 'packing_required' | 'rate_unavailable'; message: string }
 
 type CanadaPostTokenResponse = { access_token?: string }
 type CanadaPostRateResponse = Array<{ serviceCode?: string; serviceName?: string; priceDetails?: { due?: number }; serviceStandard?: { expectedTransitTime?: number } }>
 type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; errorDescription?: string; code?: string; message?: string; title?: string; detail?: string; errors?: Array<{ errorCode?: string; message?: string }> }
 
-const PROVISIONAL_FULL_CASE: CcicShippingPackage = { weightKg: 6.5, lengthCm: 45.7, widthCm: 30.5, heightCm: 12.7 }
-const PROVISIONAL_BOXES_PER_PARCEL = 32
+const KG_PER_RETAIL_BOX = 6.5 / 32
+const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86 }
+const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32 }
 
 function requiredEnvironment(name: string) { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is not configured.`); return value }
 function optionalEnvironment(name: string) { return process.env[name]?.trim() || null }
@@ -73,27 +75,81 @@ export function selectCcicShippingRate(rates: CcicShippingRate[]) {
   return rates.find((rate) => rate.serviceCode === 'DOM.EP') ?? rates.find((rate) => rate.serviceCode === 'DOM.RP') ?? rates.reduce<CcicShippingRate | null>((best, rate) => !best || rate.amountCents < best.amountCents ? rate : best, null)
 }
 
-function multiplyRate(rate: CcicShippingRate, parcelCount: number): CcicShippingRate {
-  if (parcelCount <= 1) return rate
-  return { ...rate, serviceName: `${rate.serviceName} (${parcelCount} parcels)`, amountCents: rate.amountCents * parcelCount }
+function makePackedParcel(carton: typeof MEDIUM_CARTON | typeof LARGE_CARTON, boxCount: number): CcicPackedShippingParcel {
+  return {
+    carton: carton.carton,
+    boxCount,
+    parcel: {
+      weightKg: Number((boxCount * KG_PER_RETAIL_BOX).toFixed(3)),
+      lengthCm: carton.lengthCm,
+      widthCm: carton.widthCm,
+      heightCm: carton.heightCm,
+    },
+  }
+}
+
+export function buildCcicPackingPlan(totalBoxes: number): CcicPackedShippingParcel[] {
+  const boxes = Math.max(1, Math.floor(totalBoxes))
+
+  if (boxes <= MEDIUM_CARTON.maxBoxes) return [makePackedParcel(MEDIUM_CARTON, boxes)]
+  if (boxes <= LARGE_CARTON.maxBoxes) return [makePackedParcel(LARGE_CARTON, boxes)]
+
+  // For 43–57 boxes, split across two medium cartons rather than create a nearly-empty second carton.
+  if (boxes <= 57) {
+    const first = Math.ceil(boxes / 2)
+    return [makePackedParcel(MEDIUM_CARTON, first), makePackedParcel(MEDIUM_CARTON, boxes - first)]
+  }
+
+  // From 58–74 boxes, fill the large carton to 42 and use the medium carton for the 16–32 box remainder.
+  if (boxes <= 74) return [makePackedParcel(LARGE_CARTON, 42), makePackedParcel(MEDIUM_CARTON, boxes - 42)]
+
+  // Larger orders repeat the same pattern recursively.
+  return [makePackedParcel(LARGE_CARTON, 42), ...buildCcicPackingPlan(boxes - 42)]
+}
+
+function combineSelectedParcelRates(selectedRates: CcicShippingRate[]): CcicShippingRate {
+  const sameService = selectedRates.every((rate) => rate.serviceCode === selectedRates[0].serviceCode)
+  const transitTimes = selectedRates.map((rate) => rate.expectedTransitTime).filter((value): value is number => typeof value === 'number')
+  return {
+    serviceCode: sameService ? selectedRates[0].serviceCode : 'MULTI',
+    serviceName: selectedRates.length === 1
+      ? selectedRates[0].serviceName
+      : sameService
+        ? `${selectedRates[0].serviceName} (${selectedRates.length} parcels)`
+        : `Shipping (${selectedRates.length} parcels)`,
+    amountCents: selectedRates.reduce((sum, rate) => sum + rate.amountCents, 0),
+    expectedTransitTime: transitTimes.length === selectedRates.length ? Math.max(...transitTimes) : null,
+  }
 }
 
 export async function quoteCcicShipping(args: { destination: CcicShippingDestination; totalBoxes: number }): Promise<CcicShippingQuote> {
-  const parcelCount = Math.max(1, Math.ceil(args.totalBoxes / PROVISIONAL_BOXES_PER_PARCEL))
+  const parcels = buildCcicPackingPlan(args.totalBoxes)
   try {
-    const singleParcelRates = await getCcicShipTimeCanadaPostRates({
-      destinationPostalCode: args.destination.postalCode,
-      destinationAddress: {
-        addressLine1: args.destination.addressLine1,
-        city: args.destination.city,
-        province: args.destination.province,
-      },
-      parcel: PROVISIONAL_FULL_CASE,
-    })
-    const singleParcelRate = selectCcicShippingRate(singleParcelRates)
-    if (!singleParcelRate) return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
-    const rate = multiplyRate(singleParcelRate, parcelCount)
-    return { status: 'priced', provisional: true, rate, rates: [rate], parcel: PROVISIONAL_FULL_CASE, parcelCount }
+    const selectedParcelRates = await Promise.all(parcels.map(async ({ parcel }) => {
+      const rates = await getCcicShipTimeCanadaPostRates({
+        destinationPostalCode: args.destination.postalCode,
+        destinationAddress: {
+          addressLine1: args.destination.addressLine1,
+          city: args.destination.city,
+          province: args.destination.province,
+        },
+        parcel,
+      })
+      const selected = selectCcicShippingRate(rates)
+      if (!selected) throw new Error('ShipTime returned no usable Canada Post rate for one of the packed parcels.')
+      return selected
+    }))
+
+    const rate = combineSelectedParcelRates(selectedParcelRates)
+    return {
+      status: 'priced',
+      provisional: true,
+      rate,
+      rates: selectedParcelRates,
+      parcel: parcels[0].parcel,
+      parcels,
+      parcelCount: parcels.length,
+    }
   } catch (error) {
     console.error('CCIC ShipTime Canada Post rating failed', error)
     return { status: 'pending', provisional: true, reason: 'rate_unavailable', message: CCIC_MANUAL_SHIPPING_MESSAGE }
