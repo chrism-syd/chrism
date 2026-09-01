@@ -63,29 +63,25 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
   const selectedCaseEligibleLines = selectedIndividualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
   const nonCaseEligibleIndividualLines = selectedIndividualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId))
 
-  const { customCaseLines, looseIndividualLines, looseCaseEligibleBoxCount } = useMemo(() => {
-    let boxesToAllocateToCases = calculatedOrder.customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
-    const customLines = [] as typeof selectedIndividualLines
-    const looseLines = [] as typeof selectedIndividualLines
-    let looseEligibleCount = 0
+  let boxesToAllocateToCases = calculatedOrder.customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
+  const customCaseLines = [] as typeof selectedIndividualLines
+  const looseIndividualLines = [] as typeof selectedIndividualLines
+  let looseCaseEligibleBoxCount = 0
 
-    for (const line of selectedCaseEligibleLines) {
-      const customQuantity = Math.min(line.quantity, boxesToAllocateToCases)
-      const looseQuantity = line.quantity - customQuantity
+  for (const line of selectedCaseEligibleLines) {
+    const customQuantity = Math.min(line.quantity, boxesToAllocateToCases)
+    const looseQuantity = line.quantity - customQuantity
 
-      if (customQuantity > 0) {
-        customLines.push({ ...line, quantity: customQuantity, lineTotalCents: customQuantity * line.unitPriceCents })
-        boxesToAllocateToCases -= customQuantity
-      }
-
-      if (looseQuantity > 0) {
-        looseLines.push({ ...line, quantity: looseQuantity, lineTotalCents: looseQuantity * line.unitPriceCents })
-        looseEligibleCount += looseQuantity
-      }
+    if (customQuantity > 0) {
+      customCaseLines.push({ ...line, quantity: customQuantity, lineTotalCents: customQuantity * line.unitPriceCents })
+      boxesToAllocateToCases -= customQuantity
     }
 
-    return { customCaseLines: customLines, looseIndividualLines: looseLines, looseCaseEligibleBoxCount: looseEligibleCount }
-  }, [calculatedOrder.customCaseCount, selectedCaseEligibleLines, selectedIndividualLines])
+    if (looseQuantity > 0) {
+      looseIndividualLines.push({ ...line, quantity: looseQuantity, lineTotalCents: looseQuantity * line.unitPriceCents })
+      looseCaseEligibleBoxCount += looseQuantity
+    }
+  }
 
   const progressPercent = Math.round((looseCaseEligibleBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase) * 100)
 
