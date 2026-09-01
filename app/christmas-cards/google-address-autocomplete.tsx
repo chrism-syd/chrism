@@ -22,8 +22,23 @@ export default function GoogleAddressAutocomplete({ onAddressSelected, onUnavail
   const hostRef = useRef<HTMLDivElement>(null); const selectedCallbackRef = useRef(onAddressSelected); const unavailableCallbackRef = useRef(onUnavailable); const readyRef = useRef(false); const fallbackShownRef = useRef(false); const [scriptReady, setScriptReady] = useState(false); const [status, setStatus] = useState('')
   useEffect(() => { selectedCallbackRef.current = onAddressSelected }, [onAddressSelected]); useEffect(() => { unavailableCallbackRef.current = onUnavailable }, [onUnavailable])
   function showFallback(message: string) { if (fallbackShownRef.current) return; fallbackShownRef.current = true; setStatus(message); unavailableCallbackRef.current?.() }
-  useEffect(() => { const Ctor = (window as GoogleMapsWindow).google?.maps?.places?.PlaceAutocompleteElement; if (Ctor) { readyRef.current = true; setScriptReady(true) } }, [])
-  useEffect(() => { if (!GOOGLE_MAPS_API_KEY) { showFallback('Address search is unavailable. Please enter your shipping address below.'); return }; const timer = window.setTimeout(() => { if (!readyRef.current) showFallback('Address search is taking longer than expected. Please enter your shipping address below.') }, SLOW_LOAD_MS); return () => window.clearTimeout(timer) }, [])
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const Ctor = (window as GoogleMapsWindow).google?.maps?.places?.PlaceAutocompleteElement
+      if (Ctor) { readyRef.current = true; setScriptReady(true) }
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [])
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!GOOGLE_MAPS_API_KEY) {
+        showFallback('Address search is unavailable. Please enter your shipping address below.')
+        return
+      }
+      if (!readyRef.current) showFallback('Address search is taking longer than expected. Please enter your shipping address below.')
+    }, GOOGLE_MAPS_API_KEY ? SLOW_LOAD_MS : 0)
+    return () => window.clearTimeout(timer)
+  }, [])
   useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY || !scriptReady || !hostRef.current) return
     const host = hostRef.current; let autocomplete: PlaceAutocompleteElement | null = null; let disposed = false; let retryTimer: number | null = null; let attempts = 0
