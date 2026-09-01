@@ -54,6 +54,12 @@ function isCanadaPostCarrier(name: string | undefined) {
   return Boolean(name && name.toLowerCase().replace(/[^a-z]/g, '').includes('canadapost'))
 }
 
+function postalCityFromMismatch(messages: string[] | undefined) {
+  const detail = messages?.join(' | ') || ''
+  const match = detail.match(/postal\s*code[\s\S]*?only valid for\s+([^.|]+?)(?:\.|\||$)/i)
+  return match?.[1]?.trim() || null
+}
+
 async function getAccessToken() {
   const response = await fetch(SHIPTIME_TOKEN_URL, {
     method: 'POST',
@@ -87,45 +93,63 @@ export async function getCcicShipTimeCanadaPostRates(args: {
   const token = await getAccessToken()
   const destinationPostalCode = compactPostalCode(args.destinationPostalCode)
 
-  const response = await fetch(SHIPTIME_RATES_URL, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: ORIGIN,
-      to: {
-        companyName: 'CCIC Customer',
-        streetAddress: args.destinationAddress.addressLine1 || 'Shipping address',
-        city: args.destinationAddress.city,
-        countryCode: 'CA',
-        state: args.destinationAddress.province,
-        postalCode: destinationPostalCode,
-        attention: 'CCIC Customer',
-        phone: '905 555 0101',
-        residential: true,
-        notify: false,
+  const requestRates = async (ratingCity: string) => {
+    const response = await fetch(SHIPTIME_RATES_URL, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
       },
-      packageType: 'PACKAGE',
-      lineItems: [{
-        length: args.parcel.lengthCm,
-        width: args.parcel.widthCm,
-        height: args.parcel.heightCm,
-        weight: args.parcel.weightKg,
-        declaredValue: { currency: 'CAD', amount: Math.max(1, Math.round(args.declaredValueCents)) },
-        description: 'Christmas greeting cards',
-      }],
-      unitOfMeasurement: 'METRIC',
-      serviceOptions: ['SIGNATURE'],
-      insuranceType: 'SHIPTIME',
-      shipDate: nextBusinessShipDate(),
-      waitTimeLimit: 30,
-    }),
-    cache: 'no-store',
-  })
+      body: JSON.stringify({
+        from: ORIGIN,
+        to: {
+          companyName: 'CCIC Customer',
+          streetAddress: args.destinationAddress.addressLine1 || 'Shipping address',
+          city: ratingCity,
+          countryCode: 'CA',
+          state: args.destinationAddress.province,
+          postalCode: destinationPostalCode,
+          attention: 'CCIC Customer',
+          phone: '905 555 0101',
+          residential: true,
+          notify: false,
+        },
+        packageType: 'PACKAGE',
+        lineItems: [{
+          length: args.parcel.lengthCm,
+          width: args.parcel.widthCm,
+          height: args.parcel.heightCm,
+          weight: args.parcel.weightKg,
+          declaredValue: { currency: 'CAD', amount: Math.max(1, Math.round(args.declaredValueCents)) },
+          description: 'Christmas greeting cards',
+        }],
+        unitOfMeasurement: 'METRIC',
+        serviceOptions: ['SIGNATURE'],
+        insuranceType: 'SHIPTIME',
+        shipDate: nextBusinessShipDate(),
+        waitTimeLimit: 30,
+      }),
+      cache: 'no-store',
+    })
 
-  const payload = await response.json().catch(() => null) as ShipTimeRatesResponse | null
+    const payload = await response.json().catch(() => null) as ShipTimeRatesResponse | null
+    return { response, payload }
+  }
+
+  let attempt = await requestRates(args.destinationAddress.city)
+  if (!attempt.response.ok || !attempt.payload?.availableRates) {
+    const postalCity = postalCityFromMismatch(attempt.payload?.messages)
+    if (attempt.response.status === 400 && postalCity && postalCity.toLowerCase() !== args.destinationAddress.city.trim().toLowerCase()) {
+      console.info('CCIC ShipTime retrying rating with postal city', {
+        customerCity: args.destinationAddress.city,
+        ratingCity: postalCity,
+        postalCode: destinationPostalCode,
+      })
+      attempt = await requestRates(postalCity)
+    }
+  }
+
+  const { response, payload } = attempt
   if (!response.ok || !payload?.availableRates) {
     const detail = payload?.messages?.join(' | ') || ''
     throw new Error(`ShipTime rating failed (${response.status}).${detail ? ` ${detail}` : ''}`)
