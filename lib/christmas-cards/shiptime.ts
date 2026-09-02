@@ -92,6 +92,7 @@ export async function getCcicShipTimeCanadaPostRates(args: {
 }) {
   const token = await getAccessToken()
   const destinationPostalCode = compactPostalCode(args.destinationPostalCode)
+  const declaredValueDollars = Number((Math.max(100, args.declaredValueCents) / 100).toFixed(2))
 
   const requestRates = async (ratingCity: string) => {
     const response = await fetch(SHIPTIME_RATES_URL, {
@@ -120,7 +121,7 @@ export async function getCcicShipTimeCanadaPostRates(args: {
           width: args.parcel.widthCm,
           height: args.parcel.heightCm,
           weight: args.parcel.weightKg,
-          declaredValue: { currency: 'CAD', amount: Math.max(1, Math.round(args.declaredValueCents)) },
+          declaredValue: { currency: 'CAD', amount: declaredValueDollars },
           description: 'Christmas greeting cards',
         }],
         unitOfMeasurement: 'METRIC',
