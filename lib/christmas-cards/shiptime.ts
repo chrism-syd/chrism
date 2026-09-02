@@ -92,7 +92,9 @@ export async function getCcicShipTimeCanadaPostRates(args: {
 }) {
   const token = await getAccessToken()
   const destinationPostalCode = compactPostalCode(args.destinationPostalCode)
-  const declaredValueDollars = Number((Math.max(100, args.declaredValueCents) / 100).toFixed(2))
+  // ShipTime's REST model requires declaredValue.amount to be a whole-dollar integer.
+  // Round up so the quoted shipment is never insured below our calculated production cost.
+  const declaredValueDollars = Math.max(1, Math.ceil(args.declaredValueCents / 100))
 
   const requestRates = async (ratingCity: string) => {
     const response = await fetch(SHIPTIME_RATES_URL, {
