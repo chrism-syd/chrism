@@ -88,13 +88,9 @@ export async function getCcicShipTimeCanadaPostRates(args: {
     province: string
   }
   parcel: CcicShippingPackage
-  declaredValueCents: number
 }) {
   const token = await getAccessToken()
   const destinationPostalCode = compactPostalCode(args.destinationPostalCode)
-  // ShipTime's REST model requires declaredValue.amount to be a whole-dollar integer.
-  // Round up so the quoted shipment is never insured below our calculated production cost.
-  const declaredValueDollars = Math.max(1, Math.ceil(args.declaredValueCents / 100))
 
   const requestRates = async (ratingCity: string) => {
     const response = await fetch(SHIPTIME_RATES_URL, {
@@ -123,12 +119,10 @@ export async function getCcicShipTimeCanadaPostRates(args: {
           width: args.parcel.widthCm,
           height: args.parcel.heightCm,
           weight: args.parcel.weightKg,
-          declaredValue: { currency: 'CAD', amount: declaredValueDollars },
           description: 'Christmas greeting cards',
         }],
         unitOfMeasurement: 'METRIC',
         serviceOptions: ['SIGNATURE'],
-        insuranceType: 'SHIPTIME',
         shipDate: nextBusinessShipDate(),
         waitTimeLimit: 30,
       }),
