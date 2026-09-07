@@ -18,7 +18,9 @@ type CanadaPostTokenResponse = { access_token?: string }
 type CanadaPostRateResponse = Array<{ serviceCode?: string; serviceName?: string; priceDetails?: { due?: number }; serviceStandard?: { expectedTransitTime?: number } }>
 type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; errorDescription?: string; code?: string; message?: string; title?: string; detail?: string; errors?: Array<{ errorCode?: string; message?: string }> }
 
-const KG_PER_RETAIL_BOX = 6.5 / 32
+// Measured finished retail box: 30 g acrylic box + 95 g cards + 40 g envelopes = 165 g.
+// Shipping-carton and packing-material weight will be added once those cartons are physically weighed.
+const KG_PER_RETAIL_BOX = 0.165
 const SHIPPING_HANDLING_FEE_CENTS = 200
 const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86 }
 const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32 }
