@@ -69,19 +69,18 @@ Do not confuse a retail box with a shipping carton. Orders are shipped as **fini
 
 ## 4. Shipping carton strategy
 
-These are the selected physical carton sizes and should be treated as the intended operating strategy:
+The active automated packing strategy uses two primary carton sizes:
 
-| Retail boxes being packed | Shipping carton | Intended capacity |
+| Retail boxes being packed | Shipping carton | Role |
 | --- | --- | --- |
-| roughly 10–12 retail boxes | `9 × 6 × 6 in` | small carton |
-| up to 32 retail boxes | `12 × 9 × 9 in` | medium carton / full Classic Case |
+| up to 32 retail boxes | `12 × 9 × 9 in` | standard carton / full Classic Case |
 | up to 42 retail boxes | `16 × 12 × 8 in` | large carton |
 
-The 9×6×6 carton works by edge/upright packing rather than simply stacking each retail box flat.
+A `9 × 6 × 6 in` carton is also available as a **backup smaller carton** if a particular small shipment makes it useful. Physical discussion suggests roughly 10–12 retail boxes may fit using edge/upright packing, but it is not part of the automated shipping-calculator rules and should not be given its own threshold unless actual fulfillment experience shows a need for it.
 
-For orders larger than a single carton, use combinations of these cartons. Avoid creating a nearly empty second carton when a more balanced split is operationally sensible. The calculator's packing algorithm is a useful estimate, but the final packed shipment may be adjusted manually.
+For orders larger than a single carton, use combinations of the standard and large cartons. Avoid creating a nearly empty second carton when a more balanced split is operationally sensible. The calculator's packing algorithm is a useful estimate, but the final packed shipment may be adjusted manually.
 
-**Important:** the current code predates the final small-carton decision and currently models medium and large cartons. The next shipping-calculator refinement should add the `9 × 6 × 6` carton for the appropriate small-order range and reconcile the exact thresholds with physical fit testing.
+**Current decision:** keep the shipping calculator based on the `12 × 9 × 9` and `16 × 12 × 8` cartons. Keep `9 × 6 × 6` documented only as an optional operational backup.
 
 ### Physical calibration still required
 
@@ -89,11 +88,12 @@ Weights in the calculator are provisional. Earlier calculations used an old 32-b
 
 Once the final printed cards, envelopes, retail boxes and cartons are physically available:
 
-1. pack representative small, medium and large shipments;
+1. pack representative shipments in the 12×9×9 and 16×12×8 cartons;
 2. confirm actual box-count fit for each carton;
-3. weigh the packed cartons;
-4. replace the provisional weight model with measured profiles;
-5. retest shipping-rate parity.
+3. optionally test the 9×6×6 backup carton for small shipments;
+4. weigh the packed cartons;
+5. replace the provisional weight model with measured profiles;
+6. retest shipping-rate parity.
 
 Final packed weight should always be confirmed before creating the actual label.
 
@@ -152,6 +152,8 @@ Relevant commits:
 
 - `8f519fb` — Remove added insurance from CCIC shipping quotes
 - `1ec7816` — Stop declaring CCIC shipping insurance value
+
+A Vancouver test after removing insurance used an order of 42 retail boxes (1 Classic Case of 32 plus 10 Individual Boxes). Merchandise subtotal was `$446.40`, Shipping & Handling was `$45.65`, and total was `$492.05`. This is a useful reference test for the current no-extra-insurance configuration.
 
 ## 6. Direct Canada Post API status
 
@@ -335,8 +337,8 @@ The commit history documents experimentation. **Current decisions in this handof
 
 Highest-value next steps:
 
-1. **Add the 9×6×6 small carton to `buildCcicPackingPlan`.** The final carton strategy is 9×6×6 for roughly 10–12 boxes, 12×9×9 up to 32, and 16×12×8 up to 42.
-2. When physical product arrives, test actual carton fit and record real packed weights.
+1. When physical product arrives, test actual fit in the primary `12 × 9 × 9` and `16 × 12 × 8` cartons and record real packed weights.
+2. Test the `9 × 6 × 6` carton only as an optional backup for small shipments; do not add it to `buildCcicPackingPlan` unless real fulfillment experience justifies it.
 3. Replace the provisional `6.5 kg / 32 boxes` weight model with measured values.
 4. Re-run ShipTime/Canada Post quote comparisons after physical calibration.
 5. Continue Canada Post Developer Support thread. If direct production Rating begins working reliably, test parity and then remove ShipTime from the active rating path.
@@ -352,7 +354,7 @@ Highest-value next steps:
 - Treat calculator weights as provisional until physical weighing is complete.
 - Prefer simple manual operational workflows over automation for automation's sake at this order volume.
 - The admin UI can show operational detail that the customer UI intentionally hides.
-- Before changing packing rules, remember that the chosen physical cartons are 9×6×6, 12×9×9 and 16×12×8.
+- The active packing calculator uses `12 × 9 × 9` and `16 × 12 × 8`. The `9 × 6 × 6` carton is backup-only and should not be added to automated packing rules without a new decision.
 
 ## 17. Handoff usage
 
