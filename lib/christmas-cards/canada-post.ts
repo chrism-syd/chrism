@@ -19,14 +19,12 @@ type CanadaPostRateResponse = Array<{ serviceCode?: string; serviceName?: string
 type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; errorDescription?: string; code?: string; message?: string; title?: string; detail?: string; errors?: Array<{ errorCode?: string; message?: string }> }
 
 // Measured finished retail box: 30 g acrylic box + 95 g cards + 40 g envelopes = 165 g.
-// Shipping-carton and packing-material weight will be added once those cartons are physically weighed.
 const KG_PER_RETAIL_BOX = 0.165
 const SHIPPING_HANDLING_FEE_CENTS = 200
-// Use a compact carton for small-order rating so every order can receive a realistic shipping quote.
-// Capacity is provisional until the actual fulfillment cartons are selected and physically test-packed.
-const SMALL_CARTON = { carton: 'small' as const, maxBoxes: 12, lengthCm: 22.86, widthCm: 15.24, heightCm: 15.24 }
-const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86 }
-const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32 }
+// Carton weights supplied by the box vendor. These are added once per parcel to the product weight.
+const SMALL_CARTON = { carton: 'small' as const, maxBoxes: 12, lengthCm: 22.86, widthCm: 15.24, heightCm: 15.24, weightKg: 0.16 }
+const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86, weightKg: 0.27 }
+const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32, weightKg: 0.46 }
 
 type CcicCarton = typeof SMALL_CARTON | typeof MEDIUM_CARTON | typeof LARGE_CARTON
 
@@ -88,7 +86,7 @@ function makePackedParcel(carton: CcicCarton, boxCount: number): CcicPackedShipp
     carton: carton.carton,
     boxCount,
     parcel: {
-      weightKg: Number((boxCount * KG_PER_RETAIL_BOX).toFixed(3)),
+      weightKg: Number((boxCount * KG_PER_RETAIL_BOX + carton.weightKg).toFixed(3)),
       lengthCm: carton.lengthCm,
       widthCm: carton.widthCm,
       heightCm: carton.heightCm,
