@@ -9,7 +9,7 @@ export const CCIC_MANUAL_SHIPPING_MESSAGE = 'Shipping & Handling will be calcula
 export type CcicShippingPackage = { weightKg: number; lengthCm: number; widthCm: number; heightCm: number }
 export type CcicShippingRate = { serviceCode: string; serviceName: string; amountCents: number; expectedTransitTime: number | null }
 export type CcicShippingDestination = { addressLine1: string; city: string; province: string; postalCode: string }
-export type CcicPackedShippingParcel = { carton: 'medium' | 'large'; boxCount: number; parcel: CcicShippingPackage }
+export type CcicPackedShippingParcel = { carton: 'small' | 'medium' | 'large'; boxCount: number; parcel: CcicShippingPackage }
 export type CcicShippingQuote =
   | { status: 'priced'; provisional: true; rate: CcicShippingRate; rates: CcicShippingRate[]; parcel: CcicShippingPackage; parcels: CcicPackedShippingParcel[]; parcelCount: number }
   | { status: 'pending'; provisional: true; reason: 'packing_required' | 'rate_unavailable'; message: string }
@@ -22,8 +22,13 @@ type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; erro
 // Shipping-carton and packing-material weight will be added once those cartons are physically weighed.
 const KG_PER_RETAIL_BOX = 0.165
 const SHIPPING_HANDLING_FEE_CENTS = 200
+// Use a compact carton for small-order rating so every order can receive a realistic shipping quote.
+// Capacity is provisional until the actual fulfillment cartons are selected and physically test-packed.
+const SMALL_CARTON = { carton: 'small' as const, maxBoxes: 12, lengthCm: 22.86, widthCm: 15.24, heightCm: 15.24 }
 const MEDIUM_CARTON = { carton: 'medium' as const, maxBoxes: 32, lengthCm: 30.48, widthCm: 22.86, heightCm: 22.86 }
 const LARGE_CARTON = { carton: 'large' as const, maxBoxes: 42, lengthCm: 40.64, widthCm: 30.48, heightCm: 20.32 }
+
+type CcicCarton = typeof SMALL_CARTON | typeof MEDIUM_CARTON | typeof LARGE_CARTON
 
 function requiredEnvironment(name: string) { const value = process.env[name]?.trim(); if (!value) throw new Error(`${name} is not configured.`); return value }
 function optionalEnvironment(name: string) { return process.env[name]?.trim() || null }
@@ -78,7 +83,7 @@ export function selectCcicShippingRate(rates: CcicShippingRate[]) {
   return rates.find((rate) => rate.serviceCode === 'DOM.EP') ?? rates.find((rate) => rate.serviceCode === 'DOM.RP') ?? rates.reduce<CcicShippingRate | null>((best, rate) => !best || rate.amountCents < best.amountCents ? rate : best, null)
 }
 
-function makePackedParcel(carton: typeof MEDIUM_CARTON | typeof LARGE_CARTON, boxCount: number): CcicPackedShippingParcel {
+function makePackedParcel(carton: CcicCarton, boxCount: number): CcicPackedShippingParcel {
   return {
     carton: carton.carton,
     boxCount,
@@ -94,6 +99,7 @@ function makePackedParcel(carton: typeof MEDIUM_CARTON | typeof LARGE_CARTON, bo
 export function buildCcicPackingPlan(totalBoxes: number): CcicPackedShippingParcel[] {
   const boxes = Math.max(1, Math.floor(totalBoxes))
 
+  if (boxes <= SMALL_CARTON.maxBoxes) return [makePackedParcel(SMALL_CARTON, boxes)]
   if (boxes <= MEDIUM_CARTON.maxBoxes) return [makePackedParcel(MEDIUM_CARTON, boxes)]
   if (boxes <= LARGE_CARTON.maxBoxes) return [makePackedParcel(LARGE_CARTON, boxes)]
 
