@@ -60,9 +60,6 @@ type OrderLine = {
   sort_order: number
 }
 
-const CARDS_PER_RETAIL_BOX = 12
-const COST_PER_CARD_CENTS = 64
-
 function stringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }
@@ -76,7 +73,8 @@ function formatDate(value: string | null) {
   }).format(new Date(value))
 }
 
-function cartonLabel(carton: 'medium' | 'large') {
+function cartonLabel(carton: 'small' | 'medium' | 'large') {
+  if (carton === 'small') return '9 × 6 × 6 in'
   return carton === 'large' ? '16 × 12 × 8 in' : '12 × 9 × 9 in'
 }
 
@@ -196,20 +194,16 @@ export default async function CcicOrderDetailPage({
               </div>
               <p className="ccic-admin-note">Packing plan by the custom CCIC shipping calculator, using Canada Post via ShipTime. Confirm the final packed weight before creating the label.</p>
               <dl className="ccic-admin-workflow-dates">
-                {packingPlan.map((packed, index) => {
-                  const insuredValueCents = packed.boxCount * CARDS_PER_RETAIL_BOX * COST_PER_CARD_CENTS
-                  return (
-                    <div key={`${packed.carton}-${index}`}>
-                      <dt>Parcel {index + 1}</dt>
-                      <dd>
-                        <strong>{packed.boxCount} boxes</strong><br />
-                        {cartonLabel(packed.carton)}<br />
-                        Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg<br />
-                        Insured product value: {formatChristmasCardMoney(insuredValueCents)}
-                      </dd>
-                    </div>
-                  )
-                })}
+                {packingPlan.map((packed, index) => (
+                  <div key={`${packed.carton}-${index}`}>
+                    <dt>Parcel {index + 1}</dt>
+                    <dd>
+                      <strong>{packed.boxCount} boxes</strong><br />
+                      {cartonLabel(packed.carton)}<br />
+                      Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg
+                    </dd>
+                  </div>
+                ))}
               </dl>
             </section>
           ) : null}
@@ -228,8 +222,8 @@ export default async function CcicOrderDetailPage({
           <dl>
             <div><dt>Fulfilment</dt><dd>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</dd></div>
             <div><dt>Submitted</dt><dd>{formatDate(order.created_at)}</dd></div>
-            <div><dt>Customer email</dt><dd>{formatDate(order.confirmation_email_sent_at)}</dd></div>
-            <div><dt>Admin email</dt><dd>{formatDate(order.admin_email_sent_at)}</dd></div>
+            <div><dt>Confirmation email</dt><dd>{formatDate(order.confirmation_email_sent_at)}</dd></div>
+            <div><dt>Admin notification</dt><dd>{formatDate(order.admin_email_sent_at)}</dd></div>
           </dl>
           {order.email_error ? <p className="ccic-admin-email-error">Email warning: {order.email_error}</p> : null}
         </aside>
