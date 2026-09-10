@@ -13,9 +13,14 @@ const PROVINCE_CODES: Record<string, string> = {
 function text(value: unknown) { return typeof value === 'string' ? value.trim() : '' }
 function normalizePostalCode(value: unknown) { return text(value).toUpperCase().replace(/[^A-Z0-9]/g, '') }
 function normalizeProvince(value: unknown) { return PROVINCE_CODES[text(value).toUpperCase()] || '' }
+function normalizeCount(value: unknown, max: number) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.min(max, Math.floor(value)))
+    : 0
+}
 
 export async function POST(request: NextRequest) {
-  let body: { postalCode?: unknown; totalBoxes?: unknown; addressLine1?: unknown; city?: unknown; province?: unknown }
+  let body: { postalCode?: unknown; totalBoxes?: unknown; nonCasePricingBoxCount?: unknown; addressLine1?: unknown; city?: unknown; province?: unknown }
 
   try {
     body = await request.json() as typeof body
@@ -38,10 +43,12 @@ export async function POST(request: NextRequest) {
   const totalBoxes = typeof body.totalBoxes === 'number' && Number.isFinite(body.totalBoxes)
     ? Math.max(1, Math.floor(body.totalBoxes))
     : 1
+  const nonCasePricingBoxCount = normalizeCount(body.nonCasePricingBoxCount, totalBoxes)
 
   const quote = await quoteCcicShipping({
     destination: { addressLine1, city, province, postalCode },
     totalBoxes,
+    nonCasePricingBoxCount,
   })
   if (quote.status === 'pending') {
     return NextResponse.json({ available: false, provisional: quote.provisional, reason: quote.reason, message: quote.message })
