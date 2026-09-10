@@ -37,6 +37,7 @@ export type CcicCalculatedOrder = {
   shippingCents: number
   totalCents: number
   totalSelectedBoxes: number
+  nonCasePricingBoxCount: number
   totalSelectedCases: number
   remainingLooseBoxes: number
   currentCaseProgress: number
@@ -119,8 +120,10 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
       .map((item) => item.id)
   )
   const caseEligibleIndividualLines = individualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
+  const nonCasePricingIndividualLines = individualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId))
   const lines = [...classicLines, ...individualLines]
   const caseEligibleBoxCount = caseEligibleIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
+  const nonCasePricingBoxCount = nonCasePricingIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
   const customCaseCount = Math.floor(caseEligibleBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
   const remainingLooseBoxes = caseEligibleBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
   const classicSubtotalCents = classicLines.reduce((sum, line) => sum + line.lineTotalCents, 0)
@@ -164,6 +167,7 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     shippingCents,
     totalCents,
     totalSelectedBoxes,
+    nonCasePricingBoxCount,
     totalSelectedCases: classicCaseCount + customCaseCount,
     remainingLooseBoxes,
     currentCaseProgress,
