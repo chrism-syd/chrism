@@ -18,8 +18,9 @@ type CanadaPostTokenResponse = { access_token?: string }
 type CanadaPostRateResponse = Array<{ serviceCode?: string; serviceName?: string; priceDetails?: { due?: number }; serviceStandard?: { expectedTransitTime?: number } }>
 type CanadaPostErrorResponse = { errorCode?: string; errorMessage?: string; errorDescription?: string; code?: string; message?: string; title?: string; detail?: string; errors?: Array<{ errorCode?: string; message?: string }> }
 
-// Measured finished retail box: 30 g acrylic box + 95 g cards + 40 g envelopes = 165 g.
+// Measured finished retail boxes, including 12 cards, 12 envelopes, and the acrylic case.
 const KG_PER_RETAIL_BOX = 0.165
+const KG_PER_NON_CASE_PRICING_BOX = 0.2
 const SHIPPING_HANDLING_FEE_CENTS = 200
 // Carton weights supplied by the box vendor. These are added once per parcel to the product weight.
 const SMALL_CARTON = { carton: 'small' as const, maxBoxes: 12, lengthCm: 22.86, widthCm: 15.24, heightCm: 15.24, weightKg: 0.16 }
@@ -81,12 +82,14 @@ export function selectCcicShippingRate(rates: CcicShippingRate[]) {
   return rates.find((rate) => rate.serviceCode === 'DOM.EP') ?? rates.find((rate) => rate.serviceCode === 'DOM.RP') ?? rates.reduce<CcicShippingRate | null>((best, rate) => !best || rate.amountCents < best.amountCents ? rate : best, null)
 }
 
-function makePackedParcel(carton: CcicCarton, boxCount: number): CcicPackedShippingParcel {
+function makePackedParcel(carton: CcicCarton, boxCount: number, heavyBoxCount = 0): CcicPackedShippingParcel {
+  const heavyBoxes = Math.max(0, Math.min(boxCount, Math.floor(heavyBoxCount)))
+  const regularBoxes = boxCount - heavyBoxes
   return {
     carton: carton.carton,
     boxCount,
     parcel: {
-      weightKg: Number((boxCount * KG_PER_RETAIL_BOX + carton.weightKg).toFixed(3)),
+      weightKg: Number((regularBoxes * KG_PER_RETAIL_BOX + heavyBoxes * KG_PER_NON_CASE_PRICING_BOX + carton.weightKg).toFixed(3)),
       lengthCm: carton.lengthCm,
       widthCm: carton.widthCm,
       heightCm: carton.heightCm,
@@ -94,24 +97,38 @@ function makePackedParcel(carton: CcicCarton, boxCount: number): CcicPackedShipp
   }
 }
 
-export function buildCcicPackingPlan(totalBoxes: number): CcicPackedShippingParcel[] {
+function buildCcicCartonPlan(totalBoxes: number): Array<{ carton: CcicCarton; boxCount: number }> {
   const boxes = Math.max(1, Math.floor(totalBoxes))
 
-  if (boxes <= SMALL_CARTON.maxBoxes) return [makePackedParcel(SMALL_CARTON, boxes)]
-  if (boxes <= MEDIUM_CARTON.maxBoxes) return [makePackedParcel(MEDIUM_CARTON, boxes)]
-  if (boxes <= LARGE_CARTON.maxBoxes) return [makePackedParcel(LARGE_CARTON, boxes)]
+  if (boxes <= SMALL_CARTON.maxBoxes) return [{ carton: SMALL_CARTON, boxCount: boxes }]
+  if (boxes <= MEDIUM_CARTON.maxBoxes) return [{ carton: MEDIUM_CARTON, boxCount: boxes }]
+  if (boxes <= LARGE_CARTON.maxBoxes) return [{ carton: LARGE_CARTON, boxCount: boxes }]
 
-  // For 43–57 boxes, split across two medium cartons rather than create a nearly-empty second carton.
   if (boxes <= 57) {
     const first = Math.ceil(boxes / 2)
-    return [makePackedParcel(MEDIUM_CARTON, first), makePackedParcel(MEDIUM_CARTON, boxes - first)]
+    return [{ carton: MEDIUM_CARTON, boxCount: first }, { carton: MEDIUM_CARTON, boxCount: boxes - first }]
   }
 
-  // From 58–74 boxes, fill the large carton to 42 and use the medium carton for the 16–32 box remainder.
-  if (boxes <= 74) return [makePackedParcel(LARGE_CARTON, 42), makePackedParcel(MEDIUM_CARTON, boxes - 42)]
+  if (boxes <= 74) return [{ carton: LARGE_CARTON, boxCount: 42 }, { carton: MEDIUM_CARTON, boxCount: boxes - 42 }]
 
-  // Larger orders repeat the same pattern recursively.
-  return [makePackedParcel(LARGE_CARTON, 42), ...buildCcicPackingPlan(boxes - 42)]
+  return [{ carton: LARGE_CARTON, boxCount: 42 }, ...buildCcicCartonPlan(boxes - 42)]
+}
+
+export function buildCcicPackingPlan(totalBoxes: number, nonCasePricingBoxCount = 0): CcicPackedShippingParcel[] {
+  const cartonPlan = buildCcicCartonPlan(totalBoxes)
+  const totalPackedBoxes = cartonPlan.reduce((sum, packed) => sum + packed.boxCount, 0)
+  let heavyBoxesRemaining = Math.max(0, Math.min(totalPackedBoxes, Math.floor(nonCasePricingBoxCount)))
+  let boxesRemaining = totalPackedBoxes
+
+  return cartonPlan.map(({ carton, boxCount }) => {
+    // Spread heavier boxes proportionally across multi-parcel orders so each rated parcel reflects the product mix.
+    const heavyBoxCount = boxesRemaining === boxCount
+      ? heavyBoxesRemaining
+      : Math.min(boxCount, Math.round((heavyBoxesRemaining * boxCount) / boxesRemaining))
+    heavyBoxesRemaining -= heavyBoxCount
+    boxesRemaining -= boxCount
+    return makePackedParcel(carton, boxCount, heavyBoxCount)
+  })
 }
 
 function combineSelectedParcelRates(selectedRates: CcicShippingRate[]): CcicShippingRate {
@@ -129,8 +146,8 @@ function combineSelectedParcelRates(selectedRates: CcicShippingRate[]): CcicShip
   }
 }
 
-export async function quoteCcicShipping(args: { destination: CcicShippingDestination; totalBoxes: number }): Promise<CcicShippingQuote> {
-  const parcels = buildCcicPackingPlan(args.totalBoxes)
+export async function quoteCcicShipping(args: { destination: CcicShippingDestination; totalBoxes: number; nonCasePricingBoxCount?: number }): Promise<CcicShippingQuote> {
+  const parcels = buildCcicPackingPlan(args.totalBoxes, args.nonCasePricingBoxCount ?? 0)
   try {
     const selectedParcelRates = await Promise.all(parcels.map(async ({ parcel }) => {
       const rates = await getCcicShipTimeCanadaPostRates({
