@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord } from '@/lib/security/pii'
-import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
+import { CHRISTMAS_CARD_BOXES, formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { buildCcicPackingPlan } from '@/lib/christmas-cards/canada-post'
 import {
@@ -51,6 +51,7 @@ type OrderRow = {
 type OrderLine = {
   id: string
   line_type: 'classic_case' | 'individual_box'
+  catalog_id: string
   sku: string
   title: string
   quantity: number
@@ -108,7 +109,9 @@ export default async function CcicOrderDetailPage({
   const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean) as string[]
   const shippingPending = order.fulfillment_method === 'shipping' && order.shipping_cents === 0
   const totalBoxes = lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)
-  const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes) : []
+  const nonCasePricingBoxIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => !item.isCasePricingEligible).map((item) => item.id))
+  const nonCasePricingBoxCount = lines.reduce((sum, line) => sum + (line.line_type === 'individual_box' && nonCasePricingBoxIds.has(line.catalog_id) ? line.quantity : 0), 0)
+  const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes, nonCasePricingBoxCount) : []
 
   return (
     <main className="ccic-admin-page">
