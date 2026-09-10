@@ -18,7 +18,7 @@ function compactCanadianPostalCode(value: unknown) { return typeof value === 'st
 function isCanadianPostalCode(value: unknown) { return /^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ][0-9][ABCEGHJ-NPRSTVWXYZ][0-9]$/.test(compactCanadianPostalCode(value)) }
 function readStoredDraft() { const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY); if (!storedDraft) return null; try { return parseCcicOrderDraftInput(JSON.parse(storedDraft)) } catch { return null } }
 function addressFromForm(form: HTMLFormElement, postalCode?: string): CcicSelectedAddress { const data = new FormData(form); return { addressLine1: fieldValue(data, 'address_line_1'), city: fieldValue(data, 'city'), province: fieldValue(data, 'province'), postalCode: postalCode ?? fieldValue(data, 'postal_code') } }
-function shippingRequestKey(address: CcicSelectedAddress, totalBoxes: number) { return [address.addressLine1.trim().toUpperCase(), address.city.trim().toUpperCase(), address.province.trim().toUpperCase(), compactCanadianPostalCode(address.postalCode), totalBoxes].join('|') }
+function shippingRequestKey(address: CcicSelectedAddress, totalBoxes: number, nonCasePricingBoxCount: number) { return [address.addressLine1.trim().toUpperCase(), address.city.trim().toUpperCase(), address.province.trim().toUpperCase(), compactCanadianPostalCode(address.postalCode), totalBoxes, nonCasePricingBoxCount].join('|') }
 
 export default function ReviewOrderForm() {
   const [draftInput, setDraftInput] = useState<CcicOrderDraftInput | null | undefined>(undefined)
@@ -37,12 +37,12 @@ export default function ReviewOrderForm() {
 
   const requestShippingRate = useCallback(async (address: CcicSelectedAddress, force = false) => {
     if (!calculatedOrder || !isCanadianPostalCode(address.postalCode) || !address.addressLine1 || !address.city || !address.province) { lastShippingRequestRef.current = null; setShipping({ status: 'waiting' }); return }
-    const requestKey = shippingRequestKey(address, calculatedOrder.totalSelectedBoxes)
+    const requestKey = shippingRequestKey(address, calculatedOrder.totalSelectedBoxes, calculatedOrder.nonCasePricingBoxCount)
     if (!force && lastShippingRequestRef.current === requestKey) return
     lastShippingRequestRef.current = requestKey
     setShipping({ status: 'calculating' })
     try {
-      const response = await fetch('/api/ccic/shipping/rates', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ postalCode: compactCanadianPostalCode(address.postalCode), addressLine1: address.addressLine1, city: address.city, province: address.province, totalBoxes: calculatedOrder.totalSelectedBoxes }) })
+      const response = await fetch('/api/ccic/shipping/rates', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ postalCode: compactCanadianPostalCode(address.postalCode), addressLine1: address.addressLine1, city: address.city, province: address.province, totalBoxes: calculatedOrder.totalSelectedBoxes, nonCasePricingBoxCount: calculatedOrder.nonCasePricingBoxCount }) })
       const payload = await response.json().catch(() => null) as { available?: boolean; message?: string; rate?: { amountCents?: number; serviceName?: string; expectedTransitTime?: number | null } } | null
       if (response.ok && payload?.available && typeof payload.rate?.amountCents === 'number') { setShipping({ status: 'priced', amountCents: payload.rate.amountCents, serviceName: payload.rate.serviceName || 'Shipping', transitDays: typeof payload.rate.expectedTransitTime === 'number' ? payload.rate.expectedTransitTime : null }); return }
       setShipping({ status: 'pending', message: payload?.message || MANUAL_SHIPPING_MESSAGE })
