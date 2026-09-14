@@ -66,7 +66,7 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
                 {collectionBoxes.length === 4 ? (
                   <article className={`ccic-school-mixed-box ${mixedQuantity > 0 ? 'is-selected' : ''}`}>
                     <div className="ccic-school-mixed-copy">
-                      <p className="ccic-school-mixed-kicker">Prefer a mix box of this collection?</p>
+                      <p className="ccic-school-mixed-kicker">{collection.title} Mixed Box</p>
                       <strong>3 of each design</strong>
                       <p className="ccic-product-kicker">{mixedSku}</p>
                       <p>One box. All four designs. 12 cards + 12 envelopes.</p>
