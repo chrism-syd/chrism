@@ -3,8 +3,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord } from '@/lib/security/pii'
-import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
+import { CHRISTMAS_CARD_BOXES, formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
+import { buildCcicPackingPlan } from '@/lib/christmas-cards/canada-post'
 import {
   CCIC_ORDER_STATUSES,
   CCIC_ORDER_STATUS_LABELS,
@@ -12,6 +13,7 @@ import {
   type CcicOrderStatus,
 } from '@/lib/christmas-cards/admin-order-status'
 import { updateCcicOrderStatus } from '../actions'
+import CopyCustomerDetails from './copy-customer-details'
 import '../../../../christmas-cards/admin-orders.css'
 
 type OrderRow = {
@@ -49,6 +51,7 @@ type OrderRow = {
 type OrderLine = {
   id: string
   line_type: 'classic_case' | 'individual_box'
+  catalog_id: string
   sku: string
   title: string
   quantity: number
@@ -69,6 +72,11 @@ function formatDate(value: string | null) {
     timeStyle: 'short',
     timeZone: 'America/Toronto',
   }).format(new Date(value))
+}
+
+function cartonLabel(carton: 'small' | 'medium' | 'large') {
+  if (carton === 'small') return '9 × 6 × 6 in'
+  return carton === 'large' ? '16 × 12 × 8 in' : '12 × 9 × 9 in'
 }
 
 export const metadata = { title: 'CCIC Order Details | Chrism' }
@@ -98,8 +106,12 @@ export default async function CcicOrderDetailPage({
 
   const order = decryptPeopleRecord(orderData as OrderRow)
   const lines = (lineData ?? []) as OrderLine[]
-  const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean)
+  const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean) as string[]
   const shippingPending = order.fulfillment_method === 'shipping' && order.shipping_cents === 0
+  const totalBoxes = lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)
+  const nonCasePricingBoxIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => !item.isCasePricingEligible).map((item) => item.id))
+  const nonCasePricingBoxCount = lines.reduce((sum, line) => sum + (line.line_type === 'individual_box' && nonCasePricingBoxIds.has(line.catalog_id) ? line.quantity : 0), 0)
+  const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes, nonCasePricingBoxCount) : []
 
   return (
     <main className="ccic-admin-page">
@@ -145,7 +157,7 @@ export default async function CcicOrderDetailPage({
           <section className="ccic-admin-panel">
             <div className="ccic-admin-panel-heading">
               <h2>Order items</h2>
-              <span>{lines.reduce((sum, line) => sum + line.quantity * line.boxes_per_unit, 0)} boxes</span>
+              <span>{totalBoxes} boxes</span>
             </div>
             <div className="ccic-admin-order-lines">
               {lines.map((line) => (
@@ -165,30 +177,56 @@ export default async function CcicOrderDetailPage({
             <div className="ccic-admin-totals">
               <div><span>Subtotal</span><strong>{formatChristmasCardMoney(order.subtotal_cents)}</strong></div>
               <div>
-                <span>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</span>
+                <span>{order.fulfillment_method === 'shipping' ? 'Shipping & Handling' : 'Pickup'}</span>
                 <strong>{shippingPending ? 'Not yet priced' : formatChristmasCardMoney(order.shipping_cents)}</strong>
               </div>
               <div className="ccic-admin-total">
-                <span>{shippingPending ? 'Current subtotal' : 'Estimated total'}</span>
+                <span>{shippingPending ? 'Current subtotal' : 'Total'}</span>
                 <strong>{formatChristmasCardMoney(order.total_cents)}</strong>
               </div>
             </div>
-            {shippingPending ? <p className="ccic-admin-email-error">Shipping still needs to be priced after the order is reviewed for packing. Confirm the final shipping cost with the customer before payment.</p> : null}
+
+            {shippingPending ? <p className="ccic-admin-email-error">Shipping & Handling still needs to be priced after the order is reviewed for packing. Confirm the final shipping cost with the customer before payment.</p> : null}
           </section>
+
+          {order.fulfillment_method === 'shipping' ? (
+            <section className="ccic-admin-panel ccic-admin-shipping-plan">
+              <div className="ccic-admin-panel-heading">
+                <h2>Shipping quote packing plan</h2>
+                <span>{packingPlan.length} parcel{packingPlan.length === 1 ? '' : 's'}</span>
+              </div>
+              <p className="ccic-admin-note">Packing plan by the custom CCIC shipping calculator, using Canada Post via ShipTime. Confirm the final packed weight before creating the label.</p>
+              <dl className="ccic-admin-workflow-dates">
+                {packingPlan.map((packed, index) => (
+                  <div key={`${packed.carton}-${index}`}>
+                    <dt>Parcel {index + 1}</dt>
+                    <dd>
+                      <strong>{packed.boxCount} boxes</strong><br />
+                      {cartonLabel(packed.carton)}<br />
+                      Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
         </div>
 
         <aside className="ccic-admin-panel ccic-admin-contact-card">
           <h2>Customer details</h2>
+          <CopyCustomerDetails
+            organization={order.organization_name}
+            contact={order.contact_name}
+            email={order.email}
+            phone={order.cell_phone}
+            addressLines={address}
+            showShippingDetails={order.fulfillment_method === 'shipping'}
+          />
           <dl>
-            <div><dt>Organization</dt><dd>{order.organization_name}</dd></div>
-            <div><dt>Contact</dt><dd>{order.contact_name}</dd></div>
-            <div><dt>Email</dt><dd><a href={`mailto:${order.email}`}>{order.email}</a></dd></div>
-            <div><dt>Phone</dt><dd><a href={`tel:${order.cell_phone}`}>{order.cell_phone}</a></dd></div>
             <div><dt>Fulfilment</dt><dd>{order.fulfillment_method === 'shipping' ? 'Shipping' : 'Pickup'}</dd></div>
-            <div><dt>Address</dt><dd>{address.length ? address.map((line) => <span key={line}>{line}</span>) : 'Not provided'}</dd></div>
             <div><dt>Submitted</dt><dd>{formatDate(order.created_at)}</dd></div>
-            <div><dt>Customer email</dt><dd>{formatDate(order.confirmation_email_sent_at)}</dd></div>
-            <div><dt>Admin email</dt><dd>{formatDate(order.admin_email_sent_at)}</dd></div>
+            <div><dt>Confirmation email</dt><dd>{formatDate(order.confirmation_email_sent_at)}</dd></div>
+            <div><dt>Admin notification</dt><dd>{formatDate(order.admin_email_sent_at)}</dd></div>
           </dl>
           {order.email_error ? <p className="ccic-admin-email-error">Email warning: {order.email_error}</p> : null}
         </aside>
