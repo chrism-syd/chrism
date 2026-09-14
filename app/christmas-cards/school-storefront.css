@@ -1,3 +1,19 @@
+.ccic-school-fundraiser-title {
+  margin: 1rem 0 0.8rem;
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.015em;
+  text-transform: uppercase;
+}
+
+.ccic-collection-heading h2 {
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.015em;
+}
+
 .ccic-school-mixed-box {
   display: grid;
   grid-template-columns: minmax(180px, .8fr) minmax(0, 2fr) auto;
