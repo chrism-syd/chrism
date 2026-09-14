@@ -36,9 +36,10 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
     <section className="ccic-shop-layout ccic-shop-layout-full" aria-label="School Christmas card catalogue">
       <div className="ccic-shop-main">
         <div className="ccic-collections" id="school-card-selections">
-          {sortedCollections.map((collection) => {
+          {sortedCollections.map((collection, collectionIndex) => {
             const collectionBoxes = sortedBoxes.filter((box) => box.collectionId === collection.id)
             const mixedQuantity = mixedQuantities[collection.id] ?? 0
+            const mixedSku = `CCIC-26-${String(collectionIndex + 1).padStart(2, '0')}-MIX`
 
             return (
               <section className="ccic-collection" key={collection.id} aria-labelledby={`school-${collection.id}-title`}>
@@ -47,11 +48,27 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
                   <p>{collection.description}</p>
                 </div>
 
+                {collectionBoxes.length ? (
+                  <div className="ccic-gallery-grid">
+                    {collectionBoxes.map((box) => (
+                      <SchoolBoxGalleryCard
+                        key={box.id}
+                        box={box}
+                        quantityLabel={`${box.title} boxes`}
+                        quantity={0}
+                        maxQuantity={maxQuantityForBox(box.id)}
+                        onQuantityChange={() => {}}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
                 {collectionBoxes.length === 4 ? (
                   <article className={`ccic-school-mixed-box ${mixedQuantity > 0 ? 'is-selected' : ''}`}>
                     <div className="ccic-school-mixed-copy">
-                      <p className="ccic-school-mixed-kicker">Mixed Box</p>
+                      <p className="ccic-school-mixed-kicker">Prefer a mix box of this collection?</p>
                       <strong>3 of each design</strong>
+                      <p className="ccic-product-kicker">{mixedSku}</p>
                       <p>One box. All four designs. 12 cards + 12 envelopes.</p>
                     </div>
 
@@ -85,21 +102,6 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
                       />
                     </div>
                   </article>
-                ) : null}
-
-                {collectionBoxes.length ? (
-                  <div className="ccic-gallery-grid">
-                    {collectionBoxes.map((box) => (
-                      <SchoolBoxGalleryCard
-                        key={box.id}
-                        box={box}
-                        quantityLabel={`${box.title} boxes`}
-                        quantity={0}
-                        maxQuantity={maxQuantityForBox(box.id)}
-                        onQuantityChange={() => {}}
-                      />
-                    ))}
-                  </div>
                 ) : null}
               </section>
             )
