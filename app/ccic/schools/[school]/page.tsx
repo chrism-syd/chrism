@@ -60,6 +60,8 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
   await syncCcicStoreInventoryCatalog()
   const inventoryAvailability = await getCcicStoreAvailabilityMap()
 
+  const schoolName = <span style={{ whiteSpace: 'nowrap' }}>{school.name}</span>
+
   return (
     <CcicCartProvider>
       <main className="ccic-page">
@@ -76,7 +78,7 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
                 className="ccic-header-logo"
               />
               <strong style={{ margin: '1rem 0 0.8rem', fontSize: '20px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.25, textTransform: 'uppercase' }}>
-                {school.name} Fundraiser
+                {schoolName} Fundraiser
               </strong>
             </div>
             <CcicCartButton />
@@ -100,7 +102,7 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
           <div className="ccic-intro-heading">
             <h1>Christmas Cards That Give Back to Our School.</h1>
             <p>
-              Beautiful faith-centred Christmas cards your family can share while supporting {school.name}.
+              Beautiful faith-centred Christmas cards your family can share while supporting {schoolName}.
             </p>
           </div>
 
@@ -110,7 +112,7 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
               <p>Each box includes 12 Christmas cards and 12 matching envelopes, equivalent to $1.25 per card.</p>
             </article>
             <article>
-              <strong>Support {school.name}</strong>
+              <strong>Support {schoolName}</strong>
               <p>Orders placed through this page are credited to this school fundraiser and delivered through the school.</p>
             </article>
             <article>
@@ -128,7 +130,7 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
 
         <section className="ccic-support-banner" aria-label="School fundraising message">
           <p>
-            Thank you for helping keep Christ in Christmas while supporting {school.name}.
+            Thank you for helping keep Christ in Christmas while supporting {schoolName}.
           </p>
         </section>
 
