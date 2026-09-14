@@ -23,7 +23,7 @@
   grid-template-columns: minmax(180px, .8fr) minmax(0, 2fr) auto;
   gap: 28px;
   align-items: center;
-  margin: 0 0 32px;
+  margin: 64px 0 32px;
   padding: 24px 28px;
   border: 1px solid var(--ccic-line);
   background: #faf9f8;
