@@ -122,7 +122,8 @@ async function getAccessToken() {
 
   const payload = await response.json().catch(() => null) as CanadaPostTokenResponse | CanadaPostErrorResponse | null
   if (!response.ok || !payload || !('access_token' in payload) || !payload.access_token) {
-    const detail = canadaPostErrorDetail(payload && !('access_token' in payload) ? payload : null)
+    const errorPayload = payload && !('access_token' in payload) ? payload as CanadaPostErrorResponse : null
+    const detail = canadaPostErrorDetail(errorPayload)
     throw new Error(`Canada Post authentication failed (${response.status}).${detail ? ` ${detail}` : ''}`)
   }
 
