@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import SchoolStorefrontOrderBuilder from '../../../christmas-cards/school-storefront-order-builder'
 import { CcicCartButton, CcicCartProvider } from '../../../christmas-cards/cart-context'
@@ -145,7 +144,6 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
               className="ccic-school-kofc-logo"
             />
           </div>
-          <Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link>
         </footer>
       </main>
     </CcicCartProvider>
