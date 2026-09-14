@@ -32,37 +32,6 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
   return (
     <section className="ccic-shop-layout ccic-shop-layout-full" aria-label="School Christmas card catalogue">
       <div className="ccic-shop-main">
-        <section className="ccic-ordering-steps" aria-labelledby="school-ordering-is-easy">
-          <h2 id="school-ordering-is-easy">A simple school fundraiser</h2>
-          <div>
-            <article>
-              <strong>1. Choose your cards</strong>
-              <p>Browse all four Christmas card collections below.</p>
-            </article>
-            <article>
-              <strong>2. Record your selections</strong>
-              <p>Each box contains 12 cards and envelopes for $15.</p>
-            </article>
-            <article>
-              <strong>3. Support your school</strong>
-              <p>Orders are credited to your participating school fundraiser.</p>
-            </article>
-          </div>
-        </section>
-
-        <section className="ccic-custom-case-banner" aria-label="Mixed Christmas card boxes">
-          <div>
-            <span>New option</span>
-            <strong>Mixed box</strong>
-          </div>
-          <div>
-            <strong>Can't choose just one?</strong>
-            <p>
-              Each four-design collection is also available as a mixed box: 3 cards of each design, for 12 cards and 12 envelopes total. Same $15 box price.
-            </p>
-          </div>
-        </section>
-
         <div className="ccic-collections" id="school-card-selections">
           {sortedCollections.map((collection) => {
             const collectionBoxes = sortedBoxes.filter((box) => box.collectionId === collection.id)
@@ -71,7 +40,6 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
                 <div className="ccic-collection-heading">
                   <h2 id={`school-${collection.id}-title`}>{collection.title}</h2>
                   <p>{collection.description}</p>
-                  <p><strong>Available by individual design or as a mixed box with 3 of each design.</strong></p>
                 </div>
                 {collectionBoxes.length ? (
                   <div className="ccic-gallery-grid">
