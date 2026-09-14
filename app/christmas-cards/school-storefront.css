@@ -69,10 +69,11 @@
   margin: 5px 0 8px;
 }
 
-.ccic-school-box-price,
+.ccic-page .ccic-school-gallery-card .ccic-gallery-copy > .ccic-school-box-price,
 .ccic-school-mixed-order > strong {
   font-size: 17px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .ccic-school-mixed-equation {
