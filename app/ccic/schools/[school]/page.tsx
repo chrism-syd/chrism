@@ -138,10 +138,11 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
               <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
             </a>
             <span className="ccic-school-footer-separator" aria-hidden="true">|</span>
-            {/* External image is intentionally used directly so this school-only prototype does not require changing shared Next image configuration. */}
-            <img
-              src="https://files.kofc.org/images/assets/KofC+Logo+EN.png"
+            <Image
+              src="/organizations/knights-of-columbus-logo.png"
               alt="Knights of Columbus"
+              width={180}
+              height={72}
               className="ccic-school-kofc-logo"
             />
           </div>
