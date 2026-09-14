@@ -78,7 +78,7 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
                 priority
                 className="ccic-header-logo"
               />
-              <strong style={{ margin: '1rem 0 0.8rem', fontSize: '20px', fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.25, textTransform: 'uppercase' }}>
+              <strong className="ccic-school-fundraiser-title">
                 {schoolName} Fundraiser
               </strong>
             </div>
