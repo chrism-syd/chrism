@@ -1,7 +1,9 @@
 'use client'
 
-import { useMemo } from 'react'
+import Image from 'next/image'
+import { useMemo, useState } from 'react'
 import BoxGalleryCard from './box-gallery-card'
+import QuantityControl from './quantity-control'
 import type { ChristmasCardBox, ChristmasCardCollection } from '@/lib/christmas-cards/catalog'
 
 type InventoryAvailability = Record<string, {
@@ -21,6 +23,7 @@ type Props = {
 export default function SchoolStorefrontOrderBuilder({ boxes, collections, inventoryAvailability }: Props) {
   const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
   const sortedCollections = useMemo(() => [...collections].sort((a, b) => a.sortOrder - b.sortOrder), [collections])
+  const [mixedQuantities, setMixedQuantities] = useState<Record<string, number>>({})
 
   function maxQuantityForBox(catalogId: string) {
     const availability = inventoryAvailability[catalogId]
@@ -35,12 +38,55 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
         <div className="ccic-collections" id="school-card-selections">
           {sortedCollections.map((collection) => {
             const collectionBoxes = sortedBoxes.filter((box) => box.collectionId === collection.id)
+            const mixedQuantity = mixedQuantities[collection.id] ?? 0
+
             return (
               <section className="ccic-collection" key={collection.id} aria-labelledby={`school-${collection.id}-title`}>
                 <div className="ccic-collection-heading">
                   <h2 id={`school-${collection.id}-title`}>{collection.title}</h2>
                   <p>{collection.description}</p>
                 </div>
+
+                {collectionBoxes.length === 4 ? (
+                  <article className={`ccic-school-mixed-box ${mixedQuantity > 0 ? 'is-selected' : ''}`}>
+                    <div className="ccic-school-mixed-copy">
+                      <p className="ccic-school-mixed-kicker">Mixed Box</p>
+                      <strong>3 of each design</strong>
+                      <p>One box. All four designs. 12 cards + 12 envelopes.</p>
+                    </div>
+
+                    <div className="ccic-school-mixed-equation" aria-label="Three of each of the four card designs equals twelve cards">
+                      <span className="ccic-school-mixed-count">3 ×</span>
+                      {collectionBoxes.map((box, index) => (
+                        <div className="ccic-school-mixed-cover-group" key={box.id}>
+                          <div className="ccic-school-mixed-cover">
+                            {box.frontImageUrl ?? box.outsideImageUrl ? (
+                              <Image
+                                src={(box.frontImageUrl ?? box.outsideImageUrl)!}
+                                alt={`${box.title} cover`}
+                                fill
+                                sizes="90px"
+                                unoptimized
+                              />
+                            ) : null}
+                          </div>
+                          {index < collectionBoxes.length - 1 ? <span className="ccic-school-mixed-plus">+</span> : null}
+                        </div>
+                      ))}
+                      <span className="ccic-school-mixed-total">= 12 cards</span>
+                    </div>
+
+                    <div className="ccic-school-mixed-order">
+                      <strong>$15</strong>
+                      <QuantityControl
+                        label={`${collection.title} mixed boxes`}
+                        value={mixedQuantity}
+                        onChange={(quantity) => setMixedQuantities((current) => ({ ...current, [collection.id]: quantity }))}
+                      />
+                    </div>
+                  </article>
+                ) : null}
+
                 {collectionBoxes.length ? (
                   <div className="ccic-gallery-grid">
                     {collectionBoxes.map((box) => (
