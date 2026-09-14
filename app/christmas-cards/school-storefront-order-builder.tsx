@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
-import BoxGalleryCard from './box-gallery-card'
+import SchoolBoxGalleryCard from './school-box-gallery-card'
 import QuantityControl from './quantity-control'
 import type { ChristmasCardBox, ChristmasCardCollection } from '@/lib/christmas-cards/catalog'
 
@@ -90,7 +90,7 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
                 {collectionBoxes.length ? (
                   <div className="ccic-gallery-grid">
                     {collectionBoxes.map((box) => (
-                      <BoxGalleryCard
+                      <SchoolBoxGalleryCard
                         key={box.id}
                         box={box}
                         quantityLabel={`${box.title} boxes`}
