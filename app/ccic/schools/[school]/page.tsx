@@ -66,14 +66,19 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
         <header className="ccic-site-header">
           <div className="ccic-site-header-inner">
             <span aria-hidden="true" className="ccic-header-spacer" />
-            <Image
-              src="/CCiC.png"
-              alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
-              width={176}
-              height={176}
-              priority
-              className="ccic-header-logo"
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <Image
+                src="/CCiC.png"
+                alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+                width={176}
+                height={176}
+                priority
+                className="ccic-header-logo"
+              />
+              <strong style={{ marginTop: '0.35rem', fontSize: '1rem', lineHeight: 1.25 }}>
+                {school.name} Fundraiser
+              </strong>
+            </div>
             <CcicCartButton />
           </div>
         </header>
