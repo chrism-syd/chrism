@@ -106,21 +106,6 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
               Beautiful faith-centred Christmas cards your family can share while supporting {schoolName}.
             </p>
           </div>
-
-          <div className="ccic-trust-grid">
-            <article>
-              <strong>$15 per box</strong>
-              <p>Each box includes 12 Christmas cards and 12 matching envelopes, equivalent to $1.25 per card.</p>
-            </article>
-            <article>
-              <strong>Support {schoolName}</strong>
-              <p>Orders placed through this page are credited to this school fundraiser and delivered through the school.</p>
-            </article>
-            <article>
-              <strong>Designed and printed in Canada</strong>
-              <p>Produced in Canada on FSC certified paper.</p>
-            </article>
-          </div>
         </section>
 
         <SchoolStorefrontOrderBuilder
