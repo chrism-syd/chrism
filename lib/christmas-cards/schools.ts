@@ -39,6 +39,12 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     name: 'St. Brother Andre High School',
     active: true,
   },
+  {
+    slug: 'st-francis-xavier',
+    code: 'STFRANCISXAVIER26',
+    name: 'St. Francis Xavier',
+    active: true,
+  },
 ]
 
 export function getCcicSchoolCampaign(slug: string) {
