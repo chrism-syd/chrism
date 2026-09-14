@@ -164,9 +164,10 @@
 }
 
 .ccic-school-footer-separator {
-  color: #a7a3a0;
-  font-size: 20px;
-  font-weight: 300;
+  align-self: stretch;
+  width: 1px;
+  min-height: 42px;
+  background: #000;
 }
 
 .ccic-school-kofc-logo {
