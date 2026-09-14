@@ -136,13 +136,15 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
               <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
             </a>
             <span className="ccic-school-footer-separator" aria-hidden="true" />
-            <Image
-              src="/organizations/knights-of-columbus-logo.png"
-              alt="Knights of Columbus"
-              width={180}
-              height={72}
-              className="ccic-school-kofc-logo"
-            />
+            <a href="https://kofc7689.org" aria-label="Visit Knights of Columbus Council 7689">
+              <Image
+                src="/organizations/knights-of-columbus-logo.png"
+                alt="Knights of Columbus"
+                width={180}
+                height={72}
+                className="ccic-school-kofc-logo"
+              />
+            </a>
           </div>
         </footer>
       </main>
