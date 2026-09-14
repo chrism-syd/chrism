@@ -133,11 +133,10 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
             </p>
           </div>
           <div className="ccic-footer-powered-center ccic-school-footer-partners">
-            <span>Powered by</span>
             <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
               <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
             </a>
-            <span className="ccic-school-footer-separator" aria-hidden="true">|</span>
+            <span className="ccic-school-footer-separator" aria-hidden="true" />
             <Image
               src="/organizations/knights-of-columbus-logo.png"
               alt="Knights of Columbus"
