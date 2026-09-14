@@ -1,17 +1,21 @@
 .ccic-school-fundraiser-title {
-  margin: 1rem 0 0.8rem;
+  margin: 1rem 0 .8rem;
   font-size: clamp(20px, 2.4vw, 30px);
   font-weight: 500;
-  line-height: 1.35;
   letter-spacing: -.015em;
+  line-height: 1.35;
   text-transform: uppercase;
 }
 
-.ccic-collection-heading h2 {
+.ccic-page .ccic-collection-heading h2 {
   font-size: clamp(20px, 2.4vw, 30px);
   font-weight: 500;
-  line-height: 1.35;
   letter-spacing: -.015em;
+  line-height: 1.35;
+}
+
+.ccic-page .ccic-collection {
+  border-bottom-color: #202020;
 }
 
 .ccic-school-mixed-box {
@@ -54,10 +58,21 @@
   text-transform: uppercase;
 }
 
-.ccic-school-mixed-copy > p:last-child {
+.ccic-school-mixed-copy > p:last-child,
+.ccic-school-box-description {
   color: var(--ccic-muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.ccic-school-box-description {
+  margin: 5px 0 8px;
+}
+
+.ccic-school-box-price,
+.ccic-school-mixed-order > strong {
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .ccic-school-mixed-equation {
@@ -105,10 +120,6 @@
   gap: 10px;
   justify-items: center;
   min-width: 146px;
-}
-
-.ccic-school-mixed-order > strong {
-  font-size: 17px;
 }
 
 .ccic-school-mixed-order .ccic-quantity {
