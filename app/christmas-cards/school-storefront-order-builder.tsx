@@ -94,7 +94,7 @@ export default function SchoolStorefrontOrderBuilder({ boxes, collections, inven
                     </div>
 
                     <div className="ccic-school-mixed-order">
-                      <strong>$18</strong>
+                      <strong>$16.90</strong>
                       <QuantityControl
                         label={`${collection.title} mixed boxes`}
                         value={mixedQuantity}
