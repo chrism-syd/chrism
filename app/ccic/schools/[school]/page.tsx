@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import SchoolStorefrontOrderBuilder from '../../../christmas-cards/school-storefront-order-builder'
-import { CcicCartButton, CcicCartProvider } from '../../../christmas-cards/cart-context'
+import { CcicCartProvider } from '../../../christmas-cards/cart-context'
 import {
   CHRISTMAS_CARD_BOXES,
   CHRISTMAS_CARD_COLLECTIONS,
@@ -81,7 +81,7 @@ export default async function CcicSchoolCampaignPage({ params }: PageProps) {
                 {schoolName} Fundraiser
               </strong>
             </div>
-            <CcicCartButton />
+            <span aria-hidden="true" className="ccic-header-spacer" />
           </div>
         </header>
 
