@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
       destination: { addressLine1: contact.addressLine1, city: contact.city, province: contact.province, postalCode: contact.postalCode },
       totalBoxes: calculated.totalSelectedBoxes,
       nonCasePricingBoxCount: calculated.nonCasePricingBoxCount,
+      accessorySheetCount: calculated.accessorySheetCount,
     })
     shipping = quote.status === 'priced'
       ? { status: 'priced', shippingCents: quote.rate.amountCents, provider: 'shiptime', serviceCode: quote.rate.serviceCode, serviceName: quote.rate.serviceName, transitDays: quote.rate.expectedTransitTime }
