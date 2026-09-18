@@ -132,7 +132,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
   }, [calculatedOrder.hasOrder, draftInput, hasHydratedDraft])
 
   useEffect(() => {
-    setSummary({ totalSelectedBoxes: calculatedOrder.totalSelectedBoxes, estimatedTotalCents: calculatedOrder.totalCents, hasOrder: calculatedOrder.hasOrder, currentCaseProgress: calculatedOrder.currentCaseProgress, boxesPerCase: CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase })
+    setSummary({ totalSelectedBoxes: calculatedOrder.totalSelectedBoxes, totalSelectedUnits: calculatedOrder.totalSelectedUnits, estimatedTotalCents: calculatedOrder.totalCents, hasOrder: calculatedOrder.hasOrder, currentCaseProgress: calculatedOrder.currentCaseProgress, boxesPerCase: CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase })
   }, [calculatedOrder, setSummary])
 
   useEffect(() => {
