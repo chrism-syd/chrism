@@ -112,7 +112,8 @@ export default async function CcicOrderDetailPage({
   const totalBoxes = lines.reduce((sum, line) => sum + (accessoryIds.has(line.catalog_id) ? 0 : line.quantity * line.boxes_per_unit), 0)
   const nonCasePricingBoxIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => !item.isCasePricingEligible && !item.isAccessory).map((item) => item.id))
   const nonCasePricingBoxCount = lines.reduce((sum, line) => sum + (line.line_type === 'individual_box' && nonCasePricingBoxIds.has(line.catalog_id) ? line.quantity : 0), 0)
-  const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes, nonCasePricingBoxCount) : []
+  const accessorySheetCount = lines.reduce((sum, line) => sum + (accessoryIds.has(line.catalog_id) ? line.quantity : 0), 0)
+  const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes, nonCasePricingBoxCount, accessorySheetCount) : []
 
   return (
     <main className="ccic-admin-page">
@@ -202,7 +203,7 @@ export default async function CcicOrderDetailPage({
                   <div key={`${packed.carton}-${index}`}>
                     <dt>Parcel {index + 1}</dt>
                     <dd>
-                      <strong>{packed.boxCount} boxes</strong><br />
+                      <strong>{packed.boxCount} card box{packed.boxCount === 1 ? '' : 'es'}{packed.accessorySheetCount ? ` + ${packed.accessorySheetCount} seal sheet${packed.accessorySheetCount === 1 ? '' : 's'}` : ''}</strong><br />
                       {cartonLabel(packed.carton)}<br />
                       Pricing weight: {packed.parcel.weightKg.toFixed(3)} kg
                     </dd>
