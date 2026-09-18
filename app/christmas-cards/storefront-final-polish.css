@@ -191,3 +191,15 @@
     min-height: 210px;
   }
 }
+
+.ccic-seals-image .ccic-card-art-button.ccic-card-art-large,
+.ccic-seals-image .ccic-card-art.ccic-card-art-large {
+  aspect-ratio: auto;
+  min-height: 190px;
+  height: 100%;
+  background: transparent;
+}
+
+.ccic-seals-image .ccic-card-art img {
+  object-fit: contain;
+}
