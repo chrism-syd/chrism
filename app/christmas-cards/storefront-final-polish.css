@@ -148,7 +148,7 @@
 .ccic-seals-image {
   position: relative;
   min-height: 190px;
-  background: #fff;
+  background: transparent;
 }
 
 .ccic-seals-image img {
