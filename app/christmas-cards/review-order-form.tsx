@@ -18,7 +18,7 @@ function compactCanadianPostalCode(value: unknown) { return typeof value === 'st
 function isCanadianPostalCode(value: unknown) { return /^[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTVWXYZ][0-9][ABCEGHJ-NPRSTVWXYZ][0-9]$/.test(compactCanadianPostalCode(value)) }
 function readStoredDraft() { const storedDraft = window.sessionStorage.getItem(CCIC_ORDER_DRAFT_STORAGE_KEY); if (!storedDraft) return null; try { return parseCcicOrderDraftInput(JSON.parse(storedDraft)) } catch { return null } }
 function addressFromForm(form: HTMLFormElement, postalCode?: string): CcicSelectedAddress { const data = new FormData(form); return { addressLine1: fieldValue(data, 'address_line_1'), city: fieldValue(data, 'city'), province: fieldValue(data, 'province'), postalCode: postalCode ?? fieldValue(data, 'postal_code') } }
-function shippingRequestKey(address: CcicSelectedAddress, totalBoxes: number, nonCasePricingBoxCount: number) { return [address.addressLine1.trim().toUpperCase(), address.city.trim().toUpperCase(), address.province.trim().toUpperCase(), compactCanadianPostalCode(address.postalCode), totalBoxes, nonCasePricingBoxCount].join('|') }
+function shippingRequestKey(address: CcicSelectedAddress, totalBoxes: number, nonCasePricingBoxCount: number, accessorySheetCount: number) { return [address.addressLine1.trim().toUpperCase(), address.city.trim().toUpperCase(), address.province.trim().toUpperCase(), compactCanadianPostalCode(address.postalCode), totalBoxes, nonCasePricingBoxCount, accessorySheetCount].join('|') }
 
 export default function ReviewOrderForm() {
   const [draftInput, setDraftInput] = useState<CcicOrderDraftInput | null | undefined>(undefined)
@@ -39,7 +39,7 @@ export default function ReviewOrderForm() {
 
   const requestShippingRate = useCallback(async (address: CcicSelectedAddress, force = false) => {
     if (!calculatedOrder || !isCanadianPostalCode(address.postalCode) || !address.addressLine1 || !address.city || !address.province) { lastShippingRequestRef.current = null; setShipping({ status: 'waiting' }); return }
-    const requestKey = shippingRequestKey(address, calculatedOrder.totalSelectedBoxes, calculatedOrder.nonCasePricingBoxCount)
+    const requestKey = shippingRequestKey(address, calculatedOrder.totalSelectedBoxes, calculatedOrder.nonCasePricingBoxCount, calculatedOrder.accessorySheetCount)
     if (!force && lastShippingRequestRef.current === requestKey) return
     lastShippingRequestRef.current = requestKey
     setShipping({ status: 'calculating' })
