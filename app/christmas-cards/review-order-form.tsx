@@ -44,7 +44,7 @@ export default function ReviewOrderForm() {
     lastShippingRequestRef.current = requestKey
     setShipping({ status: 'calculating' })
     try {
-      const response = await fetch('/api/ccic/shipping/rates', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ postalCode: compactCanadianPostalCode(address.postalCode), addressLine1: address.addressLine1, city: address.city, province: address.province, totalBoxes: calculatedOrder.totalSelectedBoxes, nonCasePricingBoxCount: calculatedOrder.nonCasePricingBoxCount }) })
+      const response = await fetch('/api/ccic/shipping/rates', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ postalCode: compactCanadianPostalCode(address.postalCode), addressLine1: address.addressLine1, city: address.city, province: address.province, totalBoxes: calculatedOrder.totalSelectedBoxes, nonCasePricingBoxCount: calculatedOrder.nonCasePricingBoxCount, accessorySheetCount: calculatedOrder.accessorySheetCount }) })
       const payload = await response.json().catch(() => null) as { available?: boolean; message?: string; rate?: { amountCents?: number; serviceName?: string; expectedTransitTime?: number | null } } | null
       if (response.ok && payload?.available && typeof payload.rate?.amountCents === 'number') { setShipping({ status: 'priced', amountCents: payload.rate.amountCents, serviceName: payload.rate.serviceName || 'Shipping', transitDays: typeof payload.rate.expectedTransitTime === 'number' ? payload.rate.expectedTransitTime : null }); return }
       setShipping({ status: 'pending', message: payload?.message || MANUAL_SHIPPING_MESSAGE })
