@@ -200,7 +200,16 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
                         <p>{christmasSeals.description}</p>
                         <strong>{formatChristmasCardMoney(christmasSeals.priceCents)} per sheet</strong>
                         {maxQuantityForBox(christmasSeals.id) > 0 ? (
-                          <QuantityControl label="Christmas seal sheets" value={quantityFromMap(boxQuantities, christmasSeals.id)} max={maxQuantityForBox(christmasSeals.id)} onChange={(value) => setBoxQuantities((current) => setQuantityValue(current, christmasSeals.id, value))} />
+                          <>
+                            <QuantityControl label="Christmas seal sheets" value={quantityFromMap(boxQuantities, christmasSeals.id)} max={maxQuantityForBox(christmasSeals.id)} onChange={(value) => setBoxQuantities((current) => setQuantityValue(current, christmasSeals.id, value))} />
+                            {maxQuantityForBox(christmasSeals.id) < 100 ? (
+                              <p className="ccic-low-stock-count" aria-live="polite">
+                                {Math.max(0, maxQuantityForBox(christmasSeals.id) - quantityFromMap(boxQuantities, christmasSeals.id)) > 0
+                                  ? `Only ${Math.max(0, maxQuantityForBox(christmasSeals.id) - quantityFromMap(boxQuantities, christmasSeals.id))} sheet${Math.max(0, maxQuantityForBox(christmasSeals.id) - quantityFromMap(boxQuantities, christmasSeals.id)) === 1 ? '' : 's'} left`
+                                  : 'All available sheets are in your cart'}
+                              </p>
+                            ) : null}
+                          </>
                         ) : <span className="ccic-sold-out-pill" role="status">Sold out</span>}
                       </div>
                     </section>
