@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BoxGalleryCard from './box-gallery-card'
 import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
@@ -53,7 +53,8 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
   const [hasHydratedDraft, setHasHydratedDraft] = useState(false)
   const { isOpen, closeCart, setSummary } = useCcicCart()
 
-  const sortedBoxes = useMemo(() => [...boxes].sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
+  const sortedBoxes = useMemo(() => boxes.filter((box) => !box.isAccessory).sort((a, b) => a.sortOrder - b.sortOrder), [boxes])
+  const christmasSeals = useMemo(() => boxes.find((box) => box.isAccessory), [boxes])
   const sortedCollections = useMemo(() => [...collections].sort((a, b) => a.sortOrder - b.sortOrder), [collections])
   const caseEligibleBoxIds = useMemo(() => new Set(boxes.filter((box) => box.isCasePricingEligible).map((box) => box.id)), [boxes])
   const draftInput = useMemo<CcicOrderDraftInput>(() => ({ version: 1, caseQuantities, boxQuantities, fulfillmentMethod }), [boxQuantities, caseQuantities, fulfillmentMethod])
@@ -61,7 +62,9 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
   const selectedClassicLines = calculatedOrder.lines.filter((line) => line.lineType === 'classic_case')
   const selectedIndividualLines = calculatedOrder.lines.filter((line) => line.lineType === 'individual_box')
   const selectedCaseEligibleLines = selectedIndividualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
-  const nonCaseEligibleIndividualLines = selectedIndividualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId))
+  const accessoryIds = useMemo(() => new Set(boxes.filter((box) => box.isAccessory).map((box) => box.id)), [boxes])
+  const accessoryLines = selectedIndividualLines.filter((line) => accessoryIds.has(line.catalogId))
+  const nonCaseEligibleIndividualLines = selectedIndividualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId) && !accessoryIds.has(line.catalogId))
 
   let boxesToAllocateToCases = calculatedOrder.customCaseCount * CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
   const customCaseLines = [] as typeof selectedIndividualLines
@@ -176,7 +179,27 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
           <div className="ccic-collections" id="individual-boxes">
             {sortedCollections.map((collection) => {
               const collectionBoxes = sortedBoxes.filter((box) => box.collectionId === collection.id)
-              return <section className="ccic-collection" key={collection.id} aria-labelledby={`${collection.id}-title`}><div className="ccic-collection-heading"><h2 id={`${collection.id}-title`}>{collection.title}</h2><p>{collection.description}</p></div>{collectionBoxes.length ? <div className="ccic-gallery-grid">{collectionBoxes.map((box) => <BoxGalleryCard key={box.id} box={box} quantityLabel={`${box.title} boxes`} quantity={quantityFromMap(boxQuantities, box.id)} maxQuantity={maxQuantityForBox(box.id)} onQuantityChange={(value) => setBoxQuantities((current) => setQuantityValue(current, box.id, value))} />)}</div> : <div className="ccic-collection-empty"><strong>Designs coming soon</strong><p>This row is ready for the final collection artwork.</p></div>}</section>
+              return (
+                <Fragment key={collection.id}>
+                  {collection.id === 'catholic-prayer-cards' && christmasSeals ? (
+                    <section className="ccic-seals-banner" aria-labelledby="christmas-seals-title">
+                      <div className="ccic-seals-image">
+                        <Image src={christmasSeals.frontImageUrl || '/christmas-cards/christmas_seals.png'} alt="Assorted gold-stamped KCIC Christmas seals" fill sizes="(max-width: 640px) 100vw, 320px" />
+                      </div>
+                      <div className="ccic-seals-copy">
+                        <p className="ccic-eyebrow">A little something extra</p>
+                        <h2 id="christmas-seals-title">{christmasSeals.title}</h2>
+                        <p>{christmasSeals.description}</p>
+                        <strong>{formatChristmasCardMoney(christmasSeals.priceCents)} per sheet</strong>
+                        {maxQuantityForBox(christmasSeals.id) > 0 ? (
+                          <QuantityControl label="Christmas seal sheets" value={quantityFromMap(boxQuantities, christmasSeals.id)} max={maxQuantityForBox(christmasSeals.id)} onChange={(value) => setBoxQuantities((current) => setQuantityValue(current, christmasSeals.id, value))} />
+                        ) : <span className="ccic-sold-out-pill" role="status">Sold out</span>}
+                      </div>
+                    </section>
+                  ) : null}
+                  <section className="ccic-collection" aria-labelledby={`${collection.id}-title`}><div className="ccic-collection-heading"><h2 id={`${collection.id}-title`}>{collection.title}</h2><p>{collection.description}</p></div>{collectionBoxes.length ? <div className="ccic-gallery-grid">{collectionBoxes.map((box) => <BoxGalleryCard key={box.id} box={box} quantityLabel={`${box.title} boxes`} quantity={quantityFromMap(boxQuantities, box.id)} maxQuantity={maxQuantityForBox(box.id)} onQuantityChange={(value) => setBoxQuantities((current) => setQuantityValue(current, box.id, value))} />)}</div> : <div className="ccic-collection-empty"><strong>Designs coming soon</strong><p>This row is ready for the final collection artwork.</p></div>}</section>
+                </Fragment>
+              )
             })}
           </div>
         </div>
@@ -188,6 +211,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
           {selectedClassicLines.length ? <div className="ccic-summary-section" style={{ borderTop: 0 }}><h3>Classic cases</h3>{selectedClassicLines.map((line) => <div className="ccic-cart-item-row" key={line.catalogId}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => setCaseQuantities((current) => setQuantityValue(current, line.catalogId, 0))} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}</div> : null}
           {customCaseLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length ? { borderTop: 0 } : undefined}><h3>{calculatedOrder.customCaseCount === 1 ? 'Custom case' : `Custom cases ×${calculatedOrder.customCaseCount}`}</h3>{customCaseLines.map((line) => <div className="ccic-cart-item-row" key={`custom-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}{calculatedOrder.customCaseDiscountCents ? <p className="ccic-good-news">Custom Case pricing saved {formatChristmasCardMoney(calculatedOrder.customCaseDiscountCents)}.</p> : null}</div> : null}
           {looseIndividualLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length && !customCaseLines.length ? { borderTop: 0 } : undefined}><h3>Individual boxes</h3>{looseCaseEligibleBoxCount > 0 ? <div className="ccic-case-progress"><div className="ccic-case-progress-copy"><strong>{looseCaseEligibleBoxCount} of {CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase}</strong><span>boxes toward custom case</span></div><div className="ccic-progress-track" aria-hidden="true"><span style={{ width: `${progressPercent}%` }} /></div></div> : null}{looseIndividualLines.map((line) => <div className="ccic-cart-item-row" key={`loose-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}{calculatedOrder.boxesUntilNextCase > 0 && calculatedOrder.remainingLooseBoxes >= 16 ? <p className="ccic-nudge"><Image src="/chrism_star.png" alt="" width={24} height={24} />Add {calculatedOrder.boxesUntilNextCase} more boxes and receive Custom Case pricing.</p> : null}</div> : null}
+          {accessoryLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length && !customCaseLines.length && !looseIndividualLines.length && !nonCaseEligibleIndividualLines.length ? { borderTop: 0 } : undefined}><h3>Christmas seals</h3>{accessoryLines.map((line) => <div className="ccic-cart-item-row" key={`accessory-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title} sheet{line.quantity === 1 ? '' : 's'}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}</div> : null}
           {nonCaseEligibleIndividualLines.length ? <div className="ccic-summary-section" style={!selectedClassicLines.length && !customCaseLines.length && !looseIndividualLines.length ? { borderTop: 0 } : undefined}><h3>Individual boxes (not eligible for case pricing)</h3>{nonCaseEligibleIndividualLines.map((line) => <div className="ccic-cart-item-row" key={`non-case-${line.catalogId}`}><div className="ccic-summary-line"><span>{line.quantity} × {line.title}</span><strong>{formatChristmasCardMoney(line.lineTotalCents)}</strong></div><button type="button" className="ccic-cart-remove-item" onClick={() => removeDisplayedBoxQuantity(line.catalogId, line.quantity)} aria-label={`Remove ${line.title} from order`}><span aria-hidden="true">×</span></button></div>)}</div> : null}
         </div>
         <div className="ccic-fulfillment-choice" aria-label="Fulfilment method"><span className="ccic-fulfillment-label">Fulfilment</span><div className="ccic-fulfillment-toggle" role="group" aria-label="Choose pickup or shipping"><button type="button" className={fulfillmentMethod === 'pickup' ? 'is-selected' : ''} aria-pressed={fulfillmentMethod === 'pickup'} onClick={() => setFulfillmentMethod('pickup')}><span>Pickup</span><strong>$0</strong></button><button type="button" className={fulfillmentMethod === 'shipping' ? 'is-selected' : ''} aria-pressed={fulfillmentMethod === 'shipping'} onClick={() => setFulfillmentMethod('shipping')}><span>Shipping</span><strong>Calculated on next screen</strong></button></div></div>
