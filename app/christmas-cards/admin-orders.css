@@ -396,6 +396,29 @@
   color: #6a6460;
 }
 
+.ccic-admin-order-line-main {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ccic-admin-order-thumb {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  overflow: hidden;
+  background: #f5f3f1;
+}
+
+.ccic-admin-order-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .ccic-admin-order-lines > div > strong,
 .ccic-admin-totals > div > strong {
   white-space: nowrap;
