@@ -328,7 +328,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     id: 'ca-6021',
     sku: 'CA-6021',
     title: 'Christmas Seals',
-    description: 'Each sheet contains 50 gold-stamped assorted seals. Self-sticking for easy use.',
+    description: 'Sheet of 50 gold-stamped seals in 4 assorted colours. Self-sticking for easy use.',
     insideMessage: '',
     frontImageUrl: '/christmas-cards/christmas_seals.png',
     insideImageUrl: null,
