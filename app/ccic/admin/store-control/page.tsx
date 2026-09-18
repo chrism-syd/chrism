@@ -99,7 +99,7 @@ export default async function CcicStoreControlPage({
       {errorMessage ? <p className="ccic-admin-error">{errorMessage}</p> : null}
 
       <section className="ccic-store-control-summary" aria-label="Inventory summary">
-        <article><strong>{items.length}</strong><span>Card designs</span></article>
+        <article><strong>{items.length}</strong><span>Products</span></article>
         <article>
           <strong>{trackedCount}</strong>
           <span>Inventory tracked</span>
@@ -181,15 +181,15 @@ export default async function CcicStoreControlPage({
 
       <section className="ccic-admin-panel">
         <div className="ccic-admin-panel-heading">
-          <h2>Card inventory</h2>
-          <span>Boxes, not individual cards</span>
+          <h2>Product inventory</h2>
+          <span>Card boxes and accessory sheets</span>
         </div>
 
         <div className="ccic-admin-table-wrap">
           <table className="ccic-admin-table ccic-store-control-table">
             <thead>
               <tr>
-                <th>Card</th>
+                <th>Product</th>
                 <th>Stock</th>
                 <th>Committed</th>
                 <th>Held for cases</th>
