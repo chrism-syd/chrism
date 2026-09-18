@@ -5,6 +5,7 @@ import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 
 type CartSummary = {
   totalSelectedBoxes: number
+  totalSelectedUnits: number
   estimatedTotalCents: number
   hasOrder: boolean
   currentCaseProgress: number
@@ -21,6 +22,7 @@ type CartContextValue = {
 
 const EMPTY_SUMMARY: CartSummary = {
   totalSelectedBoxes: 0,
+  totalSelectedUnits: 0,
   estimatedTotalCents: 0,
   hasOrder: false,
   currentCaseProgress: 0,
@@ -69,7 +71,7 @@ export function useCcicCart() {
 export function CcicCartButton() {
   const { isOpen, openCart, summary } = useCcicCart()
   const label = summary.hasOrder
-    ? `Open order summary for ${summary.totalSelectedBoxes} boxes totaling ${formatChristmasCardMoney(summary.estimatedTotalCents)}`
+    ? `Open order summary for ${summary.totalSelectedUnits} item${summary.totalSelectedUnits === 1 ? '' : 's'} totaling ${formatChristmasCardMoney(summary.estimatedTotalCents)}`
     : 'Open order summary'
 
   return (
@@ -87,10 +89,10 @@ export function CcicCartButton() {
           <circle cx="10" cy="19" r="1.25" />
           <circle cx="17" cy="19" r="1.25" />
         </svg>
-        {summary.totalSelectedBoxes > 0 ? <span className="ccic-cart-badge">{summary.totalSelectedBoxes}</span> : null}
+        {summary.totalSelectedUnits > 0 ? <span className="ccic-cart-badge">{summary.totalSelectedUnits}</span> : null}
       </span>
       <span className="ccic-header-cart-meta">
-        <strong>{summary.totalSelectedBoxes > 0 ? `${summary.totalSelectedBoxes} boxes` : 'Cart'}</strong>
+        <strong>{summary.totalSelectedUnits > 0 ? `${summary.totalSelectedUnits} item${summary.totalSelectedUnits === 1 ? '' : 's'}` : 'Cart'}</strong>
         <span>{summary.hasOrder ? formatChristmasCardMoney(summary.estimatedTotalCents) : 'Review order'}</span>
       </span>
     </button>
