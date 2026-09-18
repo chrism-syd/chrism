@@ -108,6 +108,7 @@ export default async function CcicOrderDetailPage({
   const lines = (lineData ?? []) as OrderLine[]
   const address = [order.address_line_1, order.address_line_2, [order.city, order.state_province].filter(Boolean).join(', '), order.postal_code].filter(Boolean) as string[]
   const shippingPending = order.fulfillment_method === 'shipping' && order.shipping_cents === 0
+  const catalogById = new Map(CHRISTMAS_CARD_BOXES.map((item) => [item.id, item] as const))
   const accessoryIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => item.isAccessory).map((item) => item.id))
   const totalBoxes = lines.reduce((sum, line) => sum + (accessoryIds.has(line.catalog_id) ? 0 : line.quantity * line.boxes_per_unit), 0)
   const nonCasePricingBoxIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => !item.isCasePricingEligible && !item.isAccessory).map((item) => item.id))
@@ -162,12 +163,29 @@ export default async function CcicOrderDetailPage({
               <span>{totalBoxes} card box{totalBoxes === 1 ? '' : 'es'}</span>
             </div>
             <div className="ccic-admin-order-lines">
-              {lines.map((line) => (
-                <div key={line.id}>
-                  <span><strong>{line.quantity} × {line.title}</strong><small>{line.sku} · {line.line_type === 'classic_case' ? `${line.boxes_per_unit} boxes per case` : accessoryIds.has(line.catalog_id) ? 'Accessory · sheet' : 'Individual box'}</small></span>
-                  <strong>{formatChristmasCardMoney(line.line_total_cents)}</strong>
-                </div>
-              ))}
+              {lines.map((line) => {
+                const catalogItem = catalogById.get(line.catalog_id)
+                const thumbnailUrl = line.line_type === 'classic_case'
+                  ? '/CCIC_Classic32.jpg'
+                  : catalogItem?.frontImageUrl
+
+                return (
+                  <div key={line.id}>
+                    <span className="ccic-admin-order-line-main">
+                      {thumbnailUrl ? (
+                        <span className="ccic-admin-order-thumb" aria-hidden="true">
+                          <Image src={thumbnailUrl} alt="" width={44} height={44} />
+                        </span>
+                      ) : null}
+                      <span>
+                        <strong>{line.quantity} × {line.title}</strong>
+                        <small>{line.sku} · {line.line_type === 'classic_case' ? `${line.boxes_per_unit} boxes per case` : accessoryIds.has(line.catalog_id) ? 'Accessory · sheet' : 'Individual box'}</small>
+                      </span>
+                    </span>
+                    <strong>{formatChristmasCardMoney(line.line_total_cents)}</strong>
+                  </div>
+                )
+              })}
               {order.custom_case_discount_cents ? (
                 <div className="ccic-admin-discount">
                   <span>Custom Case pricing ({order.custom_case_count} complete case{order.custom_case_count === 1 ? '' : 's'})</span>
