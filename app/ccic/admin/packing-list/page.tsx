@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecords } from '@/lib/security/pii'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
+import { CHRISTMAS_CARD_BOXES } from '@/lib/christmas-cards/catalog'
 import {
   getCcicOrderStatusLabel,
   isCcicOrderStatus,
@@ -32,6 +33,7 @@ type OrderLine = {
   id: string
   order_id: string
   line_type: 'classic_case' | 'individual_box'
+  catalog_id: string
   sku: string
   title: string
   quantity: number
@@ -112,7 +114,7 @@ export default async function CcicPackingListPage({
   if (orderIds.length) {
     const { data: lineData, error: lineError } = await admin
       .from('ccic_order_lines')
-      .select('id, order_id, line_type, sku, title, quantity, boxes_per_unit, sort_order')
+      .select('id, order_id, line_type, catalog_id, sku, title, quantity, boxes_per_unit, sort_order')
       .in('order_id', orderIds)
       .order('sort_order', { ascending: true })
 
@@ -127,7 +129,10 @@ export default async function CcicPackingListPage({
     lineType: OrderLine['line_type']
     units: number
     boxes: number
+    isAccessory: boolean
   }>()
+
+  const accessoryIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => item.isAccessory).map((item) => item.id))
 
   for (const line of lines) {
     const orderLines = linesByOrder.get(line.order_id) ?? []
@@ -141,9 +146,10 @@ export default async function CcicPackingListPage({
       lineType: line.line_type,
       units: 0,
       boxes: 0,
+      isAccessory: accessoryIds.has(line.catalog_id),
     }
     current.units += line.quantity
-    current.boxes += line.quantity * line.boxes_per_unit
+    current.boxes += current.isAccessory ? 0 : line.quantity * line.boxes_per_unit
     summary.set(key, current)
   }
 
@@ -218,9 +224,9 @@ export default async function CcicPackingListPage({
                   <tr key={`${line.lineType}-${line.sku}-${line.title}`}>
                     <td><strong>{line.title}</strong></td>
                     <td>{line.sku}</td>
-                    <td>{line.lineType === 'classic_case' ? 'Classic Case' : 'Individual box'}</td>
+                    <td>{line.isAccessory ? 'Accessory sheet' : line.lineType === 'classic_case' ? 'Classic Case' : 'Individual box'}</td>
                     <td>{line.units}</td>
-                    <td><strong>{line.boxes}</strong></td>
+                    <td><strong>{line.isAccessory ? '—' : line.boxes}</strong></td>
                   </tr>
                 ))}
               </tbody>
@@ -285,7 +291,7 @@ export default async function CcicPackingListPage({
                     <li key={line.id}>
                       <span className="ccic-packing-checkbox" aria-hidden="true" />
                       <span><strong>{line.quantity} × {line.title}</strong><small>{line.sku}</small></span>
-                      <strong>{line.quantity * line.boxes_per_unit} box{line.quantity * line.boxes_per_unit === 1 ? '' : 'es'}</strong>
+                      <strong>{accessoryIds.has(line.catalog_id) ? `${line.quantity} sheet${line.quantity === 1 ? '' : 's'}` : `${line.quantity * line.boxes_per_unit} box${line.quantity * line.boxes_per_unit === 1 ? '' : 'es'}`}</strong>
                     </li>
                   ))}
                 </ul>
