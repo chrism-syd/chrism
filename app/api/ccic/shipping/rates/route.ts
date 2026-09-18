@@ -20,7 +20,7 @@ function normalizeCount(value: unknown, max: number) {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { postalCode?: unknown; totalBoxes?: unknown; nonCasePricingBoxCount?: unknown; addressLine1?: unknown; city?: unknown; province?: unknown }
+  let body: { postalCode?: unknown; totalBoxes?: unknown; nonCasePricingBoxCount?: unknown; accessorySheetCount?: unknown; addressLine1?: unknown; city?: unknown; province?: unknown }
 
   try {
     body = await request.json() as typeof body
@@ -41,14 +41,17 @@ export async function POST(request: NextRequest) {
   }
 
   const totalBoxes = typeof body.totalBoxes === 'number' && Number.isFinite(body.totalBoxes)
-    ? Math.max(1, Math.floor(body.totalBoxes))
-    : 1
+    ? Math.max(0, Math.floor(body.totalBoxes))
+    : 0
   const nonCasePricingBoxCount = normalizeCount(body.nonCasePricingBoxCount, totalBoxes)
+  const accessorySheetCount = normalizeCount(body.accessorySheetCount, 999)
+  if (totalBoxes === 0 && accessorySheetCount === 0) return NextResponse.json({ error: 'Your cart is empty.' }, { status: 400 })
 
   const quote = await quoteCcicShipping({
     destination: { addressLine1, city, province, postalCode },
     totalBoxes,
     nonCasePricingBoxCount,
+    accessorySheetCount,
   })
   if (quote.status === 'pending') {
     return NextResponse.json({ available: false, provisional: quote.provisional, reason: quote.reason, message: quote.message })
