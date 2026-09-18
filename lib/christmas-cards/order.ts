@@ -38,6 +38,8 @@ export type CcicCalculatedOrder = {
   totalCents: number
   totalSelectedBoxes: number
   nonCasePricingBoxCount: number
+  accessorySheetCount: number
+  totalSelectedUnits: number
   totalSelectedCases: number
   remainingLooseBoxes: number
   currentCaseProgress: number
@@ -122,9 +124,11 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
   )
   const caseEligibleIndividualLines = individualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
   const nonCasePricingIndividualLines = individualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId) && !accessoryIds.has(line.catalogId))
+  const accessoryLines = individualLines.filter((line) => accessoryIds.has(line.catalogId))
   const lines = [...classicLines, ...individualLines]
   const caseEligibleBoxCount = caseEligibleIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
   const nonCasePricingBoxCount = nonCasePricingIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
+  const accessorySheetCount = accessoryLines.reduce((sum, line) => sum + line.quantity, 0)
   const customCaseCount = Math.floor(caseEligibleBoxCount / CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase)
   const remainingLooseBoxes = caseEligibleBoxCount % CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
   const classicSubtotalCents = classicLines.reduce((sum, line) => sum + line.lineTotalCents, 0)
@@ -149,6 +153,7 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     (sum, line) => sum + (accessoryIds.has(line.catalogId) ? 0 : line.quantity * line.boxesPerUnit),
     0
   )
+  const totalSelectedUnits = totalSelectedBoxes + accessorySheetCount
   const classicCaseCount = classicLines.reduce((sum, line) => sum + line.quantity, 0)
   const currentCaseProgress = caseEligibleBoxCount > 0 && remainingLooseBoxes === 0
     ? CHRISTMAS_CARD_ORDER_CONFIG.boxesPerCase
@@ -169,6 +174,8 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     totalCents,
     totalSelectedBoxes,
     nonCasePricingBoxCount,
+    accessorySheetCount,
+    totalSelectedUnits,
     totalSelectedCases: classicCaseCount + customCaseCount,
     remainingLooseBoxes,
     currentCaseProgress,
