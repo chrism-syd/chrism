@@ -298,8 +298,7 @@ export function buildCcicOrderInventoryAllocations(calculated: CcicCalculatedOrd
 
   for (const line of calculated.lines) {
     if (line.lineType === 'individual_box') {
-      const catalogItem = CHRISTMAS_CARD_BOXES.find((item) => item.id === line.catalogId)
-      add(line.catalogId, catalogItem?.isAccessory ? line.quantity : line.quantity)
+      add(line.catalogId, line.quantity)
       continue
     }
 
