@@ -114,13 +114,14 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
     }]
   })
 
+  const accessoryIds = new Set(CHRISTMAS_CARD_BOXES.filter((item) => item.isAccessory).map((item) => item.id))
   const caseEligibleBoxIds = new Set(
     CHRISTMAS_CARD_BOXES
       .filter((item) => item.isCasePricingEligible)
       .map((item) => item.id)
   )
   const caseEligibleIndividualLines = individualLines.filter((line) => caseEligibleBoxIds.has(line.catalogId))
-  const nonCasePricingIndividualLines = individualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId))
+  const nonCasePricingIndividualLines = individualLines.filter((line) => !caseEligibleBoxIds.has(line.catalogId) && !accessoryIds.has(line.catalogId))
   const lines = [...classicLines, ...individualLines]
   const caseEligibleBoxCount = caseEligibleIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
   const nonCasePricingBoxCount = nonCasePricingIndividualLines.reduce((sum, line) => sum + line.quantity, 0)
@@ -145,7 +146,7 @@ export function calculateCcicOrder(input: CcicOrderDraftInput): CcicCalculatedOr
   const shippingCents = 0
   const totalCents = subtotalCents
   const totalSelectedBoxes = lines.reduce(
-    (sum, line) => sum + line.quantity * line.boxesPerUnit,
+    (sum, line) => sum + (accessoryIds.has(line.catalogId) ? 0 : line.quantity * line.boxesPerUnit),
     0
   )
   const classicCaseCount = classicLines.reduce((sum, line) => sum + line.quantity, 0)
