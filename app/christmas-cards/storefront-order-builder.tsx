@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BoxGalleryCard from './box-gallery-card'
+import CardArt from './card-art'
 import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
 import { useCcicCart } from './cart-context'
 import {
@@ -184,7 +185,14 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
                   {collection.id === 'catholic-prayer-cards' && christmasSeals ? (
                     <section className="ccic-seals-banner" aria-labelledby="christmas-seals-title">
                       <div className="ccic-seals-image">
-                        <Image src={christmasSeals.frontImageUrl || '/christmas-cards/christmas_seals.png'} alt="Assorted gold-stamped KCIC Christmas seals" fill sizes="(max-width: 640px) 100vw, 320px" />
+                        <CardArt
+                          title={christmasSeals.title}
+                          imageUrl={christmasSeals.frontImageUrl}
+                          images={[
+                            { label: 'Seals', url: christmasSeals.frontImageUrl },
+                            { label: 'Full sheet', url: christmasSeals.insideImageUrl },
+                          ]}
+                        />
                       </div>
                       <div className="ccic-seals-copy">
                         <p className="ccic-eyebrow">A little something extra</p>
