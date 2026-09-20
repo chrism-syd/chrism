@@ -1,6 +1,6 @@
 # CCIC Supplies — Project Handoff
 
-_Last updated: September 6, 2026_
+_Last updated: September 20, 2026_
 
 This document is the working handoff for the `ccic.supplies` Celebrate Christ in Christmas (CCIC) Christmas card ordering program. It is intended to let another developer/helper pick up the project without reconstructing product strategy, checkout behavior, shipping decisions, admin workflow, or integration history from chat.
 
@@ -21,7 +21,8 @@ Customer-facing screens should remain polished and simple. Operational/carrier c
 ## 2. Repository / deployment context
 
 - Repository: `chrism-syd/chrism`
-- Current working branch for shipping work: `ccic-shiptime-canada-post`
+- Primary shipping branch: `ccic-shiptime-canada-post`
+- Christmas seals feature branch: `ccic-christmas-seals`
 - Production site: `https://ccic.supplies/`
 - Hosting: Vercel
 - Database/order persistence: Supabase
@@ -356,7 +357,129 @@ Highest-value next steps:
 - The admin UI can show operational detail that the customer UI intentionally hides.
 - The active packing calculator uses `12 × 9 × 9` and `16 × 12 × 8`. The `9 × 6 × 6` carton is backup-only and should not be added to automated packing rules without a new decision.
 
-## 17. Handoff usage
+## 17. September 2026 measured shipping model
+
+The provisional shipping notes earlier in this document are historical. The live calculator has since been calibrated with measured finished products and deliberately conservative carton tare weights.
+
+### Product weights used by the calculator
+
+- standard/case-eligible finished retail card box: **0.165 kg**
+- non-case-pricing Catholic Prayer Card box: **0.200 kg**
+- Christmas Seals accessory sheet: **0.010 kg**
+
+The 0.200 kg rule applies to the heavier non-case-pricing individual card boxes, not to accessories.
+
+### Automated cartons
+
+| Carton | Automated capacity | Calculator tare |
+| --- | ---: | ---: |
+| 9 × 6 × 6 in | 1–12 card boxes | **0.160 kg** |
+| 12 × 9 × 9 in | 13–32 card boxes | **0.270 kg** |
+| 16 × 12 × 8 in | 33–42 card boxes | **0.460 kg** |
+
+The medium and large cartons were later physically weighed at approximately 0.230 kg and 0.345 kg respectively. **Do not replace the calculator values with those lower figures.** The 0.270/0.460 kg values were intentionally retained as a conservative packing-material/weight buffer.
+
+Current packing behavior:
+
+- 1–12 boxes → one small carton
+- 13–32 → one medium carton
+- 33–42 → one large carton
+- 43–57 → two medium cartons, approximately balanced
+- 58–74 → 42 in a large carton plus the remainder in a medium
+- above 74 → recursively allocate 42-box large cartons, then apply the normal rules to the remainder
+
+A few \`19 × 9 × 6.75 in\` cartons may exist operationally and appear capable of holding roughly 39 retail boxes. They are **not** part of the automated calculator.
+
+Final packed weight must still be confirmed before purchasing a label.
+
+## 18. Christmas Seals accessory
+
+Christmas Seals were added on the isolated \`ccic-christmas-seals\` branch as SKU **CA-6021**.
+
+Current product configuration:
+
+- customer price: **$2.50 per sheet**
+- each sheet contains **50 gold-stamped seals in 4 assorted colours**
+- customer copy: “Sheet of 50 gold-stamped seals in 4 assorted colours. Self-sticking for easy use.”
+- starting inventory entered in Supabase: **20 sheets**
+- measured shipping weight: **10 g per sheet**
+- main transparent storefront artwork: \`/public/christmas-cards/christmas_seals.png\`
+- detail/full-sheet artwork: \`/public/christmas-cards/christmas-seals-sheet.jpg\`
+
+The seals are modeled inside the existing catalog/order machinery but marked with \`isAccessory: true\`. This is deliberate. The live database constrains order-line types to \`classic_case\` and \`individual_box\`, so introducing a third line type would have required an unnecessary live schema migration.
+
+Accessory rules:
+
+- seals remain an \`individual_box\` database line for compatibility;
+- they **do not count as card boxes**;
+- they **do not contribute to Custom Case pricing**;
+- they **do not count as heavier non-case-pricing card boxes**;
+- inventory allocates one unit per sheet;
+- cart/review/admin wording identifies them as sheets/accessories;
+- their 10 g-per-sheet weight is included in shipping;
+- a seals-only shipping order is valid and uses the small carton rather than inventing a card box;
+- the cart badge uses total selected units so a seals-only cart is not displayed as empty.
+
+The storefront presents the accessory as a grey separator banner immediately before the Catholic Prayer Cards collection rather than as a normal card-gallery tile. Clicking its artwork uses the existing Quick View/lightbox and provides the transparent seals view plus the full-sheet image.
+
+### Important shipping request detail
+
+Both the client-side review shipping request and the server-side final order calculation must pass \`accessorySheetCount\`. A bug was found where the request key included the sheet count but the POST body omitted it. That caused seals-only shipping to be interpreted as an empty cart and caused mixed-order quotes to omit seal weight. The checkout request was corrected in commit \`c1885cd\`.
+
+When changing accessory shipping in future, verify all three counts travel through the complete path:
+
+- \`totalBoxes\`
+- \`nonCasePricingBoxCount\`
+- \`accessorySheetCount\`
+
+## 19. Current admin / inventory behavior
+
+The admin Store Control language now uses **Products** / **Product inventory** so accessories are not mislabeled as card boxes.
+
+Order detail reconstructs the current product mix from saved order lines and uses it to show the operational packing plan. It distinguishes card boxes from seal sheets.
+
+A compact artwork thumbnail has also been added beside each item in **Admin → Order details → Order items**. Individual products use their catalog front artwork; the Classic Case uses the existing Classic 32 assortment image. This is a visual packing/reference aid only and does not affect order data.
+
+Historical customer shipping amounts are not recalculated or rewritten when packing logic improves. Existing paid orders retain the Shipping & Handling amount stored when they were submitted.
+
+## 20. Regression references
+
+A useful real-order regression is order \`CCIC-26-4009\`: 72 card boxes total, consisting of 68 regular boxes and 4 heavier non-case-pricing boxes. The corrected packing model produces:
+
+- parcel 1: 42 boxes, **7.460 kg**
+- parcel 2: 30 boxes, **5.290 kg**
+
+The stored customer Shipping & Handling remains **$48.25** and the stored order total remains **$789.05**.
+
+Useful single-parcel weight checks:
+
+- 1 regular card box in small carton → **0.325 kg**
+- 1 regular box + 1 seal sheet → **0.335 kg**
+- 1 heavy box + 1 seal sheet → **0.370 kg**
+- 32 regular boxes in medium carton → **5.550 kg**
+- 32 regular boxes + 20 seal sheets → **5.750 kg**
+- 1 seal sheet only in small carton → **0.170 kg**
+- 20 seal sheets only in small carton → **0.360 kg**
+
+These are calculator expectations, not substitutes for final physical label weights.
+
+## 21. Safe-change / deployment practice
+
+The CCIC storefront is live and receives real orders. Treat changes as production-sensitive.
+
+Preferred workflow:
+
+1. make narrow changes on an isolated branch where practical;
+2. avoid unrelated refactors while fixing live behavior;
+3. run \`npm run build\` before production deployment;
+4. preserve stored historical order prices/totals;
+5. verify inventory/order/shipping behavior independently when a change touches those paths;
+6. deploy with Vercel only after the branch/build is clean;
+7. perform a minimal live smoke test without submitting unnecessary test orders.
+
+The local development storefront may be blocked by the project's login behavior, so a green build does not imply that a local end-to-end storefront test was performed. Do not claim browser/UI validation unless it was actually performed.
+
+## 22. Handoff usage
 
 A new helper should start by reading this document, then inspect the current branch implementation rather than assuming every historical commit still represents current strategy. The most important live code for shipping is `lib/christmas-cards/canada-post.ts` and `lib/christmas-cards/shiptime.ts`.
 
