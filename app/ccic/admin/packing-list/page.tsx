@@ -47,6 +47,7 @@ const PACKING_STATUS_OPTIONS: Array<{
   { value: 'paid', label: 'Order paid' },
   { value: 'packed', label: 'Order packed' },
   { value: 'shipped', label: 'Order shipped' },
+  { value: 'delivered', label: 'Delivered' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
 
