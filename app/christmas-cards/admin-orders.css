@@ -269,6 +269,12 @@
   color: #1d6b3a !important;
 }
 
+.ccic-admin-status.is-delivered {
+  border: 1px solid #aaa39d;
+  background: transparent;
+  color: #4d4946 !important;
+}
+
 .ccic-admin-status.is-cancelled {
   background: #f9e4e2;
   color: #8a201b !important;
@@ -346,7 +352,7 @@
 
 .ccic-admin-workflow-dates {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin: 18px 0 0;
 }
