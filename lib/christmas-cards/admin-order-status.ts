@@ -3,6 +3,7 @@ export const CCIC_ORDER_STATUSES = [
   'paid',
   'packed',
   'shipped',
+  'delivered',
   'cancelled',
 ] as const
 
@@ -13,6 +14,7 @@ export const CCIC_ORDER_STATUS_LABELS: Record<CcicOrderStatus, string> = {
   paid: 'Order paid',
   packed: 'Order packed',
   shipped: 'Order shipped',
+  delivered: 'Delivered',
   cancelled: 'Cancelled',
 }
 
@@ -21,7 +23,8 @@ export const CCIC_ORDER_STATUS_RANK: Record<CcicOrderStatus, number> = {
   paid: 1,
   packed: 2,
   shipped: 3,
-  cancelled: 4,
+  delivered: 4,
+  cancelled: 5,
 }
 
 export function isCcicOrderStatus(value: unknown): value is CcicOrderStatus {
