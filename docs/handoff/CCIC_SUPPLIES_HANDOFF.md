@@ -1,167 +1,202 @@
-# CCIC Supplies — Project Handoff
+# CCIC Supplies - Technical and Operational Handoff
 
 _Last updated: September 20, 2026_
 
-This document is the working handoff for the `ccic.supplies` Celebrate Christ in Christmas (CCIC) Christmas card ordering program. It is intended to let another developer/helper pick up the project without reconstructing product strategy, checkout behavior, shipping decisions, admin workflow, or integration history from chat.
+This is the canonical handoff for the `ccic.supplies` Celebrate Christ in Christmas (CCIC) ordering program. It records the current production logic and the business decisions behind it so future work does not have to reconstruct the system from chat or historical commits.
 
-## 1. Project purpose
+Where Git history differs from this document, inspect the current code before changing production behavior. Historical commits include experiments that were later superseded.
 
-`ccic.supplies` is the ordering storefront for the Canadian CCIC Christmas card program. The primary customers are Knights of Columbus councils and parishes using the cards as a Christmas/fundraising program.
+## 1. Purpose and operating model
 
-The experience is deliberately simpler than a conventional ecommerce store:
+`ccic.supplies` is the Canadian CCIC Christmas card ordering storefront, primarily serving Knights of Columbus councils and parishes.
 
-- customers assemble an order of finished retail card boxes/cases;
-- the site calculates the order and, where possible, Shipping & Handling;
-- the customer submits the order request;
-- **no payment is collected online**;
-- CCIC follows up with payment instructions/options and handles fulfillment operationally.
+It is intentionally not a conventional paid ecommerce checkout:
 
-Customer-facing screens should remain polished and simple. Operational/carrier complexity belongs in the admin tools, not checkout.
+1. customer selects finished retail card boxes/cases and optional accessories;
+2. customer chooses pickup or shipping;
+3. the site calculates Shipping & Handling when possible;
+4. customer submits an order request;
+5. the order is stored in Supabase and appears in admin;
+6. CCIC reviews the order and handles payment offline;
+7. staff packs the order, verifies final physical weight and creates the shipping label manually;
+8. staff advances the order status administratively.
 
-## 2. Repository / deployment context
+**No payment is collected online.**
+
+Customer-facing screens should stay simple and polished. Carrier mechanics, packing details and operational information belong in admin.
+
+## 2. Repository, branches and deployment
 
 - Repository: `chrism-syd/chrism`
 - Primary shipping branch: `ccic-shiptime-canada-post`
-- Christmas seals feature branch: `ccic-christmas-seals`
-- Production site: `https://ccic.supplies/`
-- Hosting: Vercel
+- Christmas Seals feature branch: `ccic-christmas-seals`
+- Production: `https://ccic.supplies/`
+- Hosting/deployment: Vercel
 - Database/order persistence: Supabase
-- Email: Brevo / `orders@ccic.supplies`
+- Outbound email: Brevo / `orders@ccic.supplies`
 
-Important routes include:
+Important routes:
 
 - storefront: `/ccic`
-- review/order page: `/ccic/review`
+- review/order: `/ccic/review`
 - admin orders: `/ccic/admin/orders`
 - admin order detail: `/ccic/admin/orders/[id]`
 - packing list: `/ccic/admin/packing-list`
-- shipping rate API: `/api/ccic/shipping/rates`
+- Store Control: `/ccic/admin/store-control`
+- shipping API: `/api/ccic/shipping/rates`
 
-Important shipping files:
+Important implementation files:
 
-- `lib/christmas-cards/shiptime.ts`
+- `lib/christmas-cards/catalog.ts`
+- `lib/christmas-cards/order.ts`
+- `lib/christmas-cards/inventory.ts`
 - `lib/christmas-cards/canada-post.ts`
+- `lib/christmas-cards/shiptime.ts`
 - `app/api/ccic/shipping/rates/route.ts`
 - `app/api/ccic/orders/route.ts`
+- `app/christmas-cards/storefront-order-builder.tsx`
 - `app/christmas-cards/review-order-form.tsx`
 - `app/christmas-cards/google-address-autocomplete.tsx`
 
-## 3. Product / packaging model
+## 3. Core product model
 
-### Retail product
+### Standard retail card box
 
-Each finished clear PET retail box contains:
+A finished clear PET retail box contains:
 
 - 12 Christmas cards
 - 12 envelopes
 
-Retail box dimensions are approximately:
+Approximate retail box dimensions:
 
-- `5 13/16 × 8 13/16 × 1/2 in`
-- decimal: `5.8125 × 8.8125 × 0.5 in`
+- `5 13/16 x 8 13/16 x 1/2 in`
+- decimal: `5.8125 x 8.8125 x 0.5 in`
 
-Internal production cost basis used in shipping/value discussions has been `$0.64 per card all-in`, including envelope and retail packaging, or `$7.68` per 12-card retail box.
+Internal production cost reference: **$0.64 per card all-in**, including envelope and retail packaging, or **$7.68 per 12-card retail box**.
 
 ### Classic Case
 
-A Classic Case is **32 finished retail boxes**. The storefront also supports individual box selections and custom combinations.
+A Classic Case contains **32 finished retail boxes**. The storefront also supports individual boxes and Custom Case combinations.
 
-Do not confuse a retail box with a shipping carton. Orders are shipped as **finished retail packages**, not unassembled components.
+A retail box is not a shipping carton. Orders ship as finished retail packages.
 
-## 4. Shipping carton strategy
+### Product shipping weights
 
-The active automated packing strategy uses two primary carton sizes:
+The active calculator uses measured finished-product weights:
 
-| Retail boxes being packed | Shipping carton | Role |
-| --- | --- | --- |
-| up to 32 retail boxes | `12 × 9 × 9 in` | standard carton / full Classic Case |
-| up to 42 retail boxes | `16 × 12 × 8 in` | large carton |
+- standard/case-eligible retail card box: **0.165 kg**
+- heavier non-case-pricing Catholic Prayer Card box: **0.200 kg**
+- Christmas Seals accessory sheet: **0.010 kg**
 
-A `9 × 6 × 6 in` carton is also available as a **backup smaller carton** if a particular small shipment makes it useful. Physical discussion suggests roughly 10–12 retail boxes may fit using edge/upright packing, but it is not part of the automated shipping-calculator rules and should not be given its own threshold unless actual fulfillment experience shows a need for it.
+The regular/heavy card-box weights include cards, envelopes and the clear retail case.
 
-For orders larger than a single carton, use combinations of the standard and large cartons. Avoid creating a nearly empty second carton when a more balanced split is operationally sensible. The calculator's packing algorithm is a useful estimate, but the final packed shipment may be adjusted manually.
+## 4. Automated packing model
 
-**Current decision:** keep the shipping calculator based on the `12 × 9 × 9` and `16 × 12 × 8` cartons. Keep `9 × 6 × 6` documented only as an optional operational backup.
+The calculator uses three shipping cartons:
 
-### Physical calibration still required
+| Card-box quantity | Carton | Calculator tare |
+| --- | --- | ---: |
+| 1-12 | `9 x 6 x 6 in` | **0.160 kg** |
+| 13-32 | `12 x 9 x 9 in` | **0.270 kg** |
+| 33-42 | `16 x 12 x 8 in` | **0.460 kg** |
 
-Weights in the calculator are provisional. Earlier calculations used an old 32-box shipment weight of 6.5 kg, giving a provisional per-retail-box weight of `6.5 / 32 = 0.203125 kg`.
+For larger orders:
 
-Once the final printed cards, envelopes, retail boxes and cartons are physically available:
+- 43-57 boxes: two medium cartons, split approximately evenly
+- 58-74 boxes: 42 boxes in one large carton, remainder in one medium
+- above 74: recursively allocate 42-box large cartons, then apply the normal rules to the remainder
 
-1. pack representative shipments in the 12×9×9 and 16×12×8 cartons;
-2. confirm actual box-count fit for each carton;
-3. optionally test the 9×6×6 backup carton for small shipments;
-4. weigh the packed cartons;
-5. replace the provisional weight model with measured profiles;
-6. retest shipping-rate parity.
+Examples:
 
-Final packed weight should always be confirmed before creating the actual label.
+- 32 -> one medium
+- 42 -> one large
+- 47 -> 24 + 23 in two mediums
+- 64 -> 42 large + 22 medium
+- 128 -> 42 + 42 + 23 + 21
 
-## 5. Shipping strategy
+A few `19 x 9 x 6.75 in` cartons exist operationally. Geometry suggests roughly 39 retail boxes, but these are **not part of the automated calculator**.
 
-### Customer-facing philosophy
+### Deliberately conservative carton tare
 
-The customer sees a single **Shipping & Handling** amount.
+Physical checks later measured approximately:
 
-Do not expose:
+- medium `12 x 9 x 9`: **0.230 kg**
+- large `16 x 12 x 8`: **0.345 kg**
+
+**Do not replace the calculator tare values with those lower measurements.** The calculator intentionally retains **0.270 kg** and **0.460 kg** to provide a conservative weight buffer for packing material and normal fulfillment variation. Small remains **0.160 kg**.
+
+Always confirm the final packed physical weight before purchasing the actual label.
+
+## 5. Shipping & Handling pricing
+
+The customer sees one combined **Shipping & Handling** amount.
+
+The active price is:
+
+**selected Canada Post carrier charge + $2.00 handling buffer per order**
+
+The code constant is `SHIPPING_HANDLING_FEE_CENTS = 200` in `lib/christmas-cards/canada-post.ts`.
+
+The **$2.00 handling buffer is intentional**. It helps cover CCIC's physical packaging/handling costs, including corrugated shipping cartons and normal packing materials. It is:
+
+- added **once per order**, not once per parcel;
+- added after the selected parcel carrier charges are combined;
+- part of the customer-facing Shipping & Handling total;
+- not itemized or explained separately to the customer;
+- not an insurance charge.
+
+Do not accidentally remove it when changing carrier/rating code, and do not multiply it by parcel count.
+
+Customer checkout should not expose:
 
 - carrier discount mechanics;
-- insurance calculations;
-- individual parcel pricing;
-- service-code plumbing;
-- transit estimates unless the product strategy changes.
+- connected-account/BYOR details;
+- parcel-by-parcel pricing;
+- service codes;
+- insurance plumbing;
+- transit estimates.
 
-A hidden **$2.00 handling allowance per order** is added to the calculated carrier amount to help cover carton/packing cost. It is once per order, not once per parcel.
+The admin UI also does not need a special explanatory line for the $2 buffer. It is an internal pricing rule.
 
-### Carrier / rating path
+## 6. Carrier/rating architecture
 
 The intended carrier is Canada Post.
 
-Direct Canada Post Rating API integration was built, but Canada Post's new Developer Portal production provisioning has not behaved correctly. The direct implementation is intentionally retained in `lib/christmas-cards/canada-post.ts` so it can be reactivated if Canada Post fixes production access.
+Current active path:
 
-Current working rate path is:
+`CCIC checkout -> server shipping helper -> ShipTime REST API -> connected Canada Post account (BYOR)`
 
-`CCIC checkout → server shipping helper → ShipTime REST API → connected Canada Post account (BYOR)`
+ShipTime is a rating bridge. It is not the preferred permanent architecture.
 
-ShipTime is being used as a rating bridge, not as the long-term architectural preference. If Canada Post grants reliable direct production API access, the desired strategy is to retire ShipTime and call Canada Post directly.
+### ShipTime
 
-### ShipTime rate selection
+Environment variables:
 
-The ShipTime account has CCIC's own Canada Post account connected. ShipTime can return both ShipTime carrier rates and connected-account rates. Code prefers Canada Post results where `isShipTimeCarrier === false`, i.e. the connected/BYOR Canada Post rate, and falls back to another Canada Post result if necessary.
+- `SHIPTIME_CLIENT_ID`
+- `SHIPTIME_CLIENT_SECRET`
 
-Actual labels can be created manually because expected order volume is modest (historically fewer than roughly 100 orders). There is no need to over-engineer automated label creation unless volume warrants it.
+Endpoints:
 
-### Signature
+- OAuth: `https://restapi.shiptime.com/oauth2/token`
+- rates: `https://restapi.shiptime.com/rest/rates`
 
-The current ShipTime request includes the `SIGNATURE` service option. Keep this unless the business decision changes.
+Requests include actual origin/destination, package dimensions/weight, metric units, next-business-day ship date and `SIGNATURE`.
 
-### Insurance decision — current
+ShipTime can return house rates and connected-account rates. Code prefers Canada Post rates where `isShipTimeCarrier === false`, meaning the connected/BYOR Canada Post account, and falls back to another Canada Post result if necessary.
+
+ShipTime's Canada Post `totalCharge` is treated as the carrier charge. The $2 order-level handling buffer is then added by the CCIC shipping helper.
+
+### Insurance
 
 **Do not purchase additional shipping insurance.**
 
-As of September 6, 2026, the business decision is that whatever standard coverage is included with the Canada Post service is sufficient. The shipping calculation should not add ShipTime insurance or an extra declared-value insurance premium.
+Current business decision: standard carrier coverage is sufficient. Do not send ShipTime insurance or declared value solely for insurance pricing.
 
-The ShipTime implementation was updated accordingly:
+Signature remains enabled.
 
-- removed `insuranceType: 'SHIPTIME'`;
-- removed the declared value from rate requests;
-- retained Signature;
-- retained the $2/order handling allowance.
+### Direct Canada Post implementation
 
-Relevant commits:
-
-- `8f519fb` — Remove added insurance from CCIC shipping quotes
-- `1ec7816` — Stop declaring CCIC shipping insurance value
-
-A Vancouver test after removing insurance used an order of 42 retail boxes (1 Classic Case of 32 plus 10 Individual Boxes). Merchandise subtotal was `$446.40`, Shipping & Handling was `$45.65`, and total was `$492.05`. This is a useful reference test for the current no-extra-insurance configuration.
-
-## 6. Direct Canada Post API status
-
-The direct Canada Post implementation uses:
-
-- OAuth token endpoint: `https://api.canadapost-postescanada.ca/prod/devportal-portaildesdeveloppeurs/cpc-api-native-oauth-provider/oauth2/token`
-- Rating endpoint: `https://api.canadapost-postescanada.ca/prod/devportal-portaildesdeveloppeurs/rating/v1/prices`
+Direct Canada Post rating code is intentionally retained in `lib/christmas-cards/canada-post.ts` for a future switch-back.
 
 Environment variables:
 
@@ -170,151 +205,207 @@ Environment variables:
 - `CANADA_POST_CUSTOMER_NUMBER`
 - optional `CANADA_POST_CONTRACT_ID`
 
-Customer number is displayed by Canada Post as `0001287681`; retain the leading zeros.
+Canada Post customer number is `0001287681`; preserve leading zeros.
 
-Production application:
+Production Developer Portal provisioning previously failed despite the Rating subscription appearing active. A traceable Aug. 31, 2026 production OAuth attempt returned HTTP 401 `unauthorized_client`, transaction ID `65587a596a95c4c4082fd8b1`. Canada Post Developer Support was contacted.
 
-- app: `[Production] CCIC Shipping Rates`
-- Rating 4.0.0 subscription is shown in the Developer Portal.
+If direct production Rating becomes reliable, test parity first, then retire ShipTime from the active path. Do not delete the direct implementation while the issue remains unresolved.
 
-Canada Post support was contacted because earlier Rating calls appeared to return static/mock Regular Parcel data (notably `$35.70` with fixed dates) regardless of payload, while portal analytics showed zero calls.
+## 7. Christmas Seals accessory
 
-A later fresh OAuth test using verified Production credentials returned HTTP 401:
+Christmas Seals are the first storefront accessory.
 
-`unauthorized_client: Invalid client ID or secret, or client not subscribed to this API`
+Current configuration:
 
-The Client ID/API key and secret were verified against the Production application. A traceable failed request on Aug. 31, 2026 at 14:15:32 EDT returned `x-global-transaction-id: 65587a596a95c4c4082fd8b1`.
+- catalog ID: `ca-6021`
+- SKU: `CA-6021`
+- customer price: **$2.50 per sheet**
+- 50 gold-stamped seals in 4 assorted colours per sheet
+- description: “Sheet of 50 gold-stamped seals in 4 assorted colours. Self-sticking for easy use.”
+- initial Supabase inventory: **20 sheets**
+- measured shipping weight: **0.010 kg per sheet**
+- `isAccessory: true`
+- `isCasePricingEligible: false`
+- storefront artwork: `/christmas-cards/christmas_seals.png`
+- full-sheet detail artwork: `/christmas-cards/christmas-seals-sheet.jpg`
 
-This strongly suggests a Canada Post backend provisioning/subscription problem. Developer Support has been asked to investigate. Do not delete the direct Canada Post code while this is unresolved.
+The storefront presents seals in a grey accessory banner before Catholic Prayer Cards, not as a normal card-gallery tile. Existing CardArt/Quick View displays the main artwork and full sheet.
 
-## 7. ShipTime integration
+### Why accessories still use `individual_box`
 
-Server-side environment variables:
+The live database constrains order-line types to `classic_case` and `individual_box`. Seals therefore intentionally remain an `individual_box` database line while catalog metadata marks them as an accessory. This avoided an unnecessary live schema migration.
 
-- `SHIPTIME_CLIENT_ID`
-- `SHIPTIME_CLIENT_SECRET`
+Accessory rules:
 
-Endpoints currently used:
+- one ordered unit = one sheet;
+- sheets do **not** count as card boxes;
+- sheets do **not** contribute to Custom Case pricing;
+- sheets do **not** count as heavier non-case-pricing card boxes;
+- inventory decrements per sheet;
+- low-stock logic should apply to accessories too, using **sheet/sheets** wording;
+- sheet weight is included in shipping;
+- seals-only shipping is valid;
+- seals-only orders use the small carton without inventing a card box;
+- cart totals/badges use total selected units so a seals-only cart is not treated as empty.
 
-- OAuth: `https://restapi.shiptime.com/oauth2/token`
-- rates: `https://restapi.shiptime.com/rest/rates`
+### Accessory shipping data path
 
-Rate requests include:
+All accessory-aware shipping paths must carry:
 
-- real origin/destination data;
-- package dimensions and provisional weight;
-- metric units;
-- next-business-day ship date;
-- Signature;
-- no extra insurance.
+- `totalBoxes`
+- `nonCasePricingBoxCount`
+- `accessorySheetCount`
 
-The amount used by checkout is ShipTime's returned Canada Post `totalCharge`, with the order-level $2 handling allowance added afterward.
+A live-test bug exposed that `review-order-form.tsx` included `accessorySheetCount` in its request cache key but omitted it from the shipping POST body. The result was:
 
-## 8. Address entry / Google Places
+- seals-only shipping appeared empty and failed to price;
+- mixed orders priced but silently omitted seal weight.
 
-The review page uses Google address autocomplete to reduce bad shipping addresses.
+Commit `c1885cd` corrected the request body. Preserve this field in both preview rating and server-side final order recalculation.
 
-Environment variable:
+Weight examples:
+
+- 1 seal sheet only: **0.170 kg** = 0.160 carton + 0.010 sheet
+- 2 seal sheets only: **0.180 kg**
+- 20 seal sheets only: **0.360 kg**
+- 1 regular box + 1 seal: **0.335 kg**
+- 1 heavy box + 1 seal: **0.370 kg**
+- 32 regular boxes + 20 seals: **5.750 kg**
+
+## 8. Order calculation and pricing rules
+
+Order calculations live primarily in `lib/christmas-cards/order.ts`.
+
+Important distinctions:
+
+- Classic Cases are curated 32-box cases.
+- Case-eligible individual boxes can accumulate toward Custom Case pricing.
+- Non-case-pricing card products remain individual boxes and use the heavier 0.200 kg shipping profile.
+- Accessories remain orderable inventory units but are excluded from all card-box/Custom Case counts.
+
+Do not use `cardsPerBox` or database `line_type` alone to infer shipping semantics. Catalog flags such as `isAccessory` and `isCasePricingEligible` are intentional.
+
+Historical order prices are immutable operational records. **Do not recalculate or overwrite a customer's stored Shipping & Handling or total because packing/weight logic later improves.**
+
+## 9. Inventory
+
+Inventory is stored in Supabase and exposed to storefront/admin through the existing CCIC inventory machinery.
+
+Availability controls maximum storefront quantities. A product with zero availability is sold out.
+
+Christmas Seals use the same inventory mechanism, with one unit representing one sheet. Low-stock messaging should apply consistently to card products and accessories, with product-appropriate nouns.
+
+Inventory allocation RPC security was tightened in commit `6013813` (`Restrict CCIC inventory allocation RPC`).
+
+## 10. Checkout and address UX
+
+Customer-facing terminology uses **Individual Boxes**.
+
+Key UX decisions:
+
+- no online payment;
+- Shipping & Handling is calculated from the entered shipping address;
+- pickup remains $0;
+- carrier/service/transit details stay hidden;
+- if live rating fails, checkout clearly falls back to manual Shipping & Handling review rather than inventing a price;
+- completed Custom Case combinations are grouped in the cart;
+- accessories have their own cart/review grouping.
+
+Google address autocomplete uses:
 
 - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+- Maps JavaScript API
+- Places API (New)
 
-This is intentionally client-visible because Google Maps/Places runs in the browser. The key must be restricted in Google Cloud rather than treated as a server secret.
+The key is intentionally client-visible and must be protected with Google Cloud website/API restrictions. Manual address entry remains available.
 
-Current restrictions established:
+A prior React `removeChild` issue was fixed by separating React-owned status UI from the DOM host mutated by Google.
 
-- Application restriction: Websites
-- APIs: Maps JavaScript API + Places API (New)
-- referrers include `http://localhost:3000/*` and `https://ccic.supplies/*`
+## 11. Supabase persistence
 
-The UI includes a manual-address fallback if Google is unavailable. Autocomplete populates the shipping fields and triggers the rate calculation. A prior React `removeChild` error was fixed by keeping React-owned status UI separate from the DOM host Google mutates.
-
-## 9. Checkout / cart UX decisions
-
-The storefront has been iterated heavily around a simple ordering experience.
-
-Key decisions:
-
-- terminology is **Individual Boxes**, not "Individual selections" in customer-facing copy;
-- Classic Cases and individual boxes are distinguished clearly;
-- completed custom-case combinations are grouped in the cart rather than leaving the customer to interpret raw quantities;
-- redundant shipping rows/progress clutter were removed;
-- the review screen calculates Shipping & Handling from the entered address;
-- no payment is collected online;
-- payment options are presented as part of the order-request workflow;
-- carrier/service/transit details stay out of the customer experience;
-- if live rating is unavailable, checkout uses clear manual-shipping fallback messaging rather than inventing a price.
-
-Performance work included lazy-loading individual artwork while keeping important storefront imagery eager/priority where appropriate.
-
-## 10. Order persistence / Supabase
-
-Orders and lines are stored in Supabase, including tables such as:
+Core tables include:
 
 - `ccic_orders`
 - `ccic_order_lines`
 
-Shipping quote metadata has a migration:
+Shipping quote metadata migration:
 
 - `supabase/migrations/20260823023000_add_ccic_shipping_quote_metadata.sql`
 
-The order flow persists the calculated shipping price/metadata where available. Inventory allocation RPC security was also tightened (`Restrict CCIC inventory allocation RPC`, commit `6013813`).
+If code reports a missing shipping-related column, confirm migrations before changing application logic.
 
-If an environment reports that a shipping-related column does not exist, check that all Supabase migrations have been applied before changing application code.
+Stored order shipping/total values represent what the customer was quoted at submission time and should remain unchanged later.
 
-## 11. Admin order workflow
+## 12. Admin workflow
 
-Admin order detail is intentionally more operational than customer checkout.
+Admin order detail intentionally contains more operational detail than customer checkout.
 
 It includes:
 
 - order/customer information;
-- order status workflow and timestamps;
-- customer-detail copy controls;
-- individual copy buttons for Organization, Contact, Email, Phone and Address;
-- `Copy shipping details` for fast manual label entry;
+- status workflow/timestamps;
+- copy controls for customer/shipping details;
 - order items;
-- a separate **Shipping quote packing plan** card.
+- compact artwork thumbnails beside order items for packing reference;
+- Shipping quote packing plan;
+- carton dimensions and calculator pricing weight.
 
-The packing-plan card shows the calculator's proposed parcel allocation, carton dimensions and provisional pricing weight. It is explicitly a calculator recommendation, not an instruction to blindly ship without weighing the carton.
+Individual product thumbnails use catalog front artwork. Classic Case uses the Classic 32 assortment image.
 
-Current note concept:
+The packing plan is recomputed from current packing rules rather than stored as an immutable parcel-plan snapshot. At current order volume this is acceptable. If audit fidelity becomes important, store the parcel plan as JSON at order creation.
 
-> Packing plan by the custom CCIC shipping calculator, using Canada Post via ShipTime. Confirm the final packed weight before creating the label.
+The packing-plan note should continue to remind staff to confirm final packed weight before creating the label.
 
-Do not show an admin explanatory sentence about the $2 handling allowance. The allowance remains in the calculation but was deliberately removed from that UI.
+## 13. Payment and fulfillment
 
-The packing plan is currently recomputed from the present packing rules rather than stored as an immutable parcel-plan snapshot. At current low order volume this is acceptable. If historical/audit fidelity becomes important, store the parcel breakdown as JSON when the order is created.
+After an order request:
 
-## 12. Payment / fulfillment operating model
+1. CCIC reviews it;
+2. payment instructions are handled offline;
+3. staff packs finished retail products;
+4. staff confirms actual packed weight;
+5. staff creates the Canada Post label manually;
+6. status is updated in admin.
 
-This is not a self-serve paid ecommerce checkout. The intended workflow is:
+Manual label creation is intentional at the present order volume. Do not automate fulfillment merely for architectural neatness.
 
-1. customer selects product;
-2. customer provides contact/shipping details;
-3. site calculates Shipping & Handling where possible;
-4. customer submits order request;
-5. order appears in admin;
-6. CCIC reviews it and handles payment offline;
-7. staff packs the finished retail boxes;
-8. staff verifies final packed weight;
-9. staff creates Canada Post label manually (currently via ShipTime/Canada Post workflow);
-10. order status is advanced administratively.
+## 14. Email/admin environment
 
-This manual-last-mile strategy is intentional because expected volume does not justify a complicated fulfillment automation layer.
-
-## 13. Key environment/configuration notes
-
-In addition to shipping and Google variables, the CCIC order/admin flow has used:
+Additional configuration includes:
 
 - `CCIC_ORDER_ADMIN_EMAILS`
 - `CCIC_ORDER_NOTIFICATION_EMAIL`
 - `CCIC_ADMIN_SESSION_SECRET`
 
-Admin email configuration currently expects the configured allowlist shape used by the application. Do not expose secrets in docs or commits.
+Do not place actual secrets in this handoff or commits.
 
-## 14. Important recent shipping commits / evolution
+Customer replies to `orders@ccic.supplies`; email routing/delivery infrastructure is operationally separate from the storefront order calculation.
 
-Useful breadcrumbs in Git history include:
+## 15. Regression references
+
+Real order `CCIC-26-4009` is a useful packing regression:
+
+- 72 total card boxes
+- 68 regular
+- 4 heavier/non-case-pricing
+- parcel 1: 42 boxes, **7.460 kg**
+- parcel 2: 30 boxes, **5.290 kg**
+- stored Shipping & Handling: **$48.25**
+- stored total: **$789.05**
+
+The product-aware weight correction did not change that historical stored customer price.
+
+Other calculator checks:
+
+- 1 regular box: **0.325 kg**
+- 32 regular boxes: **5.550 kg**
+- 42 regular boxes: **7.390 kg**
+
+Final physical label weights still override calculator estimates operationally.
+
+## 16. Important Git breadcrumbs
+
+Useful historical commits include:
 
 - `e749c4b` Add Canada Post rating backend for CCIC
 - `97c5f7f` Expose server-side CCIC shipping rate endpoint
@@ -323,164 +414,47 @@ Useful breadcrumbs in Git history include:
 - `4e499fb` Persist verified Canada Post shipping price on CCIC orders
 - `8629032` Support Canada Post contract rates and full-case multi-parcel quotes
 - `cc9b1cf` Add CCIC two-carton shipping strategy
-- `43e90ca` Include insurance and signature in CCIC shipping quotes (insurance later reversed)
 - `2b29eec` Add CCIC shipping handling allowance
 - `959690b` Add CCIC packing plan to admin orders
-- `0f96d82` Separate CCIC packing plan admin card
-- `d20bfe9` Remove CCIC packing plan handling note
-- `e8d9260` Clarify CCIC packing plan source
 - `8f519fb` Remove added insurance from CCIC shipping quotes
 - `1ec7816` Stop declaring CCIC shipping insurance value
+- `4479c60` Track heavier non-case CCIC boxes for shipping
+- `7d20a89` Support heavier non-case CCIC boxes in shipping
+- `8b124e6` Show product-aware CCIC packing weights in admin
+- `c1885cd` Send seal sheet count in checkout shipping request
 
-The commit history documents experimentation. **Current decisions in this handoff supersede earlier intermediate commits.** In particular, extra insurance is no longer part of the strategy.
+Git history contains intermediate experiments. Current code and the current decisions documented here supersede abandoned approaches.
 
-## 15. Immediate next work
+## 17. Production guardrails
 
-Highest-value next steps:
+The storefront is live and receives real orders.
 
-1. When physical product arrives, test actual fit in the primary `12 × 9 × 9` and `16 × 12 × 8` cartons and record real packed weights.
-2. Test the `9 × 6 × 6` carton only as an optional backup for small shipments; do not add it to `buildCcicPackingPlan` unless real fulfillment experience justifies it.
-3. Replace the provisional `6.5 kg / 32 boxes` weight model with measured values.
-4. Re-run ShipTime/Canada Post quote comparisons after physical calibration.
-5. Continue Canada Post Developer Support thread. If direct production Rating begins working reliably, test parity and then remove ShipTime from the active rating path.
-6. Keep manual label creation unless actual order volume demonstrates a need for automation.
+For future work:
 
-## 16. Guardrails for future helpers
+- make surgical changes;
+- avoid unrelated refactors while fixing live behavior;
+- run `npm run build` before production deployment;
+- preserve historical stored order prices/totals;
+- verify inventory, pricing and shipping paths independently when touched;
+- perform minimal live smoke tests without submitting unnecessary orders;
+- do not expose carrier plumbing to customers;
+- do not re-add paid insurance without a new business decision;
+- preserve the **$2 handling buffer once per order**;
+- preserve the deliberately conservative carton tare weights unless explicitly revisited;
+- keep accessories excluded from card-box and Custom Case counts;
+- keep direct Canada Post code until the production provisioning question is resolved.
 
-- Do not redesign the checkout into a conventional online-payment store without an explicit business decision.
-- Do not expose carrier plumbing, discounts, insurance, service codes or transit estimates to customers merely because the API provides them.
-- Do not re-add paid insurance unless explicitly requested. Standard included carrier coverage is currently sufficient.
-- Keep the $2 handling allowance once per **order**, not per parcel.
-- Preserve direct Canada Post code until the Developer Portal production-access issue is resolved.
-- Treat calculator weights as provisional until physical weighing is complete.
-- Prefer simple manual operational workflows over automation for automation's sake at this order volume.
-- The admin UI can show operational detail that the customer UI intentionally hides.
-- The active packing calculator uses `12 × 9 × 9` and `16 × 12 × 8`. The `9 × 6 × 6` carton is backup-only and should not be added to automated packing rules without a new decision.
+The local development storefront may hit the project's login screen. A green build therefore does **not** mean a local end-to-end storefront test occurred. Do not claim UI/browser validation unless it was actually performed.
 
-## 17. September 2026 measured shipping model
+## 18. Future work
 
-The provisional shipping notes earlier in this document are historical. The live calculator has since been calibrated with measured finished products and deliberately conservative carton tare weights.
+- Continue Canada Post Developer Support follow-up and test direct Rating if production provisioning is repaired.
+- If direct Canada Post works reliably, compare rate parity before removing ShipTime from the active path.
+- Keep manual label creation unless actual order volume warrants automation.
+- Continue recording meaningful product, packing, pricing and fulfillment changes in this file.
 
-### Product weights used by the calculator
+## 19. Handoff usage
 
-- standard/case-eligible finished retail card box: **0.165 kg**
-- non-case-pricing Catholic Prayer Card box: **0.200 kg**
-- Christmas Seals accessory sheet: **0.010 kg**
+Future helpers should read this file first, then inspect the current implementation before making changes. In particular, shipping work should begin with `lib/christmas-cards/canada-post.ts` and `lib/christmas-cards/shiptime.ts`.
 
-The 0.200 kg rule applies to the heavier non-case-pricing individual card boxes, not to accessories.
-
-### Automated cartons
-
-| Carton | Automated capacity | Calculator tare |
-| --- | ---: | ---: |
-| 9 × 6 × 6 in | 1–12 card boxes | **0.160 kg** |
-| 12 × 9 × 9 in | 13–32 card boxes | **0.270 kg** |
-| 16 × 12 × 8 in | 33–42 card boxes | **0.460 kg** |
-
-The medium and large cartons were later physically weighed at approximately 0.230 kg and 0.345 kg respectively. **Do not replace the calculator values with those lower figures.** The 0.270/0.460 kg values were intentionally retained as a conservative packing-material/weight buffer.
-
-Current packing behavior:
-
-- 1–12 boxes → one small carton
-- 13–32 → one medium carton
-- 33–42 → one large carton
-- 43–57 → two medium cartons, approximately balanced
-- 58–74 → 42 in a large carton plus the remainder in a medium
-- above 74 → recursively allocate 42-box large cartons, then apply the normal rules to the remainder
-
-A few \`19 × 9 × 6.75 in\` cartons may exist operationally and appear capable of holding roughly 39 retail boxes. They are **not** part of the automated calculator.
-
-Final packed weight must still be confirmed before purchasing a label.
-
-## 18. Christmas Seals accessory
-
-Christmas Seals were added on the isolated \`ccic-christmas-seals\` branch as SKU **CA-6021**.
-
-Current product configuration:
-
-- customer price: **$2.50 per sheet**
-- each sheet contains **50 gold-stamped seals in 4 assorted colours**
-- customer copy: “Sheet of 50 gold-stamped seals in 4 assorted colours. Self-sticking for easy use.”
-- starting inventory entered in Supabase: **20 sheets**
-- measured shipping weight: **10 g per sheet**
-- main transparent storefront artwork: \`/public/christmas-cards/christmas_seals.png\`
-- detail/full-sheet artwork: \`/public/christmas-cards/christmas-seals-sheet.jpg\`
-
-The seals are modeled inside the existing catalog/order machinery but marked with \`isAccessory: true\`. This is deliberate. The live database constrains order-line types to \`classic_case\` and \`individual_box\`, so introducing a third line type would have required an unnecessary live schema migration.
-
-Accessory rules:
-
-- seals remain an \`individual_box\` database line for compatibility;
-- they **do not count as card boxes**;
-- they **do not contribute to Custom Case pricing**;
-- they **do not count as heavier non-case-pricing card boxes**;
-- inventory allocates one unit per sheet;
-- cart/review/admin wording identifies them as sheets/accessories;
-- their 10 g-per-sheet weight is included in shipping;
-- a seals-only shipping order is valid and uses the small carton rather than inventing a card box;
-- the cart badge uses total selected units so a seals-only cart is not displayed as empty.
-
-The storefront presents the accessory as a grey separator banner immediately before the Catholic Prayer Cards collection rather than as a normal card-gallery tile. Clicking its artwork uses the existing Quick View/lightbox and provides the transparent seals view plus the full-sheet image.
-
-### Important shipping request detail
-
-Both the client-side review shipping request and the server-side final order calculation must pass \`accessorySheetCount\`. A bug was found where the request key included the sheet count but the POST body omitted it. That caused seals-only shipping to be interpreted as an empty cart and caused mixed-order quotes to omit seal weight. The checkout request was corrected in commit \`c1885cd\`.
-
-When changing accessory shipping in future, verify all three counts travel through the complete path:
-
-- \`totalBoxes\`
-- \`nonCasePricingBoxCount\`
-- \`accessorySheetCount\`
-
-## 19. Current admin / inventory behavior
-
-The admin Store Control language now uses **Products** / **Product inventory** so accessories are not mislabeled as card boxes.
-
-Order detail reconstructs the current product mix from saved order lines and uses it to show the operational packing plan. It distinguishes card boxes from seal sheets.
-
-A compact artwork thumbnail has also been added beside each item in **Admin → Order details → Order items**. Individual products use their catalog front artwork; the Classic Case uses the existing Classic 32 assortment image. This is a visual packing/reference aid only and does not affect order data.
-
-Historical customer shipping amounts are not recalculated or rewritten when packing logic improves. Existing paid orders retain the Shipping & Handling amount stored when they were submitted.
-
-## 20. Regression references
-
-A useful real-order regression is order \`CCIC-26-4009\`: 72 card boxes total, consisting of 68 regular boxes and 4 heavier non-case-pricing boxes. The corrected packing model produces:
-
-- parcel 1: 42 boxes, **7.460 kg**
-- parcel 2: 30 boxes, **5.290 kg**
-
-The stored customer Shipping & Handling remains **$48.25** and the stored order total remains **$789.05**.
-
-Useful single-parcel weight checks:
-
-- 1 regular card box in small carton → **0.325 kg**
-- 1 regular box + 1 seal sheet → **0.335 kg**
-- 1 heavy box + 1 seal sheet → **0.370 kg**
-- 32 regular boxes in medium carton → **5.550 kg**
-- 32 regular boxes + 20 seal sheets → **5.750 kg**
-- 1 seal sheet only in small carton → **0.170 kg**
-- 20 seal sheets only in small carton → **0.360 kg**
-
-These are calculator expectations, not substitutes for final physical label weights.
-
-## 21. Safe-change / deployment practice
-
-The CCIC storefront is live and receives real orders. Treat changes as production-sensitive.
-
-Preferred workflow:
-
-1. make narrow changes on an isolated branch where practical;
-2. avoid unrelated refactors while fixing live behavior;
-3. run \`npm run build\` before production deployment;
-4. preserve stored historical order prices/totals;
-5. verify inventory/order/shipping behavior independently when a change touches those paths;
-6. deploy with Vercel only after the branch/build is clean;
-7. perform a minimal live smoke test without submitting unnecessary test orders.
-
-The local development storefront may be blocked by the project's login behavior, so a green build does not imply that a local end-to-end storefront test was performed. Do not claim browser/UI validation unless it was actually performed.
-
-## 22. Handoff usage
-
-A new helper should start by reading this document, then inspect the current branch implementation rather than assuming every historical commit still represents current strategy. The most important live code for shipping is `lib/christmas-cards/canada-post.ts` and `lib/christmas-cards/shiptime.ts`.
-
-Update this handoff whenever a material CCIC decision changes, especially carton capacities/weights, carrier integration, payment workflow, or fulfillment strategy.
+This file should be updated whenever a material CCIC decision changes, especially product semantics, carton capacities/weights, Shipping & Handling pricing, carrier integration, inventory behavior, payment workflow or fulfillment strategy.
