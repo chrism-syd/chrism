@@ -42,6 +42,7 @@ type OrderRow = {
   paid_at: string | null
   packed_at: string | null
   shipped_at: string | null
+  delivered_at: string | null
   created_at: string
   updated_at: string
 }
@@ -139,6 +140,7 @@ export default async function CcicOrderDetailPage({
               <div><dt>Paid</dt><dd>{formatDate(order.paid_at)}</dd></div>
               <div><dt>Packed</dt><dd>{formatDate(order.packed_at)}</dd></div>
               <div><dt>Shipped</dt><dd>{formatDate(order.shipped_at)}</dd></div>
+              <div><dt>Delivered</dt><dd>{formatDate(order.delivered_at)}</dd></div>
             </dl>
           </section>
 
