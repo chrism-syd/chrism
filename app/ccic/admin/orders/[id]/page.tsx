@@ -141,7 +141,7 @@ export default async function CcicOrderDetailPage({
           <section className="ccic-admin-panel ccic-admin-status-panel">
             <div className="ccic-admin-panel-heading">
               <h2>Order status</h2>
-              <span className={`ccic-admin-status is-${order.status_code}`}>{getCcicOrderStatusLabel(order.status_code)}</span>
+              <span className={`ccic-admin-status is-${displayedFulfillmentStatus}`}>{getCcicOrderStatusLabel(displayedFulfillmentStatus)}</span>
             </div>
             <div className="ccic-admin-status-forms">
               <form action={updateCcicOrderStatus} className="ccic-admin-status-form">
