@@ -12,7 +12,7 @@ import {
   getCcicOrderStatusLabel,
   type CcicOrderStatus,
 } from '@/lib/christmas-cards/admin-order-status'
-import { updateCcicOrderStatus } from '../actions'
+import { updateCcicOrderStatus, updateCcicPaymentStatus } from '../actions'
 import CopyCustomerDetails from './copy-customer-details'
 import '../../../../christmas-cards/admin-orders.css'
 
@@ -86,12 +86,13 @@ export default async function CcicOrderDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ updated?: string | string[]; error?: string | string[] }>
+  searchParams: Promise<{ updated?: string | string[]; paymentUpdated?: string | string[]; error?: string | string[] }>
 }) {
   const { id } = await params
   await requireCcicOrderAdmin(`/ccic/admin/orders/${id}`)
   const query = await searchParams
   const updated = stringParam(query.updated) === '1'
+  const paymentUpdated = stringParam(query.paymentUpdated) === '1'
   const errorCode = stringParam(query.error)
 
   const admin = createAdminClient()
@@ -130,6 +131,7 @@ export default async function CcicOrderDetailPage({
       </header>
 
       {updated ? <p className="ccic-admin-notice">Order status updated.</p> : null}
+      {paymentUpdated ? <p className="ccic-admin-notice">Payment status updated.</p> : null}
       {errorCode ? <p className="ccic-admin-error">The order status could not be updated. Please try again.</p> : null}
 
       <div className="ccic-admin-detail-grid">
@@ -139,16 +141,30 @@ export default async function CcicOrderDetailPage({
               <h2>Order status</h2>
               <span className={`ccic-admin-status is-${order.status_code}`}>{getCcicOrderStatusLabel(order.status_code)}</span>
             </div>
-            <form action={updateCcicOrderStatus} className="ccic-admin-status-form">
-              <input type="hidden" name="order_id" value={order.id} />
-              <label htmlFor="status">Update workflow status</label>
-              <div>
-                <select id="status" name="status" defaultValue={order.status_code}>
-                  {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
-                </select>
-                <button type="submit">Save status</button>
-              </div>
-            </form>
+            <div className="ccic-admin-status-forms">
+              <form action={updateCcicOrderStatus} className="ccic-admin-status-form">
+                <input type="hidden" name="order_id" value={order.id} />
+                <label htmlFor="status">Fulfilment status</label>
+                <div>
+                  <select id="status" name="status" defaultValue={order.status_code}>
+                    {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
+                  </select>
+                  <button type="submit">Save status</button>
+                </div>
+              </form>
+
+              <form action={updateCcicPaymentStatus} className="ccic-admin-status-form">
+                <input type="hidden" name="order_id" value={order.id} />
+                <label htmlFor="payment_status">Payment status</label>
+                <div>
+                  <select id="payment_status" name="payment_status" defaultValue={order.paid_at ? 'paid' : 'awaiting_payment'}>
+                    <option value="awaiting_payment">Awaiting payment</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                  <button type="submit">Save payment</button>
+                </div>
+              </form>
+            </div>
             <dl className="ccic-admin-workflow-dates">
               <div><dt>Received</dt><dd>{formatDate(order.created_at)}</dd></div>
               <div><dt>Paid</dt><dd>{formatDate(order.paid_at)}</dd></div>
