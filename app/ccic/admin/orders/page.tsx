@@ -148,6 +148,7 @@ export default async function CcicOrdersPage({
   const statusFilter = isCcicOrderStatus(requestedStatus) ? requestedStatus : ''
   const requestedPayment = stringParam(params.payment) || ''
   const paymentFilter = requestedPayment === 'paid' || requestedPayment === 'awaiting_payment' ? requestedPayment : ''
+  const fulfillmentStatuses = CCIC_ORDER_STATUSES.filter((status) => status !== 'paid')
 
   const admin = createAdminClient()
   const { data, error } = await admin
@@ -191,7 +192,7 @@ export default async function CcicOrdersPage({
           <label htmlFor="status">Status</label>
           <select id="status" name="status" defaultValue={statusFilter}>
             <option value="">All statuses</option>
-            {CCIC_ORDER_STATUSES.map((status) => (
+            {fulfillmentStatuses.map((status) => (
               <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>
             ))}
           </select>
