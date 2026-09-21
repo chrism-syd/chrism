@@ -116,6 +116,8 @@ export default async function CcicOrderDetailPage({
   const nonCasePricingBoxCount = lines.reduce((sum, line) => sum + (line.line_type === 'individual_box' && nonCasePricingBoxIds.has(line.catalog_id) ? line.quantity : 0), 0)
   const accessorySheetCount = lines.reduce((sum, line) => sum + (accessoryIds.has(line.catalog_id) ? line.quantity : 0), 0)
   const packingPlan = order.fulfillment_method === 'shipping' ? buildCcicPackingPlan(totalBoxes, nonCasePricingBoxCount, accessorySheetCount) : []
+  const fulfillmentStatuses = CCIC_ORDER_STATUSES.filter((status) => status !== 'paid')
+  const displayedFulfillmentStatus = order.status_code === 'paid' ? 'received' : order.status_code
 
   return (
     <main className="ccic-admin-page">
@@ -146,8 +148,8 @@ export default async function CcicOrderDetailPage({
                 <input type="hidden" name="order_id" value={order.id} />
                 <label htmlFor="status">Fulfilment status</label>
                 <div>
-                  <select id="status" name="status" defaultValue={order.status_code}>
-                    {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
+                  <select id="status" name="status" defaultValue={displayedFulfillmentStatus}>
+                    {fulfillmentStatuses.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
                   </select>
                   <button type="submit">Save status</button>
                 </div>
