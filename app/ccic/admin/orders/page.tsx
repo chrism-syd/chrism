@@ -24,10 +24,11 @@ type OrderRow = {
   cell_phone: string | null
   fulfillment_method: 'pickup' | 'shipping'
   total_cents: number
+  paid_at: string | null
   created_at: string
 }
 
-type SortKey = 'order_number' | 'organization_name' | 'contact_name' | 'fulfillment_method' | 'status_code' | 'total_cents' | 'created_at'
+type SortKey = 'order_number' | 'organization_name' | 'contact_name' | 'fulfillment_method' | 'status_code' | 'payment_status' | 'total_cents' | 'created_at'
 type SortDirection = 'asc' | 'desc'
 
 const SORT_KEYS = new Set<SortKey>([
@@ -36,6 +37,7 @@ const SORT_KEYS = new Set<SortKey>([
   'contact_name',
   'fulfillment_method',
   'status_code',
+  'payment_status',
   'total_cents',
   'created_at',
 ])
@@ -57,12 +59,14 @@ function buildSortHref(args: {
   currentSort: SortKey
   currentDirection: SortDirection
   status: string
+  payment: string
 }) {
   const direction: SortDirection = args.currentSort === args.key && args.currentDirection === 'asc'
     ? 'desc'
     : 'asc'
   const params = new URLSearchParams({ sort: args.key, dir: direction })
   if (args.status) params.set('status', args.status)
+  if (args.payment) params.set('payment', args.payment)
   return `/ccic/admin/orders?${params.toString()}`
 }
 
@@ -71,6 +75,11 @@ function sortOrders(orders: OrderRow[], key: SortKey, direction: SortDirection) 
   return [...orders].sort((a, b) => {
     if (key === 'status_code') {
       return (CCIC_ORDER_STATUS_RANK[a.status_code] - CCIC_ORDER_STATUS_RANK[b.status_code]) * multiplier
+    }
+    if (key === 'payment_status') {
+      const aPaid = a.paid_at ? 1 : 0
+      const bPaid = b.paid_at ? 1 : 0
+      return (aPaid - bPaid) * multiplier
     }
     if (key === 'total_cents') {
       return (a.total_cents - b.total_cents) * multiplier
@@ -92,18 +101,20 @@ function SortHeading({
   currentSort,
   currentDirection,
   status,
+  payment,
 }: {
   label: string
   sortKey: SortKey
   currentSort: SortKey
   currentDirection: SortDirection
   status: string
+  payment: string
 }) {
   const active = sortKey === currentSort
   return (
     <Link
       className={`ccic-admin-sort${active ? ' is-active' : ''}`}
-      href={buildSortHref({ key: sortKey, currentSort, currentDirection, status })}
+      href={buildSortHref({ key: sortKey, currentSort, currentDirection, status, payment })}
     >
       {label}
       <span aria-hidden="true">{active ? (currentDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
@@ -122,6 +133,7 @@ export default async function CcicOrdersPage({
     sort?: string | string[]
     dir?: string | string[]
     status?: string | string[]
+    payment?: string | string[]
   }>
 }) {
   await requireCcicOrderAdmin('/ccic/admin/orders')
@@ -134,20 +146,25 @@ export default async function CcicOrdersPage({
   const sortDirection: SortDirection = stringParam(params.dir) === 'asc' ? 'asc' : 'desc'
   const requestedStatus = stringParam(params.status) || ''
   const statusFilter = isCcicOrderStatus(requestedStatus) ? requestedStatus : ''
+  const requestedPayment = stringParam(params.payment) || ''
+  const paymentFilter = requestedPayment === 'paid' || requestedPayment === 'awaiting_payment' ? requestedPayment : ''
 
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('ccic_orders')
-    .select('id, order_number, status_code, contact_name, organization_name, email, cell_phone, fulfillment_method, total_cents, created_at')
+    .select('id, order_number, status_code, contact_name, organization_name, email, cell_phone, fulfillment_method, total_cents, paid_at, created_at')
 
   if (error) {
     throw new Error(`Unable to load CCIC orders: ${error.message}`)
   }
 
   const decryptedOrders = decryptPeopleRecords((data ?? []) as OrderRow[])
-  const filteredOrders = statusFilter
+  const workflowFilteredOrders = statusFilter
     ? decryptedOrders.filter((order) => order.status_code === statusFilter)
     : decryptedOrders
+  const filteredOrders = paymentFilter
+    ? workflowFilteredOrders.filter((order) => paymentFilter === 'paid' ? Boolean(order.paid_at) : !order.paid_at)
+    : workflowFilteredOrders
   const orders = sortOrders(filteredOrders, sortKey, sortDirection)
 
   return (
@@ -178,8 +195,14 @@ export default async function CcicOrdersPage({
               <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>
             ))}
           </select>
+          <label htmlFor="payment">Payment</label>
+          <select id="payment" name="payment" defaultValue={paymentFilter}>
+            <option value="">All payment statuses</option>
+            <option value="awaiting_payment">Awaiting payment</option>
+            <option value="paid">Paid</option>
+          </select>
           <button type="submit">Filter orders</button>
-          {statusFilter ? <Link href="/ccic/admin/orders">Clear filter</Link> : null}
+          {statusFilter || paymentFilter ? <Link href="/ccic/admin/orders">Clear filters</Link> : null}
         </form>
       </section>
 
@@ -194,13 +217,14 @@ export default async function CcicOrdersPage({
             <table className="ccic-admin-table">
               <thead>
                 <tr>
-                  <th><SortHeading label="Order" sortKey="order_number" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
-                  <th><SortHeading label="Organization" sortKey="organization_name" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
-                  <th><SortHeading label="Contact" sortKey="contact_name" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
-                  <th><SortHeading label="Fulfilment" sortKey="fulfillment_method" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
-                  <th><SortHeading label="Status" sortKey="status_code" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
-                  <th><SortHeading label="Total" sortKey="total_cents" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
-                  <th><SortHeading label="Submitted" sortKey="created_at" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} /></th>
+                  <th><SortHeading label="Order" sortKey="order_number" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Organization" sortKey="organization_name" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Contact" sortKey="contact_name" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Fulfilment" sortKey="fulfillment_method" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Status" sortKey="status_code" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Payment" sortKey="payment_status" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Total" sortKey="total_cents" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
+                  <th><SortHeading label="Submitted" sortKey="created_at" currentSort={sortKey} currentDirection={sortDirection} status={statusFilter} payment={paymentFilter} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -216,6 +240,11 @@ export default async function CcicOrdersPage({
                     <td>
                       <span className={`ccic-admin-status is-${order.status_code}`}>
                         {getCcicOrderStatusLabel(order.status_code)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`ccic-admin-status is-payment-${order.paid_at ? 'paid' : 'awaiting'}`}>
+                        {order.paid_at ? 'Paid' : 'Awaiting payment'}
                       </span>
                     </td>
                     <td>{formatChristmasCardMoney(order.total_cents)}</td>
