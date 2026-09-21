@@ -46,14 +46,13 @@ const PACKING_STATUS_OPTIONS: Array<{
   label: string
 }> = [
   { value: 'received', label: 'Order received' },
-  { value: 'paid', label: 'Order paid' },
   { value: 'packed', label: 'Order packed' },
   { value: 'shipped', label: 'Order shipped' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
 
-const DEFAULT_PACKING_STATUSES: CcicOrderStatus[] = ['received', 'paid', 'packed']
-const OPEN_ORDERS_PATH = '/ccic/admin/packing-list?filtered=1&status=received&status=paid&status=packed'
+const DEFAULT_PACKING_STATUSES: CcicOrderStatus[] = ['received', 'packed']
+const OPEN_ORDERS_PATH = '/ccic/admin/packing-list?filtered=1&status=received&status=packed'
 
 function stringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
