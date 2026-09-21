@@ -12,10 +12,43 @@ function formText(formData: FormData, key: string) {
 }
 
 function statusTimestampField(status: CcicOrderStatus) {
-  if (status === 'paid') return 'paid_at'
   if (status === 'packed') return 'packed_at'
   if (status === 'shipped') return 'shipped_at'
   return null
+}
+
+export async function updateCcicPaymentStatus(formData: FormData) {
+  const orderId = formText(formData, 'order_id')
+  const paymentStatus = formText(formData, 'payment_status')
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
+    redirect('/ccic/admin/orders?error=invalid-order')
+  }
+
+  await requireCcicOrderAdmin(`/ccic/admin/orders/${orderId}`)
+
+  if (paymentStatus !== 'awaiting_payment' && paymentStatus !== 'paid') {
+    redirect(`/ccic/admin/orders/${orderId}?error=invalid-payment-status`)
+  }
+
+  const now = new Date().toISOString()
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('ccic_orders')
+    .update({
+      paid_at: paymentStatus === 'paid' ? now : null,
+      updated_at: now,
+    })
+    .eq('id', orderId)
+
+  if (error) {
+    console.error('CCIC payment status update failed', error)
+    redirect(`/ccic/admin/orders/${orderId}?error=payment-status-update`)
+  }
+
+  revalidatePath('/ccic/admin/orders')
+  revalidatePath(`/ccic/admin/orders/${orderId}`)
+  redirect(`/ccic/admin/orders/${orderId}?paymentUpdated=1`)
 }
 
 export async function updateCcicOrderStatus(formData: FormData) {
