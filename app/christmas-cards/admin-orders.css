@@ -269,7 +269,9 @@
   color: #1d6b3a !important;
 }
 
-.ccic-admin-status.is-delivered {
+.ccic-admin-status.is-delivered,
+.ccic-admin-status.is-payment-paid,
+.ccic-admin-status.is-payment-awaiting {
   border: 1px solid #aaa39d;
   background: transparent;
   color: #4d4946 !important;
@@ -330,6 +332,12 @@
 
 .ccic-admin-detail-main .ccic-admin-panel + .ccic-admin-panel {
   margin-top: 0;
+}
+
+.ccic-admin-status-forms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .ccic-admin-status-form {
@@ -689,6 +697,10 @@
 
   .ccic-admin-panel {
     padding: 20px;
+  }
+
+  .ccic-admin-status-forms {
+    grid-template-columns: 1fr;
   }
 
   .ccic-admin-status-form > div {
