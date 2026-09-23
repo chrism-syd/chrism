@@ -1,0 +1,19 @@
+.ccic-us-market-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.8rem 1rem;
+  background: #f4f1ea;
+  border-bottom: 1px solid rgba(32, 32, 32, 0.12);
+  text-align: center;
+}
+.ccic-us-market-banner strong {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+.ccic-us-market-banner span {
+  font-size: 0.9rem;
+}
