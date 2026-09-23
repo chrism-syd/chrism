@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import BoxGalleryCard from '../box-gallery-card'
 import CardArt from '../card-art'
 import QuantityControl, { quantityFromMap, setQuantityValue } from '../quantity-control'
@@ -46,6 +47,7 @@ function readStoredDraft() {
 }
 
 export default function StorefrontOrderBuilder({ cases, boxes, collections, inventoryAvailability, caseAvailability }: Props) {
+  const router = useRouter()
   const [caseQuantities, setCaseQuantities] = useState<QuantityMap>({})
   const [boxQuantities, setBoxQuantities] = useState<QuantityMap>({})
   const [fulfillmentMethod, setFulfillmentMethod] = useState<CcicFulfillmentMethod>('shipping')
@@ -145,7 +147,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
     if (!calculatedOrder.hasOrder) return
     window.sessionStorage.setItem(CCIC_US_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draftInput))
     closeCart()
-    // Intentionally isolated: U.S. checkout is not enabled in this first milestone.
+    router.push('/ccic/us/review')
   }
 
   return (
@@ -231,7 +233,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
         </div>
         <div className="ccic-fulfillment-choice" aria-label="Fulfilment method"><span className="ccic-fulfillment-label">Fulfilment</span><div className="ccic-fulfillment-toggle" role="group" aria-label="Choose pickup or shipping"><button type="button" className={fulfillmentMethod === 'pickup' ? 'is-selected' : ''} aria-pressed={fulfillmentMethod === 'pickup'} onClick={() => setFulfillmentMethod('pickup')}><span>Pickup</span><strong>$0</strong></button><button type="button" className={fulfillmentMethod === 'shipping' ? 'is-selected' : ''} aria-pressed={fulfillmentMethod === 'shipping'} onClick={() => setFulfillmentMethod('shipping')}><span>Shipping</span><strong>Calculated on next screen</strong></button></div></div>
         <div className="ccic-summary-total"><div className="ccic-summary-line ccic-total-line"><span>Order total</span><strong>{formatUsChristmasCardMoney(calculatedOrder.totalCents)}</strong></div></div>
-        <button type="button" className="ccic-primary-button" onClick={reviewOrder} disabled>U.S. checkout coming soon</button>
+        <button type="button" className="ccic-primary-button" onClick={reviewOrder}>Review U.S. order</button>
       </div></aside></div> : null}
     </>
   )
