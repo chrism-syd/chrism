@@ -92,8 +92,8 @@ export default function UsReviewOrderForm() {
   if (draft === undefined) return <div className="ccic-review-loading">Loading your U.S. order…</div>
   if (!draft || !order?.hasOrder) return <section className="ccic-review-empty"><p className="ccic-eyebrow">U.S. store</p><h1>Your cart is empty</h1><p>Return to the U.S. collection and add the cards you would like to order.</p><Link className="ccic-review-primary-link" href="/ccic/us">Return to card selection</Link></section>
 
-  const shippingUsdCents = shipping.status === 'priced' ? shipping.amountUsdCents : 0
-  const estimatedTotal = order.subtotalCents + shippingUsdCents
+  const handlingCents = 200
+  const currentTotal = order.subtotalCents + handlingCents
 
   return <div className="ccic-review-layout">
     <form ref={formRef} className="ccic-review-form" onSubmit={(event) => event.preventDefault()} onInput={(event) => {
@@ -105,7 +105,7 @@ export default function UsReviewOrderForm() {
         form.dataset.rateTimer = String(timer)
       }
     }}>
-      <div className="ccic-review-heading"><p className="ccic-eyebrow">United States</p><h1>Review your order</h1><p>This U.S. checkout is isolated from the Canadian ordering system while we validate shipping and customs.</p></div>
+      <div className="ccic-review-heading"><p className="ccic-eyebrow">United States</p><h1>Review your order</h1><p>Submit your order request today. We’ll calculate your final shipping and import costs within 24 hours whenever possible. In some cases, this may take up to 48 hours. We’ll then email you a secure link to review the final amount, and you’ll have 48 hours to confirm your order.</p></div>
 
       <fieldset className="ccic-review-address"><legend>Shipping address</legend>
         <UsGoogleAddressAutocomplete onAddressSelected={selectedAddress} onUnavailable={() => setShowAddressFields(true)} />
@@ -123,7 +123,7 @@ export default function UsReviewOrderForm() {
 
       {hasUnsupportedCustomsItems ? <p className="ccic-review-note"><strong>Customs test limitation:</strong> automated U.S. shipping is currently being validated for the standard Christmas card collection only. Prayer-card boxes and Christmas seals will be added after their customs classifications are confirmed.</p> : null}
 
-      <div className="ccic-review-actions"><Link href="/ccic/us">Return to make changes</Link><button type="button" disabled>Order submission coming next</button></div>
+      <div className="ccic-review-actions"><Link href="/ccic/us">Return to make changes</Link><button type="button" disabled>Submit order request coming next</button></div>
     </form>
 
     <aside className="ccic-review-summary" aria-label="U.S. order summary">
@@ -131,10 +131,11 @@ export default function UsReviewOrderForm() {
       <div className="ccic-review-lines">{order.lines.map((line) => <div className="ccic-review-line" key={`${line.lineType}-${line.catalogId}`}><span>{line.quantity} × {line.title}</span><strong>{formatUsChristmasCardMoney(line.lineTotalCents)}</strong></div>)}</div>
       <div className="ccic-review-totals">
         <div><span>Subtotal</span><strong>{formatUsChristmasCardMoney(order.subtotalCents)}</strong></div>
-        <div><span>Shipping & import</span><strong>{shipping.status === 'priced' ? formatUsChristmasCardMoney(shipping.amountUsdCents) : shipping.status === 'calculating' ? 'Calculating…' : 'Enter address'}</strong></div>
-        <div className="ccic-review-grand-total"><span>Estimated total</span><strong>{formatUsChristmasCardMoney(estimatedTotal)}</strong></div>
+        <div><span>Shipping & import</span><strong>Confirmed after review</strong></div>
+        <div><span>Handling</span><strong>{formatUsChristmasCardMoney(handlingCents)}</strong></div>
+        <div className="ccic-review-grand-total"><span>Current subtotal</span><strong>{formatUsChristmasCardMoney(currentTotal)}</strong></div>
       </div>
-      {shipping.status === 'priced' ? <div className="ccic-review-shipping-status"><strong>{shipping.carrierName} · {shipping.serviceName}</strong><span>{shipping.transitDays ? `Estimated ${shipping.transitDays} business day${shipping.transitDays === 1 ? '' : 's'}` : 'Transit time unavailable'}{shipping.alternateCount ? ` · ${shipping.alternateCount} other rate${shipping.alternateCount === 1 ? '' : 's'} checked` : ''}</span><small>Displayed in USD using the U.S. storefront's protective shipping conversion. ShipTime is requested to bill duties and taxes to the shipper.</small></div> : null}
+      {shipping.status === 'priced' ? <div className="ccic-review-shipping-status"><strong>{shipping.carrierName} · {shipping.serviceName}</strong><span>{shipping.transitDays ? `Estimated ${shipping.transitDays} business day${shipping.transitDays === 1 ? '' : 's'}` : 'Transit time unavailable'}{shipping.alternateCount ? ` · ${shipping.alternateCount} other rate${shipping.alternateCount === 1 ? '' : 's'} checked` : ''}</span><small>This carrier rate is for our shipping review only. Your final shipping and import amount will be emailed for approval before the order is confirmed.</small></div> : null}
       {shipping.status === 'pending' ? <p className="ccic-review-note">{shipping.message}</p> : null}
     </aside>
   </div>
