@@ -40,6 +40,8 @@ export default function UsReviewOrderForm() {
   const [draft, setDraft] = useState<CcicOrderDraftInput | null | undefined>(undefined)
   const [shipping, setShipping] = useState<ShippingState>({ status: 'waiting' })
   const [showAddressFields, setShowAddressFields] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const formRef = useRef<HTMLFormElement | null>(null)
 
   useEffect(() => {
@@ -95,6 +97,48 @@ export default function UsReviewOrderForm() {
   const handlingCents = 200
   const currentTotal = order.subtotalCents + handlingCents
 
+  const submitOrder = async () => {
+    const form = formRef.current
+    if (!form || !draft) return
+    if (!form.reportValidity()) return
+    const address = addressFromForm(form)
+    if (!validAddress(address)) { setSubmitError('Please enter a complete U.S. shipping address.'); return }
+
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const response = await fetch('/api/ccic/us/orders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          draft,
+          contact: {
+            contactName: fieldValue(form, 'contact_name'),
+            organizationName: fieldValue(form, 'organization_name'),
+            email: fieldValue(form, 'email'),
+            phone: fieldValue(form, 'phone'),
+            addressLine1: address.addressLine1,
+            addressLine2: fieldValue(form, 'address_line_2'),
+            city: address.city,
+            state: address.state,
+            postalCode: address.postalCode,
+          },
+        }),
+      })
+      const payload = await response.json().catch(() => null) as { orderNumber?: string; error?: string } | null
+      if (!response.ok || !payload?.orderNumber) {
+        setSubmitError(payload?.error || 'We could not submit your order request. Please try again.')
+        return
+      }
+      window.sessionStorage.removeItem(CCIC_US_ORDER_DRAFT_STORAGE_KEY)
+      window.location.assign(`/ccic/us/order/${encodeURIComponent(payload.orderNumber)}/received`)
+    } catch {
+      setSubmitError('We could not submit your order request. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return <div className="ccic-review-layout">
     <form ref={formRef} className="ccic-review-form" onSubmit={(event) => event.preventDefault()} onInput={(event) => {
       const target = event.target as HTMLInputElement
@@ -106,6 +150,15 @@ export default function UsReviewOrderForm() {
       }
     }}>
       <div className="ccic-review-heading"><p className="ccic-eyebrow">United States</p><h1>Review your order</h1><p>Submit your order request today. We’ll calculate your final shipping and import costs within 24 hours whenever possible. In some cases, this may take up to 48 hours. We’ll then email you a secure link to review the final amount, and you’ll have 48 hours to confirm your order.</p></div>
+
+      <fieldset className="ccic-review-address"><legend>Contact details</legend>
+        <div className="ccic-review-fields">
+          <label><span>Your name</span><input name="contact_name" autoComplete="name" required /></label>
+          <label><span>Council or organization</span><input name="organization_name" autoComplete="organization" required /></label>
+          <label><span>Email</span><input name="email" type="email" autoComplete="email" required /></label>
+          <label><span>Phone</span><input name="phone" type="tel" autoComplete="tel" required /></label>
+        </div>
+      </fieldset>
 
       <fieldset className="ccic-review-address"><legend>Shipping address</legend>
         <UsGoogleAddressAutocomplete onAddressSelected={selectedAddress} onUnavailable={() => setShowAddressFields(true)} />
@@ -123,7 +176,8 @@ export default function UsReviewOrderForm() {
 
       {hasUnsupportedCustomsItems ? <p className="ccic-review-note"><strong>Customs test limitation:</strong> automated U.S. shipping is currently being validated for the standard Christmas card collection only. Prayer-card boxes and Christmas seals will be added after their customs classifications are confirmed.</p> : null}
 
-      <div className="ccic-review-actions"><Link href="/ccic/us">Return to make changes</Link><button type="button" disabled>Submit order request coming next</button></div>
+      <div className="ccic-review-actions"><Link href="/ccic/us">Return to make changes</Link><button type="button" disabled={submitting} onClick={() => void submitOrder()}>{submitting ? 'Submitting…' : 'Submit order request'}</button></div>
+      {submitError ? <p className="ccic-review-note" role="alert">{submitError}</p> : null}
     </form>
 
     <aside className="ccic-review-summary" aria-label="U.S. order summary">
