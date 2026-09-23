@@ -71,7 +71,7 @@ export function useUsCcicCart() {
 export function UsCcicCartButton() {
   const { isOpen, openCart, summary } = useUsCcicCart()
   const label = summary.hasOrder
-    ? `Open order summary for ${summary.totalSelectedUnits} item${summary.totalSelectedUnits === 1 ? '' : 's'} totaling ${formatChristmasCardMoney(summary.estimatedTotalCents)}`
+    ? `Open order summary for ${summary.totalSelectedUnits} item${summary.totalSelectedUnits === 1 ? '' : 's'} totaling ${formatUsChristmasCardMoney(summary.estimatedTotalCents)}`
     : 'Open order summary'
 
   return (
@@ -93,7 +93,7 @@ export function UsCcicCartButton() {
       </span>
       <span className="ccic-header-cart-meta">
         <strong>{summary.totalSelectedUnits > 0 ? `${summary.totalSelectedUnits} item${summary.totalSelectedUnits === 1 ? '' : 's'}` : 'Cart'}</strong>
-        <span>{summary.hasOrder ? formatChristmasCardMoney(summary.estimatedTotalCents) : 'Review order'}</span>
+        <span>{summary.hasOrder ? formatUsChristmasCardMoney(summary.estimatedTotalCents) : 'Review order'}</span>
       </span>
     </button>
   )
