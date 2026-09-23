@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import UsStorefrontOrderBuilder from '../../christmas-cards/us/us-storefront-order-builder'
-import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
+import PaymentOptionsDetails from '../../christmas-cards/payment-options-details'
 import { UsCcicCartButton, UsCcicCartProvider } from '../../christmas-cards/us/us-cart-context'
 import {
   CHRISTMAS_CARD_BOXES,
