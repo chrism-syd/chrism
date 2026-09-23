@@ -1,0 +1,134 @@
+import Image from 'next/image'
+import Link from 'next/link'
+import UsStorefrontOrderBuilder from '../../christmas-cards/us/us-storefront-order-builder'
+import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
+import { UsCcicCartButton, UsCcicCartProvider } from '../../christmas-cards/us/us-cart-context'
+import {
+  CHRISTMAS_CARD_BOXES,
+  CHRISTMAS_CARD_COLLECTIONS,
+  CHRISTMAS_CARD_CURATED_CASES,
+  CHRISTMAS_CARD_ORDER_CONFIG,
+} from '@/lib/christmas-cards/us/catalog'
+import {
+  getCcicCaseReserves,
+  getCcicStoreAvailabilityMap,
+  syncCcicStoreInventoryCatalog,
+} from '@/lib/christmas-cards/inventory'
+import '../../christmas-cards/storefront.css'
+import '../../christmas-cards/payment-polish.css'
+import '../../christmas-cards/storefront-redesign.css'
+import '../../christmas-cards/storefront-header-polish.css'
+import '../../christmas-cards/storefront-cart-drawer.css'
+import '../../christmas-cards/storefront-review-polish.css'
+import '../../christmas-cards/storefront-inventory.css'
+import '../../christmas-cards/storefront-final-polish.css'\nimport '../../christmas-cards/us/us-storefront.css'
+
+export const dynamic = 'force-dynamic'
+
+export const metadata = {
+  title: 'Catholic Christmas Cards in the United States | Celebrate Christ in Christmas',
+  description: 'Celebrate Christ in Christmas cards for U.S. councils, parishes, churches, and ministries. Prices shown in U.S. dollars.',
+}
+
+export default async function CcicUsPage() {
+  await syncCcicStoreInventoryCatalog()
+  const [inventoryAvailability, caseReserves] = await Promise.all([
+    getCcicStoreAvailabilityMap(),
+    getCcicCaseReserves(),
+  ])
+  const caseAvailability = Object.fromEntries(
+    caseReserves.map((reserve) => [reserve.caseCatalogId, reserve.availableCases])
+  )
+
+  return (
+    <UsCcicCartProvider>
+      <main className="ccic-page">
+        <header className="ccic-site-header">
+          <div className="ccic-site-header-inner">
+            <span aria-hidden="true" className="ccic-header-spacer" />
+            <Image
+              src="/CCiC.png"
+              alt={CHRISTMAS_CARD_ORDER_CONFIG.brandName}
+              width={176}
+              height={176}
+              priority
+              className="ccic-header-logo"
+            />
+            <UsCcicCartButton />
+          </div>
+        </header>
+
+        <section className="ccic-hero-image" aria-label="Christmas card collection preview">
+          <div className="ccic-hero-image-wrap">
+            <Image
+              src="/Cards_Selection_Tile.jpg"
+              alt="Selection of Celebrate Christ in Christmas greeting cards"
+              fill
+              priority
+              sizes="100vw"
+              className="ccic-hero-image-asset"
+            />
+          </div>
+        </section>
+
+        <section className="ccic-us-market-banner" aria-label="United States storefront"><strong>United States</strong><span>Prices shown in USD. U.S. checkout and landed shipping are being finalized.</span></section>\n\n        <section className="ccic-intro">
+          <div className="ccic-intro-heading">
+            <p className="ccic-eyebrow">Celebrate Christ in Christmas</p>
+            <h1>Perfect for Councils, Parishes, and Ministries.</h1>
+            <p>Simple to order, meaningful to share, and designed for faith communities across the United States.</p>
+          </div>
+
+          <div className="ccic-trust-grid">
+            <article>
+              <strong>Meaningful Christmas cards</strong>
+              <p>Faith-centered designs paired with psalms and Scripture verses.</p>
+            </article>
+            <article>
+              <strong>No payment collected online</strong>
+              <p><PaymentOptionsDetails /></p>
+            </article>
+            <article>
+              <strong>Designed and printed in Canada</strong>
+              <p>Produced in Canada on FSC certified paper and available for shipment to the United States.</p>
+            </article>
+          </div>
+        </section>
+
+        <UsStorefrontOrderBuilder
+          cases={CHRISTMAS_CARD_CURATED_CASES}
+          boxes={CHRISTMAS_CARD_BOXES}
+          collections={CHRISTMAS_CARD_COLLECTIONS}
+          inventoryAvailability={inventoryAvailability}
+          caseAvailability={caseAvailability}
+        />
+
+        <section className="ccic-support-banner" aria-label="Thank you for your support">
+          <p>
+            Thank you for supporting the charitable efforts of the Knights of Columbus, and for helping ensure that Jesus remains the reason we celebrate the season of Christmas.
+          </p>
+        </section>
+
+        <footer className="ccic-footer ccic-footer-powered">
+          <div className="ccic-photo-credits" aria-label="Header image credits">
+            <p>
+              Page Header Background Image credits:
+              <br className="ccic-photo-credit-break" />
+              <a href="https://unsplash.com/@anniespratt?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Annie Spratt</a>
+              {' / '}
+              <a href="https://unsplash.com/@joannakosinska?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Joanna Kosinska</a>
+              {' on '}
+              <a href="https://unsplash.com">Unsplash</a>
+            </p>
+          </div>
+          <div className="ccic-footer-powered-center">
+            <span>Powered by</span>
+            <a href="https://www.chrismworks.com" aria-label="Visit Chrism">
+              <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
+            </a>
+          </div>
+          <Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link>
+        </footer>
+      </main>
+    </UsCcicCartProvider>
+  )
+}
