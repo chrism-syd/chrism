@@ -12,7 +12,7 @@ export type { ChristmasCardBox, ChristmasCardCollection, ChristmasCardCuratedCas
 export const CHRISTMAS_CARD_ORDER_CONFIG = {
   brandName: 'Celebrate Christ in Christmas',
   boxesPerCase: 32,
-  customCasePriceCents: 26999,
+  customCasePriceCents: 29999,
   promotionPackageCents: 0,
   campaignPackageCents: 0,
   currencyCode: 'USD',
@@ -21,8 +21,8 @@ export const CHRISTMAS_CARD_ORDER_CONFIG = {
 
 function usBoxPrice(box: ChristmasCardBox) {
   if (box.isAccessory) return 199
-  if (!box.isCasePricingEligible) return 749
-  return 899
+  if (!box.isCasePricingEligible) return 1099
+  return 1099
 }
 
 export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = BASE_BOXES.map((box) => ({
@@ -32,7 +32,7 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = BASE_BOXES.map((box) => 
 
 export const CHRISTMAS_CARD_CURATED_CASES: ChristmasCardCuratedCase[] = BASE_CASES.map((item) => ({
   ...item,
-  priceCents: 23999,
+  priceCents: 27499,
 }))
 
 export { CHRISTMAS_CARD_COLLECTIONS }
