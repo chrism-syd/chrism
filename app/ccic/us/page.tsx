@@ -21,7 +21,8 @@ import '../../christmas-cards/storefront-header-polish.css'
 import '../../christmas-cards/storefront-cart-drawer.css'
 import '../../christmas-cards/storefront-review-polish.css'
 import '../../christmas-cards/storefront-inventory.css'
-import '../../christmas-cards/storefront-final-polish.css'\nimport '../../christmas-cards/us/us-storefront.css'
+import '../../christmas-cards/storefront-final-polish.css'
+import '../../christmas-cards/us/us-storefront.css'
 
 export const dynamic = 'force-dynamic'
 
