@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import BoxGalleryCard from './box-gallery-card'
 import CardArt from './card-art'
 import QuantityControl, { quantityFromMap, setQuantityValue } from './quantity-control'
+import LawnSignInterest from './lawn-sign-interest'
 import { useCcicCart } from './cart-context'
 import {
   CHRISTMAS_CARD_ORDER_CONFIG,
@@ -214,6 +215,7 @@ export default function StorefrontOrderBuilder({ cases, boxes, collections, inve
                       </div>
                     </section>
                   ) : null}
+                  {collection.id === 'catholic-prayer-cards' && christmasSeals ? <LawnSignInterest /> : null}
                   <section className="ccic-collection" aria-labelledby={`${collection.id}-title`}><div className="ccic-collection-heading"><h2 id={`${collection.id}-title`}>{collection.title}</h2><p>{collection.description}</p></div>{collectionBoxes.length ? <div className="ccic-gallery-grid">{collectionBoxes.map((box) => <BoxGalleryCard key={box.id} box={box} quantityLabel={`${box.title} boxes`} quantity={quantityFromMap(boxQuantities, box.id)} maxQuantity={maxQuantityForBox(box.id)} onQuantityChange={(value) => setBoxQuantities((current) => setQuantityValue(current, box.id, value))} />)}</div> : <div className="ccic-collection-empty"><strong>Designs coming soon</strong><p>This row is ready for the final collection artwork.</p></div>}</section>
                 </Fragment>
               )
