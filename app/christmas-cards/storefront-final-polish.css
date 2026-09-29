@@ -203,3 +203,192 @@
 .ccic-seals-image .ccic-card-art img {
   object-fit: contain;
 }
+
+
+.ccic-lawn-sign-banner {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 38px;
+  align-items: center;
+  margin: 18px 0 0;
+  padding: 34px;
+  background: #f8f3ed;
+}
+
+.ccic-lawn-sign-preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ccic-lawn-sign-image {
+  position: absolute;
+  inset: 0;
+}
+
+.ccic-lawn-sign-image img {
+  object-fit: contain;
+}
+
+.ccic-lawn-sign-copy h2 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 500;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+}
+
+.ccic-lawn-sign-copy > p:not(.ccic-eyebrow) {
+  max-width: 760px;
+  margin: 9px 0 14px;
+  color: var(--ccic-muted);
+  line-height: 1.5;
+}
+
+.ccic-lawn-sign-copy > strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.ccic-lawn-sign-copy > strong span {
+  color: var(--ccic-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ccic-lawn-sign-copy .ccic-lawn-sign-pickup {
+  margin: 0 0 18px;
+  font-weight: 700;
+}
+
+.ccic-lawn-sign-interest-button {
+  border: 1px solid #1d1712;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #1d1712;
+  color: #fffaf1;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.ccic-lawn-sign-panel {
+  width: min(1120px, 100%);
+  overflow: auto;
+}
+
+.ccic-lawn-sign-dialog-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
+  gap: clamp(24px, 4vw, 44px);
+  align-items: start;
+}
+
+.ccic-lawn-sign-large-image {
+  position: relative;
+  min-height: min(52vh, 520px);
+  margin-bottom: 14px;
+  background: #f7f7f7;
+}
+
+.ccic-lawn-sign-large-image img {
+  object-fit: contain;
+}
+
+.ccic-lawn-sign-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 14px;
+  color: var(--ccic-muted);
+  font-size: 13px;
+}
+
+.ccic-lawn-sign-form {
+  display: grid;
+  gap: 14px;
+}
+
+.ccic-lawn-sign-form h3 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 30px);
+}
+
+.ccic-lawn-sign-form > div > p:not(.ccic-eyebrow) {
+  margin: 8px 0 0;
+  color: var(--ccic-muted);
+  line-height: 1.5;
+}
+
+.ccic-lawn-sign-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ccic-lawn-sign-form input,
+.ccic-lawn-sign-form select {
+  width: 100%;
+  border: 1px solid #d8cfc4;
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: #ffffff;
+  color: #1d1712;
+  font: inherit;
+}
+
+.ccic-lawn-sign-total {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-top: 1px solid #e7e0d7;
+  border-bottom: 1px solid #e7e0d7;
+}
+
+.ccic-lawn-sign-result {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #d8cfc4;
+  line-height: 1.45;
+}
+
+.ccic-lawn-sign-result.is-success {
+  background: #f3f7f2;
+}
+
+.ccic-lawn-sign-result.is-error {
+  background: #fff4f2;
+}
+
+@media (max-width: 760px) {
+  .ccic-lawn-sign-banner,
+  .ccic-lawn-sign-dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ccic-lawn-sign-banner {
+    gap: 22px;
+    padding: 28px 24px;
+  }
+
+  .ccic-lawn-sign-preview {
+    min-height: 240px;
+  }
+
+  .ccic-lawn-sign-large-image {
+    min-height: 320px;
+  }
+
+  .ccic-lawn-sign-panel {
+    max-height: 94vh;
+  }
+}
