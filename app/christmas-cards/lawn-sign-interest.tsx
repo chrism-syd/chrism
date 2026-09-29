@@ -28,7 +28,8 @@ export default function LawnSignInterest() {
     setIsSubmitting(true)
     setResult(null)
 
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     const payload = {
       contactName: String(form.get('contactName') || ''),
       organizationName: String(form.get('organizationName') || ''),
@@ -55,7 +56,7 @@ export default function LawnSignInterest() {
           : 'Thanks. Your lawn sign request has been sent. We will follow up by email to confirm availability, timing, and pickup.',
       })
 
-      event.currentTarget.reset()
+      formElement.reset()
       setSets(1)
     } catch (error) {
       setResult({
