@@ -107,7 +107,48 @@ export default function LawnSignInterest() {
                 <label>Quantity
                   <select value={sets} onChange={(event) => setSets(Number(event.target.value))}>
                     {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-                      <option key={count} value={count}>{count} set{count === 1 ? '' : 's'} of 10 — {`${(count * PRICE_PER_SET_CENTS / 100).toFixed(0)}`}</option>
+                      <option key={count} value={count}>{count} set{count === 1 ? '' : 's'} of 10 — {'</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="ccic-lawn-sign-total"><span>Requested quantity</span><strong>{sets * 10} signs · {'</strong></div>
+                <button className="ccic-primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending…' : 'Send lawn sign request'}</button>
+                {result ? <p className={`ccic-lawn-sign-result is-${result.type}`} role="status">{result.message}</p> : null}
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+ + (count * PRICE_PER_SET_CENTS / 100).toFixed(0)}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="ccic-lawn-sign-total"><span>Requested quantity</span><strong>{sets * 10} signs · {`${(sets * PRICE_PER_SET_CENTS / 100).toFixed(0)}`}</strong></div>
+                <button className="ccic-primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending…' : 'Send lawn sign request'}</button>
+                {result ? <p className={`ccic-lawn-sign-result is-${result.type}`} role="status">{result.message}</p> : null}
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+ + (sets * PRICE_PER_SET_CENTS / 100).toFixed(0)}</strong></div>
+                <button className="ccic-primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending…' : 'Send lawn sign request'}</button>
+                {result ? <p className={`ccic-lawn-sign-result is-${result.type}`} role="status">{result.message}</p> : null}
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+ + (count * PRICE_PER_SET_CENTS / 100).toFixed(0)}</option>
                     ))}
                   </select>
                 </label>
