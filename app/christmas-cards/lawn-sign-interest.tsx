@@ -80,7 +80,7 @@ export default function LawnSignInterest() {
         <h2 id="ccic-lawn-sign-title">CCIC Lawn Signs</h2>
         <p>Bring the Celebrate Christ in Christmas message outdoors with a lawn sign. H-stake included.</p>
         <strong>$160 per set of 10 <span>($16 per sign)</span></strong>
-        <p className="ccic-lawn-sign-pickup">Available for Pickup only, in Markham.</p>
+        <p className="ccic-lawn-sign-pickup">Pickup available in Markham. Shipping available with a custom estimate.</p>
         <button type="button" className="ccic-lawn-sign-interest-button" onClick={() => setIsOpen(true)}>I'm interested in lawn signs</button>
       </div>
 
@@ -123,7 +123,7 @@ export default function LawnSignInterest() {
                 <div>
                   <p className="ccic-eyebrow">Request lawn signs</p>
                   <h3>Let us know how many you need.</h3>
-                  <p>These signs are printed on demand and are expensive to ship. Because of this, we're suggesting pickup only. If you are interested in this being shipped to you, please continue to submit the request and we will follow up via email with a shipping estimate.</p>
+                  <p>These signs are printed on demand and require custom packaging for shipping. Pickup is available in Markham, or if you require shipping, simply submit your request with your postal code. We’ll provide a custom shipping estimate and confirm the shipping cost with you before your signs are printed.</p>
                 </div>
 
                 <label>Contact name<input name="contactName" type="text" autoComplete="name" required maxLength={120} /></label>
