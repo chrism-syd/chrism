@@ -18,6 +18,7 @@ type ValidatedRequest = {
   email: string
   phone: string
   sets: number
+  wantsShippingEstimate: boolean
   shippingPostalCode: string
 }
 
