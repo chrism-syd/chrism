@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { FormEvent, useEffect, useState } from 'react'
 
-const PRICE_PER_SET_CENTS = 15000
+const PRICE_PER_SET_CENTS = 16000
 
 export default function LawnSignInterest() {
   const [isOpen, setIsOpen] = useState(false)
@@ -64,7 +64,7 @@ export default function LawnSignInterest() {
         <p className="ccic-eyebrow">Printed on demand</p>
         <h2 id="ccic-lawn-sign-title">CCIC Lawn Signs</h2>
         <p>Bring the Celebrate Christ in Christmas message outdoors with a 24 × 18 lawn sign. H-stake included.</p>
-        <strong>$150 per set of 10 <span>($15 per sign)</span></strong>
+        <strong>$160 per set of 10 <span>($16 per sign)</span></strong>
         <p className="ccic-lawn-sign-pickup">Pickup only in Markham.</p>
         <button type="button" className="ccic-lawn-sign-interest-button" onClick={() => setIsOpen(true)}>I'm interested in lawn signs</button>
       </div>
