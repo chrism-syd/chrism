@@ -56,16 +56,16 @@ export default function LawnSignInterest() {
     <section className="ccic-lawn-sign-banner" aria-labelledby="ccic-lawn-sign-title">
       <button type="button" className="ccic-lawn-sign-preview" onClick={() => setIsOpen(true)} aria-label="View CCIC lawn sign details">
         <span className="ccic-lawn-sign-image">
-          <Image src="/christmas-cards/ccic_24x18-yardsign-mockup.jpg" alt="CCIC lawn sign mockup" fill sizes="(max-width: 640px) 100vw, 320px" />
+          <Image src="/christmas-cards/CCIC_LawnSign_24x18_artwork.png" alt="CCIC lawn sign artwork" fill sizes="(max-width: 640px) 100vw, 320px" />
         </span>
         <span className="ccic-quick-view">View details</span>
       </button>
       <div className="ccic-lawn-sign-copy">
         <p className="ccic-eyebrow">Printed on demand</p>
         <h2 id="ccic-lawn-sign-title">CCIC Lawn Signs</h2>
-        <p>Bring the Celebrate Christ in Christmas message outdoors with a 24 × 18 lawn sign. H-stake included.</p>
+        <p>Bring the Celebrate Christ in Christmas message outdoors with a lawn sign. H-stake included.</p>
         <strong>$160 per set of 10 <span>($16 per sign)</span></strong>
-        <p className="ccic-lawn-sign-pickup">Pickup only in Markham.</p>
+        <p className="ccic-lawn-sign-pickup">Available for Pickup only, in Markham.</p>
         <button type="button" className="ccic-lawn-sign-interest-button" onClick={() => setIsOpen(true)}>I'm interested in lawn signs</button>
       </div>
 
@@ -107,11 +107,11 @@ export default function LawnSignInterest() {
                 <label>Quantity
                   <select value={sets} onChange={(event) => setSets(Number(event.target.value))}>
                     {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-                      <option key={count} value={count}>{count} set{count === 1 ? '' : 's'} of 10 — $${(count * PRICE_PER_SET_CENTS / 100).toFixed(0)}</option>
+                      <option key={count} value={count}>{count} set{count === 1 ? '' : 's'} of 10 — {`${(count * PRICE_PER_SET_CENTS / 100).toFixed(0)}`}</option>
                     ))}
                   </select>
                 </label>
-                <div className="ccic-lawn-sign-total"><span>Requested quantity</span><strong>{sets * 10} signs · $${(sets * PRICE_PER_SET_CENTS / 100).toFixed(0)}</strong></div>
+                <div className="ccic-lawn-sign-total"><span>Requested quantity</span><strong>{sets * 10} signs · {`${(sets * PRICE_PER_SET_CENTS / 100).toFixed(0)}`}</strong></div>
                 <button className="ccic-primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending…' : 'Send lawn sign request'}</button>
                 {result ? <p className={`ccic-lawn-sign-result is-${result.type}`} role="status">{result.message}</p> : null}
               </form>
