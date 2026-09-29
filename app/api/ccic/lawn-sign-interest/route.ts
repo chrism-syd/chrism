@@ -9,7 +9,6 @@ type RequestBody = {
   email?: unknown
   phone?: unknown
   sets?: unknown
-  wantsShippingEstimate?: unknown
   shippingPostalCode?: unknown
 }
 
@@ -19,7 +18,6 @@ type ValidatedRequest = {
   email: string
   phone: string
   sets: number
-  wantsShippingEstimate: boolean
   shippingPostalCode: string
 }
 
@@ -34,15 +32,15 @@ function validateRequest(body: RequestBody): ValidatedRequest {
   const email = normalizeString(body.email).toLowerCase()
   const phone = normalizeString(body.phone)
   const sets = typeof body.sets === 'number' && Number.isInteger(body.sets) ? body.sets : 0
-  const wantsShippingEstimate = body.wantsShippingEstimate === true
   const shippingPostalCode = normalizeString(body.shippingPostalCode).toUpperCase()
+  const wantsShippingEstimate = Boolean(shippingPostalCode)
 
   if (!contactName || contactName.length > 120) throw new Error('Please enter your name.')
   if (!organizationName || organizationName.length > 160) throw new Error('Please enter your council or organization.')
   if (!email || email.length > 254 || !/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email address.')
   if (!phone || phone.length > 40) throw new Error('Please enter a phone number.')
   if (sets < 1 || sets > 10) throw new Error('Please choose between 1 and 10 sets.')
-  if (wantsShippingEstimate && (!shippingPostalCode || shippingPostalCode.length > 12)) throw new Error('Please enter the postal code for your shipping estimate.')
+  if (shippingPostalCode.length > 12) throw new Error('Please enter a valid postal code for your shipping estimate.')
   return { contactName, organizationName, email, phone, sets, wantsShippingEstimate, shippingPostalCode }
 }
 
