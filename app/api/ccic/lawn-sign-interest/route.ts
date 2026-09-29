@@ -19,7 +19,7 @@ type ValidatedRequest = {
   sets: number
 }
 
-const PRICE_PER_SET_CENTS = 15000
+const PRICE_PER_SET_CENTS = 16000
 
 function normalizeString(value: unknown) { return typeof value === 'string' ? value.trim() : '' }
 function escapeHtml(value: string) { return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;') }
