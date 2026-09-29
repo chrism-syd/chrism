@@ -51,9 +51,7 @@ export default function LawnSignInterest() {
 
       setResult({
         type: 'success',
-        message: String(form.get('shippingPostalCode') || '').trim()
-          ? 'Thanks. Your lawn sign request has been sent. We will follow up by email with availability, timing, and a shipping estimate.'
-          : 'Thanks. Your lawn sign request has been sent. We will follow up by email to confirm availability, timing, and pickup.',
+        message: 'Thanks. Your lawn sign request has been sent. Please check your email for confirmation and payment instructions.',
       })
 
       formElement.reset()
