@@ -9,7 +9,6 @@ export default function LawnSignInterest() {
   const [isOpen, setIsOpen] = useState(false)
   const [activeImage, setActiveImage] = useState<'mockup' | 'artwork'>('mockup')
   const [sets, setSets] = useState(1)
-  const [wantsShippingEstimate, setWantsShippingEstimate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -36,8 +35,7 @@ export default function LawnSignInterest() {
       email: String(form.get('email') || ''),
       phone: String(form.get('phone') || ''),
       sets,
-      wantsShippingEstimate,
-      shippingPostalCode: wantsShippingEstimate ? String(form.get('shippingPostalCode') || '') : '',
+      shippingPostalCode: String(form.get('shippingPostalCode') || ''),
     }
 
     try {
@@ -52,14 +50,13 @@ export default function LawnSignInterest() {
 
       setResult({
         type: 'success',
-        message: wantsShippingEstimate
+        message: String(form.get('shippingPostalCode') || '').trim()
           ? 'Thanks. Your lawn sign request has been sent. We will follow up by email with availability, timing, and a shipping estimate.'
           : 'Thanks. Your lawn sign request has been sent. We will follow up by email to confirm availability, timing, and pickup.',
       })
 
       event.currentTarget.reset()
       setSets(1)
-      setWantsShippingEstimate(false)
     } catch (error) {
       setResult({
         type: 'error',
@@ -139,40 +136,26 @@ export default function LawnSignInterest() {
                   Quantity
                   <select value={sets} onChange={(event) => setSets(Number(event.target.value))}>
                     {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-                      <option key={count} value={count}>{count} set{count === 1 ? '' : 's'} of 10 — $ {((count * PRICE_PER_SET_CENTS) / 100).toFixed(0)}</option>
+                      <option key={count} value={count}>{count} set{count === 1 ? '' : 's'} of 10 — ${((count * PRICE_PER_SET_CENTS) / 100).toFixed(0)}</option>
                     ))}
                   </select>
                 </label>
 
-                <label className="ccic-lawn-sign-shipping-request">
-                  <span>
-                    <input
-                      type="checkbox"
-                      checked={wantsShippingEstimate}
-                      onChange={(event) => setWantsShippingEstimate(event.target.checked)}
-                    />
-                    I would like a shipping estimate
-                  </span>
+                <label>
+                  I would like a shipping estimate to
+                  <input
+                    name="shippingPostalCode"
+                    type="text"
+                    inputMode="text"
+                    autoComplete="postal-code"
+                    placeholder="Postal Code (optional)"
+                    maxLength={12}
+                  />
                 </label>
-
-                {wantsShippingEstimate ? (
-                  <label>
-                    I would like a shipping estimate to
-                    <input
-                      name="shippingPostalCode"
-                      type="text"
-                      inputMode="text"
-                      autoComplete="postal-code"
-                      placeholder="Postal Code"
-                      maxLength={12}
-                      required
-                    />
-                  </label>
-                ) : null}
 
                 <div className="ccic-lawn-sign-total">
                   <span>Requested quantity</span>
-                  <strong>{sets * 10} signs · $ {((sets * PRICE_PER_SET_CENTS) / 100).toFixed(0)}</strong>
+                  <strong>{sets * 10} signs · ${((sets * PRICE_PER_SET_CENTS) / 100).toFixed(0)}</strong>
                 </div>
 
                 <button className="ccic-primary-button" type="submit" disabled={isSubmitting}>
