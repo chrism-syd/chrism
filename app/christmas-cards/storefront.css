@@ -416,7 +416,7 @@
 .ccic-lightbox-image-wrap {
   position: relative;
   min-height: min(62vh, 620px);
-  background: #f7f7f7;
+  background: #fff;
 }
 
 .ccic-lightbox-image-wrap img {
