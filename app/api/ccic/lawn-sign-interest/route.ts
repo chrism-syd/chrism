@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'We could not send your request. Please try again later.' }, { status: 500 })
   }
 
-  const adminHtml = email.htmlContent.replace('</div>', `<div style="margin:22px 0;padding:16px;border:1px solid #e5e5e5;"><p style="margin:0;"><strong>Contact:</strong> ${escapeHtml(interest.contactName)}<br><strong>Organization:</strong> ${escapeHtml(interest.organizationName)}<br><strong>Email:</strong> ${escapeHtml(interest.email)}<br><strong>Phone:</strong> ${escapeHtml(interest.phone)}</p></div></div>`)
+  const adminContactHtml = `<div style="margin:22px 0;padding:16px;border:1px solid #e5e5e5;"><p style="margin:0;"><strong>Contact:</strong> ${escapeHtml(interest.contactName)}<br><strong>Organization:</strong> ${escapeHtml(interest.organizationName)}<br><strong>Email:</strong> ${escapeHtml(interest.email)}<br><strong>Phone:</strong> ${escapeHtml(interest.phone)}</p></div>`
+  const adminHtml = email.htmlContent.replace(/<\/div>$/, `${adminContactHtml}</div>`)
 
   const results = await Promise.allSettled([
     sendBrevoTransactionalEmail({ to: [{ email: interest.email, name: interest.contactName }], subject: 'CCIC lawn sign request received', htmlContent: email.htmlContent, textContent: email.textContent }),
