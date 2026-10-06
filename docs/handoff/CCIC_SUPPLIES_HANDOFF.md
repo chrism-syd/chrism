@@ -1,6 +1,6 @@
 # CCIC Supplies - Technical and Operational Handoff
 
-_Last updated: September 20, 2026_
+_Last updated: October 6, 2026_
 
 This is the canonical handoff for the `ccic.supplies` Celebrate Christ in Christmas (CCIC) ordering program. It records the current production logic and the business decisions behind it so future work does not have to reconstruct the system from chat or historical commits.
 
@@ -28,8 +28,10 @@ Customer-facing screens should stay simple and polished. Carrier mechanics, pack
 ## 2. Repository, branches and deployment
 
 - Repository: `chrism-syd/chrism`
-- Primary shipping branch: `ccic-shiptime-canada-post`
-- Christmas Seals feature branch: `ccic-christmas-seals`
+- Current Canadian production branch: `ccic-school-reconcile`
+- Previous production checkpoint: `ccic-lawn-signs`
+- Christmas Seals baseline: `ccic-christmas-seals`
+- US storefront experiment: `ccic-us-storefront` (keep isolated from Canadian production)
 - Production: `https://ccic.supplies/`
 - Hosting/deployment: Vercel
 - Database/order persistence: Supabase
@@ -44,6 +46,9 @@ Important routes:
 - packing list: `/ccic/admin/packing-list`
 - Store Control: `/ccic/admin/store-control`
 - shipping API: `/api/ccic/shipping/rates`
+- school presentation pages: `/ccic/schools/[school]` (publicly exposed on `ccic.supplies` as `/schools/[school]` via `proxy.ts`)
+- contact email endpoint: `/api/ccic/contact`
+- lawn sign interest endpoint: `/api/ccic/lawn-sign-interest`
 
 Important implementation files:
 
@@ -57,6 +62,22 @@ Important implementation files:
 - `app/christmas-cards/storefront-order-builder.tsx`
 - `app/christmas-cards/review-order-form.tsx`
 - `app/christmas-cards/google-address-autocomplete.tsx`
+- `app/ccic/schools/[school]/page.tsx`
+- `app/christmas-cards/school-storefront-order-builder.tsx`
+- `lib/christmas-cards/schools.ts`
+- `app/christmas-cards/ccic-contact-form.tsx`
+- `app/api/ccic/contact/route.ts`
+- `app/christmas-cards/lawn-sign-interest.tsx`
+- `app/api/ccic/lawn-sign-interest/route.ts`
+
+
+### Current branch discipline
+
+- Treat `ccic-school-reconcile` as the Canadian production baseline as of October 6, 2026.
+- Do not merge `ccic-us-storefront` wholesale into the Canadian production branch. Shared fixes should be reviewed and applied deliberately.
+- The school fundraiser pages are presentation-only at this stage; they are not yet connected to the live checkout flow.
+- Lawn-sign requests are intentionally separate from the CCIC order table and are handled by email.
+- The public Contact CCIC form sends through Brevo without exposing `ccic@kofc7689.org` in the page source.
 
 ## 3. Core product model
 
