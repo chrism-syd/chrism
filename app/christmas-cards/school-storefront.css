@@ -1,0 +1,234 @@
+.ccic-school-fundraiser-title {
+  margin: 1rem 0 .8rem;
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 500;
+  letter-spacing: -.015em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.ccic-page .ccic-collection-heading h2 {
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 500;
+  letter-spacing: -.015em;
+  line-height: 1.35;
+}
+
+.ccic-page .ccic-collection {
+  border-bottom-color: #202020;
+}
+
+.ccic-school-mixed-box {
+  display: grid;
+  grid-template-columns: minmax(180px, .8fr) minmax(0, 2fr) auto;
+  gap: 28px;
+  align-items: center;
+  margin: 64px 0 32px;
+  padding: 24px 28px;
+  border: 1px solid var(--ccic-line);
+  background: #faf9f8;
+}
+
+.ccic-school-mixed-box.is-selected {
+  border-color: var(--ccic-ink);
+}
+
+.ccic-school-mixed-copy {
+  min-width: 0;
+}
+
+.ccic-school-mixed-copy p {
+  margin: 0;
+}
+
+.ccic-school-mixed-copy .ccic-school-mixed-kicker {
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ccic-school-mixed-copy > strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+}
+
+.ccic-school-mixed-copy > p:last-child,
+.ccic-school-box-description {
+  color: var(--ccic-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ccic-school-box-description {
+  margin: 5px 0 8px;
+}
+
+.ccic-page .ccic-school-gallery-card .ccic-gallery-copy > .ccic-school-box-price,
+.ccic-school-mixed-order > strong {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ccic-school-mixed-equation {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.ccic-school-mixed-cover-group {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+
+.ccic-school-mixed-cover {
+  position: relative;
+  width: 54px;
+  aspect-ratio: 4.25 / 5.5;
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: #eeeae7;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, .1);
+}
+
+.ccic-school-mixed-cover img {
+  object-fit: cover;
+}
+
+.ccic-school-mixed-count,
+.ccic-school-mixed-plus,
+.ccic-school-mixed-total {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ccic-school-mixed-total {
+  white-space: nowrap;
+}
+
+.ccic-school-mixed-order {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-width: 146px;
+}
+
+.ccic-school-mixed-order .ccic-quantity {
+  grid-template-columns: 42px 52px 42px;
+  justify-self: center;
+  border: 1px solid #d7d5d3;
+  border-radius: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ccic-school-mixed-order .ccic-quantity button {
+  height: 40px;
+  border: 0;
+  background: #fff !important;
+  color: var(--ccic-ink) !important;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.ccic-school-mixed-order .ccic-quantity button:hover:not(:disabled),
+.ccic-school-mixed-order .ccic-quantity button:focus-visible {
+  background: #f5f4f3 !important;
+  outline: none;
+}
+
+.ccic-school-mixed-order .ccic-quantity input {
+  width: 52px;
+  height: 40px;
+  border: 0;
+  border-inline: 1px solid #d7d5d3;
+  background: #fff;
+  color: var(--ccic-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ccic-school-footer-partners {
+  flex-direction: row;
+  gap: 14px;
+}
+
+.ccic-school-footer-separator {
+  align-self: stretch;
+  width: 1px;
+  min-height: 42px;
+  background: #000;
+}
+
+.ccic-school-kofc-logo {
+  display: block;
+  width: auto;
+  height: 42px;
+  object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .ccic-school-mixed-box {
+    grid-template-columns: 1fr auto;
+  }
+
+  .ccic-school-mixed-equation {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 4px 0 6px;
+  }
+
+  .ccic-school-mixed-order {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .ccic-school-mixed-box {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 22px 18px;
+  }
+
+  .ccic-school-mixed-order,
+  .ccic-school-mixed-equation {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .ccic-school-mixed-order {
+    justify-items: start;
+  }
+
+  .ccic-school-mixed-equation {
+    width: 100%;
+  }
+
+  .ccic-school-mixed-cover {
+    width: 46px;
+  }
+
+  .ccic-school-mixed-count,
+  .ccic-school-mixed-plus,
+  .ccic-school-mixed-total {
+    font-size: 12px;
+  }
+
+  .ccic-school-footer-partners {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
