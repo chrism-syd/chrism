@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import StorefrontOrderBuilder from '../christmas-cards/storefront-order-builder'
+import CcicContactForm from '../christmas-cards/ccic-contact-form'
 import PaymentOptionsDetails from '../christmas-cards/payment-options-details'
 import { CcicCartButton, CcicCartProvider } from '../christmas-cards/cart-context'
 import {
@@ -126,7 +127,7 @@ export default async function CcicPage() {
               <Image src="/Chrism.png" alt="Chrism" width={132} height={57} className="ccic-footer-logo" />
             </a>
           </div>
-          <Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link>
+          <div className="ccic-footer-actions"><CcicContactForm /><Link className="ccic-footer-admin" href="/ccic/admin/orders">Admin</Link></div>
         </footer>
       </main>
     </CcicCartProvider>
