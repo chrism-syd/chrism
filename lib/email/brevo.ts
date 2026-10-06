@@ -39,7 +39,7 @@ function getBrevoConfig() {
 }
 
 function getSenderForMessage(subject: string, defaultSender: BrevoRecipient): BrevoRecipient {
-  const isCcicOrderEmail = subject.startsWith('CCIC order request ') || subject.startsWith('New CCIC order ') || subject.startsWith('CCIC lawn sign request') || subject.startsWith('New CCIC lawn sign request')
+  const isCcicOrderEmail = subject.startsWith('CCIC order request ') || subject.startsWith('New CCIC order ') || subject.startsWith('CCIC lawn sign request') || subject.startsWith('New CCIC lawn sign request') || subject.startsWith('New CCIC contact message')
 
   if (isCcicOrderEmail) {
     return {
