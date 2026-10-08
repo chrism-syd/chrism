@@ -1,6 +1,6 @@
 # CCIC Supplies — Project Handoff
 
-_Last updated: September 6, 2026_
+_Last updated: October 8, 2026 (school fundraiser / Square sandbox update)_
 
 This document is the working handoff for the `ccic.supplies` Celebrate Christ in Christmas (CCIC) Christmas card ordering program. It is intended to let another developer/helper pick up the project without reconstructing product strategy, checkout behavior, shipping decisions, admin workflow, or integration history from chat.
 
@@ -361,3 +361,122 @@ Highest-value next steps:
 A new helper should start by reading this document, then inspect the current branch implementation rather than assuming every historical commit still represents current strategy. The most important live code for shipping is `lib/christmas-cards/canada-post.ts` and `lib/christmas-cards/shiptime.ts`.
 
 Update this handoff whenever a material CCIC decision changes, especially carton capacities/weights, carrier integration, payment workflow, or fulfillment strategy.
+
+---
+
+## 18. October 8, 2026: School fundraiser checkout and Square sandbox
+
+**This section supersedes the older “no online payment” language ONLY for school-specific fundraisers.** The original council/parish storefront remains an offline cheque/e-transfer order-request workflow. Never accidentally migrate the council checkout to Square.
+
+### Branch, routes, and schools
+
+- Development branch: `ccic-school-mixed-inventory` in `chrism-syd/chrism`.
+- Main school route: `/ccic/schools-2/[school]`.
+- School checkout: `/ccic/schools-2/[school]/checkout`.
+- Original `/ccic/schools/[school]` routes remain separately implemented; do not assume the new `schools-2` changes automatically update the older route.
+- School registry: `lib/christmas-cards/schools.ts`. Schools currently include St. Francis Xavier, St. Edward, St. Patrick, San Lorenzo Ruiz, All Saints, and St. Brother André. The new dynamic route resolves registered schools, but **only St. Francis Xavier has explicit cutoff and delivery dates configured**. Other schools need their own campaign configuration before public launch.
+- St. Francis Xavier: `STFRANCISXAVIER26`, ordering closes **November 15, 2026, 11:59:59 p.m. Eastern**; delivery by **November 30, 2026**. Date labels are derived from registry config, not hard-coded across schools.
+- When ordering closes, leave QR-code URL accessible, show the products without purchase controls, and block checkout. Server payment endpoint independently enforces campaign cutoff.
+
+### School product, pricing, inventory
+
+- Four mixed-box SKUs: `CCIC-26-01-MIX` through `CCIC-26-04-MIX`.
+- Each mixed box: 12 cards and envelopes, three cards from each of four designs.
+- Price: **$16.90 CAD per box**. School contribution: **$4.50 per box**.
+- Mixed inventory commitments: `ccic_mixed_box_commitments`.
+- For each collection, one full source box of each of four designs is reserved for every started batch of four mixed boxes: `ceil(committedMixedBoxes / 4)` source boxes per design. This reservation also reduces regular storefront availability.
+- New `ccic_finalize_school_payment` database function commits each order's mixed inventory **once** under a row lock. It is safe to call again for an already-finalized order.
+- **Not yet solved:** simultaneous different customers can pass the pre-payment availability read before either finalizes, so strict stock reservation/capacity enforcement under concurrent checkouts remains a production gate. There is no expiring inventory hold at checkout yet.
+
+### School UX
+
+- Mixed-only storefront component: `app/christmas-cards/school-mixed-storefront.tsx`.
+- School checkout: `app/christmas-cards/school-checkout-form.tsx`; styling `school-checkout.css`.
+- Parent/guardian name, email, optional phone; student name, grade, room, teacher.
+- No shipping address. School delivers to classrooms. Student information is sensitive and must not be sent to Square.
+- Intro pink band contains boxed `Order by` / `Delivery by` labels, when configured.
+- Checkout has dark-red/white error alerts, Square embedded sandbox card form, and payment confirmation.
+- The school draft and contact details currently use browser `sessionStorage`; clear after confirmed payment.
+
+### Square sandbox setup
+
+- Square Developer application: **CCIC Web School Fundraisers**.
+- Sandbox location ID: `LF8QJQQ2CK288` (public identifier).
+- Local `.env.local` (never commit secrets):
+  - `SQUARE_APPLICATION_ID` = sandbox application ID
+  - `SQUARE_ACCESS_TOKEN` = sandbox secret token
+  - `SQUARE_LOCATION_ID=LF8QJQQ2CK288`
+  - `SQUARE_ENVIRONMENT=sandbox`
+  - `PII_ENCRYPTION_KEY` = existing encryption secret
+- The server checkout route passes safe application/location identifiers to the browser. Access token stays server-side.
+- Browser SDK: `https://sandbox.web.squarecdn.com/v1/square.js`.
+- Square API endpoint: `https://connect.squareupsandbox.com/v2/payments`.
+- School payment API: `app/api/ccic/school-payments/route.ts`.
+- Webhook endpoint: `app/api/ccic/square-webhook/route.ts`.
+- The payment API is deliberately **sandbox-only**. Do not flip to production by merely changing an env var. Production readiness requires separate explicit review.
+- No raw card numbers stored or transmitted through CCIC servers.
+- No student/classroom details in Square notes, metadata, or reference IDs.
+
+### Supabase tables and security
+
+- Project: **Chrism-main** (`wvaaijbvukzyfaglifoc`), Canada region.
+- `ccic_school_orders`: one school checkout/payment attempt, encrypted parent/contact and student/classroom fields, Square references, statuses, totals, contribution, idempotency key, inventory and email timestamps.
+- `ccic_school_order_lines`: SKUs, quantities, prices.
+- `ccic_square_webhook_events`: webhook event receipt and processing audit.
+- `ccic_mixed_box_commitments`: committed mixed-box quantities by collection.
+- Service-role-only access; RLS enabled, anon/auth revoked. The application uses `lib/security/pii.ts` AES-GCM protection.
+- Migrations:
+  - `20261008010000_ccic_mixed_box_inventory.sql`
+  - `20261008150000_ccic_school_orders.sql`
+  - `20261008194500_ccic_school_payment_hardening.sql`
+- Hardening SQL was executed on connected Chrism-main project. The original school order and inventory migrations were also previously applied.
+
+### Payment lifecycle and safeguards (October 8)
+
+1. Browser validates details and tokenizes card using Square's SDK.
+2. Client retains a UUID checkout key in `sessionStorage`. Server checks it against unique `checkout_key` to block accidental repeat charges.
+3. Server validates school, cutoff, cart/prices, contact fields and inventory availability. A transient Supabase inventory fetch is retried once. On persistent failure, returns 503 **before charging**.
+4. Server persists pending order and lines before calling Square. Square's idempotency key is the stored order UUID; Square reference ID is the order UUID.
+5. Explicit Square decline marks `payment_failed`; a timeout or unknown response **does not** assume payment failed. Such attempts remain pending and must be reconciled, not blindly retried.
+6. For completed payments, `lib/christmas-cards/school-payment-finalize.ts` verifies Square payment ID, reference, location, CAD amount, environment, and completed status before calling the atomic database finalizer.
+7. Finalizer marks paid and commits mixed inventory once, even if browser and webhook both run it.
+8. Confirmation email uses Brevo from `orders@ccic.supplies`; email claim/sent/error timestamps support deduplication and investigation. Emails are best-effort and must not reverse successful payments.
+9. Signed Square `payment.created`/`payment.updated` webhooks independently retrieve payment from Square before reconciliation; webhook signature uses HMAC-SHA256 of notification URL plus exact raw request body, compared in constant time. Event IDs are logged to avoid reprocessing completed deliveries.
+
+**Important remaining risks:** Confirmation email delivery has not been sandbox-tested; if Brevo accepts a message but the response is lost, automatic retry could send a duplicate. Checkout key prevents duplicate submissions within one browser session, but separate sessions or manually restarted orders need operational reconciliation. Stock capacity still needs atomic pre-payment reservation. Refund/cancellation accounting and rollback of mixed commitments are not implemented.
+
+### Verified sandbox transaction
+
+On **October 8, 2026**, the first sandbox payment succeeded:
+
+- Order `CCIC-S-26-3BA40829`, school `STFRANCISXAVIER26`.
+- 1 × Collection 3 + 1 × Collection 4 = **$33.80 CAD**.
+- School contribution = **$9.00**.
+- Supabase status `paid`, Square status `COMPLETED`, Square payment ID stored.
+- `ccic_mixed_box_commitments`: 1 each for `ccic-26-03-mix` and `ccic-26-04-mix`.
+- After the hardening migration, running `ccic_finalize_school_payment` again for the same paid order returned `false` (no new inventory committed). Existing counts were preserved.
+- This order predates confirmation-email code and was not automatically emailed.
+
+### Square webhook configuration STILL REQUIRED
+
+The webhook handler code is committed but **not activated/tested against real Square webhook deliveries**. In the Square Developer dashboard, create a **Sandbox** webhook subscription for `payment.created` and `payment.updated` pointing to a publicly reachable HTTPS URL ending in `/api/ccic/square-webhook`. Then configure the server-only environment variables:
+
+- `SQUARE_WEBHOOK_SIGNATURE_KEY`: subscription signature key, never expose.
+- `SQUARE_WEBHOOK_NOTIFICATION_URL`: exact full notification URL as registered with Square; signature validation depends on an exact match.
+
+Localhost cannot directly receive Square webhooks. Use a safe temporary HTTPS tunnel or a protected sandbox-only deployment, **not the live public CCIC site**. Verify valid signature, rejected invalid signature, duplicate delivery, delayed completion, and missing browser callback. Never paste the signature key into chat.
+
+### Production gates and immediate next steps
+
+1. **Pull and build/test** current branch locally (`git pull`, `npm run build` or `npx tsc --noEmit`). New hardening code has **not yet been validated by a full local TypeScript/build run**.
+2. Set up sandbox webhook subscription and secrets; test verified webhook delivery and recovery.
+3. Test new sandbox orders after hardening: success, explicit decline, repeated submission, delayed/unknown Square outcome, duplicate webhook, inventory idempotency, and confirmation email.
+4. Add atomic capacity-aware temporary reservations with expiry before allowing simultaneous customer purchases at production scale.
+5. Implement admin reconciliation for pending/unknown payments and refunds; do not automatically refund or decrement inventory on arbitrary webhook state changes.
+6. Validate email sender/domain, deliverability, copy and school-specific delivery date; set privacy retention policy for student data.
+7. Build `CCIC Admin → School Fundraisers`: school selector, campaign totals, paid orders, collection quantities, school proceeds, packing/distribution export grouped Teacher → Room → Student.
+8. Configure per-school dates and pilot activation; verify other `schools-2` slugs and original `schools` routes independently.
+9. Separate sandbox from production, review merchant of record/settlement and fees, and conduct explicit production cutover review before enabling live cards.
+
+**Safety:** The original council store remains unchanged. Do not store secret Square credentials in GitHub, handoff documents or chat. Do not interpret a payment HTTP timeout as proof of failure. Do not mark a payment complete solely because a client or unverified webhook says so.
+
