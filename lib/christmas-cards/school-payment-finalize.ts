@@ -71,6 +71,10 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
     const text = `Thank you, ${name}.\n\nYour CCIC school fundraiser order ${claimed.order_number} has been paid.\n\n${lineText}\n\nTotal: ${money(claimed.total_cents)}\nSupports ${claimed.school_name}: ${money(claimed.school_contribution_cents)}\n\nYour cards will be delivered to ${claimed.school_name} for distribution.\n\nThis is a sandbox test order; no real payment was taken.`
     await sendBrevoTransactionalEmail({
       to: [{ email, name }],
+      bcc: [
+        { email: 'orders@ccic.supplies', name: 'CCIC Orders' },
+        { email: 'ccic@kofc7689.org', name: 'CCIC' },
+      ],
       subject: `CCIC school order confirmation ${claimed.order_number}`,
       textContent: text,
       htmlContent: `<p>Thank you, ${escapeHtml(name)}.</p><p>Your CCIC school fundraiser order <strong>${escapeHtml(claimed.order_number)}</strong> has been paid.</p><ul>${(lines || []).map((line) => `<li>${line.quantity} × ${escapeHtml(line.title)}: ${money(line.line_total_cents)}</li>`).join('')}</ul><p><strong>Total: ${money(claimed.total_cents)}</strong><br>Supports ${escapeHtml(claimed.school_name)}: ${money(claimed.school_contribution_cents)}</p><p>Your cards will be delivered to ${escapeHtml(claimed.school_name)} for distribution.</p><p><em>Sandbox test order. No real payment was taken.</em></p>`,
