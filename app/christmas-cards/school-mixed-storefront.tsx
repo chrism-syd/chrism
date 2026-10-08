@@ -1,24 +1,53 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import QuantityControl from './quantity-control'
 import CardArt from './card-art'
 import type { ChristmasCardBox, ChristmasCardMixedBox } from '@/lib/christmas-cards/catalog'
 import type { CcicMixedBoxAvailability } from '@/lib/christmas-cards/inventory'
+import { CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY, calculateCcicSchoolOrder, parseCcicSchoolOrderDraft } from '@/lib/christmas-cards/school-order'
 
 type Props = {
   mixedBoxes: ChristmasCardMixedBox[]
   boxes: ChristmasCardBox[]
   availability: CcicMixedBoxAvailability[]
+  schoolSlug: string
+  schoolCode: string
+  schoolName: string
 }
 
-export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability }: Props) {
+export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability, schoolSlug, schoolCode, schoolName }: Props) {
+  const router = useRouter()
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [hydrated, setHydrated] = useState(false)
 
-  const totalSelected = useMemo(
-    () => Object.values(quantities).reduce((sum, quantity) => sum + quantity, 0),
-    [quantities]
-  )
+  const draft = useMemo(() => ({ version: 1 as const, schoolSlug, schoolCode, quantities }), [quantities, schoolCode, schoolSlug])
+  const calculated = useMemo(() => calculateCcicSchoolOrder(draft), [draft])
+  const totalSelected = calculated.totalBoxes
+
+  useEffect(() => {
+    const stored = window.sessionStorage.getItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
+    if (stored) {
+      try {
+        const parsed = parseCcicSchoolOrderDraft(JSON.parse(stored))
+        if (parsed?.schoolSlug === schoolSlug && parsed.schoolCode === schoolCode) setQuantities(parsed.quantities)
+      } catch {}
+    }
+    setHydrated(true)
+  }, [schoolCode, schoolSlug])
+
+  useEffect(() => {
+    if (!hydrated) return
+    if (calculated.hasOrder) window.sessionStorage.setItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft))
+    else window.sessionStorage.removeItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
+  }, [calculated.hasOrder, draft, hydrated])
+
+  function reviewOrder() {
+    if (!calculated.hasOrder) return
+    window.sessionStorage.setItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft))
+    router.push(`/ccic/schools-2/${schoolSlug}/checkout`)
+  }
 
   function maxQuantity(mixedCatalogId: string) {
     const row = availability.find((item) => item.mixedCatalogId === mixedCatalogId)
@@ -33,7 +62,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability 
           <h2>Choose your Christmas card collection</h2>
           <p>
             Each box includes 12 cards and envelopes, with 3 cards from each of the four designs in the collection.
-            Every box sold contributes $4.50 to the St. Francis Xavier fundraiser.
+            Every box sold contributes $4.50 to the {schoolName} fundraiser.
           </p>
         </div>
         <div className="ccic-school-mixed-price">
@@ -81,7 +110,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability 
               <div className="ccic-school-mixed-card-footer">
                 <div>
                   <strong className="ccic-school-mixed-card-price">$16.90</strong>
-                  <span>$4.50 supports St. Francis Xavier</span>
+                  <span>$4.50 supports {schoolName}</span>
                 </div>
 
                 {max > 0 ? (
@@ -106,7 +135,8 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability 
       {totalSelected > 0 ? (
         <div className="ccic-school-mixed-selection-note" role="status">
           <strong>{totalSelected} {totalSelected === 1 ? 'box' : 'boxes'} selected</strong>
-          <span>Checkout will be connected next.</span>
+          <span>{calculated.schoolContributionCents ? `${(calculated.schoolContributionCents / 100).toFixed(2)} supports ${schoolName}` : ''}</span>
+          <button type="button" className="ccic-school-checkout-button" onClick={reviewOrder}>Review & checkout</button>
         </div>
       ) : null}
     </section>
