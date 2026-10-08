@@ -3,6 +3,8 @@ export type CcicSchoolCampaign = {
   code: string
   name: string
   active: boolean
+  orderingClosesAt?: string
+  deliveryBy?: string
 }
 
 // Year-one school registry.
@@ -44,6 +46,8 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     code: 'STFRANCISXAVIER26',
     name: 'St. Francis Xavier',
     active: true,
+    orderingClosesAt: '2026-11-15T23:59:59-05:00',
+    deliveryBy: '2026-11-30',
   },
 ]
 
@@ -59,4 +63,26 @@ export function getCcicSchoolCampaignByCode(code: string) {
   return CCIC_SCHOOL_CAMPAIGNS.find(
     (school) => school.active && school.code.toUpperCase() === normalizedCode
   ) ?? null
+}
+
+
+export function isCcicSchoolCampaignOpen(school: CcicSchoolCampaign, now = new Date()) {
+  if (!school.active) return false
+  if (!school.orderingClosesAt) return true
+  return now.getTime() <= new Date(school.orderingClosesAt).getTime()
+}
+
+
+export function formatCcicSchoolCampaignDate(value?: string) {
+  if (!value) return null
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T12:00:00Z`)
+    : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  return new Intl.DateTimeFormat('en-CA', {
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/Toronto',
+  }).format(date)
 }
