@@ -15,9 +15,10 @@ type Props = {
   schoolSlug: string
   schoolCode: string
   schoolName: string
+  orderingClosed: boolean
 }
 
-export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability, schoolSlug, schoolCode, schoolName }: Props) {
+export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability, schoolSlug, schoolCode, schoolName, orderingClosed }: Props) {
   const router = useRouter()
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [hydrated, setHydrated] = useState(false)
@@ -44,7 +45,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
   }, [calculated.hasOrder, draft, hydrated])
 
   function reviewOrder() {
-    if (!calculated.hasOrder) return
+    if (orderingClosed || !calculated.hasOrder) return
     window.sessionStorage.setItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft))
     router.push(`/ccic/schools-2/${schoolSlug}/checkout`)
   }
@@ -70,6 +71,17 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
           <span>per box</span>
         </div>
       </div>
+
+      {orderingClosed ? (
+        <div className="ccic-school-ordering-closed-banner" role="status">
+          <div>
+            <p className="ccic-eyebrow">Fundraiser complete</p>
+            <h3>School ordering is now closed.</h3>
+            <p>Thank you for supporting {schoolName}. You can still browse the card collections below.</p>
+          </div>
+          <a href="/ccic">Shop CCIC Christmas Cards</a>
+        </div>
+      ) : null}
 
       <div className="ccic-school-mixed-grid" id="school-card-selections">
         {mixedBoxes.map((mixed, index) => {
@@ -113,7 +125,9 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
                   <span>$4.50 supports {schoolName}</span>
                 </div>
 
-                {max > 0 ? (
+                {orderingClosed ? (
+                  <span className="ccic-school-ordering-closed-pill">Ordering closed</span>
+                ) : max > 0 ? (
                   <div className="ccic-school-mixed-quantity-wrap">
                     <span>Quantity</span>
                     <QuantityControl
@@ -132,7 +146,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
         })}
       </div>
 
-      {totalSelected > 0 ? (
+      {!orderingClosed && totalSelected > 0 ? (
         <div className="ccic-school-mixed-selection-note" role="status">
           <strong>{totalSelected} {totalSelected === 1 ? 'box' : 'boxes'} selected</strong>
           <span>{calculated.schoolContributionCents ? `${(calculated.schoolContributionCents / 100).toFixed(2)} supports ${schoolName}` : ''}</span>
