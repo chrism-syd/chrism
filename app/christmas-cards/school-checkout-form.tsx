@@ -31,7 +31,7 @@ const EMPTY_DETAILS: CheckoutDetails = {
   teacherName: '',
 }
 
-export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName }: { schoolSlug: string; schoolCode: string; schoolName: string }) {
+export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean }) {
   const router = useRouter()
   const [draft, setDraft] = useState<CcicSchoolOrderDraft | null>(null)
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
@@ -89,6 +89,17 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName 
       return
     }
     setMessage('Your order details are ready. Online payment will be connected in the next step.')
+  }
+
+  if (orderingClosed) {
+    return (
+      <section className="ccic-school-checkout-empty">
+        <p className="ccic-eyebrow">Fundraiser complete</p>
+        <h1>School ordering is now closed</h1>
+        <p>Thank you for supporting {schoolName}. Orders for this school fundraiser are no longer being accepted.</p>
+        <a className="ccic-school-checkout-primary ccic-school-closed-link" href="/ccic">Shop CCIC Christmas Cards</a>
+      </section>
+    )
   }
 
   if (!ready) return <div className="ccic-school-checkout-loading">Loading your cart…</div>
