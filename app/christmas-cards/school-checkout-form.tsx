@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import {
@@ -37,6 +37,11 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
   const [ready, setReady] = useState(false)
   const [message, setMessage] = useState('')
+  const [processing, setProcessing] = useState(false)
+  const [paidOrderNumber, setPaidOrderNumber] = useState('')
+  const cardRef = useRef<{ tokenize: () => Promise<{ status: string; token?: string; errors?: Array<{ message?: string }> }> } | null>(null)
+  const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID
+  const squareLocationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID
 
   useEffect(() => {
     const storedDraft = window.sessionStorage.getItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
@@ -64,7 +69,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     setDetails((current) => ({ ...current, [key]: value }))
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setMessage('')
     if (!calculated?.hasOrder) {
@@ -88,8 +93,59 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       setMessage('Please enter a valid email address.')
       return
     }
-    setMessage('Your order details are ready. Online payment will be connected in the next step.')
+    if (!cardRef.current) { setMessage('The secure payment form is still loading.'); return }
+    setProcessing(true)
+    try {
+      const tokenized = await cardRef.current.tokenize()
+      if (tokenized.status !== 'OK' || !tokenized.token) throw new Error(tokenized.errors?.[0]?.message || 'Please check your card information.')
+      const response = await fetch('/api/ccic/school-payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft, details, sourceId: tokenized.token }),
+      })
+      const result = await response.json() as { error?: string; paid?: boolean; orderNumber?: string }
+      if (!response.ok || !result.paid) throw new Error(result.error || 'Payment confirmation is pending. Please contact us before retrying.')
+      setPaidOrderNumber(result.orderNumber || '')
+      window.sessionStorage.removeItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
+      window.sessionStorage.removeItem(CCIC_SCHOOL_CHECKOUT_STORAGE_KEY)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Payment could not be completed.')
+    } finally { setProcessing(false) }
   }
+
+  useEffect(() => {
+    if (!squareAppId || !squareLocationId || !ready || !draft) return
+    let cancelled = false
+    let mountedCard: { destroy?: () => Promise<void> } | null = null
+    const init = async () => {
+      const scriptId = 'ccic-square-web-payments'
+      let script = document.getElementById(scriptId) as HTMLScriptElement | null
+      if (!script) {
+        script = document.createElement('script')
+        script.id = scriptId
+        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
+        document.head.appendChild(script)
+      }
+      if (!script.dataset.loaded) {
+        await new Promise<void>((resolve, reject) => {
+          if (script?.dataset.loaded) return resolve()
+          script?.addEventListener('load', () => resolve(), { once: true })
+          script?.addEventListener('error', () => reject(new Error('Square payment form could not load.')), { once: true })
+        })
+        script.dataset.loaded = 'true'
+      }
+      const square = (window as unknown as { Square?: { payments: (appId: string, locationId: string) => Promise<{ card: () => Promise<{ attach: (selector: string) => Promise<void>; tokenize: () => Promise<{ status: string; token?: string }> ; destroy?: () => Promise<void> }> }> } }).Square
+      if (!square || cancelled) return
+      const payments = await square.payments(squareAppId, squareLocationId)
+      const card = await payments.card()
+      if (cancelled) return
+      await card.attach('#ccic-school-square-card')
+      mountedCard = card
+      cardRef.current = card
+    }
+    init().catch(() => { if (!cancelled) setMessage('Secure card payment could not load. Please refresh and try again.') })
+    return () => { cancelled = true; cardRef.current = null; void mountedCard?.destroy?.() }
+  }, [squareAppId, squareLocationId, ready, draft])
 
   if (orderingClosed) {
     return (
@@ -113,6 +169,8 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       </section>
     )
   }
+
+  if (paidOrderNumber) return <section className="ccic-school-checkout-empty"><h1>Payment received</h1><p>Thank you. Your school fundraiser order <strong>{paidOrderNumber}</strong> is confirmed.</p><p>Your cards will be delivered to {schoolName} for distribution.</p></section>
 
   return (
     <form className="ccic-school-checkout-layout" onSubmit={submit}>
@@ -166,8 +224,13 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
           <p className="ccic-school-checkout-delivery"><strong>Delivery:</strong> Delivered to {schoolName} for distribution.</p>
         )}
         {message ? <p className="ccic-school-checkout-message" role="status">{message}</p> : null}
-        <button type="submit" className="ccic-school-checkout-primary">Continue to payment</button>
-        <p className="ccic-school-checkout-payment-note">Online payment will be connected next. No payment is taken yet.</p>
+        {squareAppId && squareLocationId ? (
+          <>
+            <div id="ccic-school-square-card" aria-label="Secure card payment" />
+            <button type="submit" className="ccic-school-checkout-primary" disabled={processing}>{processing ? 'Processing…' : 'Pay securely (Sandbox)'}</button>
+            <p className="ccic-school-checkout-payment-note">Sandbox test payment only. No real card will be charged.</p>
+          </>
+        ) : <p className="ccic-school-checkout-payment-note">Secure payment is not configured. No payment can be taken.</p>}
       </aside>
     </form>
   )
