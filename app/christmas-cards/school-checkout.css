@@ -43,3 +43,16 @@
 }
 
 .ccic-school-closed-link { display:inline-block; width:auto; margin-top:14px; text-decoration:none; text-align:center; }
+
+
+/* Checkout validation and payment errors */
+.ccic-school-checkout-message {
+  margin: 16px 0;
+  padding: 15px 18px;
+  border: 1px solid #681b1b;
+  background: #7f1d1d;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
