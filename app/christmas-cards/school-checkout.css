@@ -1,0 +1,58 @@
+.ccic-school-checkout-page { background:#f7f6f4; }
+.ccic-school-checkout-brand { display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; text-transform:uppercase; letter-spacing:.04em; }
+.ccic-school-checkout-layout { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:48px; width:min(1120px,calc(100% - 40px)); margin:0 auto; padding:54px 0 90px; align-items:start; }
+.ccic-school-checkout-main { display:grid; gap:34px; }
+.ccic-school-checkout-main h1 { margin:5px 0 8px; font-size:clamp(38px,5vw,62px); line-height:1; letter-spacing:-.045em; }
+.ccic-school-checkout-lead { margin:0; max-width:650px; color:#625d57; line-height:1.55; }
+.ccic-school-checkout-back { justify-self:start; border:0; padding:0; background:none; cursor:pointer; font:inherit; font-weight:700; }
+.ccic-school-checkout-section { padding:28px; border:1px solid #ddd9d4; background:#fff; }
+.ccic-school-checkout-section-heading { display:flex; gap:15px; align-items:flex-start; margin-bottom:24px; }
+.ccic-school-checkout-section-heading > span { display:grid; place-items:center; width:30px; height:30px; flex:0 0 auto; border-radius:50%; background:#1d1712; color:#fff; font-weight:800; }
+.ccic-school-checkout-section-heading h2 { margin:0 0 4px; font-size:23px; }
+.ccic-school-checkout-section-heading p { margin:0; color:#6b655f; font-size:13px; }
+.ccic-school-checkout-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.ccic-school-checkout-fields label { display:grid; gap:7px; font-size:13px; font-weight:750; }
+.ccic-school-checkout-fields label:first-child { grid-column:1/-1; }
+.ccic-school-checkout-fields small { color:#777; font-weight:500; }
+.ccic-school-checkout-fields input { width:100%; padding:13px 14px; border:1px solid #cfcac4; border-radius:0; background:#fff; color:#1d1712; font:inherit; }
+.ccic-school-checkout-fields input:focus { outline:2px solid #1d1712; outline-offset:1px; }
+.ccic-school-checkout-privacy { margin:18px 0 0; padding-top:16px; border-top:1px solid #eeeae6; color:#77716b; font-size:12px; line-height:1.5; }
+.ccic-school-checkout-summary { position:sticky; top:24px; padding:28px; border:1px solid #d9d5d0; background:#fff; box-shadow:0 18px 45px rgba(0,0,0,.06); }
+.ccic-school-checkout-summary h2 { margin:2px 0 22px; font-size:27px; }
+.ccic-school-checkout-lines { display:grid; gap:15px; }
+.ccic-school-checkout-line { display:flex; gap:16px; justify-content:space-between; padding-bottom:15px; border-bottom:1px solid #eeeae6; font-size:13px; }
+.ccic-school-checkout-line > div { display:grid; gap:3px; }
+.ccic-school-checkout-line span { color:#77716b; font-size:11px; }
+.ccic-school-checkout-contribution { display:flex; justify-content:space-between; gap:16px; margin-top:18px; padding:14px; background:#f4f6ef; color:#315529; font-size:13px; }
+.ccic-school-checkout-total { display:flex; justify-content:space-between; align-items:baseline; margin-top:18px; padding-top:18px; border-top:2px solid #1d1712; font-size:18px; font-weight:800; }
+.ccic-school-checkout-total strong { font-size:28px; }
+.ccic-school-checkout-delivery { margin:18px 0; color:#625d57; font-size:12px; line-height:1.5; }
+.ccic-school-checkout-primary { width:100%; border:0; padding:15px 18px; background:#1d1712; color:#fff; cursor:pointer; font:inherit; font-weight:850; }
+.ccic-school-checkout-payment-note { margin:10px 0 0; color:#77716b; font-size:11px; text-align:center; }
+.ccic-school-checkout-message { margin:0 0 12px; padding:11px 12px; background:#f7f3e9; font-size:12px; line-height:1.45; }
+.ccic-school-checkout-loading,.ccic-school-checkout-empty { width:min(720px,calc(100% - 40px)); margin:70px auto; padding:36px; border:1px solid #ddd9d4; background:#fff; }
+.ccic-school-checkout-empty .ccic-school-checkout-primary { width:auto; margin-top:12px; }
+.ccic-school-checkout-button { border:0; padding:10px 15px; background:#1d1712; color:#fff; cursor:pointer; font:inherit; font-size:12px; font-weight:800; white-space:nowrap; }
+@media(max-width:850px){.ccic-school-checkout-layout{grid-template-columns:1fr;gap:28px}.ccic-school-checkout-summary{position:static}.ccic-school-checkout-fields{grid-template-columns:1fr}.ccic-school-checkout-fields label:first-child{grid-column:auto}}
+@media(max-width:600px){.ccic-school-checkout-layout{width:calc(100% - 24px);padding:34px 0 60px}.ccic-school-checkout-section,.ccic-school-checkout-summary{padding:20px}.ccic-school-mixed-selection-note{gap:8px}.ccic-school-checkout-button{padding:9px 11px}}
+
+.ccic-school-checkout-page > .ccic-site-header {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.ccic-school-closed-link { display:inline-block; width:auto; margin-top:14px; text-decoration:none; text-align:center; }
+
+
+/* Checkout validation and payment errors */
+.ccic-school-checkout-message {
+  margin: 16px 0;
+  padding: 15px 18px;
+  border: 1px solid #681b1b;
+  background: #7f1d1d;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
