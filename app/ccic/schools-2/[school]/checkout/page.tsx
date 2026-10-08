@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import SchoolCheckoutForm from '@/app/christmas-cards/school-checkout-form'
 import { CHRISTMAS_CARD_ORDER_CONFIG } from '@/lib/christmas-cards/catalog'
-import { getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
+import { formatCcicSchoolCampaignDate, getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
 import '@/app/christmas-cards/storefront.css'
 import '@/app/christmas-cards/school-storefront.css'
 import '@/app/christmas-cards/school-checkout.css'
@@ -14,6 +14,7 @@ export default async function SchoolCheckoutPage({ params }: PageProps) {
   const { school: schoolSlug } = await params
   const school = getCcicSchoolCampaign(schoolSlug)
   if (!school) notFound()
+  const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
   return (
     <main className="ccic-page ccic-school-checkout-page">
       <header className="ccic-site-header"><div className="ccic-site-header-inner">
@@ -24,7 +25,7 @@ export default async function SchoolCheckoutPage({ params }: PageProps) {
         </div>
         <span aria-hidden="true" className="ccic-header-spacer" />
       </div></header>
-      <SchoolCheckoutForm schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={!isCcicSchoolCampaignOpen(school)} />
+      <SchoolCheckoutForm schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={!isCcicSchoolCampaignOpen(school)} deliveryByLabel={deliveryByLabel} />
     </main>
   )
 }
