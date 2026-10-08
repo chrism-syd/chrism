@@ -39,6 +39,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
   const [message, setMessage] = useState('')
   const [processing, setProcessing] = useState(false)
   const [paidOrderNumber, setPaidOrderNumber] = useState('')
+  const [submittedOrderNumber, setSubmittedOrderNumber] = useState('')
   const cardRef = useRef<{ tokenize: () => Promise<{ status: string; token?: string; errors?: Array<{ message?: string }> }> } | null>(null)
 
   useEffect(() => {
@@ -96,10 +97,16 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     try {
       const tokenized = await cardRef.current.tokenize()
       if (tokenized.status !== 'OK' || !tokenized.token) throw new Error(tokenized.errors?.[0]?.message || 'Please check your card information.')
+      const checkoutKeyStorage = 'ccic-school-checkout-payment-key-v1'
+      let checkoutKey = window.sessionStorage.getItem(checkoutKeyStorage)
+      if (!checkoutKey) {
+        checkoutKey = crypto.randomUUID()
+        window.sessionStorage.setItem(checkoutKeyStorage, checkoutKey)
+      }
       const response = await fetch('/api/ccic/school-payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft, details, sourceId: tokenized.token }),
+        body: JSON.stringify({ draft, details, sourceId: tokenized.token, checkoutKey }),
       })
       const rawResponse = await response.text()
       let result: { error?: string; paid?: boolean; orderNumber?: string } = {}
@@ -110,10 +117,12 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
           throw new Error(`Payment service returned an invalid response (HTTP ${response.status}). Please do not retry until we verify the transaction.`)
         }
       }
+      if (result.orderNumber) setSubmittedOrderNumber(result.orderNumber)
       if (!response.ok || !result.paid) throw new Error(result.error || `Payment could not be confirmed (HTTP ${response.status}). Please contact us before retrying.`)
       setPaidOrderNumber(result.orderNumber || '')
       window.sessionStorage.removeItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
       window.sessionStorage.removeItem(CCIC_SCHOOL_CHECKOUT_STORAGE_KEY)
+      window.sessionStorage.removeItem(checkoutKeyStorage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Payment could not be completed.')
     } finally { setProcessing(false) }
@@ -233,7 +242,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         {squareApplicationId && squareLocationId ? (
           <>
             <div id="ccic-school-square-card" aria-label="Secure card payment" />
-            <button type="submit" className="ccic-school-checkout-primary" disabled={processing}>{processing ? 'Processing…' : 'Pay securely (Sandbox)'}</button>
+            <button type="submit" className="ccic-school-checkout-primary" disabled={processing || Boolean(submittedOrderNumber)}>{processing ? 'Processing…' : submittedOrderNumber ? 'Payment submitted' : 'Pay securely (Sandbox)'}</button>
             <p className="ccic-school-checkout-payment-note">Sandbox test payment only. No real card will be charged.</p>
           </>
         ) : <p className="ccic-school-checkout-payment-note">Secure payment is not configured. No payment can be taken.</p>}
