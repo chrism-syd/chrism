@@ -7,7 +7,7 @@ import {
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
 import { getCcicMixedBoxAvailability } from '@/lib/christmas-cards/inventory'
-import { getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
+import { formatCcicSchoolCampaignDate, getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
 import '../../../christmas-cards/storefront.css'
 import '../../../christmas-cards/payment-polish.css'
 import '../../../christmas-cards/storefront-redesign.css'
@@ -39,6 +39,8 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
   const mixedAvailability = await getCcicMixedBoxAvailability()
   const orderingClosed = !isCcicSchoolCampaignOpen(school)
   const schoolName = <span style={{ whiteSpace: 'nowrap' }}>{school.name}</span>
+  const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
+  const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
 
   return (
     <main className="ccic-page">
@@ -63,12 +65,13 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
         <div className="ccic-intro-heading">
           <h1>Christmas Cards That Give Back to Our School.</h1>
           <p>Choose a mixed collection of beautiful faith-centred Christmas cards while supporting {schoolName}.</p>
+          {orderByLabel || deliveryByLabel ? (
+            <div className="ccic-school-intro-dates" aria-label="Fundraiser dates">
+              {orderByLabel ? <div><span>Order by</span><strong>{orderByLabel}</strong></div> : null}
+              {deliveryByLabel ? <div><span>Delivery by</span><strong>{deliveryByLabel}</strong></div> : null}
+            </div>
+          ) : null}
         </div>
-      </section>
-
-      <section className="ccic-school-campaign-dates" aria-label="Fundraiser dates">
-        <div><span>Order by</span><strong>November 15</strong></div>
-        <div><span>Delivery by</span><strong>November 30</strong></div>
       </section>
 
       <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} />
