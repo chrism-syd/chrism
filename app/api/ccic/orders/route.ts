@@ -162,6 +162,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: customerMessage }, { status: 409 })
   }
 
+  // Close the optional checkout activity record only after the order and inventory commit.
+  // A tracking failure must never fail a valid order.
+  const checkoutActivityId = (body as RequestBody & { checkoutActivityId?: unknown }).checkoutActivityId
+  if (typeof checkoutActivityId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(checkoutActivityId)) {
+    const { error: activityError } = await admin.from('ccic_abandoned_checkouts')
+      .update({ status: 'completed', order_number: order.order_number, completed_at: new Date().toISOString() })
+      .eq('id', checkoutActivityId)
+    if (activityError) console.warn('CCIC checkout tracking completion failed', activityError.message)
+  }
+
   const email = buildOrderEmail({ orderNumber: order.order_number, contact, draft, shipping })
   const adminRecipients = getAdminNotificationRecipients()
   const emailResults = await Promise.allSettled([
