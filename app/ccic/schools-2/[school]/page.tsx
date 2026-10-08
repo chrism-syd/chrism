@@ -7,7 +7,7 @@ import {
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
 import { getCcicMixedBoxAvailability } from '@/lib/christmas-cards/inventory'
-import { getCcicSchoolCampaign } from '@/lib/christmas-cards/schools'
+import { getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
 import '../../../christmas-cards/storefront.css'
 import '../../../christmas-cards/payment-polish.css'
 import '../../../christmas-cards/storefront-redesign.css'
@@ -37,6 +37,7 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
   if (!school) notFound()
 
   const mixedAvailability = await getCcicMixedBoxAvailability()
+  const orderingClosed = !isCcicSchoolCampaignOpen(school)
   const schoolName = <span style={{ whiteSpace: 'nowrap' }}>{school.name}</span>
 
   return (
@@ -65,7 +66,7 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
         </div>
       </section>
 
-      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} />
+      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} />
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
         <p>Thank you for helping keep Christ in Christmas while supporting {schoolName}.</p>
