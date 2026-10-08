@@ -68,7 +68,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
     if (!email) throw new Error('School order email is missing.')
     const money = (cents: number) => `$${(cents / 100).toFixed(2)} CAD`
     const lineText = (lines || []).map((line) => `${line.quantity} × ${line.title}: ${money(line.line_total_cents)}`).join('\n')
-    const text = `Thank you, ${name}.\n\nYour CCIC school fundraiser order ${claimed.order_number} has been paid.\n\n${lineText}\n\nTotal: ${money(claimed.total_cents)}\nSupports ${claimed.school_name}: ${money(claimed.school_contribution_cents)}\n\nYour cards will be delivered to ${claimed.school_name} for distribution.\n\nThis is a sandbox test order; no real payment was taken.`
+    const text = `Thank you, ${name}.\n\nYour CCIC school fundraiser order ${claimed.order_number} has been paid.\n\n${lineText}\n\nTotal: ${money(claimed.total_cents)}\nSupports ${claimed.school_name}: ${money(claimed.school_contribution_cents)}\n\nYour cards will be delivered to ${claimed.school_name} for distribution.\n\nYour card statement will show the merchant as sq *Knight of Columbus Council #7689.\n\nThis is a sandbox test order; no real payment was taken.`
     await sendBrevoTransactionalEmail({
       to: [{ email, name }],
       bcc: [
@@ -77,7 +77,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
       ],
       subject: `CCIC school order confirmation ${claimed.order_number}`,
       textContent: text,
-      htmlContent: `<p>Thank you, ${escapeHtml(name)}.</p><p>Your CCIC school fundraiser order <strong>${escapeHtml(claimed.order_number)}</strong> has been paid.</p><ul>${(lines || []).map((line) => `<li>${line.quantity} × ${escapeHtml(line.title)}: ${money(line.line_total_cents)}</li>`).join('')}</ul><p><strong>Total: ${money(claimed.total_cents)}</strong><br>Supports ${escapeHtml(claimed.school_name)}: ${money(claimed.school_contribution_cents)}</p><p>Your cards will be delivered to ${escapeHtml(claimed.school_name)} for distribution.</p><p><em>Sandbox test order. No real payment was taken.</em></p>`,
+      htmlContent: `<p>Thank you, ${escapeHtml(name)}.</p><p>Your CCIC school fundraiser order <strong>${escapeHtml(claimed.order_number)}</strong> has been paid.</p><ul>${(lines || []).map((line) => `<li>${line.quantity} × ${escapeHtml(line.title)}: ${money(line.line_total_cents)}</li>`).join('')}</ul><p><strong>Total: ${money(claimed.total_cents)}</strong><br>Supports ${escapeHtml(claimed.school_name)}: ${money(claimed.school_contribution_cents)}</p><p>Your cards will be delivered to ${escapeHtml(claimed.school_name)} for distribution.</p><p>Your card statement will show the merchant as <strong>sq *Knight of Columbus Council #7689</strong>.</p><p><em>Sandbox test order. No real payment was taken.</em></p>`,
     })
     const { error: sentError } = await admin.from('ccic_school_orders')
       .update({ confirmation_email_sent_at: new Date().toISOString(), confirmation_email_error: null })
