@@ -371,7 +371,7 @@
   box-shadow: 0 9px 20px rgba(0, 0, 0, .11);
 }
 
-.ccic-school-mixed-design-image img {
+.ccic-school-mixed-design-image .ccic-card-art img {
   object-fit: cover;
 }
 
@@ -550,4 +550,10 @@
   inset: auto 8px 8px;
   min-height: 30px;
   font-size: 11px;
+}
+
+
+.ccic-school-mixed-design-image .ccic-lightbox-image-wrap img {
+  object-fit: contain;
+  object-position: center;
 }
