@@ -22,6 +22,7 @@ export type ChristmasCardBox = {
   cardsPerBox: number
   priceCents: number
   isCasePricingEligible: boolean
+  isAccessory?: boolean
   sortOrder: number
 }
 
@@ -335,8 +336,27 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     priceCents: 1000,
     isCasePricingEligible: false,
   }),
+  {
+    id: 'ca-6021',
+    sku: 'CA-6021',
+    title: 'Christmas Seals',
+    description: 'Sheet of 50 gold-stamped seals in 4 assorted colours. Self-sticking for easy use.',
+    insideMessage: '',
+    frontImageUrl: '/christmas-cards/christmas_seals.png',
+    insideImageUrl: '/christmas-cards/christmas-seals-sheet.jpg',
+    outsideImageUrl: null,
+    themeTags: ['Christmas Seals'],
+    collectionId: 'accessories',
+    languageCode: 'en',
+    cardsPerBox: 50,
+    priceCents: 250,
+    isCasePricingEligible: false,
+    isAccessory: true,
+    sortOrder: 240,
+  },
 ]
 
+export const CHRISTMAS_CARD_ACCESSORIES = CHRISTMAS_CARD_BOXES.filter((item) => item.isAccessory)
 
 export const CHRISTMAS_CARD_MIXED_BOXES: ChristmasCardMixedBox[] = CHRISTMAS_CARD_COLLECTIONS
   .filter((collection) => /^collection-[1-4]$/.test(collection.id))
