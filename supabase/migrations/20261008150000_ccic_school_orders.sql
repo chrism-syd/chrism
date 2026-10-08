@@ -62,3 +62,21 @@ comment on table public.ccic_school_orders is
   'Paid and attempted CCIC school fundraiser orders. Contact and student distribution fields are encrypted by the application.';
 comment on table public.ccic_school_order_lines is
   'Mixed-box selections belonging to a school fundraiser order.';
+
+
+create or replace function public.ccic_commit_mixed_boxes(p_catalog_id text, p_quantity integer)
+returns void
+language sql
+security invoker
+set search_path = public
+as $$
+  insert into public.ccic_mixed_box_commitments (mixed_catalog_id, committed_mixed_boxes, updated_at)
+  values (p_catalog_id, greatest(p_quantity, 0), now())
+  on conflict (mixed_catalog_id)
+  do update set
+    committed_mixed_boxes = public.ccic_mixed_box_commitments.committed_mixed_boxes + greatest(excluded.committed_mixed_boxes, 0),
+    updated_at = now();
+$$;
+
+revoke all on function public.ccic_commit_mixed_boxes(text, integer) from public, anon, authenticated;
+grant execute on function public.ccic_commit_mixed_boxes(text, integer) to service_role;
