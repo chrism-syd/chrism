@@ -92,7 +92,6 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
             <article className={`ccic-school-mixed-card ${quantity > 0 ? 'is-selected' : ''}`} key={mixed.id}>
               <div className="ccic-school-mixed-card-heading">
                 <div>
-                  <p className="ccic-school-mixed-kicker">Collection {index + 1}</p>
                   <h3>{mixed.title.replace(' Mixed Box', '')}</h3>
                   <p>3 of each design · 12 cards · 12 envelopes</p>
                 </div>
