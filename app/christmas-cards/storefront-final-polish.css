@@ -483,3 +483,48 @@
     justify-self: center;
   }
 }
+
+/* Keep featured case and Christmas Seals quantity controls compact and consistent. */
+.ccic-featured-case-copy .ccic-quantity,
+.ccic-seals-copy .ccic-quantity {
+  display: inline-grid;
+  width: 138px;
+  min-width: 138px;
+  max-width: 138px;
+  grid-template-columns: 42px 52px 42px;
+  justify-self: start;
+  border: 1px solid #d7d5d3;
+  border-radius: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ccic-featured-case-copy .ccic-quantity button,
+.ccic-seals-copy .ccic-quantity button {
+  width: 42px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff !important;
+  color: var(--ccic-ink) !important;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.ccic-featured-case-copy .ccic-quantity input,
+.ccic-seals-copy .ccic-quantity input {
+  box-sizing: border-box;
+  width: 52px;
+  min-width: 0;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-inline: 1px solid #d7d5d3;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ccic-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
