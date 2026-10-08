@@ -67,7 +67,7 @@ export default function ReviewOrderForm() {
       const data = new FormData(form)
       const contactName = fieldValue(data, 'contact_name')
       const email = fieldValue(data, 'email')
-      if (!contactName || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return
+      if (!contactName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
       void fetch('/api/ccic/checkout-activity', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
