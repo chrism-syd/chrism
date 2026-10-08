@@ -66,12 +66,12 @@ export default async function SchoolFundraisersAdminPage({
           <div><p className="ccic-eyebrow">CCIC Administration</p><h1>School Fundraisers</h1></div>
         </div>
         <p>Read-only school order overview. Only paid orders count toward fundraising and packing totals.</p>
-        <p><Link href="/ccic/admin/orders">← Council orders</Link></p>
+        <nav className="ccic-admin-header-actions"><Link href="/ccic/admin/orders">Council orders</Link><Link href="/ccic/admin/packing-list">Packing list</Link><Link href="/ccic/admin/store-control">Store control</Link></nav>
       </header>
 
       <section className="ccic-admin-card" style={{ padding: 22, marginBottom: 24 }}>
         <form action="/ccic/admin/school-fundraisers" method="get">
-          <label htmlFor="school-filter"><strong>School / campaign</strong></label>{' '}
+          <label htmlFor="school-filter"><strong>Schools</strong></label>{' '}
           <select id="school-filter" name="school" defaultValue={selectedSchool} style={{ padding: 10, maxWidth: '100%' }}>
             <option value="">All schools</option>
             {CCIC_SCHOOL_CAMPAIGNS.map((school) => (
