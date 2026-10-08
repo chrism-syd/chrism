@@ -711,3 +711,11 @@
   .ccic-school-intro-dates { gap: 20px; }
   .ccic-school-intro-dates > div { min-width: 0; }
 }
+
+
+/* Box the campaign dates while keeping them inside the pink intro band */
+.ccic-school-intro-dates > div {
+  padding: 12px 18px;
+  border: 1px solid rgba(32, 32, 32, .18);
+  background: rgba(255, 255, 255, .55);
+}
