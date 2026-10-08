@@ -65,7 +65,7 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
         </div>
       </section>
 
-      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} />
+      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} />
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
         <p>Thank you for helping keep Christ in Christmas while supporting {schoolName}.</p>
