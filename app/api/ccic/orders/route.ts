@@ -166,6 +166,21 @@ export async function POST(request: NextRequest) {
   // A tracking failure must never fail a valid order.
   const checkoutActivityId = (body as RequestBody & { checkoutActivityId?: unknown }).checkoutActivityId
   if (typeof checkoutActivityId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(checkoutActivityId)) {
+    // Insert a completed marker even if the debounced tracking request has not arrived yet.
+    await admin.from('ccic_abandoned_checkouts').upsert({
+      id: checkoutActivityId,
+      contact_name: contact.contactName,
+      organization_name: contact.organizationName,
+      ...protectPeoplePayload({ email: contact.email, cell_phone: contact.phone }),
+      cart_lines: calculated.lines.map(line => ({ title: line.title, quantity: line.quantity, line_total_cents: line.lineTotalCents })),
+      subtotal_cents: calculated.subtotalCents,
+      shipping_cents: shipping.status === 'priced' ? shipping.shippingCents : null,
+      shipping_status: shipping.status,
+      total_cents: totalCents,
+      status: 'completed',
+      order_number: order.order_number,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: 'id', ignoreDuplicates: true })
     const { error: activityError } = await admin.from('ccic_abandoned_checkouts')
       .update({ status: 'completed', order_number: order.order_number, completed_at: new Date().toISOString() })
       .eq('id', checkoutActivityId)
