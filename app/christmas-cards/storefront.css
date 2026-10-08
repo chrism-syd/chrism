@@ -562,6 +562,7 @@
 
 .ccic-quantity {
   display: grid;
+  width: max-content;
   grid-template-columns: 44px 58px 44px;
   align-items: center;
   justify-self: start;
