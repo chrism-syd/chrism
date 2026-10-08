@@ -557,3 +557,11 @@
   object-fit: contain;
   object-position: center;
 }
+
+
+/* Full-bleed school fundraiser bands */
+.ccic-page > .ccic-support-banner {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
