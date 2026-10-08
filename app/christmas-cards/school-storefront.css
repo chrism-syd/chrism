@@ -677,3 +677,37 @@
   .ccic-school-campaign-dates { width: calc(100% - 20px); }
   .ccic-school-campaign-dates > div { padding: 15px 10px; }
 }
+
+
+.ccic-school-contribution-copy {
+  display: block;
+  margin-top: 4px;
+  color: var(--ccic-ink);
+  font-weight: 800;
+}
+
+.ccic-school-intro-dates {
+  display: flex;
+  gap: 34px;
+  justify-content: center;
+  margin-top: 22px;
+}
+.ccic-school-intro-dates > div {
+  display: grid;
+  gap: 3px;
+  min-width: 120px;
+}
+.ccic-school-intro-dates span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ccic-school-intro-dates strong {
+  font-size: 17px;
+  line-height: 1.2;
+}
+@media (max-width: 600px) {
+  .ccic-school-intro-dates { gap: 20px; }
+  .ccic-school-intro-dates > div { min-width: 0; }
+}
