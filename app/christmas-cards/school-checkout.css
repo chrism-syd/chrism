@@ -41,3 +41,5 @@
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
 }
+
+.ccic-school-closed-link { display:inline-block; width:auto; margin-top:14px; text-decoration:none; text-align:center; }
