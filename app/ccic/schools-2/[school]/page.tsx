@@ -66,6 +66,11 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
         </div>
       </section>
 
+      <section className="ccic-school-campaign-dates" aria-label="Fundraiser dates">
+        <div><span>Order by</span><strong>November 15</strong></div>
+        <div><span>Delivery by</span><strong>November 30</strong></div>
+      </section>
+
       <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} />
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
