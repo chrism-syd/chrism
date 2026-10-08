@@ -615,3 +615,12 @@
   .ccic-school-ordering-closed-banner { display: grid; gap: 18px; padding: 22px 20px; }
   .ccic-school-ordering-closed-banner a { justify-self: start; }
 }
+
+
+/* Centre the school footer partner lockup */
+.ccic-footer-powered .ccic-school-footer-partners {
+  width: 100%;
+  margin-inline: auto;
+  justify-content: center;
+  align-items: center;
+}
