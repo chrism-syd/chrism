@@ -95,7 +95,14 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     if (!cardRef.current) { setMessage('The secure payment form is still loading.'); return }
     setProcessing(true)
     try {
-      const tokenized = await cardRef.current.tokenize()
+      // Square's iframe can occasionally leave tokenization pending after a card error.
+      // Bound this step so the button always becomes available for correction/retry.
+      const tokenized = await Promise.race([
+        cardRef.current.tokenize(),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error('Card validation timed out. Please check the card details and try again.')), 15000)
+        }),
+      ])
       if (tokenized.status !== 'OK' || !tokenized.token) throw new Error(tokenized.errors?.[0]?.message || 'Please check your card information.')
       const checkoutKeyStorage = 'ccic-school-checkout-payment-key-v1'
       let checkoutKey = window.sessionStorage.getItem(checkoutKeyStorage)
