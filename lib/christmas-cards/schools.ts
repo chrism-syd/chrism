@@ -71,3 +71,18 @@ export function isCcicSchoolCampaignOpen(school: CcicSchoolCampaign, now = new D
   if (!school.orderingClosesAt) return true
   return now.getTime() <= new Date(school.orderingClosesAt).getTime()
 }
+
+
+export function formatCcicSchoolCampaignDate(value?: string) {
+  if (!value) return null
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T12:00:00Z`)
+    : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  return new Intl.DateTimeFormat('en-CA', {
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/Toronto',
+  }).format(date)
+}
