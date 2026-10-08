@@ -624,3 +624,25 @@
   justify-content: center;
   align-items: center;
 }
+
+
+/* School footer has no side content, so let the partner lockup occupy the full grid. */
+.ccic-footer-powered:has(.ccic-school-footer-partners) {
+  grid-template-columns: 1fr;
+  width: 100%;
+  max-width: none;
+}
+.ccic-footer-powered:has(.ccic-school-footer-partners) .ccic-school-footer-partners {
+  grid-column: 1;
+  justify-self: stretch;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Persistent school cart action */
+.ccic-school-checkout-button {
+  min-height: 44px;
+  padding: 11px 20px !important;
+  border-radius: 3px;
+  line-height: 1.2;
+}
