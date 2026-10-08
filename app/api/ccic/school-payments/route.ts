@@ -6,6 +6,7 @@ import { protectPeoplePayload } from '@/lib/security/pii'
 import { getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
 import { calculateCcicSchoolOrder, parseCcicSchoolOrderDraft } from '@/lib/christmas-cards/school-order'
 import { getCcicMixedBoxAvailability } from '@/lib/christmas-cards/inventory'
+import { finalizeCcicSchoolPayment, sendCcicSchoolOrderConfirmation } from '@/lib/christmas-cards/school-payment-finalize'
 
 export const runtime = 'nodejs'
 
@@ -37,8 +38,26 @@ export async function POST(request: NextRequest) {
       [parentName,email,phone,studentName,grade,roomNumber,teacherName].some((v) => v.length > 200)) {
     return NextResponse.json({ error: 'Please complete all required checkout fields.' }, { status: 400 })
   }
+  const checkoutKey = normalize(body.checkoutKey)
+  if (!/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(checkoutKey)) return NextResponse.json({ error: 'Checkout session is invalid. Please refresh the page.' }, { status: 400 })
   const sourceId = normalize(body.sourceId)
   if (!sourceId || sourceId.length > 300) return NextResponse.json({ error: 'Payment token is missing.' }, { status: 400 })
+
+  const admin = createAdminClient()
+  const { data: existing, error: existingError } = await admin.from('ccic_school_orders')
+    .select('id,order_number,status_code,total_cents,school_code,square_payment_id')
+    .eq('checkout_key', checkoutKey).maybeSingle()
+  if (existingError) return NextResponse.json({ error: 'Unable to check your previous payment attempt. Please do not retry yet.' }, { status: 503 })
+  if (existing) {
+    if (existing.school_code !== school.code || existing.total_cents !== order.totalCents) {
+      return NextResponse.json({ error: 'Your checkout has changed. Please reload the page before paying.' }, { status: 409 })
+    }
+    if (existing.status_code === 'paid') return NextResponse.json({ paid: true, orderNumber: existing.order_number, totalCents: existing.total_cents })
+    return NextResponse.json({
+      error: 'This checkout has already been submitted. Please contact CCIC with your order number before trying again.',
+      orderNumber: existing.order_number,
+    }, { status: 409 })
+  }
 
   let available
   try {
@@ -61,13 +80,12 @@ export async function POST(request: NextRequest) {
     if (capacity !== null && capacity !== undefined && line.quantity > capacity) return NextResponse.json({ error: 'One of your selections is no longer available.' }, { status: 409 })
   }
 
-  const admin = createAdminClient()
   const orderId = randomUUID()
   const orderNumber = `CCIC-S-${new Date().getUTCFullYear() % 100}-${orderId.slice(0,8).toUpperCase()}`
   const protectedContact = protectPeoplePayload({ email, cell_phone: phone })
   const protectText = (value: string) => protectPeoplePayload({ address_line_1: value }).address_line_1
   const { error: insertError } = await admin.from('ccic_school_orders').insert({
-    id: orderId, order_number: orderNumber, school_slug: school.slug, school_code: school.code, school_name: school.name,
+    id: orderId, checkout_key: checkoutKey, order_number: orderNumber, school_slug: school.slug, school_code: school.code, school_name: school.name,
     parent_name: protectText(parentName), email: protectedContact.email, email_hash: protectedContact.email_hash,
     cell_phone: protectedContact.cell_phone, cell_phone_hash: protectedContact.cell_phone_hash,
     student_name: protectText(studentName), grade: protectText(grade), room_number: protectText(roomNumber), teacher_name: protectText(teacherName),
@@ -75,7 +93,7 @@ export async function POST(request: NextRequest) {
     school_contribution_cents: order.schoolContributionCents, total_cents: order.totalCents,
     square_environment: 'sandbox', square_location_id: locationId,
   })
-  if (insertError) return NextResponse.json({ error: 'Unable to save your order.' }, { status: 500 })
+  if (insertError) return NextResponse.json({ error: 'Unable to save your order. Please refresh and check before retrying.' }, { status: 503 })
   const { error: lineError } = await admin.from('ccic_school_order_lines').insert(order.lines.map((line, i) => ({
     order_id: orderId, catalog_id: line.catalogId, sku: line.sku, title: line.title,
     quantity: line.quantity, unit_price_cents: line.unitPriceCents, line_total_cents: line.lineTotalCents, sort_order: i,
@@ -86,6 +104,7 @@ export async function POST(request: NextRequest) {
   }
 
   let payment: Record<string, unknown> = {}
+  let squareResponseReceived = false
   try {
     const response = await fetch('https://connect.squareupsandbox.com/v2/payments', {
       method: 'POST',
@@ -98,29 +117,41 @@ export async function POST(request: NextRequest) {
       cache: 'no-store',
     })
     const result = await response.json() as { payment?: Record<string, unknown>; errors?: Array<{ detail?: string }> }
-    if (!response.ok || !result.payment) throw new Error(result.errors?.[0]?.detail || 'Square declined the payment.')
+    squareResponseReceived = true
+    if (!response.ok || !result.payment) {
+      await admin.from('ccic_school_orders').update({
+        status_code: 'payment_failed',
+        square_error: result.errors?.[0]?.detail?.slice(0,300) || 'Square declined payment',
+      }).eq('id', orderId)
+      return NextResponse.json({ error: 'Payment was declined. No charge was completed. Please start a new checkout attempt.', orderNumber }, { status: 402 })
+    }
     payment = result.payment
   } catch (error) {
-    await admin.from('ccic_school_orders').update({ status_code: 'payment_failed', square_error: error instanceof Error ? error.message.slice(0, 300) : 'Payment failed.' }).eq('id', orderId)
-    return NextResponse.json({ error: 'Payment could not be completed. Please check your card and try again.' }, { status: 402 })
+    // A network timeout does not prove Square failed to charge the card.
+    // Leave the order pending so a verified webhook or manual reconciliation can resolve it.
+    console.error('Square school payment outcome unknown', { orderId, error })
+    return NextResponse.json({
+      error: 'Payment status could not be confirmed. Please do not retry. Contact CCIC with this order number.',
+      orderNumber,
+    }, { status: 202 })
   }
-  const paymentStatus = normalize(payment.status)
-  const { error: updateError } = await admin.from('ccic_school_orders').update({
-    status_code: paymentStatus === 'COMPLETED' ? 'paid' : 'pending_payment',
-    square_payment_id: normalize(payment.id), square_payment_status: paymentStatus,
-    square_receipt_url: normalize(payment.receipt_url) || null,
-    paid_at: paymentStatus === 'COMPLETED' ? new Date().toISOString() : null,
-    updated_at: new Date().toISOString(),
-  }).eq('id', orderId)
-  if (updateError) return NextResponse.json({ error: 'Payment was submitted, but confirmation is delayed. Contact us before retrying.', orderNumber }, { status: 502 })
-  if (paymentStatus !== 'COMPLETED') return NextResponse.json({ error: 'Payment is still processing. Please contact us before retrying.', orderNumber }, { status: 202 })
+  if (!squareResponseReceived || payment.status !== 'COMPLETED') {
+    await admin.from('ccic_school_orders').update({
+      square_payment_id: normalize(payment.id) || null,
+      square_payment_status: normalize(payment.status) || 'UNKNOWN',
+    }).eq('id', orderId)
+    return NextResponse.json({ error: 'Payment is processing. Please do not retry until CCIC confirms the status.', orderNumber }, { status: 202 })
+  }
 
-  for (const line of order.lines) {
-    const { error } = await admin.rpc('ccic_commit_mixed_boxes', { p_catalog_id: line.catalogId, p_quantity: line.quantity })
-    if (error) {
-      console.error('School inventory commitment requires reconciliation', { orderId, catalogId: line.catalogId, error: error.message })
-      return NextResponse.json({ error: 'Payment succeeded, but inventory reconciliation is pending. Please do not pay again.', orderNumber }, { status: 202 })
-    }
+  try {
+    const result = await finalizeCcicSchoolPayment(orderId, payment)
+    await sendCcicSchoolOrderConfirmation(orderId)
+    return NextResponse.json({ paid: true, ...result })
+  } catch (error) {
+    console.error('Square payment completed but CCIC finalization failed', { orderId, error })
+    return NextResponse.json({
+      error: 'Square payment completed, but order reconciliation is pending. Please do not pay again.',
+      orderNumber,
+    }, { status: 202 })
   }
-  return NextResponse.json({ paid: true, orderNumber, totalCents: order.totalCents })
 }
