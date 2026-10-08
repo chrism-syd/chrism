@@ -101,8 +101,16 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ draft, details, sourceId: tokenized.token }),
       })
-      const result = await response.json() as { error?: string; paid?: boolean; orderNumber?: string }
-      if (!response.ok || !result.paid) throw new Error(result.error || 'Payment confirmation is pending. Please contact us before retrying.')
+      const rawResponse = await response.text()
+      let result: { error?: string; paid?: boolean; orderNumber?: string } = {}
+      if (rawResponse) {
+        try {
+          result = JSON.parse(rawResponse) as { error?: string; paid?: boolean; orderNumber?: string }
+        } catch {
+          throw new Error(`Payment service returned an invalid response (HTTP ${response.status}). Please do not retry until we verify the transaction.`)
+        }
+      }
+      if (!response.ok || !result.paid) throw new Error(result.error || `Payment could not be confirmed (HTTP ${response.status}). Please contact us before retrying.`)
       setPaidOrderNumber(result.orderNumber || '')
       window.sessionStorage.removeItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
       window.sessionStorage.removeItem(CCIC_SCHOOL_CHECKOUT_STORAGE_KEY)
