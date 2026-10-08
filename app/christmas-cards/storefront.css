@@ -415,12 +415,16 @@
 
 .ccic-lightbox-image-wrap {
   position: relative;
-  min-height: min(62vh, 620px);
+  width: 100%;
+  height: min(68vh, 720px);
+  min-height: 0;
+  overflow: hidden;
   background: #f7f7f7;
 }
 
 .ccic-lightbox-image-wrap img {
   object-fit: contain;
+  object-position: center;
 }
 
 .ccic-lightbox-tabs {
