@@ -59,11 +59,10 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
     <section className="ccic-school-mixed-storefront" aria-label="School mixed Christmas card boxes">
       <div className="ccic-school-mixed-intro">
         <div>
-          <p className="ccic-eyebrow">Four simple choices</p>
           <h2>Choose your Christmas card collection</h2>
           <p>
             Each box includes 12 cards and envelopes, with 3 cards from each of the four designs in the collection.
-            Every box sold contributes $4.50 to the {schoolName} fundraiser.
+            <strong className="ccic-school-contribution-copy">Every box sold contributes $4.50 to the {schoolName} fundraiser.</strong>
           </p>
         </div>
         <div className="ccic-school-mixed-price">
