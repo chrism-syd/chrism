@@ -74,7 +74,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
       ? `Your cards will be delivered to the school for distribution by ${deliveryDate}.`
       : `Your cards will be delivered to ${claimed.school_name} for distribution.`
     const merchant = 'sq *Knight of Columbus Council #7689'
-    const lineText = (lines || []).map((line) => `${line.quantity} × ${line.title}: ${money(line.line_total_cents)}`).join('\\n')
+    const lineText = (lines || []).map((line) => `${line.quantity} × ${line.title}: ${money(line.line_total_cents)}`).join('\n')
     const text = [
       `Thank you, ${name}.`,
       '',
@@ -91,7 +91,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
       deliveryText,
       '',
       'Sandbox test order. No real payment was taken.',
-    ].join('\\n')
+    ].join('\n')
     const orderRows = (lines || []).map((line) =>
       `<tr><td style="padding:12px 0;border-bottom:1px solid #e9e5e1;color:#202020;">${line.quantity} × ${escapeHtml(line.title)}</td><td align="right" style="padding:12px 0;border-bottom:1px solid #e9e5e1;white-space:nowrap;color:#202020;">${money(line.line_total_cents)}</td></tr>`
     ).join('')
