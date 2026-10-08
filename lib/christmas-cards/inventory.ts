@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   CHRISTMAS_CARD_BOXES,
   CHRISTMAS_CARD_CURATED_CASES,
+  CHRISTMAS_CARD_MIXED_BOXES,
 } from './catalog'
 import type { CcicCalculatedOrder } from './order'
 
@@ -16,6 +17,16 @@ export type CcicStoreAvailability = {
 }
 
 export type CcicStoreAvailabilityMap = Record<string, CcicStoreAvailability>
+
+export type CcicMixedBoxAvailability = {
+  mixedCatalogId: string
+  sku: string
+  title: string
+  committedMixedBoxes: number
+  reservedSourceBoxesPerDesign: number
+  openBatchCapacity: number
+  additionalMixedBoxesAvailable: number | null
+}
 
 export type CcicInventoryAllocation = {
   catalogId: string
@@ -212,6 +223,52 @@ async function getCcicReserveState() {
   return { reserves, reservedBoxesByCatalog }
 }
 
+
+export async function getCcicMixedBoxAvailability(): Promise<CcicMixedBoxAvailability[]> {
+  const admin = createAdminClient()
+  const [{ data: commitmentData, error: commitmentError }, availability] = await Promise.all([
+    admin.from('ccic_mixed_box_commitments').select('mixed_catalog_id, committed_mixed_boxes'),
+    getCcicStoreAvailabilityMap(),
+  ])
+
+  if (commitmentError && commitmentError.code !== '42P01') {
+    throw new Error(`Unable to load CCIC mixed box commitments: ${commitmentError.message}`)
+  }
+
+  const committedByMixedId = new Map(
+    ((commitmentData ?? []) as Array<{ mixed_catalog_id: string; committed_mixed_boxes: number }>)
+      .map((row) => [row.mixed_catalog_id, row.committed_mixed_boxes] as const)
+  )
+
+  return CHRISTMAS_CARD_MIXED_BOXES.map((mixed) => {
+    const committedMixedBoxes = committedByMixedId.get(mixed.id) ?? 0
+    const reservedSourceBoxesPerDesign = Math.ceil(committedMixedBoxes / 4)
+    const openBatchCapacity = reservedSourceBoxesPerDesign * 4 - committedMixedBoxes
+    let additionalSourceBatches: number | null = null
+
+    for (const component of mixed.components) {
+      const row = availability[component.boxId]
+      const sourceAvailable = row?.availableBoxes ?? null
+      if (sourceAvailable === null) continue
+      additionalSourceBatches = additionalSourceBatches === null
+        ? sourceAvailable
+        : Math.min(additionalSourceBatches, sourceAvailable)
+    }
+
+    return {
+      mixedCatalogId: mixed.id,
+      sku: mixed.sku,
+      title: mixed.title,
+      committedMixedBoxes,
+      reservedSourceBoxesPerDesign,
+      openBatchCapacity,
+      additionalMixedBoxesAvailable: additionalSourceBatches === null
+        ? null
+        : openBatchCapacity + additionalSourceBatches * 4,
+    }
+  })
+}
+
 export async function getCcicCaseReserves() {
   const reserveState = await getCcicReserveState()
   return reserveState.reserves
@@ -270,10 +327,30 @@ export async function getCcicStoreAvailabilityMap(): Promise<CcicStoreAvailabili
     )
   }
 
+  const { data: mixedCommitmentData, error: mixedCommitmentError } = await admin
+    .from('ccic_mixed_box_commitments')
+    .select('mixed_catalog_id, committed_mixed_boxes')
+  if (mixedCommitmentError && mixedCommitmentError.code !== '42P01') {
+    throw new Error(`Unable to load CCIC mixed box commitments: ${mixedCommitmentError.message}`)
+  }
+
+  const mixedReservedByCatalog = new Map<string, number>()
+  for (const commitment of (mixedCommitmentData ?? []) as Array<{ mixed_catalog_id: string; committed_mixed_boxes: number }>) {
+    const mixed = CHRISTMAS_CARD_MIXED_BOXES.find((item) => item.id === commitment.mixed_catalog_id)
+    if (!mixed || commitment.committed_mixed_boxes <= 0) continue
+    const sourceBoxesPerDesign = Math.ceil(commitment.committed_mixed_boxes / 4)
+    for (const component of mixed.components) {
+      mixedReservedByCatalog.set(
+        component.boxId,
+        (mixedReservedByCatalog.get(component.boxId) ?? 0) + sourceBoxesPerDesign
+      )
+    }
+  }
+
   const availability: CcicStoreAvailabilityMap = {}
   for (const row of (inventoryData ?? []) as InventoryRow[]) {
     const committedBoxes = committedByCatalog.get(row.catalog_id) ?? 0
-    const reservedBoxes = reserveState.reservedBoxesByCatalog.get(row.catalog_id) ?? 0
+    const reservedBoxes = (reserveState.reservedBoxesByCatalog.get(row.catalog_id) ?? 0) + (mixedReservedByCatalog.get(row.catalog_id) ?? 0)
     availability[row.catalog_id] = {
       isStoreEnabled: row.is_store_enabled,
       stockOnHand: row.stock_on_hand,
