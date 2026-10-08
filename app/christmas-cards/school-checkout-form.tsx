@@ -31,7 +31,7 @@ const EMPTY_DETAILS: CheckoutDetails = {
   teacherName: '',
 }
 
-export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, deliveryByLabel }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; deliveryByLabel: string | null }) {
+export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, deliveryByLabel, squareApplicationId, squareLocationId }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string }) {
   const router = useRouter()
   const [draft, setDraft] = useState<CcicSchoolOrderDraft | null>(null)
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
@@ -40,8 +40,6 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
   const [processing, setProcessing] = useState(false)
   const [paidOrderNumber, setPaidOrderNumber] = useState('')
   const cardRef = useRef<{ tokenize: () => Promise<{ status: string; token?: string; errors?: Array<{ message?: string }> }> } | null>(null)
-  const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID
-  const squareLocationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID
 
   useEffect(() => {
     const storedDraft = window.sessionStorage.getItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
@@ -114,7 +112,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
   }
 
   useEffect(() => {
-    if (!squareAppId || !squareLocationId || !ready || !draft) return
+    if (!squareApplicationId || !squareLocationId || !ready || !draft) return
     let cancelled = false
     let mountedCard: { destroy?: () => Promise<void> } | null = null
     const init = async () => {
@@ -136,7 +134,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       }
       const square = (window as unknown as { Square?: { payments: (appId: string, locationId: string) => Promise<{ card: () => Promise<{ attach: (selector: string) => Promise<void>; tokenize: () => Promise<{ status: string; token?: string }> ; destroy?: () => Promise<void> }> }> } }).Square
       if (!square || cancelled) return
-      const payments = await square.payments(squareAppId, squareLocationId)
+      const payments = await square.payments(squareApplicationId, squareLocationId)
       const card = await payments.card()
       if (cancelled) return
       await card.attach('#ccic-school-square-card')
@@ -145,7 +143,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     }
     init().catch(() => { if (!cancelled) setMessage('Secure card payment could not load. Please refresh and try again.') })
     return () => { cancelled = true; cardRef.current = null; void mountedCard?.destroy?.() }
-  }, [squareAppId, squareLocationId, ready, draft])
+  }, [squareApplicationId, squareLocationId, ready, draft])
 
   if (orderingClosed) {
     return (
@@ -224,7 +222,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
           <p className="ccic-school-checkout-delivery"><strong>Delivery:</strong> Delivered to {schoolName} for distribution.</p>
         )}
         {message ? <p className="ccic-school-checkout-message" role="status">{message}</p> : null}
-        {squareAppId && squareLocationId ? (
+        {squareApplicationId && squareLocationId ? (
           <>
             <div id="ccic-school-square-card" aria-label="Secure card payment" />
             <button type="submit" className="ccic-school-checkout-primary" disabled={processing}>{processing ? 'Processing…' : 'Pay securely (Sandbox)'}</button>
