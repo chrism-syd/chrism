@@ -185,7 +185,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     )
   }
 
-  if (paidOrderNumber) return <section className="ccic-school-checkout-empty"><h1>Payment received</h1><p>Thank you. Your school fundraiser order <strong>{paidOrderNumber}</strong> is confirmed.</p><p>Your cards will be delivered to {schoolName} for distribution.</p></section>
+  if (paidOrderNumber) return <section className="ccic-school-checkout-empty"><h1>Payment received</h1><p>Thank you. Your school fundraiser order <strong>{paidOrderNumber}</strong> is confirmed.</p><p>Your cards will be delivered to {schoolName} for distribution.</p><p>Your card statement will show the merchant as <strong>sq *Knight of Columbus Council #7689</strong>.</p></section>
 
   return (
     <form className="ccic-school-checkout-layout" onSubmit={submit}>
