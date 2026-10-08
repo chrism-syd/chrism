@@ -11,6 +11,7 @@ function getCcicAdminNextPath(value: string | null) {
   if (value === '/ccic/admin/orders' || value.startsWith('/ccic/admin/orders/')) return value
   if (value === '/ccic/admin/packing-list') return value
   if (value === '/ccic/admin/store-control') return value
+  if (value === '/ccic/admin/school-fundraisers') return value
   return '/ccic/admin/orders'
 }
 
