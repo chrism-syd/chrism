@@ -35,3 +35,9 @@
 .ccic-school-checkout-button { border:0; padding:10px 15px; background:#1d1712; color:#fff; cursor:pointer; font:inherit; font-size:12px; font-weight:800; white-space:nowrap; }
 @media(max-width:850px){.ccic-school-checkout-layout{grid-template-columns:1fr;gap:28px}.ccic-school-checkout-summary{position:static}.ccic-school-checkout-fields{grid-template-columns:1fr}.ccic-school-checkout-fields label:first-child{grid-column:auto}}
 @media(max-width:600px){.ccic-school-checkout-layout{width:calc(100% - 24px);padding:34px 0 60px}.ccic-school-checkout-section,.ccic-school-checkout-summary{padding:20px}.ccic-school-mixed-selection-note{gap:8px}.ccic-school-checkout-button{padding:9px 11px}}
+
+.ccic-school-checkout-page > .ccic-site-header {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
