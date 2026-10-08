@@ -40,7 +40,22 @@ export async function POST(request: NextRequest) {
   const sourceId = normalize(body.sourceId)
   if (!sourceId || sourceId.length > 300) return NextResponse.json({ error: 'Payment token is missing.' }, { status: 400 })
 
-  const available = await getCcicMixedBoxAvailability()
+  let available
+  try {
+    available = await getCcicMixedBoxAvailability()
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    try {
+      available = await getCcicMixedBoxAvailability()
+    } catch (error) {
+      console.error('School payment inventory check unavailable', error)
+      return NextResponse.json(
+        { error: 'We could not verify card availability right now. Your card has not been charged. Please try again in a moment.' },
+        { status: 503 }
+      )
+    }
+  }
+
   for (const line of order.lines) {
     const capacity = available.find((item) => item.mixedCatalogId === line.catalogId)?.additionalMixedBoxesAvailable
     if (capacity !== null && capacity !== undefined && line.quantity > capacity) return NextResponse.json({ error: 'One of your selections is no longer available.' }, { status: 409 })
