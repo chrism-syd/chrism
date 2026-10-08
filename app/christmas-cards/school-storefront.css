@@ -646,3 +646,34 @@
   border-radius: 3px;
   line-height: 1.2;
 }
+
+
+.ccic-school-campaign-dates {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  width: min(720px, calc(100% - 40px));
+  margin: 34px auto 0;
+  border: 1px solid var(--ccic-line);
+  background: #fff;
+}
+.ccic-school-campaign-dates > div {
+  display: grid;
+  gap: 4px;
+  width: 50%;
+  padding: 17px 28px;
+  text-align: center;
+}
+.ccic-school-campaign-dates > div + div { border-left: 1px solid var(--ccic-line); }
+.ccic-school-campaign-dates span {
+  color: var(--ccic-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ccic-school-campaign-dates strong { font-size: 19px; }
+@media (max-width: 600px) {
+  .ccic-school-campaign-dates { width: calc(100% - 20px); }
+  .ccic-school-campaign-dates > div { padding: 15px 10px; }
+}
