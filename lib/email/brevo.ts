@@ -5,6 +5,7 @@ type BrevoRecipient = {
 
 type SendBrevoTransactionalEmailArgs = {
   to: BrevoRecipient[]
+  bcc?: BrevoRecipient[]
   subject: string
   htmlContent: string
   textContent?: string | null
@@ -71,6 +72,14 @@ export async function sendBrevoTransactionalEmail(args: SendBrevoTransactionalEm
         email: recipient.email,
         ...(recipient.name ? { name: recipient.name } : {}),
       })),
+      ...(args.bcc?.length
+        ? {
+            bcc: args.bcc.map((recipient) => ({
+              email: recipient.email,
+              ...(recipient.name ? { name: recipient.name } : {}),
+            })),
+          }
+        : {}),
       subject: args.subject,
       htmlContent: args.htmlContent,
       ...(args.textContent ? { textContent: args.textContent } : {}),
