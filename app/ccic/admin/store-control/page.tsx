@@ -5,6 +5,7 @@ import { CHRISTMAS_CARD_CURATED_CASES } from '@/lib/christmas-cards/catalog'
 import {
   getCcicCaseReserves,
   getCcicInventoryCatalogItems,
+  getCcicMixedBoxAvailability,
   getCcicStoreAvailabilityMap,
   syncCcicStoreInventoryCatalog,
 } from '@/lib/christmas-cards/inventory'
@@ -65,9 +66,10 @@ export default async function CcicStoreControlPage({
   const errorMessage = ERROR_MESSAGES[stringParam(params.error) || '']
   const updatedMessage = UPDATED_MESSAGES[stringParam(params.updated) || '']
   const items = getCcicInventoryCatalogItems()
-  const [availability, caseReserves] = await Promise.all([
+  const [availability, caseReserves, mixedBoxes] = await Promise.all([
     getCcicStoreAvailabilityMap(),
     getCcicCaseReserves(),
+    getCcicMixedBoxAvailability(),
   ])
 
   const trackedCount = items.filter((item) => availability[item.catalogId]?.stockOnHand !== null).length
@@ -164,6 +166,35 @@ export default async function CcicStoreControlPage({
         <p className="ccic-case-reserve-note">
           Lowering the target releases any no-longer-needed held boxes immediately. Raising it does not invent inventory: the backed reserve grows automatically only when all required designs have enough stock.
         </p>
+      </section>
+
+
+      <section className="ccic-admin-panel ccic-case-reserve-panel">
+        <div className="ccic-admin-panel-heading">
+          <div>
+            <h2>School mixed boxes</h2>
+            <p className="ccic-store-muted">
+              Derived inventory only. Every four mixed boxes use one full source box from each of the four designs in that collection.
+            </p>
+          </div>
+          <span>4 mixed SKUs · 12 cards each</span>
+        </div>
+
+        {mixedBoxes.map((item) => (
+          <div className="ccic-case-reserve-row" key={item.mixedCatalogId}>
+            <div>
+              <strong>{item.title}</strong>
+              <span>{item.sku}</span>
+              <small>Source boxes are automatically withheld from regular storefront availability in batches of four mixed boxes.</small>
+            </div>
+            <dl>
+              <div><dt>Committed mixed</dt><dd>{item.committedMixedBoxes}</dd></div>
+              <div><dt>Source boxes held/design</dt><dd>{item.reservedSourceBoxesPerDesign}</dd></div>
+              <div><dt>Open batch capacity</dt><dd>{item.openBatchCapacity}</dd></div>
+              <div><dt>Additional available</dt><dd>{item.additionalMixedBoxesAvailable === null ? 'Not limited' : item.additionalMixedBoxesAvailable}</dd></div>
+            </dl>
+          </div>
+        ))}
       </section>
 
       <section className="ccic-admin-panel ccic-store-control-intro">
