@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import SchoolCheckoutForm from '@/app/christmas-cards/school-checkout-form'
 import { CHRISTMAS_CARD_ORDER_CONFIG } from '@/lib/christmas-cards/catalog'
-import { getCcicSchoolCampaign } from '@/lib/christmas-cards/schools'
+import { getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
 import '@/app/christmas-cards/storefront.css'
 import '@/app/christmas-cards/school-storefront.css'
 import '@/app/christmas-cards/school-checkout.css'
@@ -24,7 +24,7 @@ export default async function SchoolCheckoutPage({ params }: PageProps) {
         </div>
         <span aria-hidden="true" className="ccic-header-spacer" />
       </div></header>
-      <SchoolCheckoutForm schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} />
+      <SchoolCheckoutForm schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={!isCcicSchoolCampaignOpen(school)} />
     </main>
   )
 }
