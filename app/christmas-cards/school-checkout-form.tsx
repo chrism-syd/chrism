@@ -31,7 +31,7 @@ const EMPTY_DETAILS: CheckoutDetails = {
   teacherName: '',
 }
 
-export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean }) {
+export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, deliveryByLabel }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; deliveryByLabel: string | null }) {
   const router = useRouter()
   const [draft, setDraft] = useState<CcicSchoolOrderDraft | null>(null)
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
@@ -120,7 +120,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         <button type="button" className="ccic-school-checkout-back" onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}>← Back to card selection</button>
         <div>
           <h1>Checkout</h1>
-          <p className="ccic-school-checkout-lead">Your order will be delivered to the school for distribution. No shipping address is needed.</p>
+          <p className="ccic-school-checkout-lead">Your order will be delivered to the school for distribution.</p>
         </div>
 
         <section className="ccic-school-checkout-section">
@@ -160,7 +160,11 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         </div>
         <div className="ccic-school-checkout-contribution"><span>Supports {schoolName}</span><strong>{formatChristmasCardMoney(calculated.schoolContributionCents)}</strong></div>
         <div className="ccic-school-checkout-total"><span>Total</span><strong>{formatChristmasCardMoney(calculated.totalCents)}</strong></div>
-        <p className="ccic-school-checkout-delivery"><strong>Delivery by November 30:</strong> Delivered to {schoolName} for distribution.</p>
+        {deliveryByLabel ? (
+          <p className="ccic-school-checkout-delivery"><strong>Delivery by {deliveryByLabel}:</strong> Delivered to {schoolName} for distribution.</p>
+        ) : (
+          <p className="ccic-school-checkout-delivery"><strong>Delivery:</strong> Delivered to {schoolName} for distribution.</p>
+        )}
         {message ? <p className="ccic-school-checkout-message" role="status">{message}</p> : null}
         <button type="submit" className="ccic-school-checkout-primary">Continue to payment</button>
         <p className="ccic-school-checkout-payment-note">Online payment will be connected next. No payment is taken yet.</p>
