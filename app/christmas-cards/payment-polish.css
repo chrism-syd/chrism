@@ -89,6 +89,11 @@
 
 .ccic-payment-panel {
   width: min(920px, 100%);
+  height: auto;
+  max-height: 92vh;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  overflow-y: auto;
   gap: 14px;
   padding: clamp(22px, 3vw, 34px);
 }
