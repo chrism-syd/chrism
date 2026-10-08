@@ -298,11 +298,10 @@
   overflow: hidden;
   border: 1px solid var(--ccic-line);
   background: #fff;
-  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+  transition: border-color .18s ease, box-shadow .18s ease;
 }
 
 .ccic-school-mixed-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 14px 34px rgba(0, 0, 0, .07);
 }
 
