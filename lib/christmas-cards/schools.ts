@@ -4,6 +4,7 @@ export type CcicSchoolCampaign = {
   name: string
   active: boolean
   orderingClosesAt?: string
+  deliveryBy?: string
 }
 
 // Year-one school registry.
@@ -46,6 +47,7 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     name: 'St. Francis Xavier',
     active: true,
     orderingClosesAt: '2026-11-15T23:59:59-05:00',
+    deliveryBy: '2026-11-30',
   },
 ]
 
