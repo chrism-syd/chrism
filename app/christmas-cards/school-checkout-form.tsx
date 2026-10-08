@@ -119,7 +119,6 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       <div className="ccic-school-checkout-main">
         <button type="button" className="ccic-school-checkout-back" onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}>← Back to card selection</button>
         <div>
-          <p className="ccic-eyebrow">{schoolName} fundraiser</p>
           <h1>Checkout</h1>
           <p className="ccic-school-checkout-lead">Your order will be delivered to the school for distribution. No shipping address is needed.</p>
         </div>
@@ -137,7 +136,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
 
         <section className="ccic-school-checkout-section">
           <div className="ccic-school-checkout-section-heading">
-            <span>2</span><div><h2>School distribution</h2><p>This helps {schoolName} get the cards to the right family.</p></div>
+            <span>2</span><div><h2>Student/Classroom Information</h2><p>Student information is collected only to help sort and distribute the order at the school.</p></div>
           </div>
           <div className="ccic-school-checkout-fields">
             <label><span>Student name *</span><input value={details.studentName} onChange={(e) => update('studentName', e.target.value)} /></label>
@@ -145,7 +144,6 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
             <label><span>Room number *</span><input value={details.roomNumber} onChange={(e) => update('roomNumber', e.target.value)} /></label>
             <label><span>Teacher name *</span><input value={details.teacherName} onChange={(e) => update('teacherName', e.target.value)} /></label>
           </div>
-          <p className="ccic-school-checkout-privacy">Student information is collected only to help distribute this fundraiser order at the school.</p>
         </section>
       </div>
 
@@ -162,7 +160,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         </div>
         <div className="ccic-school-checkout-contribution"><span>Supports {schoolName}</span><strong>{formatChristmasCardMoney(calculated.schoolContributionCents)}</strong></div>
         <div className="ccic-school-checkout-total"><span>Total</span><strong>{formatChristmasCardMoney(calculated.totalCents)}</strong></div>
-        <p className="ccic-school-checkout-delivery"><strong>Delivery:</strong> Delivered to {schoolName} for distribution.</p>
+        <p className="ccic-school-checkout-delivery"><strong>Delivery by November 30:</strong> Delivered to {schoolName} for distribution.</p>
         {message ? <p className="ccic-school-checkout-message" role="status">{message}</p> : null}
         <button type="submit" className="ccic-school-checkout-primary">Continue to payment</button>
         <p className="ccic-school-checkout-payment-note">Online payment will be connected next. No payment is taken yet.</p>
