@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
+import { decryptOptionalValue } from '@/lib/security/pii'
 import '../../../../christmas-cards/admin-orders.css'
 
 export const dynamic = 'force-dynamic'
