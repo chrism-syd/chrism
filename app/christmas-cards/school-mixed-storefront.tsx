@@ -1,8 +1,8 @@
 'use client'
 
-import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import QuantityControl from './quantity-control'
+import CardArt from './card-art'
 import type { ChristmasCardBox, ChristmasCardMixedBox } from '@/lib/christmas-cards/catalog'
 import type { CcicMixedBoxAvailability } from '@/lib/christmas-cards/inventory'
 
@@ -63,15 +63,15 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability 
                 {collectionBoxes.map((box) => (
                   <figure className="ccic-school-mixed-design" key={box.id}>
                     <div className="ccic-school-mixed-design-image">
-                      {box.frontImageUrl ?? box.outsideImageUrl ? (
-                        <Image
-                          src={(box.frontImageUrl ?? box.outsideImageUrl)!}
-                          alt={`${box.title} cover`}
-                          fill
-                          sizes="(max-width: 700px) 38vw, 170px"
-                          unoptimized
-                        />
-                      ) : null}
+                      <CardArt
+                        title={box.title}
+                        imageUrl={box.frontImageUrl ?? box.outsideImageUrl ?? box.insideImageUrl}
+                        images={[
+                          { label: 'Cover', url: box.frontImageUrl ?? box.outsideImageUrl },
+                          { label: 'Inside', url: box.insideImageUrl },
+                          { label: 'Outside', url: box.outsideImageUrl },
+                        ]}
+                      />
                     </div>
                     <figcaption>{box.title}</figcaption>
                   </figure>
