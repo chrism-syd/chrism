@@ -533,3 +533,22 @@
     display: none;
   }
 }
+
+
+.ccic-school-mixed-design-image .ccic-card-art-button,
+.ccic-school-mixed-design-image .ccic-card-art,
+.ccic-school-mixed-design-image .ccic-card-art-large {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 4.25 / 5.5;
+}
+
+.ccic-school-mixed-design-image .ccic-card-art {
+  overflow: hidden;
+}
+
+.ccic-school-mixed-design-image .ccic-quick-view {
+  inset: auto 8px 8px;
+  min-height: 30px;
+  font-size: 11px;
+}
