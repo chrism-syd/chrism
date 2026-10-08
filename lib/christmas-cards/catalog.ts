@@ -25,6 +25,18 @@ export type ChristmasCardBox = {
   sortOrder: number
 }
 
+export type ChristmasCardMixedBox = {
+  id: string
+  sku: string
+  title: string
+  collectionId: string
+  priceCents: number
+  components: Array<{
+    boxId: string
+    cardsPerMixedBox: number
+  }>
+}
+
 export type ChristmasCardCuratedCase = {
   id: string
   sku: string
@@ -324,6 +336,27 @@ export const CHRISTMAS_CARD_BOXES: ChristmasCardBox[] = [
     isCasePricingEligible: false,
   }),
 ]
+
+
+export const CHRISTMAS_CARD_MIXED_BOXES: ChristmasCardMixedBox[] = CHRISTMAS_CARD_COLLECTIONS
+  .filter((collection) => /^collection-[1-4]$/.test(collection.id))
+  .map((collection, index) => {
+    const collectionBoxes = CHRISTMAS_CARD_BOXES.filter((box) => box.collectionId === collection.id)
+    const collectionNumber = String(index + 1).padStart(2, '0')
+    const sku = `CCIC-26-${collectionNumber}-MIX`
+
+    return {
+      id: sku.toLowerCase(),
+      sku,
+      title: `${collection.title} Mixed Box`,
+      collectionId: collection.id,
+      priceCents: 1690,
+      components: collectionBoxes.map((box) => ({
+        boxId: box.id,
+        cardsPerMixedBox: 3,
+      })),
+    }
+  })
 
 export const CHRISTMAS_CARD_CURATED_CASES: ChristmasCardCuratedCase[] = [
   {
