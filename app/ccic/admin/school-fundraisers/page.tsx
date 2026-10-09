@@ -63,9 +63,8 @@ export default async function SchoolFundraisersAdminPage({
       <header className="ccic-admin-header">
         <div className="ccic-admin-heading-brand">
           <Image src="/CCiC.png" alt="CCIC" width={72} height={72} />
-          <div><p className="ccic-eyebrow">CCIC Administration</p><h1>School Fundraisers</h1></div>
+          <div><h1>School Orders</h1></div>
         </div>
-        <p>Read-only school order overview. Only paid orders count toward fundraising and packing totals.</p>
         <nav className="ccic-admin-header-actions"><Link href="/ccic/admin/orders">Council orders</Link><Link href="/ccic/admin/packing-list">Packing list</Link><Link href="/ccic/admin/store-control">Store control</Link></nav>
       </header>
 
@@ -98,8 +97,8 @@ export default async function SchoolFundraisersAdminPage({
       </section>
 
       <section style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24 }}>
-        <h2>Collection packing totals</h2>
-        <p><Link href={selectedSchool ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool) : '/ccic/admin/school-fundraisers/packing-list'}>Open packing list</Link></p>
+        <h2>Production totals</h2>
+        <p><Link href={selectedSchool ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool) : '/ccic/admin/school-fundraisers/packing-list'}>Packing &amp; Labels</Link></p>
         {collectionTotals.size === 0 ? <p>No paid boxes yet.</p> : (
           <ul>{[...collectionTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([sku, item]) => (
             <li key={sku}>{item.title}: <strong>{item.quantity} boxes</strong></li>
