@@ -1,0 +1,4 @@
+.ccic-school-label-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:18px; }
+.ccic-school-label { min-height:115px; border:1px dashed #999; padding:12px; display:flex; flex-direction:column; gap:3px; break-inside:avoid; font-size:12px; }
+.ccic-school-label strong:first-child { font-size:16px; }
+@media print { @page { size:letter; margin:0.45in; } .ccic-admin-page { background:white!important; padding:0!important; color:black; } .ccic-admin-header-actions, form { display:none!important; } .ccic-admin-panel { border:0!important; padding:0!important; } .ccic-admin-table { font-size:10px; } .ccic-admin-table th,.ccic-admin-table td { padding:6px 5px; } .ccic-school-label-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; } .ccic-school-label { border:1px dashed #999; min-height:1.25in; padding:7px; } }
