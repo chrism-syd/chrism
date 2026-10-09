@@ -36,7 +36,7 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
   const classrooms = new Map<string, { grade: string; room: string; teacher: string; students: typeof sorted; boxes: number }>()
   for (const order of sorted) {
     const key = JSON.stringify([order.grade, order.room, order.teacher])
-    const classroom = classrooms.get(key) ?? { grade: order.grade, room: order.room, teacher: order.teacher, students: [] as typeof sorted, boxes: 0 }
+    const classroom = classrooms.get(key) ?? { grade: order.grade ?? '', room: order.room ?? '', teacher: order.teacher ?? '', students: [] as typeof sorted, boxes: 0 }
     classroom.students.push(order)
     classroom.boxes += boxesByOrder.get(order.id) ?? 0
     classrooms.set(key, classroom)
