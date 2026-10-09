@@ -99,7 +99,7 @@ export default async function SchoolFundraisersAdminPage({
 
       <section style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24 }}>
         <h2>Collection packing totals</h2>
-        <p><Link href="/ccic/admin/school-fundraisers/packing-list">Open packing list</Link></p>
+        <p><Link href={selectedSchool ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool) : '/ccic/admin/school-fundraisers/packing-list'}>Open packing list</Link></p>
         {collectionTotals.size === 0 ? <p>No paid boxes yet.</p> : (
           <ul>{[...collectionTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([sku, item]) => (
             <li key={sku}>{item.title}: <strong>{item.quantity} boxes</strong></li>
