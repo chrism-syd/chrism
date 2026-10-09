@@ -115,7 +115,7 @@ export default async function SchoolFundraisersAdminPage({
           ))}</tr></thead>
           <tbody>{orders.map((order) => (
             <tr key={order.id}>
-              <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.order_number}</td>
+              <td style={{ padding: 12, borderBottom: '1px solid #eee' }}><Link href={'/ccic/admin/school-fundraisers/' + order.id}>{order.order_number}</Link></td>
               <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.school_name}</td>
               <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{date(order.created_at)}</td>
               <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code.replaceAll('_', ' ')}</td>
