@@ -2,3 +2,11 @@
 .ccic-school-label { min-height:115px; border:1px dashed #999; padding:12px; display:flex; flex-direction:column; gap:3px; break-inside:avoid; font-size:12px; }
 .ccic-school-label strong:first-child { font-size:16px; }
 @media print { @page { size:letter; margin:0.45in; } .ccic-admin-page { background:white!important; padding:0!important; color:black; } .ccic-admin-header-actions, form { display:none!important; } .ccic-admin-panel { border:0!important; padding:0!important; } .ccic-admin-table { font-size:10px; } .ccic-admin-table th,.ccic-admin-table td { padding:6px 5px; } .ccic-school-label-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; } .ccic-school-label { border:1px dashed #999; min-height:1.25in; padding:7px; } }
+
+.ccic-label-print-page { background:#fff; color:#111; }
+.ccic-label-print-controls { padding:20px; }
+.ccic-avery-sheet { width:4in; height:6in; box-sizing:border-box; padding:0.5in; display:grid; grid-template-rows:repeat(5,1in); break-after:page; page-break-after:always; }
+.ccic-avery-label { width:3in; height:1in; box-sizing:border-box; padding:0.07in 0.12in; display:flex; flex-direction:column; justify-content:center; gap:0.01in; font-size:9pt; line-height:1.05; overflow:hidden; }
+.ccic-avery-label strong { font-size:12pt; }
+.ccic-avery-label b { font-size:10pt; }
+@media print { .ccic-avery-sheet { margin:0; } .ccic-avery-sheet:last-child { break-after:auto; page-break-after:auto; } }
