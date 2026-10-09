@@ -10,3 +10,8 @@
 .ccic-avery-label strong { font-size:12pt; }
 .ccic-avery-label b { font-size:10pt; }
 @media print { .ccic-avery-sheet { margin:0; } .ccic-avery-sheet:last-child { break-after:auto; page-break-after:auto; } }
+
+.ccic-school-distribution-page { background:#fff; padding:24px; margin:20px 0; border:1px solid #ddd; }
+.ccic-school-distribution-controls { background:#fff; padding:18px 24px; }
+.ccic-school-distribution-page table { width:100%; }
+@media print { @page { size:letter; margin:0.6in; } .ccic-screen-only { display:none!important; } .ccic-school-distribution-page { border:0; padding:0; margin:0; break-after:page; page-break-after:always; } .ccic-school-distribution-page:last-child { break-after:auto; page-break-after:auto; } .ccic-school-distribution-page h1 { font-size:20pt; } .ccic-school-distribution-page h2 { font-size:15pt; } .ccic-school-distribution-page tr { break-inside:avoid; } }
