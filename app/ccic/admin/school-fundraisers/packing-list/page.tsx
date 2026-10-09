@@ -4,6 +4,7 @@ import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
 import { decryptOptionalValue } from '@/lib/security/pii'
 import '../../../../christmas-cards/admin-orders.css'
+import './print.css'
 
 export const dynamic = 'force-dynamic'
 
