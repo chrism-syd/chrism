@@ -11,6 +11,7 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
   await requireCcicOrderAdmin('/ccic/admin/school-fundraisers')
   const { school } = await searchParams
   const selected = CCIC_SCHOOL_CAMPAIGNS.find((item) => item.slug === school)
+  if (!selected) return <main className="ccic-admin-page"><h1>School packing list</h1><p>Select a school to view its packing list.</p><ul>{CCIC_SCHOOL_CAMPAIGNS.map((item) => <li key={item.slug}><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(item.slug)}>{item.name}</Link></li>)}</ul></main>
   const admin = createAdminClient()
   const query = admin.from('ccic_school_orders').select('id,order_number,school_name,teacher_name,room_number,student_name,status_code').eq('status_code', 'paid')
   const { data, error } = await (selected ? query.eq('school_slug', selected.slug) : query)
