@@ -65,11 +65,11 @@ export async function getCcicCanadaPostRates(args: { destinationPostalCode: stri
   const token = await getAccessToken()
   let attempt = await requestRates(token, buildRatingBody({ customerNumber, contractId, ...args }))
   if (contractId && attempt.response.status === 400 && !Array.isArray(attempt.payload)) {
-    const detail = canadaPostErrorDetail(attempt.payload)
+    const detail = canadaPostErrorDetail(attempt.payload as CanadaPostErrorResponse | null)
     if (detail.toLowerCase().includes('contract') || detail.toLowerCase().includes('schema validation')) attempt = await requestRates(token, buildRatingBody({ customerNumber, ...args }))
   }
   if (!attempt.response.ok || !Array.isArray(attempt.payload)) {
-    const detail = attempt.payload && !Array.isArray(attempt.payload) ? canadaPostErrorDetail(attempt.payload) : ''
+    const detail = attempt.payload && !Array.isArray(attempt.payload) ? canadaPostErrorDetail(attempt.payload as CanadaPostErrorResponse) : ''
     throw new Error(`Canada Post rating failed (${attempt.response.status}).${detail ? ` ${detail}` : ''}`)
   }
   return attempt.payload.flatMap((rate): CcicShippingRate[] => {
