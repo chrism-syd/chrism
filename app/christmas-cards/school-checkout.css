@@ -56,3 +56,34 @@
   font-weight: 700;
   line-height: 1.45;
 }
+
+
+/* Payment confirmation spacing */
+/* Override the 190px offset used by the checkout sidebar. */
+.ccic-school-checkout-empty .ccic-school-checkout-summary {
+  margin-top: 24px;
+  margin-bottom: 20px;
+  padding: 24px;
+}
+
+.ccic-school-checkout-empty .ccic-school-checkout-summary h2 {
+  margin-bottom: 16px;
+}
+
+.ccic-school-checkout-empty .ccic-school-checkout-lines {
+  gap: 10px;
+}
+
+.ccic-school-checkout-empty .ccic-school-checkout-line {
+  padding-bottom: 10px;
+}
+
+.ccic-school-checkout-empty .ccic-school-checkout-total {
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.ccic-school-checkout-empty .ccic-school-checkout-contribution {
+  margin-top: 14px;
+  padding: 12px 14px;
+}

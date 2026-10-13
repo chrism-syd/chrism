@@ -139,46 +139,62 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     if (!squareApplicationId || !squareLocationId || !ready || !draft) return
     let cancelled = false
     let mountedCard: { destroy?: () => Promise<void> } | null = null
+
     const init = async () => {
       const scriptId = 'ccic-square-web-payments'
       let script = document.getElementById(scriptId) as HTMLScriptElement | null
-      if (!script) {
-        script = document.createElement('script')
-        script.id = scriptId
-        script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
-        document.head.appendChild(script)
-      }
+
       const squareReady = () =>
         typeof (window as Window & {
           Square?: { payments?: unknown }
         }).Square?.payments === 'function'
 
       if (!squareReady()) {
-        await new Promise<void>((resolve, reject) => {
-          const timeout = window.setTimeout(() => {
-            cleanup()
-            reject(new Error('Square SDK loading timed out.'))
-          }, 15000)
+        if (script?.dataset.failed === 'true') {
+          script.remove()
+          script = null
+        }
 
+        if (!script) {
+          script = document.createElement('script')
+          script.id = scriptId
+          script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
+          document.head.appendChild(script)
+        }
+
+        const activeScript = script
+
+        await new Promise<void>((resolve, reject) => {
           const cleanup = () => {
             window.clearTimeout(timeout)
-            script?.removeEventListener('load', onLoad)
-            script?.removeEventListener('error', onError)
+            activeScript.removeEventListener('load', onLoad)
+            activeScript.removeEventListener('error', onError)
           }
 
           const onLoad = () => {
             cleanup()
-            if (squareReady()) resolve()
-            else reject(new Error('Square SDK is unavailable after loading.'))
+            if (squareReady()) {
+              resolve()
+            } else {
+              activeScript.dataset.failed = 'true'
+              reject(new Error('Square SDK unavailable after loading.'))
+            }
           }
 
           const onError = () => {
             cleanup()
+            activeScript.dataset.failed = 'true'
             reject(new Error('Square SDK failed to load.'))
           }
 
-          script?.addEventListener('load', onLoad, { once: true })
-          script?.addEventListener('error', onError, { once: true })
+          const timeout = window.setTimeout(() => {
+            cleanup()
+            activeScript.dataset.failed = 'true'
+            reject(new Error('Square SDK loading timed out.'))
+          }, 15000)
+
+          activeScript.addEventListener('load', onLoad, { once: true })
+          activeScript.addEventListener('error', onError, { once: true })
 
           if (squareReady()) {
             cleanup()
@@ -186,17 +202,63 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
           }
         })
       }
-      const square = (window as unknown as { Square?: { payments: (appId: string, locationId: string) => Promise<{ card: () => Promise<{ attach: (selector: string) => Promise<void>; tokenize: () => Promise<{ status: string; token?: string }> ; destroy?: () => Promise<void> }> }> } }).Square
-      if (!square || cancelled) return
-      const payments = await square.payments(squareApplicationId, squareLocationId)
-      const card = await payments.card()
+
       if (cancelled) return
-      await card.attach('#ccic-school-square-card')
+
+      const square = (window as unknown as {
+        Square?: {
+          payments: (
+            appId: string,
+            locationId: string
+          ) => Promise<{
+            card: () => Promise<{
+              attach: (selector: string) => Promise<void>
+              tokenize: () => Promise<{ status: string; token?: string }>
+              destroy?: () => Promise<void>
+            }>
+          }>
+        }
+      }).Square
+
+      if (!square) throw new Error('Square SDK unavailable.')
+
+      const payments = await square.payments(squareApplicationId, squareLocationId)
+      if (cancelled) return
+
+      const card = await payments.card()
+
+      if (cancelled) {
+        await card.destroy?.()
+        return
+      }
+
+      try {
+        await card.attach('#ccic-school-square-card')
+      } catch (error) {
+        await card.destroy?.()
+        throw error
+      }
+
+      if (cancelled) {
+        await card.destroy?.()
+        return
+      }
+
       mountedCard = card
       cardRef.current = card
     }
-    init().catch(() => { if (!cancelled) setMessage('Secure card payment could not load. Please refresh and try again.') })
-    return () => { cancelled = true; cardRef.current = null; void mountedCard?.destroy?.() }
+
+    init().catch(() => {
+      if (!cancelled) {
+        setMessage('Secure card payment could not load. Please refresh and try again.')
+      }
+    })
+
+    return () => {
+      cancelled = true
+      cardRef.current = null
+      void mountedCard?.destroy?.()
+    }
   }, [squareApplicationId, squareLocationId, ready, draft])
 
   if (orderingClosed) {
@@ -272,7 +334,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         </p>
 
         <p>
-          A confirmation email has been sent to your email address.
+          A confirmation email will be sent to your email address.
         </p>
 
         <p>
