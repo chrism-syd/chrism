@@ -14,6 +14,7 @@ function formText(formData: FormData, key: string) {
 function statusTimestampField(status: CcicOrderStatus) {
   if (status === 'packed') return 'packed_at'
   if (status === 'shipped') return 'shipped_at'
+  if (status === 'delivered') return 'delivered_at'
   return null
 }
 
