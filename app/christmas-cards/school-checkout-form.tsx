@@ -148,13 +148,43 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
         document.head.appendChild(script)
       }
-      if (!script.dataset.loaded) {
+      const squareReady = () =>
+        typeof (window as Window & {
+          Square?: { payments?: unknown }
+        }).Square?.payments === 'function'
+
+      if (!squareReady()) {
         await new Promise<void>((resolve, reject) => {
-          if (script?.dataset.loaded) return resolve()
-          script?.addEventListener('load', () => resolve(), { once: true })
-          script?.addEventListener('error', () => reject(new Error('Square payment form could not load.')), { once: true })
+          const timeout = window.setTimeout(() => {
+            cleanup()
+            reject(new Error('Square SDK loading timed out.'))
+          }, 15000)
+
+          const cleanup = () => {
+            window.clearTimeout(timeout)
+            script?.removeEventListener('load', onLoad)
+            script?.removeEventListener('error', onError)
+          }
+
+          const onLoad = () => {
+            cleanup()
+            if (squareReady()) resolve()
+            else reject(new Error('Square SDK is unavailable after loading.'))
+          }
+
+          const onError = () => {
+            cleanup()
+            reject(new Error('Square SDK failed to load.'))
+          }
+
+          script?.addEventListener('load', onLoad, { once: true })
+          script?.addEventListener('error', onError, { once: true })
+
+          if (squareReady()) {
+            cleanup()
+            resolve()
+          }
         })
-        script.dataset.loaded = 'true'
       }
       const square = (window as unknown as { Square?: { payments: (appId: string, locationId: string) => Promise<{ card: () => Promise<{ attach: (selector: string) => Promise<void>; tokenize: () => Promise<{ status: string; token?: string }> ; destroy?: () => Promise<void> }> }> } }).Square
       if (!square || cancelled) return
