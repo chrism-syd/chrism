@@ -222,7 +222,74 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
     )
   }
 
-  if (paidOrderNumber) return <section className="ccic-school-checkout-empty"><h1>Payment received</h1><p>Thank you. Your school fundraiser order <strong>{paidOrderNumber}</strong> is confirmed.</p><p>Your cards will be delivered to {schoolName} for distribution.</p><p>Your card statement will show the merchant as <strong>sq *Knight of Columbus Council #7689</strong>.</p><button type="button" className="ccic-school-checkout-button" onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}>Back to Store</button></section>
+  if (paidOrderNumber) {
+    return (
+      <section className="ccic-school-checkout-empty">
+        <h1>Payment received</h1>
+
+        <p>
+          Thank you! Your {schoolName} Christmas card order has been confirmed.
+        </p>
+
+        <p>
+          <strong>Order number:</strong> {paidOrderNumber}
+        </p>
+
+        <div className="ccic-school-checkout-summary">
+          <h2>Order summary</h2>
+
+          <div className="ccic-school-checkout-lines">
+            {calculated.lines.map((line) => (
+              <div key={line.catalogId} className="ccic-school-checkout-line">
+                <span>
+                  {line.quantity} × {line.title}
+                </span>
+                <strong>
+                  {formatChristmasCardMoney(line.lineTotalCents)}
+                </strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="ccic-school-checkout-total">
+            <span>Total paid</span>
+            <strong>
+              {formatChristmasCardMoney(calculated.totalCents)}
+            </strong>
+          </div>
+
+          <div className="ccic-school-checkout-contribution">
+            <span>Your purchase supports {schoolName}</span>
+            <strong>
+              {formatChristmasCardMoney(calculated.schoolContributionCents)}
+            </strong>
+          </div>
+        </div>
+
+        <p>
+          Your Christmas cards will be delivered to {schoolName} for
+          distribution{deliveryByLabel ? ` by ${deliveryByLabel}` : ''}.
+        </p>
+
+        <p>
+          A confirmation email has been sent to your email address.
+        </p>
+
+        <p>
+          Your card statement will show the merchant as{' '}
+          <strong>sq *Knight of Columbus Council #7689</strong>.
+        </p>
+
+        <button
+          type="button"
+          className="ccic-school-checkout-button"
+          onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}
+        >
+          Back to Store
+        </button>
+      </section>
+    )
+  }
 
   return (
     <form className="ccic-school-checkout-layout" onSubmit={submit}>
