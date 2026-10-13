@@ -28,14 +28,27 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
   const totalSelected = calculated.totalBoxes
 
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
-    if (stored) {
-      try {
-        const parsed = parseCcicSchoolOrderDraft(JSON.parse(stored))
-        if (parsed?.schoolSlug === schoolSlug && parsed.schoolCode === schoolCode) setQuantities(parsed.quantities)
-      } catch {}
+    let cancelled = false
+
+    queueMicrotask(() => {
+      if (cancelled) return
+
+      const stored = window.sessionStorage.getItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
+      if (stored) {
+        try {
+          const parsed = parseCcicSchoolOrderDraft(JSON.parse(stored))
+          if (parsed?.schoolSlug === schoolSlug && parsed.schoolCode === schoolCode) {
+            setQuantities(parsed.quantities)
+          }
+        } catch {}
+      }
+
+      setHydrated(true)
+    })
+
+    return () => {
+      cancelled = true
     }
-    setHydrated(true)
   }, [schoolCode, schoolSlug])
 
   useEffect(() => {
@@ -83,7 +96,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
       ) : null}
 
       <div className="ccic-school-mixed-grid" id="school-card-selections">
-        {mixedBoxes.map((mixed, index) => {
+        {mixedBoxes.map((mixed) => {
           const collectionBoxes = boxes.filter((box) => box.collectionId === mixed.collectionId)
           const quantity = quantities[mixed.id] ?? 0
           const max = maxQuantity(mixed.id)

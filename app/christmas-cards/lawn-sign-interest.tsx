@@ -81,7 +81,7 @@ export default function LawnSignInterest() {
         <p>Bring the Celebrate Christ in Christmas message outdoors with a lawn sign. H-stake included.</p>
         <strong>$160 per set of 10 <span>($16 per sign)</span></strong>
         <p className="ccic-lawn-sign-pickup">Pickup available in Markham. Shipping available with a custom estimate.</p>
-        <button type="button" className="ccic-lawn-sign-interest-button" onClick={() => setIsOpen(true)}>I'm interested in lawn signs</button>
+        <button type="button" className="ccic-lawn-sign-interest-button" onClick={() => setIsOpen(true)}>I&apos;m interested in lawn signs</button>
       </div>
 
       {isOpen ? (
