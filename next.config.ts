@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
+        source: '/schools',
+        destination: '/',
+        permanent: false,
+      },
+      {
         source: '/ccic/schools-2/:school/:path*',
         destination: '/ccic/schools/:school/:path*',
         permanent: true,
