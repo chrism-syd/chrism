@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/schools',
+        has: [{ type: 'host', value: 'ccic.supplies' }],
         destination: '/',
         permanent: false,
       },
