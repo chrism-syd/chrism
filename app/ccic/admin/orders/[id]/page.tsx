@@ -5,13 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecord } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
-import {
-  CCIC_ORDER_STATUSES,
-  CCIC_ORDER_STATUS_LABELS,
-  getCcicOrderStatusLabel,
-  type CcicOrderStatus,
-} from '@/lib/christmas-cards/admin-order-status'
-import { updateCcicOrderStatus } from '../actions'
+import { getCcicOrderStatusLabel, type CcicOrderStatus } from '@/lib/christmas-cards/admin-order-status'
+import CcicOrderStatusForm from './order-status-form'
 import '../../../../christmas-cards/admin-orders.css'
 
 type OrderRow = {
@@ -125,16 +120,11 @@ export default async function CcicOrderDetailPage({
               <h2>Order status</h2>
               <span className={`ccic-admin-status is-${order.status_code}`}>{getCcicOrderStatusLabel(order.status_code)}</span>
             </div>
-            <form action={updateCcicOrderStatus} className="ccic-admin-status-form">
-              <input type="hidden" name="order_id" value={order.id} />
-              <label htmlFor="status">Update workflow status</label>
-              <div>
-                <select id="status" name="status" defaultValue={order.status_code}>
-                  {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
-                </select>
-                <button type="submit">Save status</button>
-              </div>
-            </form>
+            <CcicOrderStatusForm
+              orderId={order.id}
+              initialStatus={order.status_code}
+              deliveredAt={order.delivered_at}
+            />
             <dl className="ccic-admin-workflow-dates">
               <div><dt>Received</dt><dd>{formatDate(order.created_at)}</dd></div>
               <div><dt>Paid</dt><dd>{formatDate(order.paid_at)}</dd></div>
