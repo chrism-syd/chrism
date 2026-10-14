@@ -42,14 +42,21 @@ export async function updateCcicOrderStatus(formData: FormData) {
   if (timestampField) updates[timestampField] = now
 
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data: updatedOrders, error } = await admin
     .from('ccic_orders')
     .update(updates)
     .eq('id', orderId)
+    .neq('status_code', 'delivered')
+    .select('id')
 
   if (error) {
     console.error('CCIC order status update failed', error)
     redirect(`/ccic/admin/orders/${orderId}?error=status-update`)
+  }
+
+  // A delivered order is final, even if a stale form or direct request is submitted.
+  if (!updatedOrders?.length) {
+    redirect(`/ccic/admin/orders/${orderId}?error=delivered-locked`)
   }
 
   revalidatePath('/ccic')
