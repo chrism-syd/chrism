@@ -1,5 +1,6 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getCcicSquareConfig } from '@/lib/christmas-cards/square-config'
 import { decryptOptionalValue } from '@/lib/security/pii'
 import { sendBrevoTransactionalEmail } from '@/lib/email/brevo'
 import { getCcicSchoolCampaignByCode, formatCcicSchoolCampaignDate } from '@/lib/christmas-cards/schools'
@@ -15,6 +16,8 @@ type SquarePayment = {
 }
 
 export async function finalizeCcicSchoolPayment(orderId: string, payment: SquarePayment) {
+  const square = getCcicSquareConfig()
+  if (!square) throw new Error('Square payment processing is not enabled.')
   const admin = createAdminClient()
   const { data: order, error: lookupError } = await admin.from('ccic_school_orders')
     .select('id,order_number,status_code,total_cents,square_location_id,square_payment_id,square_environment')
@@ -24,7 +27,7 @@ export async function finalizeCcicSchoolPayment(orderId: string, payment: Square
       payment.location_id !== order.square_location_id ||
       payment.amount_money?.amount !== order.total_cents ||
       payment.amount_money?.currency !== 'CAD' ||
-      order.square_environment !== 'sandbox' ||
+      order.square_environment !== square.environment ||
       (order.square_payment_id && order.square_payment_id !== payment.id)) {
     throw new Error('Square payment does not match the stored school order.')
   }
@@ -55,7 +58,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
     .not('inventory_committed_at', 'is', null)
     .is('confirmation_email_sent_at', null)
     .is('confirmation_email_claimed_at', null)
-    .select('id,order_number,school_name,school_code,email,parent_name,total_cents,school_contribution_cents')
+    .select('id,order_number,school_name,school_code,email,parent_name,total_cents,school_contribution_cents,square_environment')
     .maybeSingle()
   if (claimError) throw new Error(`Unable to claim school confirmation: ${claimError.message}`)
   if (!claimed) return
@@ -90,7 +93,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
       '',
       deliveryText,
       '',
-      'Sandbox test order. No real payment was taken.',
+      ...(claimed.square_environment === 'sandbox' ? ['Sandbox test order. No real payment was taken.'] : []),
     ].join('\n')
     const orderRows = (lines || []).map((line) =>
       `<tr><td style="padding:12px 0;border-bottom:1px solid #e9e5e1;color:#202020;">${line.quantity} × ${escapeHtml(line.title)}</td><td align="right" style="padding:12px 0;border-bottom:1px solid #e9e5e1;white-space:nowrap;color:#202020;">${money(line.line_total_cents)}</td></tr>`
@@ -111,7 +114,7 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
           <p style="font-size:14px;line-height:1.6;margin:22px 0;color:#55504a;">Your payment card statement will show the merchant as <strong>${escapeHtml(merchant)}</strong>.</p>
           <div style="padding:17px 19px;background:#f1f5ed;color:#315529;font-size:16px;line-height:1.5;font-weight:bold;">${money(claimed.school_contribution_cents)} of this directly supports ${escapeHtml(claimed.school_name)}.</div>
           <p style="font-size:15px;line-height:1.6;margin:22px 0 0;">${escapeHtml(deliveryText)}</p>
-          <p style="font-size:12px;color:#77716b;margin:24px 0 0;padding-top:15px;border-top:1px solid #eeeae6;">Sandbox test order. No real payment was taken.</p>
+          ${claimed.square_environment === 'sandbox' ? '<p style="font-size:12px;color:#77716b;margin:24px 0 0;padding-top:15px;border-top:1px solid #eeeae6;">Sandbox test order. No real payment was taken.</p>' : ''}
         </div>
       </div>
     </div>`

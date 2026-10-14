@@ -1,5 +1,6 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
+import { getCcicSquareConfig } from '@/lib/christmas-cards/square-config'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { protectPeoplePayload } from '@/lib/security/pii'
@@ -13,10 +14,10 @@ export const runtime = 'nodejs'
 const normalize = (value: unknown) => typeof value === 'string' ? value.trim() : ''
 
 export async function POST(request: NextRequest) {
-  if (process.env.SQUARE_ENVIRONMENT !== 'sandbox') return NextResponse.json({ error: 'School payments are not enabled.' }, { status: 503 })
-  const accessToken = process.env.SQUARE_ACCESS_TOKEN
-  const locationId = process.env.SQUARE_LOCATION_ID
-  if (!accessToken || !locationId || !process.env.PII_ENCRYPTION_KEY) return NextResponse.json({ error: 'Payment configuration is incomplete.' }, { status: 503 })
+  const square = getCcicSquareConfig()
+  if (!square) return NextResponse.json({ error: 'School payments are not enabled.' }, { status: 503 })
+  const { accessToken, locationId } = square
+  if (!process.env.PII_ENCRYPTION_KEY) return NextResponse.json({ error: 'Payment configuration is incomplete.' }, { status: 503 })
 
   let body: Record<string, unknown>
   try { body = await request.json() as Record<string, unknown> } catch { return NextResponse.json({ error: 'Invalid request.' }, { status: 400 }) }
@@ -45,11 +46,11 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient()
   const { data: existing, error: existingError } = await admin.from('ccic_school_orders')
-    .select('id,order_number,status_code,total_cents,school_code,square_payment_id')
+    .select('id,order_number,status_code,total_cents,school_code,square_payment_id,square_environment')
     .eq('checkout_key', checkoutKey).maybeSingle()
   if (existingError) return NextResponse.json({ error: 'Unable to check your previous payment attempt. Please do not retry yet.' }, { status: 503 })
   if (existing) {
-    if (existing.school_code !== school.code || existing.total_cents !== order.totalCents) {
+    if (existing.school_code !== school.code || existing.total_cents !== order.totalCents || existing.square_environment !== square.environment) {
       return NextResponse.json({ error: 'Your checkout has changed. Please reload the page before paying.' }, { status: 409 })
     }
     if (existing.status_code === 'paid') return NextResponse.json({ paid: true, orderNumber: existing.order_number, totalCents: existing.total_cents })
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     student_name: protectText(studentName), grade: protectText(grade), room_number: protectText(roomNumber), teacher_name: protectText(teacherName),
     pii_key_version: process.env.PII_KEY_VERSION || 'v1', subtotal_cents: order.subtotalCents,
     school_contribution_cents: order.schoolContributionCents, total_cents: order.totalCents,
-    square_environment: 'sandbox', square_location_id: locationId,
+    square_environment: square.environment, square_location_id: locationId,
   })
   if (insertError) return NextResponse.json({ error: 'Unable to save your order. Please refresh and check before retrying.' }, { status: 503 })
   const { error: lineError } = await admin.from('ccic_school_order_lines').insert(order.lines.map((line, i) => ({
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
   let payment: Record<string, unknown> = {}
   let squareResponseReceived = false
   try {
-    const response = await fetch('https://connect.squareupsandbox.com/v2/payments', {
+    const response = await fetch(`${square.apiBase}/v2/payments`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'Square-Version': '2026-01-22' },
       body: JSON.stringify({

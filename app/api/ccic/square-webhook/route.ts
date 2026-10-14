@@ -1,5 +1,6 @@
 import 'server-only'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { getCcicSquareConfig } from '@/lib/christmas-cards/square-config'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { finalizeCcicSchoolPayment, sendCcicSchoolOrderConfirmation } from '@/lib/christmas-cards/school-payment-finalize'
@@ -13,9 +14,10 @@ type SquareWebhook = {
 }
 
 export async function POST(request: NextRequest) {
+  const square = getCcicSquareConfig()
   const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
   const notificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL
-  if (!signatureKey || !notificationUrl || process.env.SQUARE_ENVIRONMENT !== 'sandbox') {
+  if (!square || !signatureKey || !notificationUrl) {
     return NextResponse.json({ error: 'Webhook is not configured.' }, { status: 503 })
   }
   const body = await request.text()
@@ -46,8 +48,8 @@ export async function POST(request: NextRequest) {
   if (eventError) return NextResponse.json({ error: 'Unable to record webhook.' }, { status: 503 })
 
   try {
-    const response = await fetch(`https://connect.squareupsandbox.com/v2/payments/${encodeURIComponent(paymentId)}`, {
-      headers: { Authorization: `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`, 'Square-Version': '2026-01-22' },
+    const response = await fetch(`${square.apiBase}/v2/payments/${encodeURIComponent(paymentId)}`, {
+      headers: { Authorization: `Bearer ${square.accessToken}`, 'Square-Version': '2026-01-22' },
       cache: 'no-store',
     })
     if (!response.ok) throw new Error(`Square payment lookup HTTP ${response.status}`)
@@ -58,12 +60,15 @@ export async function POST(request: NextRequest) {
     const payment = result.payment
     if (!payment?.reference_id) throw new Error('Square payment has no CCIC reference.')
     const { data: order, error: orderError } = await admin.from('ccic_school_orders')
-      .select('id,status_code').eq('id', payment.reference_id).maybeSingle()
+      .select('id,status_code,square_environment,square_location_id').eq('id', payment.reference_id).maybeSingle()
     if (orderError) throw new Error(orderError.message)
     if (!order) {
       // Other Square transactions do not belong to the school fundraiser.
       await admin.from('ccic_square_webhook_events').update({ processed_at: new Date().toISOString() }).eq('event_id', event.event_id)
       return NextResponse.json({ ok: true, unrelated: true })
+    }
+    if (order.square_environment !== square.environment || payment.location_id !== order.square_location_id) {
+      throw new Error('Square payment environment or location does not match stored school order.')
     }
     if (payment.status === 'COMPLETED') {
       await finalizeCcicSchoolPayment(order.id, payment)

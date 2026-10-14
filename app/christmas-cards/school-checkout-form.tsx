@@ -31,7 +31,7 @@ const EMPTY_DETAILS: CheckoutDetails = {
   teacherName: '',
 }
 
-export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, deliveryByLabel, squareApplicationId, squareLocationId }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string }) {
+export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, deliveryByLabel, squareApplicationId, squareLocationId, squareEnvironment }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string; squareEnvironment: 'sandbox' | 'production' | null }) {
   const router = useRouter()
   const [draft, setDraft] = useState<CcicSchoolOrderDraft | null>(null)
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
@@ -158,7 +158,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         if (!script) {
           script = document.createElement('script')
           script.id = scriptId
-          script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
+          script.src = squareEnvironment === 'production' ? 'https://web.squarecdn.com/v1/square.js' : 'https://sandbox.web.squarecdn.com/v1/square.js'
           document.head.appendChild(script)
         }
 
@@ -259,7 +259,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       cardRef.current = null
       void mountedCard?.destroy?.()
     }
-  }, [squareApplicationId, squareLocationId, ready, draft])
+  }, [squareApplicationId, squareLocationId, squareEnvironment, ready, draft])
 
   if (orderingClosed) {
     return (
@@ -408,8 +408,8 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         {squareApplicationId && squareLocationId ? (
           <>
             <div id="ccic-school-square-card" aria-label="Secure card payment" />
-            <button type="submit" className="ccic-school-checkout-primary" disabled={processing || Boolean(submittedOrderNumber)}>{processing ? 'Processing…' : submittedOrderNumber ? 'Payment submitted' : 'Pay securely (Sandbox)'}</button>
-            <p className="ccic-school-checkout-payment-note">Sandbox test payment only. No real card will be charged.</p>
+            <button type="submit" className="ccic-school-checkout-primary" disabled={processing || Boolean(submittedOrderNumber)}>{processing ? 'Processing…' : submittedOrderNumber ? 'Payment submitted' : squareEnvironment === 'sandbox' ? 'Pay securely (Sandbox)' : 'Pay securely'}</button>
+            {squareEnvironment === 'sandbox' ? <p className="ccic-school-checkout-payment-note">Sandbox test payment only. No real card will be charged.</p> : null}
           </>
         ) : <p className="ccic-school-checkout-payment-note">Secure payment is not configured. No payment can be taken.</p>}
       </aside>
