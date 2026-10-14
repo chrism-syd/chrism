@@ -683,55 +683,6 @@
   }
 }
 
-.ccic-admin-delivery-dialog {
-  width: min(440px, calc(100vw - 32px));
-  max-width: 100%;
-  padding: 28px;
-  border: 1px solid #dfdbd7;
-  background: #fff;
-  color: #202020;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 25%);
-}
-
-.ccic-admin-delivery-dialog::backdrop {
-  background: rgb(0 0 0 / 55%);
-}
-
-.ccic-admin-delivery-dialog h3 {
-  margin: 0 0 14px;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.ccic-admin-delivery-dialog p {
-  margin: 0 0 16px;
-  color: #4d4946;
-  line-height: 1.5;
-}
-
-.ccic-admin-delivery-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 24px;
-}
-
-.ccic-admin-delivery-dialog-actions button {
-  padding: 11px 16px;
-  border: 1px solid #202020;
-  background: #202020;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.ccic-admin-delivery-dialog-actions button:first-child {
-  background: #fff;
-  color: #202020;
-}
-
 @media print {
   @page {
     margin: .45in;
