@@ -116,7 +116,7 @@ export default async function CcicOrderDetailPage({
       </header>
 
       {updated ? <p className="ccic-admin-notice">Order status updated.</p> : null}
-      {errorCode ? <p className="ccic-admin-error">The order status could not be updated. Please try again.</p> : null}
+      {errorCode ? <p className="ccic-admin-error">{errorCode === 'delivered-locked' ? 'This order is already Delivered. Only cancellation is permitted; the delivery timestamp remains unchanged.' : 'The order status could not be updated. Please try again.'}</p> : null}
 
       <div className="ccic-admin-detail-grid">
         <div className="ccic-admin-detail-main">
@@ -129,12 +129,20 @@ export default async function CcicOrderDetailPage({
               <input type="hidden" name="order_id" value={order.id} />
               <label htmlFor="status">Update workflow status</label>
               <div>
-                <select id="status" name="status" defaultValue={order.status_code}>
-                  {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
-                </select>
+                {order.status_code === 'delivered' ? (
+                  <select id="status" name="status" defaultValue="" required>
+                    <option value="" disabled>Choose an action</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                ) : (
+                  <select id="status" name="status" defaultValue={order.status_code}>
+                    {CCIC_ORDER_STATUSES.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
+                  </select>
+                )}
                 <button type="submit">Save status</button>
               </div>
             </form>
+            {order.status_code === 'delivered' ? <p>This order has been delivered. Cancellation is the only available status change; its delivery timestamp will be preserved.</p> : null}
             <dl className="ccic-admin-workflow-dates">
               <div><dt>Received</dt><dd>{formatDate(order.created_at)}</dd></div>
               <div><dt>Paid</dt><dd>{formatDate(order.paid_at)}</dd></div>

@@ -42,14 +42,25 @@ export async function updateCcicOrderStatus(formData: FormData) {
   if (timestampField) updates[timestampField] = now
 
   const admin = createAdminClient()
-  const { error } = await admin
+  // Once delivered, the only permitted status transition is cancellation.
+  // Do not touch delivered_at when cancelling a delivered order.
+  const updateQuery = admin
     .from('ccic_orders')
     .update(updates)
     .eq('id', orderId)
 
+  const { data: updatedOrders, error } = status === 'cancelled'
+    ? await updateQuery.select('id')
+    : await updateQuery.neq('status_code', 'delivered').select('id')
+
   if (error) {
     console.error('CCIC order status update failed', error)
     redirect(`/ccic/admin/orders/${orderId}?error=status-update`)
+  }
+
+  // Reject stale or direct requests to change a delivered order to anything but cancelled.
+  if (!updatedOrders?.length) {
+    redirect(`/ccic/admin/orders/${orderId}?error=delivered-locked`)
   }
 
   revalidatePath('/ccic')
