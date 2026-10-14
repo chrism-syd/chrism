@@ -279,7 +279,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       <section className="ccic-school-checkout-empty">
         <h1>Your cart is empty</h1>
         <p>Return to the {schoolName} fundraiser and choose your Christmas card collections.</p>
-        <button type="button" className="ccic-school-checkout-primary" onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}>Back to fundraiser</button>
+        <button type="button" className="ccic-school-checkout-primary" onClick={() => router.push(`/ccic/schools/${schoolSlug}`)}>Back to fundraiser</button>
       </section>
     )
   }
@@ -345,7 +345,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         <button
           type="button"
           className="ccic-school-checkout-button"
-          onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}
+          onClick={() => router.push(`/ccic/schools/${schoolSlug}`)}
         >
           Back to Store
         </button>
@@ -356,7 +356,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
   return (
     <form className="ccic-school-checkout-layout" onSubmit={submit}>
       <div className="ccic-school-checkout-main">
-        <button type="button" className="ccic-school-checkout-back" onClick={() => router.push(`/ccic/schools-2/${schoolSlug}`)}>← Back to card selection</button>
+        <button type="button" className="ccic-school-checkout-back" onClick={() => router.push(`/ccic/schools/${schoolSlug}`)}>← Back to card selection</button>
         <div>
           <h1>Checkout</h1>
           <p className="ccic-school-checkout-lead">Your order will be delivered to the school for distribution.</p>

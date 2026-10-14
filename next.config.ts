@@ -31,6 +31,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/ccic/schools-2/:school/:path*',
+        destination: '/ccic/schools/:school/:path*',
+        permanent: true,
+      },
+      {
+        source: '/schools-2/:school/:path*',
+        destination: '/schools/:school/:path*',
+        permanent: true,
+      },
+      {
         source: '/school',
         destination: '/schools',
         permanent: true,

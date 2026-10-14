@@ -60,7 +60,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
   function reviewOrder() {
     if (orderingClosed || !calculated.hasOrder) return
     window.sessionStorage.setItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft))
-    router.push(`/ccic/schools-2/${schoolSlug}/checkout`)
+    router.push(`/ccic/schools/${schoolSlug}/checkout`)
   }
 
   function maxQuantity(mixedCatalogId: string) {
