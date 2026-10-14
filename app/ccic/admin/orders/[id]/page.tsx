@@ -135,7 +135,7 @@ export default async function CcicOrderDetailPage({
 
       {updated ? <p className="ccic-admin-notice">Order status updated.</p> : null}
       {paymentUpdated ? <p className="ccic-admin-notice">Payment status updated.</p> : null}
-      {errorCode ? <p className="ccic-admin-error">The order status could not be updated. Please try again.</p> : null}
+      {errorCode ? <p className="ccic-admin-error">{errorCode === 'delivered-locked' ? 'This order is already Delivered. Only cancellation is allowed.' : 'The order status could not be updated. Please try again.'}</p> : null}
 
       <div className="ccic-admin-detail-grid">
         <div className="ccic-admin-detail-main">
@@ -149,8 +149,15 @@ export default async function CcicOrderDetailPage({
                 <input type="hidden" name="order_id" value={order.id} />
                 <label htmlFor="status">Fulfilment status</label>
                 <div>
-                  <select id="status" name="status" defaultValue={displayedFulfillmentStatus}>
-                    {fulfillmentStatuses.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)}
+                  <select id="status" name="status" defaultValue={order.status_code === 'delivered' ? '' : displayedFulfillmentStatus} required>
+                    {order.status_code === 'delivered' ? (
+                        <>
+                          <option value="" disabled>Choose an action</option>
+                          <option value="cancelled">{CCIC_ORDER_STATUS_LABELS.cancelled}</option>
+                        </>
+                      ) : (
+                        fulfillmentStatuses.map((status) => <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>)
+                      )}
                   </select>
                   <button type="submit">Save status</button>
                 </div>
