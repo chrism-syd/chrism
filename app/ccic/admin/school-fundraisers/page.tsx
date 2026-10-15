@@ -5,6 +5,7 @@ import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import '../../../christmas-cards/admin-orders.css'
+import '../../../christmas-cards/school-admin.css'
 
 export const metadata = { title: 'CCIC School Fundraisers | Chrism' }
 export const dynamic = 'force-dynamic'
@@ -85,84 +86,133 @@ export default async function SchoolFundraisersAdminPage({
   }).format(new Date(value))
 
   return (
-    <main className="ccic-admin-page">
-      <header className="ccic-admin-header">
+    <main className="ccic-admin-page ccic-school-admin">
+      <header className="ccic-admin-header ccic-school-header">
         <div className="ccic-admin-heading-brand">
           <Image src="/CCiC.png" alt="CCIC" width={72} height={72} />
-          <div><h1>School Orders</h1></div>
+          <div>
+            <p className="ccic-school-eyebrow">Celebrate Christ in Christmas</p>
+            <h1>School Orders</h1>
+            <p className="ccic-school-subtitle">Fundraiser orders, packing and parent returns in one place.</p>
+          </div>
         </div>
-        <nav className="ccic-admin-header-actions">
+        <nav className="ccic-admin-header-actions" aria-label="CCIC admin navigation">
           <Link href="/ccic/admin/orders">Council orders</Link>
-          <Link href="/ccic/admin/packing-list">Packing list</Link>
+          <Link href="/ccic/admin/packing-list">Council packing</Link>
           <Link href="/ccic/admin/store-control">Store control</Link>
         </nav>
       </header>
 
-      <section className="ccic-admin-card" style={{ padding: 22, marginBottom: 24 }}>
-        <form action="/ccic/admin/school-fundraisers" method="get">
-          <label htmlFor="school-filter"><strong>Schools</strong></label>{' '}
-          <select id="school-filter" name="school" defaultValue={selectedSchool} style={{ padding: 10, maxWidth: '100%' }}>
-            <option value="">All schools</option>
-            {CCIC_SCHOOL_CAMPAIGNS.map((school) => (
-              <option key={school.code} value={school.slug}>{school.name}</option>
-            ))}
-          </select>{' '}
-          <button type="submit" style={{ padding: 10 }}>View</button>
-        </form>
-      </section>
+      <div className="ccic-school-shell">
+        <section className="ccic-school-panel ccic-school-toolbar" aria-label="Choose school">
+          <form action="/ccic/admin/school-fundraisers" method="get">
+            <div className="ccic-school-field">
+              <label htmlFor="school-filter">School</label>
+              <select id="school-filter" name="school" defaultValue={selectedSchool}>
+                <option value="">All schools</option>
+                {CCIC_SCHOOL_CAMPAIGNS.map((school) => (
+                  <option key={school.code} value={school.slug}>{school.name}</option>
+                ))}
+              </select>
+            </div>
+            <button type="submit">View orders</button>
+            <Link className="ccic-school-text-link" href={selectedSchool
+              ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool)
+              : '/ccic/admin/school-fundraisers/packing-list'}>
+              Packing &amp; labels →
+            </Link>
+          </form>
+        </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 24 }}>
-        {[
-          ['Active paid parent orders', String(paid.length)],
-          ['Mixed boxes to pack (net)', String(boxes)],
-          ['Original paid order value', formatChristmasCardMoney(originalPaidCents)],
-          ['Order value after recorded returns', formatChristmasCardMoney(remainingValueCents)],
-          ['School contributions on remaining boxes', formatChristmasCardMoney(contribution)],
-          ['Awaiting payment reconciliation', String(orders.filter((order) => order.status_code === 'pending_payment').length)],
-        ].map(([label, value]) => (
-          <div key={label} style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22 }}>
-            <div style={{ fontSize: 13, color: '#645e58' }}>{label}</div>
-            <strong style={{ display: 'block', fontSize: 25, marginTop: 8 }}>{value}</strong>
+        <section aria-label="School order overview">
+          <div className="ccic-school-panel-header">
+            <div>
+              <h2>At a glance</h2>
+              <p>Live totals for {selectedSchool ? CCIC_SCHOOL_CAMPAIGNS.find((school) => school.slug === selectedSchool)?.name ?? 'selected school' : 'all schools'}.</p>
+            </div>
           </div>
-        ))}
-        <p style={{ gridColumn: '1 / -1' }}>Order value after returns is for packing and fundraiser reporting. It does not assert that manual Square or e-transfer refunds have been completed.</p>
-      </section>
+          <div className="ccic-school-overview">
+            <div className="ccic-school-metric is-primary"><span>Active paid parent orders</span><strong>{paid.length}</strong></div>
+            <div className="ccic-school-metric"><span>Mixed boxes remaining to pack</span><strong>{boxes}</strong></div>
+            <div className="ccic-school-metric is-attention">
+              <span>Awaiting payment reconciliation</span>
+              <strong>{orders.filter((order) => order.status_code === 'pending_payment').length}</strong>
+            </div>
+          </div>
+        </section>
 
-      <section style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24 }}>
-        <h2>Production totals — remaining boxes</h2>
-        <p><Link href={selectedSchool ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool) : '/ccic/admin/school-fundraisers/packing-list'}>Packing &amp; Labels</Link></p>
-        {collectionTotals.size === 0 ? <p>No boxes to pack yet.</p> : (
-          <ul>{[...collectionTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([sku, item]) => (
-            <li key={sku}>{item.title}: <strong>{item.quantity} boxes</strong></li>
-          ))}</ul>
-        )}
-      </section>
+        <details className="ccic-school-report">
+          <summary>Fundraiser financial summary</summary>
+          <div className="ccic-school-report-body">
+            <div className="ccic-school-finance-grid">
+              <div className="ccic-school-metric"><span>Original paid order value</span><strong>{formatChristmasCardMoney(originalPaidCents)}</strong></div>
+              <div className="ccic-school-metric"><span>Value of remaining boxes</span><strong>{formatChristmasCardMoney(remainingValueCents)}</strong></div>
+              <div className="ccic-school-metric"><span>School contributions on remaining boxes</span><strong>{formatChristmasCardMoney(contribution)}</strong></div>
+            </div>
+            <p className="ccic-school-report-note">Values after returns support packing and fundraiser reporting. They do not confirm that manual Square or e-transfer refunds have been completed.</p>
+          </div>
+        </details>
 
-      <section style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, overflowX: 'auto' }}>
-        <h2>Individual parent orders</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead><tr>{['Order', 'School', 'Date', 'Status', 'Boxes to pack', 'Remaining order value', 'School share'].map((heading) => (
-            <th key={heading} style={{ padding: 12, borderBottom: '1px solid #ddd' }}>{heading}</th>
-          ))}</tr></thead>
-          <tbody>{orders.map((order) => {
-            const boxInfo = boxTotals.get(order.id)
-            const partiallyReturned = order.status_code === 'paid' && boxInfo && boxInfo.remaining < boxInfo.ordered
-            return (
-              <tr key={order.id}>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}><Link href={'/ccic/admin/school-fundraisers/' + order.id}>{order.order_number}</Link></td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.school_name}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{date(order.created_at)}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{partiallyReturned ? 'Partially returned' : order.status_code.replaceAll('_', ' ')}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code === 'paid' ? boxInfo?.remaining ?? 0 : '—'}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code === 'paid' ? formatChristmasCardMoney(boxInfo?.remainingValueCents ?? 0) : '—'}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code === 'paid' && boxInfo?.ordered ? formatChristmasCardMoney(Math.round(order.school_contribution_cents * boxInfo.remaining / boxInfo.ordered)) : '—'}</td>
-              </tr>
-            )
-          })}</tbody>
-        </table>
-        {orders.length === 0 && <p>No orders found for this selection.</p>}
-        {allOrders.length === 1000 && <p>Showing the latest 1,000 orders. Pagination will be added before larger campaigns.</p>}
-      </section>
+        <section className="ccic-school-panel">
+          <div className="ccic-school-panel-header">
+            <div><h2>Production totals</h2><p>Remaining mixed boxes to prepare, grouped by collection.</p></div>
+            <Link className="ccic-school-text-link" href={selectedSchool
+              ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool)
+              : '/ccic/admin/school-fundraisers/packing-list'}>
+              Open packing &amp; labels →
+            </Link>
+          </div>
+          {collectionTotals.size === 0 ? <p className="ccic-school-helper">No paid boxes to pack yet.</p> : (
+            <ul className="ccic-school-production-list">
+              {[...collectionTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([sku, item]) => (
+                <li key={sku}><span>{item.title}</span><strong>{item.quantity} <small>boxes</small></strong></li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="ccic-school-panel">
+          <div className="ccic-school-panel-header">
+            <div><h2>Parent orders</h2><p>{orders.length} order{orders.length === 1 ? '' : 's'} in this view. Select an order for student details or returns.</p></div>
+          </div>
+          <div className="ccic-admin-table-wrap">
+            <table className="ccic-admin-table" aria-label="School parent orders">
+              <thead>
+                <tr>
+                  <th scope="col">Order</th>
+                  <th scope="col">School</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Boxes to pack</th>
+                  <th scope="col">Remaining value</th>
+                  <th scope="col">School share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => {
+                  const boxInfo = boxTotals.get(order.id)
+                  const partiallyReturned = order.status_code === 'paid' && boxInfo && boxInfo.remaining < boxInfo.ordered
+                  const statusClass = partiallyReturned ? 'is-partial' : order.status_code === 'paid' ? 'is-paid' : order.status_code === 'cancelled' ? 'is-cancelled' : order.status_code === 'pending_payment' ? 'is-pending' : ''
+                  const statusLabel = partiallyReturned ? 'Partially returned' : order.status_code.replaceAll('_', ' ')
+                  return (
+                    <tr key={order.id}>
+                      <td><Link href={'/ccic/admin/school-fundraisers/' + order.id}>{order.order_number}</Link></td>
+                      <td>{order.school_name}</td>
+                      <td>{date(order.created_at)}</td>
+                      <td><span className={'ccic-school-status ' + statusClass}>{statusLabel}</span></td>
+                      <td data-numeric="true">{order.status_code === 'paid' ? boxInfo?.remaining ?? 0 : '—'}</td>
+                      <td data-numeric="true">{order.status_code === 'paid' ? formatChristmasCardMoney(boxInfo?.remainingValueCents ?? 0) : '—'}</td>
+                      <td data-numeric="true">{order.status_code === 'paid' && boxInfo?.ordered ? formatChristmasCardMoney(Math.round(order.school_contribution_cents * boxInfo.remaining / boxInfo.ordered)) : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            {orders.length === 0 && <p className="ccic-school-empty">No orders found for this school.</p>}
+          </div>
+          {allOrders.length === 1000 && <p className="ccic-school-helper">Showing the latest 1,000 orders. Pagination will be added before larger campaigns.</p>}
+        </section>
+      </div>
     </main>
   )
 }
