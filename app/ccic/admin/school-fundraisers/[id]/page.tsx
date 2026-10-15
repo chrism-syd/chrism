@@ -37,6 +37,7 @@ type ReturnEvent = {
 const errorMessages: Record<string, string> = {
   'return-confirmation': 'Enter a reason and confirm physical inventory and manual refund handling.',
   'return-failed': 'Return was not completed. The transaction did not partially release inventory. Inspect order and inventory state before retrying.',
+  'returns-disabled': 'Parent-order returns are not enabled for this deployment.',
   'invalid-quantity': 'Choose valid whole-box quantities no higher than the unreturned quantities.',
   'no-returns': 'Enter at least one box to return.',
 }
@@ -78,7 +79,9 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
   const estimatedShareCents = originallyOrdered
     ? Math.round(order.school_contribution_cents * remainingBoxes / originallyOrdered)
     : 0
-  const canReturn = order.status_code === 'paid'
+  // Default OFF. The read-only order history still works when returns are disabled.
+  const returnsEnabled = process.env.CCIC_SCHOOL_RETURNS_ENABLED === 'true'
+  const canReturn = returnsEnabled && order.status_code === 'paid'
     && Boolean(order.inventory_committed_at)
     && !order.inventory_released_at
     && remainingBoxes > 0
@@ -174,7 +177,10 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
         </section>
       )}
 
-      {order.status_code === 'paid' && !canReturn && (
+      {order.status_code === 'paid' && !returnsEnabled && (
+        <section className="ccic-admin-panel"><p>Parent-order return controls are temporarily disabled during rollout.</p></section>
+      )}
+      {order.status_code === 'paid' && returnsEnabled && !canReturn && (
         <section className="ccic-admin-panel"><p className="ccic-admin-error">This parent order's inventory state needs reconciliation before returns can be processed.</p></section>
       )}
       {order.status_code === 'cancelled' && (

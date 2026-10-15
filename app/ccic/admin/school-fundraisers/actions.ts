@@ -19,6 +19,11 @@ export async function returnCcicSchoolParentOrderItems(formData: FormData) {
   // Admin authentication is mandatory on the server action, not just the page.
   const session = await requireCcicOrderAdmin(`${ROOT}/${orderId}`)
   const orderUrl = `${ROOT}/${orderId}`
+
+  // The server action, not only the browser form, enforces the rollout switch.
+  if (process.env.CCIC_SCHOOL_RETURNS_ENABLED !== 'true') {
+    redirect(`${orderUrl}?error=returns-disabled`)
+  }
   const requestKey = read(formData, 'request_key')
   const reason = read(formData, 'reason')
   const physicalStockConfirmed = read(formData, 'confirm_inventory') === 'yes'
