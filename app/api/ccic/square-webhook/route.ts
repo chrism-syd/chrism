@@ -74,11 +74,13 @@ export async function POST(request: NextRequest) {
       await finalizeCcicSchoolPayment(order.id, payment)
       await sendCcicSchoolOrderConfirmation(order.id)
     } else if (payment.status === 'FAILED' || payment.status === 'CANCELED') {
-      if (order.status_code !== 'paid') {
+      // Only pending/failed orders can be marked failed. A delayed webhook
+      // must never reopen a fully returned parent order.
+      if (order.status_code === 'pending_payment' || order.status_code === 'payment_failed') {
         await admin.from('ccic_school_orders').update({
           status_code: 'payment_failed', square_payment_id: payment.id,
           square_payment_status: payment.status, updated_at: new Date().toISOString(),
-        }).eq('id', order.id)
+        }).eq('id', order.id).in('status_code', ['pending_payment', 'payment_failed'])
       }
     }
     const { error: processedError } = await admin.from('ccic_square_webhook_events')
