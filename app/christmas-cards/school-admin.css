@@ -19,6 +19,20 @@
 }
 .ccic-school-admin .ccic-admin-header h1 { font-size: clamp(29px, 4vw, 43px); font-weight: 650; letter-spacing: -.035em; }
 .ccic-school-subtitle { margin: 6px 0 0; color: var(--school-muted); font-size: 14px; line-height: 1.5; }
+.ccic-school-admin .ccic-admin-header .ccic-school-subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--school-muted);
+}
+.ccic-school-order-title h1 {
+  font-size: clamp(27px, 4vw, 42px);
+  font-weight: 650;
+  letter-spacing: -.035em;
+  line-height: 1.15;
+}
 .ccic-school-admin .ccic-admin-header a { font-size: 13px; }
 .ccic-school-shell { width: min(1320px,100%); margin: 0 auto; display: grid; gap: 22px; }
 .ccic-school-panel {
@@ -126,6 +140,7 @@
   font-weight: 800;
   line-height: 1.25;
 }
+.ccic-school-admin .ccic-admin-table .ccic-school-status { display: inline-block; margin: 0; color: #45545f; }
 .ccic-school-status.is-paid { background: #e2f3ec; color: #23654a; }
 .ccic-school-status.is-pending { background: #fff0d9; color: #8b5720; }
 .ccic-school-status.is-partial { background: #f8eddb; color: #8b5720; }
