@@ -200,9 +200,9 @@ export default async function SchoolFundraisersAdminPage({
                       <td>{order.school_name}</td>
                       <td>{date(order.created_at)}</td>
                       <td><span className={'ccic-school-status ' + statusClass}>{statusLabel}</span></td>
-                      <td data-numeric>{order.status_code === 'paid' ? boxInfo?.remaining ?? 0 : '—'}</td>
-                      <td data-numeric>{order.status_code === 'paid' ? formatChristmasCardMoney(boxInfo?.remainingValueCents ?? 0) : '—'}</td>
-                      <td data-numeric>{order.status_code === 'paid' && boxInfo?.ordered ? formatChristmasCardMoney(Math.round(order.school_contribution_cents * boxInfo.remaining / boxInfo.ordered)) : '—'}</td>
+                      <td data-numeric="true">{order.status_code === 'paid' ? boxInfo?.remaining ?? 0 : '—'}</td>
+                      <td data-numeric="true">{order.status_code === 'paid' ? formatChristmasCardMoney(boxInfo?.remainingValueCents ?? 0) : '—'}</td>
+                      <td data-numeric="true">{order.status_code === 'paid' && boxInfo?.ordered ? formatChristmasCardMoney(Math.round(order.school_contribution_cents * boxInfo.remaining / boxInfo.ordered)) : '—'}</td>
                     </tr>
                   )
                 })}
