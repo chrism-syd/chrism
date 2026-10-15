@@ -7,6 +7,7 @@ import { decryptOptionalValue } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { returnCcicSchoolParentOrderItems } from '../actions'
 import '../../../../christmas-cards/admin-orders.css'
+import '../../../../christmas-cards/school-admin.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,106 +90,173 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
   const requestKey = randomUUID()
 
   return (
-    <main className="ccic-admin-page">
-      <header className="ccic-admin-header">
-        <h1>{order.order_number}</h1>
-        <Link href="/ccic/admin/school-fundraisers">Back to School Orders</Link>
-      </header>
+    <main className="ccic-admin-page ccic-school-admin">
+      <div className="ccic-school-shell">
+        <header className="ccic-school-order-header">
+          <Link className="ccic-school-breadcrumb" href="/ccic/admin/school-fundraisers">← Back to School Orders</Link>
+          <div className="ccic-school-order-title">
+            <div>
+              <p className="ccic-school-eyebrow">Parent school order</p>
+              <h1>{order.order_number}</h1>
+              <p className="ccic-school-subtitle">{order.school_name} · {displayDate(order.created_at)}</p>
+            </div>
+            <span className={'ccic-school-status ' + (hasPartialReturn ? 'is-partial' : order.status_code === 'paid' ? 'is-paid' : order.status_code === 'cancelled' ? 'is-cancelled' : order.status_code === 'pending_payment' ? 'is-pending' : '')}>
+              {hasPartialReturn ? 'Partially returned (paid)' : order.status_code.replaceAll('_', ' ')}
+            </span>
+          </div>
+        </header>
 
-      {query.returned === 'partial' && <p className="ccic-admin-notice">Parent order partially returned. Only selected mixed-box commitments were released.</p>}
-      {query.returned === 'full' && <p className="ccic-admin-notice">This parent's order was fully cancelled and all its mixed-box commitments were released.</p>}
-      {query.returned === 'already' && <p className="ccic-admin-notice">This return request was already processed; no inventory was released again.</p>}
-      {query.error && errorMessages[query.error] && <p className="ccic-admin-error">{errorMessages[query.error]}</p>}
+        {query.returned === 'partial' && <p className="ccic-admin-notice">Parent order partially returned. Only selected mixed-box commitments were released.</p>}
+        {query.returned === 'full' && <p className="ccic-admin-notice">This parent's order was fully cancelled and all its mixed-box commitments were released.</p>}
+        {query.returned === 'already' && <p className="ccic-admin-notice">This return request was already processed; no inventory was released again.</p>}
+        {query.error && errorMessages[query.error] && <p className="ccic-admin-error">{errorMessages[query.error]}</p>}
 
-      <section className="ccic-admin-panel">
-        <h2>{order.school_name} — Individual parent order</h2>
-        <p><strong>Status:</strong> {hasPartialReturn ? 'Partially returned (paid)' : order.status_code.replaceAll('_', ' ')}</p>
-        <p><strong>Square environment:</strong> {order.square_environment || 'Not recorded'}</p>
-        <p><strong>Parent:</strong> {decode(order.parent_name)}</p>
-        <p><strong>Email:</strong> {decode(order.email)}</p>
-        <p><strong>Phone:</strong> {decode(order.cell_phone)}</p>
-        <h3>Student distribution</h3>
-        <p><strong>Name:</strong> {decode(order.student_name)} · <strong>Grade:</strong> {order.grade ? decode(order.grade) : 'Not provided'}</p>
-        <p><strong>Room:</strong> {decode(order.room_number)} · <strong>Teacher:</strong> {decode(order.teacher_name)}</p>
-        <h3>Items in this parent's order</h3>
-        <table className="ccic-admin-table">
-          <thead><tr><th>Mixed collection</th><th>Ordered</th><th>Returned</th><th>Still to pack</th></tr></thead>
-          <tbody>{items.map((item) => (
-            <tr key={item.id}>
-              <td>{item.title}</td>
-              <td>{item.quantity}</td>
-              <td>{item.returned_quantity}</td>
-              <td>{item.quantity - item.returned_quantity}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-        <p><strong>Original card payment:</strong> {formatChristmasCardMoney(order.total_cents)} (unchanged by returns)</p>
-        <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>
-        <p><strong>Total manual refund value implied by recorded returns:</strong> {formatChristmasCardMoney(returnValueCents)}</p>
-        <p><strong>Remaining school contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
-        <p><strong>Inventory committed:</strong> {displayDate(order.inventory_committed_at)}</p>
-        <p><strong>Most recent return:</strong> {displayDate(order.last_inventory_return_at)}</p>
-        <p><strong>All inventory released:</strong> {displayDate(order.inventory_released_at)}</p>
-        <p>Refunds are processed separately using Square or the original payment method; recording a return here does not refund a payment.</p>
-      </section>
-
-      {events.length > 0 && (
-        <section className="ccic-admin-panel">
-          <h2>Parent return audit history</h2>
-          <ul>{events.map((event) => (
-            <li key={event.id}>
-              {displayDate(event.created_at)} — {event.returned_boxes} mixed box(es) returned; {formatChristmasCardMoney(event.manual_refund_due_cents)} requires manual refund handling.
-              {' '}By {event.processed_by}. Reason: {event.reason}.
-              {event.order_fully_returned ? ' Parent order fully cancelled.' : ''}
-            </li>
-          ))}</ul>
+        <section className="ccic-school-overview" aria-label="Order summary">
+          <div className="ccic-school-metric is-primary"><span>Boxes still on order</span><strong>{remainingBoxes}</strong></div>
+          <div className="ccic-school-metric"><span>Remaining order value</span><strong>{formatChristmasCardMoney(remainingValueCents)}</strong></div>
+          <div className="ccic-school-metric"><span>Remaining school contribution</span><strong>{formatChristmasCardMoney(estimatedShareCents)}</strong></div>
         </section>
-      )}
 
-      {canReturn && (
-        <section className="ccic-admin-panel">
-          <h2>Return selected boxes from this parent order</h2>
-          <p>Enter the number of boxes to return for each collection. Return one box for a partial adjustment, or all remaining boxes to cancel this parent's order. Other parents and this school's fundraiser are unaffected.</p>
-          <form action={returnCcicSchoolParentOrderItems}>
-            <input type="hidden" name="order_id" value={order.id} />
-            <input type="hidden" name="request_key" value={requestKey} />
-            <table className="ccic-admin-table">
-              <thead><tr><th>Collection</th><th>Unreturned boxes</th><th>Return now</th></tr></thead>
-              <tbody>{items.filter((item) => item.quantity > item.returned_quantity).map((item) => (
-                <tr key={item.id}>
-                  <td>{item.title}</td>
-                  <td>{item.quantity - item.returned_quantity}</td>
-                  <td>
-                    <input type="number" name={`return_${item.id}`} min={0} max={item.quantity - item.returned_quantity} step={1} defaultValue={0} required
-                      aria-label={`Boxes to return from ${item.title}`} style={{ width: 90, padding: 8 }} />
-                  </td>
-                </tr>
-              ))}</tbody>
-            </table>
-            <p><label htmlFor="school-return-reason"><strong>Reason for return or cancellation</strong></label></p>
-            <textarea id="school-return-reason" name="reason" required minLength={5} maxLength={500} rows={3}
-              style={{ width: '100%', maxWidth: 620, padding: 10 }} placeholder="Parent requested fewer boxes, incorrect order, test-order cleanup, etc." />
-            <p><label><input type="checkbox" name="confirm_inventory" value="yes" required />{' '}
-              I confirm the returned boxes have not been packed, or their reusable cards are physically back in stock. Release only these boxes' mixed-inventory commitments.</label></p>
-            <p><label><input type="checkbox" name="confirm_refund" value="yes" required />{' '}
-              I understand that refunds and any customer communications are manual, and the original Square payment record remains unchanged.</label></p>
-            <button type="submit">Record parent return and release selected inventory</button>
-          </form>
-        </section>
-      )}
+        <div className="ccic-school-detail-layout">
+          <div className="ccic-school-detail-stack">
+            <section className="ccic-school-panel">
+              <div className="ccic-school-panel-header">
+                <div><h2>Items in this order</h2><p>What was ordered, returned, and still needs to be packed.</p></div>
+              </div>
+              <div className="ccic-admin-table-wrap">
+                <table className="ccic-admin-table">
+                  <thead><tr><th scope="col">Mixed collection</th><th scope="col">Ordered</th><th scope="col">Returned</th><th scope="col">Still to pack</th></tr></thead>
+                  <tbody>{items.map((item) => (
+                    <tr key={item.id}>
+                      <td><strong>{item.title}</strong></td>
+                      <td data-numeric>{item.quantity}</td>
+                      <td data-numeric>{item.returned_quantity}</td>
+                      <td data-numeric><strong>{item.quantity - item.returned_quantity}</strong></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </section>
 
-      {order.status_code === 'paid' && !returnsEnabled && (
-        <section className="ccic-admin-panel"><p>Parent-order return controls are temporarily disabled during rollout.</p></section>
-      )}
-      {order.status_code === 'paid' && returnsEnabled && !canReturn && (
-        <section className="ccic-admin-panel"><p className="ccic-admin-error">This parent order's inventory state needs reconciliation before returns can be processed.</p></section>
-      )}
-      {order.status_code === 'cancelled' && (
-        <section className="ccic-admin-panel"><h2>Fully returned parent order</h2>
-          <p>Cancelled at {displayDate(order.cancelled_at)} by {order.cancelled_by || 'Not recorded'}.</p>
-          <p>Square/e-transfer refunds must be processed and documented separately.</p>
-        </section>
-      )}
+            <section className="ccic-school-panel">
+              <div className="ccic-school-panel-header"><div><h2>Payment and inventory</h2><p>Financial figures are adjusted for recorded returns.</p></div></div>
+              <dl className="ccic-school-finance-rows">
+                <div><dt>Original payment (unchanged by returns)</dt><dd>{formatChristmasCardMoney(order.total_cents)}</dd></div>
+                <div><dt>Value of remaining boxes</dt><dd>{formatChristmasCardMoney(remainingValueCents)}</dd></div>
+                <div><dt>Total value of returns recorded</dt><dd>{formatChristmasCardMoney(returnValueCents)}</dd></div>
+                <div><dt>Remaining school contribution</dt><dd>{formatChristmasCardMoney(estimatedShareCents)}</dd></div>
+              </dl>
+              <p className="ccic-school-callout"><strong>Manual refund reminder:</strong> Recording a return releases selected inventory commitments; it does not refund a Square payment or send a customer message. Recorded return value is not a confirmation of a completed or outstanding refund.</p>
+              <details className="ccic-school-metadata">
+                <summary>Technical details and inventory dates</summary>
+                <dl className="ccic-school-info">
+                  <div><dt>Square environment</dt><dd>{order.square_environment || 'Not recorded'}</dd></div>
+                  <div><dt>Inventory committed</dt><dd>{displayDate(order.inventory_committed_at)}</dd></div>
+                  <div><dt>Most recent return</dt><dd>{displayDate(order.last_inventory_return_at)}</dd></div>
+                  <div><dt>All inventory released</dt><dd>{displayDate(order.inventory_released_at)}</dd></div>
+                </dl>
+              </details>
+            </section>
+          </div>
+
+          <div className="ccic-school-detail-stack">
+            <section className="ccic-school-panel">
+              <div className="ccic-school-panel-header"><h2>Parent contact</h2></div>
+              <dl className="ccic-school-info">
+                <div><dt>Parent</dt><dd>{decode(order.parent_name)}</dd></div>
+                <div><dt>Email</dt><dd>{decode(order.email)}</dd></div>
+                <div><dt>Phone</dt><dd>{decode(order.cell_phone)}</dd></div>
+              </dl>
+            </section>
+            <section className="ccic-school-panel">
+              <div className="ccic-school-panel-header"><h2>Student delivery</h2></div>
+              <dl className="ccic-school-info">
+                <div><dt>Student</dt><dd>{decode(order.student_name)}</dd></div>
+                <div><dt>Grade</dt><dd>{order.grade ? decode(order.grade) : 'Not provided'}</dd></div>
+                <div><dt>Room</dt><dd>{decode(order.room_number)}</dd></div>
+                <div><dt>Teacher</dt><dd>{decode(order.teacher_name)}</dd></div>
+              </dl>
+            </section>
+          </div>
+        </div>
+
+        {canReturn && (
+          <section className="ccic-school-panel ccic-school-return-panel">
+            <div className="ccic-school-panel-header">
+              <div>
+                <h2>Returns &amp; cancellations</h2>
+                <p>Only use this when a parent needs fewer boxes or the whole order cancelled.</p>
+              </div>
+            </div>
+            <details open={Boolean(query.error)}>
+              <summary>Record a partial return or full cancellation</summary>
+              <p className="ccic-school-helper">Choose the quantities to return, provide a reason, and complete both confirmations. To fully cancel, select every box still remaining. The change affects only this parent order.</p>
+              <form action={returnCcicSchoolParentOrderItems}>
+                <input type="hidden" name="order_id" value={order.id} />
+                <input type="hidden" name="request_key" value={requestKey} />
+                <div className="ccic-admin-table-wrap">
+                  <table className="ccic-admin-table">
+                    <thead><tr><th scope="col">Collection</th><th scope="col">Available to return</th><th scope="col">Return quantity</th></tr></thead>
+                    <tbody>{items.filter((item) => item.quantity > item.returned_quantity).map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.title}</td>
+                        <td data-numeric>{item.quantity - item.returned_quantity}</td>
+                        <td>
+                          <input type="number" name={'return_' + item.id} min={0} max={item.quantity - item.returned_quantity} step={1} defaultValue={0} required
+                            aria-label={'Boxes to return from ' + item.title} />
+                        </td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <label htmlFor="school-return-reason"><strong>Reason for return or cancellation</strong>
+                  <textarea id="school-return-reason" name="reason" required minLength={5} maxLength={500} rows={3}
+                    placeholder="Parent requested fewer boxes, incorrect order, test-order cleanup, etc." />
+                </label>
+                <label className="ccic-school-confirmation">
+                  <input type="checkbox" name="confirm_inventory" value="yes" required />
+                  <span>I confirm the returned boxes have not been packed, or their reusable cards are physically back in stock. Release only these boxes' mixed-inventory commitments.</span>
+                </label>
+                <label className="ccic-school-confirmation">
+                  <input type="checkbox" name="confirm_refund" value="yes" required />
+                  <span>I understand that refunds and any customer communications are manual, and the original Square payment record remains unchanged.</span>
+                </label>
+                <button type="submit">Record parent return and release selected inventory</button>
+              </form>
+            </details>
+          </section>
+        )}
+
+        {events.length > 0 && (
+          <section className="ccic-school-panel">
+            <div className="ccic-school-panel-header"><div><h2>Return history</h2><p>Recorded adjustments to this parent's order.</p></div></div>
+            <ol className="ccic-school-timeline">
+              {events.map((event) => (
+                <li key={event.id}>
+                  <time dateTime={event.created_at}>{displayDate(event.created_at)}</time>
+                  <strong>{event.returned_boxes} mixed box{event.returned_boxes === 1 ? '' : 'es'} returned {event.order_fully_returned ? '· Full cancellation' : ''}</strong>
+                  <span>{formatChristmasCardMoney(event.manual_refund_due_cents)} requires manual refund handling. Recorded by {event.processed_by}.</span>
+                  <span><strong>Reason:</strong> {event.reason}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {order.status_code === 'paid' && !returnsEnabled && (
+          <section className="ccic-school-panel"><p className="ccic-school-helper">Parent-order return controls are temporarily disabled during rollout.</p></section>
+        )}
+        {order.status_code === 'paid' && returnsEnabled && !canReturn && (
+          <section className="ccic-school-panel"><p className="ccic-admin-error">This parent order's inventory state needs reconciliation before returns can be processed.</p></section>
+        )}
+        {order.status_code === 'cancelled' && (
+          <section className="ccic-school-panel">
+            <h2>Order fully cancelled</h2>
+            <p className="ccic-school-helper">Cancelled at {displayDate(order.cancelled_at)} by {order.cancelled_by || 'Not recorded'}.</p>
+            <p className="ccic-school-callout">Square/e-transfer refunds must be processed and documented separately.</p>
+          </section>
+        )}
+      </div>
     </main>
   )
 }
