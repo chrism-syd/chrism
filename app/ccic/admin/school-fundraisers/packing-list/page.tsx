@@ -20,19 +20,19 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
   const orders = (data ?? []).map((order) => ({ ...order, teacher: decryptOptionalValue(order.teacher_name), room: decryptOptionalValue(order.room_number), student: decryptOptionalValue(order.student_name), grade: decryptOptionalValue(order.grade) }))
   const sorted = orders.sort((a, b) => [a.grade, a.room, a.student].join('|').localeCompare([b.grade, b.room, b.student].join('|'), 'en-CA', { numeric: true }))
   const ids = sorted.map((order) => order.id)
-  const { data: lines, error: linesError } = ids.length ? await admin.from('ccic_school_order_lines').select('order_id,title,quantity').in('order_id', ids) : { data: [], error: null }
+  const { data: lines, error: linesError } = ids.length ? await admin.from('ccic_school_order_lines').select('order_id,title,quantity,returned_quantity').in('order_id', ids) : { data: [], error: null }
   if (linesError) throw new Error('Unable to load school packing items')
   const labels = sorted.flatMap((order) => {
     const items = (lines ?? []).filter((line) => line.order_id === order.id)
-    const totalBoxes = items.reduce((sum, line) => sum + line.quantity, 0)
+    const totalBoxes = items.reduce((sum, line) => sum + Math.max(0, line.quantity - (line.returned_quantity ?? 0)), 0)
     let boxNumber = 0
-    return items.flatMap((line) => Array.from({ length: line.quantity }, () => ({ ...order, collection: line.title, boxNumber: ++boxNumber, totalBoxes })))
+    return items.flatMap((line) => Array.from({ length: Math.max(0, line.quantity - (line.returned_quantity ?? 0)) }, () => ({ ...order, collection: line.title, boxNumber: ++boxNumber, totalBoxes })))
   })
   if (print === 'labels') return <main className="ccic-label-print-page"><style>{'@page { size: 4in 6in; margin: 0; } @media print { html,body { margin:0!important; padding:0!important; } .ccic-label-print-controls { display:none!important; } }'}</style><div className="ccic-label-print-controls"><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selected.slug)}>Back to packing list</Link><p>Avery 72782 · 4 × 6 inch sheets · 5 labels per sheet. Print at 100% scale with margins set to none.</p><button type="button" onClick={undefined}>Use your browser Print command</button></div>{Array.from({ length: Math.ceil(labels.length / 5) }, (_, sheet) => <div className="ccic-avery-sheet" key={sheet}>{labels.slice(sheet * 5, sheet * 5 + 5).map((label, i) => <div className="ccic-avery-label" key={i}><strong>{label.student}</strong><span>Grade {label.grade} · Room {label.room}</span><span>{label.teacher}</span>{label.totalBoxes > 1 && <b>BOX {label.boxNumber} of {label.totalBoxes}</b>}</div>)}</div>)}</main>
   const totals = new Map<string, number>()
-  for (const line of lines ?? []) totals.set(line.title, (totals.get(line.title) ?? 0) + line.quantity)
+  for (const line of lines ?? []) totals.set(line.title, (totals.get(line.title) ?? 0) + Math.max(0, line.quantity - (line.returned_quantity ?? 0)))
   const boxesByOrder = new Map<string, number>()
-  for (const line of lines ?? []) boxesByOrder.set(line.order_id, (boxesByOrder.get(line.order_id) ?? 0) + line.quantity)
+  for (const line of lines ?? []) boxesByOrder.set(line.order_id, (boxesByOrder.get(line.order_id) ?? 0) + Math.max(0, line.quantity - (line.returned_quantity ?? 0)))
   const classrooms = new Map<string, { grade: string; room: string; teacher: string; students: typeof sorted; boxes: number }>()
   for (const order of sorted) {
     const key = JSON.stringify([order.grade, order.room, order.teacher])
