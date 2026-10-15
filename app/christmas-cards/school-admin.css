@@ -1,0 +1,200 @@
+/* CCIC school administration visual layer. Deliberately does not affect customer checkout or council admin. */
+.ccic-school-admin {
+  --school-ink: #27313a;
+  --school-muted: #66717b;
+  --school-line: #e1e5e6;
+  --school-soft: #f6f8f8;
+  --school-accent: #1e625b;
+  color: var(--school-ink);
+  background: #f4f6f6;
+}
+.ccic-school-admin .ccic-admin-header { align-items: center; }
+.ccic-school-eyebrow {
+  margin: 0 0 5px;
+  color: var(--school-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.ccic-school-admin .ccic-admin-header h1 { font-size: clamp(29px, 4vw, 43px); font-weight: 650; letter-spacing: -.035em; }
+.ccic-school-subtitle { margin: 6px 0 0; color: var(--school-muted); font-size: 14px; line-height: 1.5; }
+.ccic-school-admin .ccic-admin-header a { font-size: 13px; }
+.ccic-school-shell { width: min(1320px,100%); margin: 0 auto; display: grid; gap: 22px; }
+.ccic-school-panel {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--school-line);
+  background: #fff;
+  box-shadow: 0 5px 20px rgb(25 45 50 / 3%);
+}
+.ccic-school-panel-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 17px; }
+.ccic-school-panel-header h2, .ccic-school-panel h2 { margin: 0; font-size: 20px; line-height: 1.3; font-weight: 650; letter-spacing: -.02em; }
+.ccic-school-panel-header p, .ccic-school-helper { margin: 5px 0 0; color: var(--school-muted); font-size: 13px; line-height: 1.55; }
+.ccic-school-toolbar form { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
+.ccic-school-field { display: grid; gap: 7px; min-width: min(290px,100%); }
+.ccic-school-field label { font-size: 12px; font-weight: 750; color: var(--school-muted); }
+.ccic-school-field select,
+.ccic-school-return-panel textarea,
+.ccic-school-return-panel input[type="number"],
+.ccic-school-print-controls select {
+  min-height: 42px;
+  max-width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #cbd2d3;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--school-ink);
+  font: inherit;
+}
+.ccic-school-button,
+.ccic-school-print-button,
+.ccic-school-toolbar button,
+.ccic-school-print-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid #263a3d;
+  border-radius: 7px;
+  background: #263a3d;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  text-decoration: none;
+}
+.ccic-school-admin button:focus-visible,
+.ccic-school-admin a:focus-visible,
+.ccic-school-admin input:focus-visible,
+.ccic-school-admin textarea:focus-visible,
+.ccic-school-admin select:focus-visible,
+.ccic-school-admin summary:focus-visible,
+.ccic-label-print-page button:focus-visible {
+  outline: 3px solid #6eaaa3;
+  outline-offset: 3px;
+}
+.ccic-school-button:hover,
+.ccic-school-print-button:hover,
+.ccic-school-toolbar button:hover,
+.ccic-school-print-controls button:hover { background: #365a57; border-color: #365a57; }
+.ccic-school-overview, .ccic-school-finance-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.ccic-school-metric {
+  min-width: 0;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--school-line);
+  border-radius: 9px;
+  background: #fff;
+}
+.ccic-school-metric > span { font-size: 12px; color: var(--school-muted); line-height: 1.4; font-weight: 650; }
+.ccic-school-metric strong { font-size: clamp(24px,3vw,32px); line-height: 1.1; font-weight: 700; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.ccic-school-metric.is-attention { border-left: 4px solid #b57d3b; }
+.ccic-school-metric.is-primary { border-left: 4px solid #328879; }
+.ccic-school-report { border: 1px solid var(--school-line); border-radius: 9px; background: #fff; }
+.ccic-school-report > summary { cursor: pointer; padding: 17px 20px; font-size: 14px; font-weight: 750; }
+.ccic-school-report[open] > summary { border-bottom: 1px solid var(--school-line); }
+.ccic-school-report-body { padding: 18px 20px 20px; }
+.ccic-school-report-body .ccic-school-metric { background: var(--school-soft); box-shadow: none; }
+.ccic-school-report-note { margin: 12px 0 0; color: var(--school-muted); font-size: 12px; line-height: 1.5; }
+.ccic-school-production-list { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; padding: 0; margin: 0; list-style: none; }
+.ccic-school-production-list li { display: grid; gap: 5px; padding: 14px; border: 1px solid var(--school-line); border-radius: 7px; background: var(--school-soft); }
+.ccic-school-production-list li span { color: var(--school-muted); font-size: 12px; }
+.ccic-school-production-list li strong { font-size: 21px; font-weight: 700; }
+.ccic-school-text-link { color: #1c625b; font-size: 13px; font-weight: 750; text-underline-offset: 3px; }
+.ccic-school-admin .ccic-admin-table-wrap { border: 1px solid var(--school-line); border-radius: 7px; }
+.ccic-school-admin .ccic-admin-table th { background: var(--school-soft); font-size: 11px; color: #55636b; white-space: nowrap; }
+.ccic-school-admin .ccic-admin-table tbody tr:hover { background: #f8fbfa; }
+.ccic-school-admin .ccic-admin-table td { vertical-align: middle; }
+.ccic-school-admin .ccic-admin-table a { color: #1a5e57; }
+.ccic-school-admin .ccic-admin-table td[data-numeric] { font-variant-numeric: tabular-nums; }
+.ccic-school-table-sub { display: block; margin-top: 5px; font-size: 12px; color: var(--school-muted); }
+.ccic-school-status {
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+  background: #eef1f3;
+  color: #45545f;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.ccic-school-status.is-paid { background: #e2f3ec; color: #23654a; }
+.ccic-school-status.is-pending { background: #fff0d9; color: #8b5720; }
+.ccic-school-status.is-partial { background: #f8eddb; color: #8b5720; }
+.ccic-school-status.is-cancelled { background: #fbe8e6; color: #9a423a; }
+.ccic-school-empty { margin: 0; padding: 24px; color: var(--school-muted); text-align: center; }
+.ccic-school-breadcrumb { display: inline-flex; gap: 6px; color: #376d67; font-size: 13px; font-weight: 750; text-underline-offset: 3px; }
+.ccic-school-order-header { display: grid; gap: 12px; }
+.ccic-school-order-header .ccic-admin-header { margin-bottom: 0; }
+.ccic-school-order-title { display: flex; gap: 14px; justify-content: space-between; align-items: start; flex-wrap: wrap; }
+.ccic-school-order-title h1 { margin: 0; overflow-wrap: anywhere; }
+.ccic-school-order-headline { color: var(--school-muted); font-size: 14px; }
+.ccic-school-detail-layout { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(260px,.8fr); gap: 20px; align-items: start; }
+.ccic-school-detail-stack { display: grid; gap: 20px; min-width: 0; }
+.ccic-school-detail-stack .ccic-school-panel { margin: 0; }
+.ccic-school-detail-layout h3 { margin: 0 0 12px; font-size: 15px; font-weight: 700; }
+.ccic-school-info { display: grid; gap: 12px; margin: 0; }
+.ccic-school-info > div { min-width: 0; padding-bottom: 12px; border-bottom: 1px solid var(--school-line); }
+.ccic-school-info > div:last-child { padding-bottom: 0; border-bottom: 0; }
+.ccic-school-info dt { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--school-muted); font-weight: 800; }
+.ccic-school-info dd { margin: 5px 0 0; font-size: 14px; overflow-wrap: anywhere; line-height: 1.5; }
+.ccic-school-finance-rows { margin: 0; display: grid; gap: 0; }
+.ccic-school-finance-rows > div { display: flex; justify-content: space-between; gap: 18px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--school-line); }
+.ccic-school-finance-rows dt { color: var(--school-muted); font-size: 13px; line-height: 1.4; }
+.ccic-school-finance-rows dd { margin: 0; text-align: right; font-weight: 750; white-space: nowrap; }
+.ccic-school-callout { margin: 16px 0 0; padding: 14px 16px; border-left: 3px solid #b57d3b; background: #fff8ed; font-size: 13px; line-height: 1.6; }
+.ccic-school-metadata { margin-top: 16px; border-top: 1px solid var(--school-line); }
+.ccic-school-metadata summary { cursor: pointer; padding-top: 15px; color: var(--school-muted); font-size: 13px; font-weight: 750; }
+.ccic-school-metadata .ccic-school-info { margin-top: 14px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ccic-school-return-panel { border-left: 4px solid #bd8d53; }
+.ccic-school-return-panel details > summary { cursor: pointer; font-weight: 800; font-size: 15px; padding: 14px 0; }
+.ccic-school-return-panel details[open] > summary { margin-bottom: 14px; border-bottom: 1px solid var(--school-line); }
+.ccic-school-return-panel form { display: grid; gap: 17px; }
+.ccic-school-return-panel form > p { margin: 0; }
+.ccic-school-return-panel textarea { width: min(100%,620px); display: block; margin-top: 8px; }
+.ccic-school-return-panel input[type="number"] { width: 90px; }
+.ccic-school-return-panel .ccic-school-confirmation { display: flex; gap: 10px; padding: 12px 14px; border: 1px solid var(--school-line); border-radius: 7px; background: var(--school-soft); font-size: 13px; line-height: 1.5; }
+.ccic-school-return-panel .ccic-school-confirmation input { flex: 0 0 auto; width: 17px; height: 17px; margin: 2px 0 0; accent-color: var(--school-accent); }
+.ccic-school-return-panel button[type="submit"] { justify-self: start; min-height: 44px; padding: 11px 18px; border: 1px solid #8a493d; border-radius: 7px; background: #8a493d; color: white; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
+.ccic-school-return-panel button[type="submit"]:hover { background: #75382d; }
+.ccic-school-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.ccic-school-timeline li { padding: 0 0 0 18px; border-left: 3px solid #aec7c2; display: grid; gap: 6px; line-height: 1.5; font-size: 13px; }
+.ccic-school-timeline strong { font-size: 14px; }
+.ccic-school-timeline time { color: var(--school-muted); font-size: 12px; }
+.ccic-school-packing .ccic-school-shell { gap: 18px; }
+.ccic-school-print-controls { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+.ccic-school-print-controls form { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; }
+.ccic-school-print-actions { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.ccic-school-print-actions a { display: inline-flex; min-height: 42px; padding: 11px 14px; align-items: center; text-decoration: none; border-radius: 7px; border: 1px solid #cbd2d3; color: #2d5955; font-size: 13px; font-weight: 750; }
+.ccic-school-print-note { font-size: 12px; color: #616d75; line-height: 1.5; }
+.ccic-school-packing .ccic-school-distribution-page { width: 100%; max-width: 1320px; margin: 0 auto 20px; border: 1px solid var(--school-line); border-radius: 8px; }
+.ccic-label-print-controls .ccic-school-print-button { margin-top: 8px; }
+@media (max-width: 1000px) {
+  .ccic-school-production-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ccic-school-detail-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 780px) {
+  .ccic-school-overview, .ccic-school-finance-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 640px) {
+  .ccic-school-admin .ccic-admin-header { align-items: flex-start; }
+  .ccic-school-panel { padding: 18px; }
+  .ccic-school-overview, .ccic-school-finance-grid { grid-template-columns: 1fr; }
+  .ccic-school-panel-header { flex-direction: column; }
+  .ccic-school-production-list { grid-template-columns: 1fr 1fr; }
+  .ccic-school-metadata .ccic-school-info { grid-template-columns: 1fr; }
+  .ccic-school-order-title { align-items: start; }
+  .ccic-school-print-controls { align-items: stretch; }
+}
+@media print {
+  .ccic-school-print-button, .ccic-school-print-actions, .ccic-school-toolbar { display: none !important; }
+  .ccic-school-packing .ccic-school-distribution-page { border: 0; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
+}
