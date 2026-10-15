@@ -129,9 +129,9 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
                   <tbody>{items.map((item) => (
                     <tr key={item.id}>
                       <td><strong>{item.title}</strong></td>
-                      <td data-numeric>{item.quantity}</td>
-                      <td data-numeric>{item.returned_quantity}</td>
-                      <td data-numeric><strong>{item.quantity - item.returned_quantity}</strong></td>
+                      <td data-numeric="true">{item.quantity}</td>
+                      <td data-numeric="true">{item.returned_quantity}</td>
+                      <td data-numeric="true"><strong>{item.quantity - item.returned_quantity}</strong></td>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -200,7 +200,7 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
                     <tbody>{items.filter((item) => item.quantity > item.returned_quantity).map((item) => (
                       <tr key={item.id}>
                         <td>{item.title}</td>
-                        <td data-numeric>{item.quantity - item.returned_quantity}</td>
+                        <td data-numeric="true">{item.quantity - item.returned_quantity}</td>
                         <td>
                           <input type="number" name={'return_' + item.id} min={0} max={item.quantity - item.returned_quantity} step={1} defaultValue={0} required
                             aria-label={'Boxes to return from ' + item.title} />
