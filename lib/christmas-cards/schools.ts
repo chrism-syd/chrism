@@ -36,9 +36,9 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     active: true,
   },
   {
-    slug: 'st-brother-andre-high-school',
+    slug: 'st-br-andre',
     code: 'STBROTHERANDRE26',
-    name: 'St. Brother Andre High School',
+    name: 'St. Brother Andre',
     active: true,
   },
   {
