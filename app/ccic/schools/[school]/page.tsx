@@ -38,7 +38,7 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
 
   const mixedAvailability = await getCcicMixedBoxAvailability()
   const orderingClosed = !isCcicSchoolCampaignOpen(school)
-  const schoolName = <span style={{ whiteSpace: 'nowrap' }}>{school.name}</span>
+  const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
   const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
 

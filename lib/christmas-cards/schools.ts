@@ -42,6 +42,12 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     active: true,
   },
   {
+    slug: 'father-michael-mcgivney',
+    code: 'FMMCA26',
+    name: 'Father Michael McGivney Catholic Academy',
+    active: true,
+  },
+  {
     slug: 'st-francis-xavier',
     code: 'STFRANCISXAVIER26',
     name: 'St. Francis Xavier',
