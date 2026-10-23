@@ -16,9 +16,10 @@ type Props = {
   schoolCode: string
   schoolName: string
   orderingClosed: boolean
+  demonstrationOnly: boolean
 }
 
-export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability, schoolSlug, schoolCode, schoolName, orderingClosed }: Props) {
+export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability, schoolSlug, schoolCode, schoolName, orderingClosed, demonstrationOnly }: Props) {
   const router = useRouter()
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [hydrated, setHydrated] = useState(false)
@@ -58,7 +59,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
   }, [calculated.hasOrder, draft, hydrated])
 
   function reviewOrder() {
-    if (orderingClosed || !calculated.hasOrder) return
+    if (orderingClosed || demonstrationOnly || !calculated.hasOrder) return
     window.sessionStorage.setItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY, JSON.stringify(draft))
     router.push(`/ccic/schools/${schoolSlug}/checkout`)
   }
@@ -84,7 +85,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
         </div>
       </div>
 
-      {orderingClosed ? (
+      {orderingClosed && !demonstrationOnly ? (
         <div className="ccic-school-ordering-closed-banner" role="status">
           <div>
             <p className="ccic-eyebrow">Fundraiser complete</p>
@@ -137,7 +138,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
                 </div>
 
                 {orderingClosed ? (
-                  <span className="ccic-school-ordering-closed-pill">Ordering closed</span>
+                  <span className="ccic-school-ordering-closed-pill">{demonstrationOnly ? 'Preview only' : 'Ordering closed'}</span>
                 ) : max > 0 ? (
                   <div className="ccic-school-mixed-quantity-wrap">
                     <span>Quantity</span>
@@ -157,7 +158,7 @@ export default function SchoolMixedStorefront({ mixedBoxes, boxes, availability,
         })}
       </div>
 
-      {!orderingClosed && totalSelected > 0 ? (
+      {!orderingClosed && !demonstrationOnly && totalSelected > 0 ? (
         <div className="ccic-school-mixed-selection-note" role="status">
           <strong>{totalSelected} {totalSelected === 1 ? 'box' : 'boxes'} selected</strong>
           <span>{calculated.schoolContributionCents ? `${(calculated.schoolContributionCents / 100).toFixed(2)} supports ${schoolName}` : ''}</span>
