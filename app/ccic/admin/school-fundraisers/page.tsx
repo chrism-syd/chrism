@@ -100,15 +100,15 @@ export default async function SchoolFundraisersAdminPage({
       </header>
 
       <section className="ccic-admin-panel" style={{ marginBottom: 24 }}>
-        <form action="/ccic/admin/school-fundraisers" method="get">
+        <form className="ccic-school-admin-controls" action="/ccic/admin/school-fundraisers" method="get">
           <label htmlFor="school-filter"><strong>Schools</strong></label>{' '}
-          <select id="school-filter" name="school" defaultValue={selectedSchool} style={{ padding: 10, maxWidth: '100%' }}>
+          <select id="school-filter" name="school" defaultValue={selectedSchool} style={{ maxWidth: '100%' }}>
             <option value="">All schools</option>
             {CCIC_SCHOOL_CAMPAIGNS.map((school) => (
               <option key={school.code} value={school.slug}>{school.name}</option>
             ))}
           </select>{' '}
-          <button type="submit" style={{ padding: 10 }}>View</button>
+          <button type="submit">View</button>
         </form>
       </section>
 
