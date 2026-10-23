@@ -31,7 +31,7 @@ const EMPTY_DETAILS: CheckoutDetails = {
   teacherName: '',
 }
 
-export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, deliveryByLabel, squareApplicationId, squareLocationId, squareEnvironment }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string; squareEnvironment: 'sandbox' | 'production' | null }) {
+export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, demonstrationOnly, deliveryByLabel, squareApplicationId, squareLocationId, squareEnvironment }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; demonstrationOnly: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string; squareEnvironment: 'sandbox' | 'production' | null }) {
   const router = useRouter()
   const [draft, setDraft] = useState<CcicSchoolOrderDraft | null>(null)
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
@@ -70,6 +70,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (demonstrationOnly || orderingClosed) return
     setMessage('')
     if (!calculated?.hasOrder) {
       setMessage('Your cart is empty. Please return to the fundraiser page and choose at least one box.')
@@ -260,6 +261,17 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       void mountedCard?.destroy?.()
     }
   }, [squareApplicationId, squareLocationId, squareEnvironment, ready, draft])
+
+  if (demonstrationOnly) {
+    return (
+      <section className="ccic-school-checkout-empty" role="status">
+        <p className="ccic-eyebrow">School program preview only</p>
+        <h1>Ordering is not open</h1>
+        <p>This is a demonstration of the {schoolName} fundraiser. Orders and payments are not being accepted.</p>
+        <a className="ccic-school-checkout-primary ccic-school-closed-link" href={`/ccic/schools/${schoolSlug}`}>Back to collections</a>
+      </section>
+    )
+  }
 
   if (orderingClosed) {
     return (
