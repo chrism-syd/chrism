@@ -15,6 +15,7 @@ export function getCcicSchoolSquareEnvironment(schoolSlug: string): CcicSquareEn
  */
 export function getCcicSquareConfig(environment: CcicSquareEnvironment = process.env.SQUARE_ENVIRONMENT === 'production' ? 'production' : 'sandbox') {
   if (environment === 'production' && (process.env.SQUARE_ENVIRONMENT !== 'production' || process.env.CCIC_SQUARE_LIVE_PAYMENTS_ENABLED !== 'true')) return null
+  if (process.env.SQUARE_ENVIRONMENT !== 'sandbox' && process.env.SQUARE_ENVIRONMENT !== 'production') return null
   const sandboxOnProduction = environment === 'sandbox' && process.env.SQUARE_ENVIRONMENT === 'production'
   const applicationId = (sandboxOnProduction ? process.env.SQUARE_SANDBOX_APPLICATION_ID : process.env.SQUARE_APPLICATION_ID) || ''
   const locationId = (sandboxOnProduction ? process.env.SQUARE_SANDBOX_LOCATION_ID : process.env.SQUARE_LOCATION_ID) || ''
