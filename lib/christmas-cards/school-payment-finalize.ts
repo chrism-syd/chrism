@@ -123,16 +123,38 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
         </div>
       </div>
     </div>`
-    await sendBrevoTransactionalEmail({
-      to: [{ email, name }],
-      bcc: [
-        { email: 'orders@ccic.supplies', name: 'CCIC Orders' },
-        { email: 'ccic@kofc7689.org', name: 'CCIC' },
-      ],
-      subject: `CCIC ${claimed.school_name} order confirmation ${claimed.order_number}`,
-      textContent: text,
-      htmlContent,
-    })
+    const adminRecipients = [...new Set((process.env.CCIC_ORDER_NOTIFICATION_EMAIL || '')
+      .split(',')
+      .map((address) => address.trim().toLowerCase())
+      .filter((address) => /^\\S+@\\S+\\.\\S+$/.test(address)))].map((address) => ({
+        email: address,
+        name: 'CCIC Orders',
+      }))
+    const emailResults = await Promise.allSettled([
+      sendBrevoTransactionalEmail({
+        to: [{ email, name }],
+        subject: `CCIC ${claimed.school_name} order confirmation ${claimed.order_number}`,
+        textContent: text,
+        htmlContent,
+      }),
+      adminRecipients.length
+        ? sendBrevoTransactionalEmail({
+            to: adminRecipients,
+            subject: `New CCIC school order ${claimed.order_number} from ${claimed.school_name}`,
+            textContent: text,
+            htmlContent,
+            replyTo: { email, name },
+          })
+        : Promise.reject(new Error('Missing CCIC_ORDER_NOTIFICATION_EMAIL')),
+    ])
+    if (emailResults[1].status === 'rejected') {
+      const reason = emailResults[1].reason
+      console.error('CCIC school admin notification failed', {
+        orderId,
+        error: reason instanceof Error ? reason.message : String(reason),
+      })
+    }
+    if (emailResults[0].status === 'rejected') throw emailResults[0].reason
     const { error: sentError } = await admin.from('ccic_school_orders')
       .update({ confirmation_email_sent_at: new Date().toISOString(), confirmation_email_error: null })
       .eq('id', orderId)
