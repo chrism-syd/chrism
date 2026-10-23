@@ -104,7 +104,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         }),
       ])
       if (tokenized.status !== 'OK' || !tokenized.token) throw new Error(tokenized.errors?.[0]?.message || 'Please check your card information.')
-      const checkoutKeyStorage = 'ccic-school-checkout-payment-key-v1'
+      const checkoutKeyStorage = `ccic-school-checkout-payment-key-v2:${schoolSlug}:${squareEnvironment}`
       let checkoutKey = window.sessionStorage.getItem(checkoutKeyStorage)
       if (!checkoutKey) {
         checkoutKey = crypto.randomUUID()
