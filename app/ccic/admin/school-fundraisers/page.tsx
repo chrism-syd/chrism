@@ -5,6 +5,7 @@ import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import '../../../christmas-cards/admin-orders.css'
+import './school-admin.css'
 
 export const metadata = { title: 'CCIC School Fundraisers | Chrism' }
 export const dynamic = 'force-dynamic'
@@ -88,7 +89,7 @@ export default async function SchoolFundraisersAdminPage({
     <main className="ccic-admin-page">
       <header className="ccic-admin-header">
         <div className="ccic-admin-heading-brand">
-          <Image src="/CCiC.png" alt="CCIC" width={72} height={72} />
+          <Image src="/CCiC.png" alt="CCIC" width={82} height={82} className="ccic-admin-logo" priority />
           <div><h1>School Orders</h1></div>
         </div>
         <nav className="ccic-admin-header-actions">
@@ -98,7 +99,7 @@ export default async function SchoolFundraisersAdminPage({
         </nav>
       </header>
 
-      <section className="ccic-admin-card" style={{ padding: 22, marginBottom: 24 }}>
+      <section className="ccic-admin-panel" style={{ marginBottom: 24 }}>
         <form action="/ccic/admin/school-fundraisers" method="get">
           <label htmlFor="school-filter"><strong>Schools</strong></label>{' '}
           <select id="school-filter" name="school" defaultValue={selectedSchool} style={{ padding: 10, maxWidth: '100%' }}>
@@ -111,7 +112,7 @@ export default async function SchoolFundraisersAdminPage({
         </form>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 24 }}>
+      <section className="ccic-school-admin-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 24 }}>
         {[
           ['Active paid parent orders', String(paid.length)],
           ['Mixed boxes to pack (net)', String(boxes)],
@@ -128,7 +129,7 @@ export default async function SchoolFundraisersAdminPage({
         <p style={{ gridColumn: '1 / -1' }}>Order value after returns is for packing and fundraiser reporting. It does not assert that manual Square or e-transfer refunds have been completed.</p>
       </section>
 
-      <section style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24 }}>
+      <section className="ccic-school-admin-content" style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24 }}>
         <h2>Production totals — remaining boxes</h2>
         <p><Link href={selectedSchool ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool) : '/ccic/admin/school-fundraisers/packing-list'}>Packing &amp; Labels</Link></p>
         {collectionTotals.size === 0 ? <p>No boxes to pack yet.</p> : (
@@ -138,7 +139,7 @@ export default async function SchoolFundraisersAdminPage({
         )}
       </section>
 
-      <section style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, overflowX: 'auto' }}>
+      <section className="ccic-school-admin-content" style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, overflowX: 'auto' }}>
         <h2>Individual parent orders</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead><tr>{['Order', 'School', 'Date', 'Status', 'Boxes to pack', 'Remaining order value', 'School share'].map((heading) => (

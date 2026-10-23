@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
@@ -43,7 +44,7 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
   }
   const groups = [...classrooms.values()]
   return <main className="ccic-admin-page ccic-school-distribution">
-    <header className="ccic-admin-header ccic-screen-only"><div><h1>Packing &amp; Labels</h1><p>Paid school orders</p></div><nav className="ccic-admin-header-actions"><Link href="/ccic/admin/school-fundraisers">Back to School Orders</Link></nav></header>
+    <header className="ccic-admin-header ccic-screen-only"><div className="ccic-admin-heading-brand"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={82} height={82} className="ccic-admin-logo" priority /><div><h1>Packing &amp; Labels</h1><p>Paid school orders</p></div></div><nav className="ccic-admin-header-actions"><Link href="/ccic/admin/school-fundraisers">Back to School Orders</Link></nav></header>
     <div className="ccic-screen-only ccic-school-distribution-controls"><form method="get"><label htmlFor="school">School </label><select id="school" name="school" defaultValue={selected.slug}>{CCIC_SCHOOL_CAMPAIGNS.map((campaign) => <option key={campaign.slug} value={campaign.slug}>{campaign.name}</option>)}</select> <button type="submit">View</button></form><p>Print the summary and classroom sheets using your browser Print command.</p><p><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selected.slug) + '&print=labels'}>Print Avery 72782 box labels (5 per sheet)</Link></p></div>
     <section className="ccic-school-distribution-page ccic-school-summary">
       <h1>{selected.name}</h1><h2>School distribution summary</h2>

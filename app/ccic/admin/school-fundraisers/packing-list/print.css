@@ -15,3 +15,14 @@
 .ccic-school-distribution-controls { background:#fff; padding:18px 24px; }
 .ccic-school-distribution-page table { width:100%; }
 @media print { @page { size:letter; margin:0.6in; } .ccic-screen-only { display:none!important; } .ccic-school-distribution-page { border:0; padding:0; margin:0; break-after:page; page-break-after:always; } .ccic-school-distribution-page:last-child { break-after:auto; page-break-after:auto; } .ccic-school-distribution-page h1 { font-size:20pt; } .ccic-school-distribution-page h2 { font-size:15pt; } .ccic-school-distribution-page tr { break-inside:avoid; } }
+
+/* Keep school packing screens aligned with the established 1320px CCIC admin layout. */
+@media screen {
+  .ccic-school-distribution-controls,
+  .ccic-school-distribution-page {
+    width: min(1320px, 100%);
+    box-sizing: border-box;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
