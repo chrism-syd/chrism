@@ -1,3 +1,4 @@
+import { getCcicOrderAdminSession } from '@/lib/christmas-cards/admin'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import SchoolMixedStorefront from '../../../christmas-cards/school-mixed-storefront'
@@ -20,6 +21,7 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: Promise<{ school: string }>
+  searchParams: Promise<{ preview?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps) {
@@ -31,12 +33,15 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
-export default async function CcicSchoolMixedCampaignPage({ params }: PageProps) {
+export default async function CcicSchoolMixedCampaignPage({ params, searchParams }: PageProps) {
   const { school: schoolSlug } = await params
   const school = getCcicSchoolCampaign(schoolSlug)
   if (!school) notFound()
 
-  const orderingClosed = !isCcicSchoolOrderingEnabled(school)
+  const { preview } = await searchParams
+  const previewRequested = preview === 'closed'
+  const previewAuthorized = previewRequested && Boolean(await getCcicOrderAdminSession())
+  const orderingClosed = previewAuthorized || !isCcicSchoolOrderingEnabled(school)
   const mixedAvailability = orderingClosed ? [] : await getCcicMixedBoxAvailability()
   const demonstrationOnly = school.orderingEnabled !== true
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
@@ -84,6 +89,7 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
 
       {orderingClosed && !demonstrationOnly ? (
         <section className="ccic-school-campaign-closed" role="status">
+          {previewAuthorized ? <p><strong>Admin preview: this campaign is still accepting orders.</strong></p> : null}
           <h2>Thank you for your support!</h2>
           <p>This year's Christmas card fundraising campaign for {school.name} has now closed.</p>
           <p>Thank you to everyone who placed an order and helped support our school community.</p>
