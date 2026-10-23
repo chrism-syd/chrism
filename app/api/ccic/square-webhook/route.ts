@@ -14,9 +14,23 @@ type SquareWebhook = {
 }
 
 export async function POST(request: NextRequest) {
-  const square = getCcicSquareConfig()
-  const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
-  const notificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL
+  // Production uses the existing webhook URL and signing key.
+  // Sandbox requires its own explicitly configured callback and signature.
+  const requestedEnvironment = request.nextUrl.searchParams.get('environment')
+  if (requestedEnvironment && requestedEnvironment !== 'sandbox') {
+    return NextResponse.json({ error: 'Invalid webhook environment.' }, { status: 400 })
+  }
+  const environment = requestedEnvironment === 'sandbox' || (!requestedEnvironment && process.env.SQUARE_ENVIRONMENT === 'sandbox')
+    ? 'sandbox'
+    : 'production'
+  const square = getCcicSquareConfig(environment)
+  const sandboxOnProduction = environment === 'sandbox' && process.env.SQUARE_ENVIRONMENT === 'production'
+  const signatureKey = sandboxOnProduction
+    ? process.env.SQUARE_SANDBOX_WEBHOOK_SIGNATURE_KEY
+    : process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
+  const notificationUrl = sandboxOnProduction
+    ? process.env.SQUARE_SANDBOX_WEBHOOK_NOTIFICATION_URL
+    : process.env.SQUARE_WEBHOOK_NOTIFICATION_URL
   if (!square || !signatureKey || !notificationUrl) {
     return NextResponse.json({ error: 'Webhook is not configured.' }, { status: 503 })
   }

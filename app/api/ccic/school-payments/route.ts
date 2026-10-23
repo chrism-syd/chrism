@@ -1,6 +1,6 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
-import { getCcicSquareConfig } from '@/lib/christmas-cards/square-config'
+import { getCcicSquareConfig, getCcicSchoolSquareEnvironment } from '@/lib/christmas-cards/square-config'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { protectPeoplePayload } from '@/lib/security/pii'
@@ -14,9 +14,6 @@ export const runtime = 'nodejs'
 const normalize = (value: unknown) => typeof value === 'string' ? value.trim() : ''
 
 export async function POST(request: NextRequest) {
-  const square = getCcicSquareConfig()
-  if (!square) return NextResponse.json({ error: 'School payments are not enabled.' }, { status: 503 })
-  const { accessToken, locationId } = square
   if (!process.env.PII_ENCRYPTION_KEY) return NextResponse.json({ error: 'Payment configuration is incomplete.' }, { status: 503 })
 
   let body: Record<string, unknown>
@@ -24,6 +21,9 @@ export async function POST(request: NextRequest) {
   const draft = parseCcicSchoolOrderDraft(body.draft)
   const school = draft && getCcicSchoolCampaign(draft.schoolSlug)
   if (!draft || !school || draft.schoolCode !== school.code || !isCcicSchoolCampaignOpen(school)) return NextResponse.json({ error: 'This school fundraiser is unavailable or closed.' }, { status: 400 })
+  const square = getCcicSquareConfig(getCcicSchoolSquareEnvironment(school.slug))
+  if (!square) return NextResponse.json({ error: 'School payments are not enabled.' }, { status: 503 })
+  const { accessToken, locationId } = square
   const order = calculateCcicSchoolOrder(draft)
   if (!order.hasOrder || order.totalBoxes > 99) return NextResponse.json({ error: 'Invalid cart.' }, { status: 400 })
 
