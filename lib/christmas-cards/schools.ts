@@ -3,6 +3,7 @@ export type CcicSchoolCampaign = {
   code: string
   name: string
   active: boolean
+  orderingEnabled?: boolean
   orderingClosesAt?: string
   deliveryBy?: string
 }
@@ -49,6 +50,7 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
   },
   {
     slug: 'st-francis-xavier',
+    orderingEnabled: true,
     code: 'STFRANCISXAVIER26',
     name: 'St. Francis Xavier',
     active: true,
@@ -91,4 +93,9 @@ export function formatCcicSchoolCampaignDate(value?: string) {
     day: 'numeric',
     timeZone: 'America/Toronto',
   }).format(date)
+}
+
+/** A published demonstration URL is not an open school campaign. */
+export function isCcicSchoolOrderingEnabled(school: CcicSchoolCampaign, now = new Date()) {
+  return school.orderingEnabled === true && isCcicSchoolCampaignOpen(school, now)
 }
