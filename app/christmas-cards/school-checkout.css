@@ -1,4 +1,5 @@
-.ccic-school-checkout-page { background:#f7f6f4; }
+/* More specific than the shared .ccic-page white background, regardless of stylesheet order. */
+.ccic-page.ccic-school-checkout-page { background:#f7f6f4; }
 .ccic-school-checkout-brand { display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; text-transform:uppercase; letter-spacing:.04em; }
 /* Centered CCIC mark: breathing room above and below on checkout only. */
 .ccic-school-checkout-page .ccic-site-header-inner { padding-top:20px; padding-bottom:20px; }
