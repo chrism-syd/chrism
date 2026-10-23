@@ -7,7 +7,7 @@ import {
   CHRISTMAS_CARD_ORDER_CONFIG,
 } from '@/lib/christmas-cards/catalog'
 import { getCcicMixedBoxAvailability } from '@/lib/christmas-cards/inventory'
-import { formatCcicSchoolCampaignDate, getCcicSchoolCampaign, isCcicSchoolCampaignOpen } from '@/lib/christmas-cards/schools'
+import { formatCcicSchoolCampaignDate, getCcicSchoolCampaign, isCcicSchoolOrderingEnabled } from '@/lib/christmas-cards/schools'
 import '../../../christmas-cards/storefront.css'
 import '../../../christmas-cards/payment-polish.css'
 import '../../../christmas-cards/storefront-redesign.css'
@@ -37,7 +37,8 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
   if (!school) notFound()
 
   const mixedAvailability = await getCcicMixedBoxAvailability()
-  const orderingClosed = !isCcicSchoolCampaignOpen(school)
+  const orderingClosed = !isCcicSchoolOrderingEnabled(school)
+  const demonstrationOnly = school.orderingEnabled !== true
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
   const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
@@ -74,7 +75,14 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
         </div>
       </section>
 
-      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} />
+      {demonstrationOnly ? (
+        <div role="status" style={{ margin: '24px auto', padding: '20px', maxWidth: 960, background: '#fff4db', border: '2px solid #a96d15', borderRadius: 8, color: '#463000', textAlign: 'center' }}>
+          <strong>School program preview only</strong>
+          <p style={{ margin: '8px 0 0' }}>This school has not yet opened its fundraiser. Browse the collections below to see what the program offers. Orders and payments are not being accepted.</p>
+        </div>
+      ) : null}
+
+      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
         <p>Thank you for helping keep Christ in Christmas while supporting {schoolName}.</p>
