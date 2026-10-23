@@ -7,6 +7,7 @@ import { decryptOptionalValue } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { returnCcicSchoolParentOrderItems } from '../actions'
 import '../../../../christmas-cards/admin-orders.css'
+import '../school-admin.css'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,8 +92,8 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
   return (
     <main className="ccic-admin-page">
       <header className="ccic-admin-header">
-        <h1>{order.order_number}</h1>
-        <Link href="/ccic/admin/school-fundraisers">Back to School Orders</Link>
+        <div><p>School parent order</p><h1>{order.order_number}</h1></div>
+        <nav className="ccic-admin-header-actions"><Link href="/ccic/admin/school-fundraisers">Back to School Orders</Link></nav>
       </header>
 
       {query.returned === 'partial' && <p className="ccic-admin-notice">Parent order partially returned. Only selected mixed-box commitments were released.</p>}
@@ -103,7 +104,6 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
       <section className="ccic-admin-panel">
         <h2>{order.school_name} — Individual parent order</h2>
         <p><strong>Status:</strong> {hasPartialReturn ? 'Partially returned (paid)' : order.status_code.replaceAll('_', ' ')}</p>
-        <p><strong>Square environment:</strong> {order.square_environment || 'Not recorded'}</p>
         <p><strong>Parent:</strong> {decode(order.parent_name)}</p>
         <p><strong>Email:</strong> {decode(order.email)}</p>
         <p><strong>Phone:</strong> {decode(order.cell_phone)}</p>
@@ -122,31 +122,44 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
             </tr>
           ))}</tbody>
         </table>
-        <p><strong>Original card payment:</strong> {formatChristmasCardMoney(order.total_cents)} (unchanged by returns)</p>
-        <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>
-        <p><strong>Total manual refund value implied by recorded returns:</strong> {formatChristmasCardMoney(returnValueCents)}</p>
-        <p><strong>Remaining school contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
-        <p><strong>Inventory committed:</strong> {displayDate(order.inventory_committed_at)}</p>
-        <p><strong>Most recent return:</strong> {displayDate(order.last_inventory_return_at)}</p>
-        <p><strong>All inventory released:</strong> {displayDate(order.inventory_released_at)}</p>
-        <p>Refunds are processed separately using Square or the original payment method; recording a return here does not refund a payment.</p>
+        <div className="ccic-school-order-totals">
+          <p><strong>Total paid:</strong> {formatChristmasCardMoney(order.total_cents)}</p>
+          <p><strong>School contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
+          {returnedBoxes > 0 && <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>}
+        </div>
+        <details className="ccic-school-admin-details">
+          <summary>View order details</summary>
+          <div className="ccic-school-admin-details-body">
+            <p><strong>Square environment:</strong> {order.square_environment || 'Not recorded'}</p>
+            <p><strong>Original card payment:</strong> {formatChristmasCardMoney(order.total_cents)} (unchanged by returns)</p>
+            <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>
+            <p><strong>Total manual refund value implied by recorded returns:</strong> {formatChristmasCardMoney(returnValueCents)}</p>
+            <p><strong>Remaining school contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
+            <p><strong>Inventory committed:</strong> {displayDate(order.inventory_committed_at)}</p>
+            <p><strong>Most recent return:</strong> {displayDate(order.last_inventory_return_at)}</p>
+            <p><strong>All inventory released:</strong> {displayDate(order.inventory_released_at)}</p>
+            <p>Refunds are processed separately using Square or the original payment method; recording a return here does not refund a payment.</p>
+            {events.length > 0 && (
+              <div className="ccic-school-admin-return-history">
+                <h3>Parent return audit history</h3>
+                <ul>{events.map((event) => (
+                  <li key={event.id}>
+                    {displayDate(event.created_at)} — {event.returned_boxes} mixed box(es) returned; {formatChristmasCardMoney(event.manual_refund_due_cents)} requires manual refund handling.
+                    {' '}By {event.processed_by}. Reason: {event.reason}.
+                    {event.order_fully_returned ? ' Parent order fully cancelled.' : ''}
+                  </li>
+                ))}</ul>
+              </div>
+            )}
+          </div>
+        </details>
       </section>
-
-      {events.length > 0 && (
-        <section className="ccic-admin-panel">
-          <h2>Parent return audit history</h2>
-          <ul>{events.map((event) => (
-            <li key={event.id}>
-              {displayDate(event.created_at)} — {event.returned_boxes} mixed box(es) returned; {formatChristmasCardMoney(event.manual_refund_due_cents)} requires manual refund handling.
-              {' '}By {event.processed_by}. Reason: {event.reason}.
-              {event.order_fully_returned ? ' Parent order fully cancelled.' : ''}
-            </li>
-          ))}</ul>
-        </section>
-      )}
 
       {canReturn && (
         <section className="ccic-admin-panel">
+          <details className="ccic-school-admin-details" open={Boolean(query.error && errorMessages[query.error])}>
+          <summary>Return or adjust this order</summary>
+          <div className="ccic-school-admin-details-body">
           <h2>Return selected boxes from this parent order</h2>
           <p>Enter the number of boxes to return for each collection. Return one box for a partial adjustment, or all remaining boxes to cancel this parent's order. Other parents and this school's fundraiser are unaffected.</p>
           <form action={returnCcicSchoolParentOrderItems}>
@@ -172,8 +185,10 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
               I confirm the returned boxes have not been packed, or their reusable cards are physically back in stock. Release only these boxes' mixed-inventory commitments.</label></p>
             <p><label><input type="checkbox" name="confirm_refund" value="yes" required />{' '}
               I understand that refunds and any customer communications are manual, and the original Square payment record remains unchanged.</label></p>
-            <button type="submit">Record parent return and release selected inventory</button>
+            <button className="ccic-school-admin-action-button" type="submit">Record parent return and release selected inventory</button>
           </form>
+          </div>
+          </details>
         </section>
       )}
 

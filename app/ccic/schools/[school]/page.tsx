@@ -36,8 +36,8 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
   const school = getCcicSchoolCampaign(schoolSlug)
   if (!school) notFound()
 
-  const mixedAvailability = await getCcicMixedBoxAvailability()
   const orderingClosed = !isCcicSchoolOrderingEnabled(school)
+  const mixedAvailability = orderingClosed ? [] : await getCcicMixedBoxAvailability()
   const demonstrationOnly = school.orderingEnabled !== true
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
@@ -82,7 +82,18 @@ export default async function CcicSchoolMixedCampaignPage({ params }: PageProps)
         </div>
       ) : null}
 
-      <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
+      {orderingClosed && !demonstrationOnly ? (
+        <section className="ccic-school-campaign-closed" role="status">
+          <h2>Thank you for your support!</h2>
+          <p>This year's Christmas card fundraising campaign for {school.name} has now closed.</p>
+          <p>Thank you to everyone who placed an order and helped support our school community.</p>
+          <h3>Still interested in purchasing Christmas cards?</h3>
+          <p>Please contact your school to inquire about additional availability. A limited number of boxes may still be available after the campaign closes.</p>
+          <p>Thank you for supporting the Celebrate Christ in Christmas program!</p>
+        </section>
+      ) : (
+        <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
+      )}
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
         <p>Thank you for helping keep Christ in Christmas while supporting {schoolName}.</p>

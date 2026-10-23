@@ -3,3 +3,74 @@
   margin-right: auto;
   margin-left: auto;
 }
+
+/* Match regular CCIC admin controls; scoped to school admin screens. */
+.ccic-school-admin-controls button {
+  appearance: none;
+  padding: 11px 16px;
+  border: 1px solid #202020;
+  border-radius: 0;
+  background: #202020;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+.ccic-school-admin-controls select {
+  min-height: 42px;
+  padding: 9px 36px 9px 12px;
+  border: 1px solid #cfcac5;
+  background: #fff;
+  color: #202020;
+  font: inherit;
+}
+
+/* Parent order: accessible native disclosures, without altering return logic. */
+.ccic-school-order-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 22px 0;
+  padding: 16px 20px;
+  background: #f5f3f1;
+  border: 1px solid #e5e0da;
+}
+.ccic-school-order-totals p { margin: 0; }
+.ccic-school-admin-details {
+  margin-top: 20px;
+  border: 1px solid #dfdbd7;
+  background: #fff;
+}
+.ccic-school-admin-details > summary {
+  padding: 16px 20px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+}
+.ccic-school-admin-details > summary:hover,
+.ccic-school-admin-details > summary:focus-visible {
+  background: #f5f3f1;
+}
+.ccic-school-admin-details[open] > summary {
+  border-bottom: 1px solid #dfdbd7;
+}
+.ccic-school-admin-details-body {
+  padding: 8px 20px 20px;
+}
+.ccic-school-admin-return-history {
+  margin-top: 22px;
+  border-top: 1px solid #e5e0da;
+}
+.ccic-school-admin-action-button {
+  appearance: none;
+  padding: 11px 16px;
+  border: 1px solid #202020;
+  border-radius: 0;
+  background: #202020;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}

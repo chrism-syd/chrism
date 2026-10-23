@@ -719,3 +719,29 @@
   border: 1px solid rgba(32, 32, 32, .18);
   background: rgba(255, 255, 255, .55);
 }
+
+/* Campaign closure: leave the school page visible without order controls. */
+.ccic-school-campaign-closed {
+  box-sizing: border-box;
+  width: min(960px, calc(100% - 32px));
+  margin: 38px auto 64px;
+  padding: clamp(28px, 5vw, 54px);
+  background: #fff;
+  border: 1px solid #e5e0da;
+  color: #202020;
+  text-align: center;
+}
+.ccic-school-campaign-closed h2 {
+  margin: 0 0 18px;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 600;
+}
+.ccic-school-campaign-closed h3 {
+  margin: 28px 0 12px;
+  font-size: 21px;
+}
+.ccic-school-campaign-closed p {
+  max-width: 700px;
+  margin: 12px auto;
+  line-height: 1.65;
+}
