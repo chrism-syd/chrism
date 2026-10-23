@@ -67,7 +67,7 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
         </div>
       </section>
 
-      <section className="ccic-intro">
+      {!orderingClosed ? <section className="ccic-intro">
         <div className="ccic-intro-heading">
           <h1>Christmas Cards That Give Back to Our School.</h1>
           <p>Choose a mixed collection of beautiful faith-centred Christmas cards while supporting {schoolName}.</p>
@@ -78,7 +78,7 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
             </div>
           ) : null}
         </div>
-      </section>
+      </section> : null}
 
       {demonstrationOnly ? (
         <div role="status" style={{ margin: '24px auto', padding: '20px', maxWidth: 960, background: '#fff4db', border: '2px solid #a96d15', borderRadius: 8, color: '#463000', textAlign: 'center' }}>
@@ -95,7 +95,6 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
           <p>Thank you to everyone who placed an order and helped support our school community.</p>
           <h3>Still interested in purchasing Christmas cards?</h3>
           <p>Please contact your school to inquire about additional availability. A limited number of boxes may still be available after the campaign closes.</p>
-          <p>Thank you for supporting the Celebrate Christ in Christmas program!</p>
         </section>
       ) : (
         <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
