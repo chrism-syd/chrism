@@ -42,6 +42,8 @@
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
+  background: #fff;
+  border-bottom: 1px solid #eeeae6;
 }
 
 .ccic-school-closed-link { display:inline-block; width:auto; margin-top:14px; text-decoration:none; text-align:center; }
