@@ -50,6 +50,7 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
     <section className="ccic-school-remittance-sheet">
       <div className="ccic-school-remittance-heading"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={70} height={70} /><div><h1>School fundraiser payment summary</h1><p>Celebrate Christ in Christmas · CCIC</p></div></div>
       <h2>{selected.name}</h2>
+      <p><strong>Campaign closing date:</strong> {selected.orderingClosesAt ? new Intl.DateTimeFormat('en-CA', { dateStyle: 'long', timeZone: 'America/Toronto' }).format(new Date(selected.orderingClosesAt)) : 'Not specified'}</p>
       <p>School fundraiser proceeds based on paid orders and boxes remaining after recorded returns.</p>
       <table className="ccic-admin-table"><tbody>
         <tr><th scope="row">Paid parent orders</th><td>{sorted.length}</td></tr>
