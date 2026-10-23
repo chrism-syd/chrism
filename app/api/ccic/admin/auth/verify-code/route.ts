@@ -39,10 +39,12 @@ function getRequestHost(request: NextRequest) {
     .toLowerCase()
 }
 
+// The school storefront's admin-only closure preview needs this cookie outside /admin.
+// Keep it HttpOnly, Secure in production, and SameSite=Lax.
 function getCcicAdminCookiePath(request: NextRequest) {
   const host = getRequestHost(request)
   return host === 'ccic.supplies' || host === 'www.ccic.supplies'
-    ? '/admin'
+    ? '/'
     : '/ccic/admin'
 }
 
