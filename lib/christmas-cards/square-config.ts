@@ -2,14 +2,23 @@ import 'server-only'
 
 export type CcicSquareEnvironment = 'sandbox' | 'production'
 
-/** Fail closed: live payments require explicit opt-in in addition to live credentials. */
-export function getCcicSquareConfig() {
-  const environment = process.env.SQUARE_ENVIRONMENT
-  if (environment !== 'sandbox' && environment !== 'production') return null
-  if (environment === 'production' && process.env.CCIC_SQUARE_LIVE_PAYMENTS_ENABLED !== 'true') return null
-  const applicationId = process.env.SQUARE_APPLICATION_ID || ''
-  const locationId = process.env.SQUARE_LOCATION_ID || ''
-  const accessToken = process.env.SQUARE_ACCESS_TOKEN || ''
+/** Only this explicitly allowlisted school may use live Square payments. */
+export function getCcicSchoolSquareEnvironment(schoolSlug: string): CcicSquareEnvironment {
+  return schoolSlug === 'st-francis-xavier' && process.env.SQUARE_ENVIRONMENT === 'production'
+    ? 'production'
+    : 'sandbox'
+}
+
+/**
+ * Fail closed for live payments. Sandbox on the production Vercel deployment
+ * uses dedicated credentials, never the production access token.
+ */
+export function getCcicSquareConfig(environment: CcicSquareEnvironment = process.env.SQUARE_ENVIRONMENT === 'production' ? 'production' : 'sandbox') {
+  if (environment === 'production' && (process.env.SQUARE_ENVIRONMENT !== 'production' || process.env.CCIC_SQUARE_LIVE_PAYMENTS_ENABLED !== 'true')) return null
+  const sandboxOnProduction = environment === 'sandbox' && process.env.SQUARE_ENVIRONMENT === 'production'
+  const applicationId = (sandboxOnProduction ? process.env.SQUARE_SANDBOX_APPLICATION_ID : process.env.SQUARE_APPLICATION_ID) || ''
+  const locationId = (sandboxOnProduction ? process.env.SQUARE_SANDBOX_LOCATION_ID : process.env.SQUARE_LOCATION_ID) || ''
+  const accessToken = (sandboxOnProduction ? process.env.SQUARE_SANDBOX_ACCESS_TOKEN : process.env.SQUARE_ACCESS_TOKEN) || ''
   if (!applicationId || !locationId || !accessToken) return null
   return {
     environment,
