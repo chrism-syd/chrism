@@ -16,13 +16,14 @@ type SquarePayment = {
 }
 
 export async function finalizeCcicSchoolPayment(orderId: string, payment: SquarePayment) {
-  const square = getCcicSquareConfig()
-  if (!square) throw new Error('Square payment processing is not enabled.')
   const admin = createAdminClient()
   const { data: order, error: lookupError } = await admin.from('ccic_school_orders')
     .select('id,order_number,status_code,total_cents,square_location_id,square_payment_id,square_environment')
     .eq('id', orderId).single()
   if (lookupError || !order) throw new Error('School order could not be located.')
+  if (order.square_environment !== 'sandbox' && order.square_environment !== 'production') throw new Error('Invalid stored Square environment.')
+  const square = getCcicSquareConfig(order.square_environment)
+  if (!square) throw new Error('Square payment processing is not enabled.')
   if (payment.status !== 'COMPLETED' || !payment.id || payment.reference_id !== orderId ||
       payment.location_id !== order.square_location_id ||
       payment.amount_money?.amount !== order.total_cents ||
