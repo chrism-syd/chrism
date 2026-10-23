@@ -86,7 +86,8 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
     const text = [
       `Thank you, ${name}.`,
       '',
-      `Your CCIC ${claimed.school_name} fundraiser order ${claimed.order_number} has been received.`,
+      `Your CCIC ${claimed.school_name} fundraiser order has been received.`,
+      `Order number: ${claimed.order_number}`,
       '',
       'ORDER SUMMARY:',
       lineText,
@@ -111,7 +112,8 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
         </div>
         <div style="padding:30px 34px 36px;">
           <p style="font-size:17px;margin:0 0 14px;">Thank you, ${escapeHtml(name)}.</p>
-          <h1 style="font-size:25px;line-height:1.3;margin:0 0 28px;color:#202020;">Your CCIC ${escapeHtml(claimed.school_name)} fundraiser order ${escapeHtml(claimed.order_number)} has been received.</h1>
+          <h1 style="font-size:25px;line-height:1.3;margin:0 0 12px;color:#202020;">Your CCIC ${escapeHtml(claimed.school_name)} fundraiser order has been received.</h1>
+          <p style="font-size:15px;line-height:1.5;margin:0 0 28px;color:#202020;"><strong>Order number:</strong> ${escapeHtml(claimed.order_number)}</p>
           <h2 style="font-size:14px;letter-spacing:1px;text-transform:uppercase;margin:0 0 8px;color:#925017;">Order summary</h2>
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:15px;">${orderRows}
             <tr><td style="padding:18px 0 8px;font-weight:bold;font-size:17px;">Total Amount Paid</td><td align="right" style="padding:18px 0 8px;font-weight:bold;font-size:20px;">${money(claimed.total_cents)}</td></tr>
