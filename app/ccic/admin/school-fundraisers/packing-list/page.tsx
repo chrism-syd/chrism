@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
 import { decryptOptionalValue } from '@/lib/security/pii'
+import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import '../../../../christmas-cards/admin-orders.css'
 import './print.css'
 
@@ -43,13 +44,30 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
     classrooms.set(key, classroom)
   }
   const groups = [...classrooms.values()]
+  const schoolShareCents = labels.length * 450
+  if (print === 'remittance') return <main className="ccic-school-remittance">
+    <div className="ccic-screen-only ccic-school-remittance-controls"><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selected.slug)}>Back to packing list</Link><p>Print this page and attach the school fundraiser cheque.</p></div>
+    <section className="ccic-school-remittance-sheet">
+      <div className="ccic-school-remittance-heading"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={70} height={70} /><div><h1>School fundraiser payment summary</h1><p>Celebrate Christ in Christmas · CCIC</p></div></div>
+      <h2>{selected.name}</h2>
+      <p>School fundraiser proceeds based on paid orders and boxes remaining after recorded returns.</p>
+      <table className="ccic-admin-table"><tbody>
+        <tr><th scope="row">Paid parent orders</th><td>{sorted.length}</td></tr>
+        <tr><th scope="row">Total boxes</th><td>{labels.length}</td></tr>
+        <tr><th scope="row">School contribution per box</th><td>{formatChristmasCardMoney(450)}</td></tr>
+        <tr className="ccic-school-remittance-total"><th scope="row">Total payable to school</th><td>{formatChristmasCardMoney(schoolShareCents)}</td></tr>
+      </tbody></table>
+      <p className="ccic-school-remittance-note">Payment by cheque enclosed separately. This summary records the calculated fundraiser amount, not confirmation that a cheque has been issued or cleared.</p>
+    </section>
+  </main>
   return <main className="ccic-admin-page ccic-school-distribution">
     <header className="ccic-admin-header ccic-screen-only"><div className="ccic-admin-heading-brand"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={82} height={82} className="ccic-admin-logo" priority /><div><h1>Packing &amp; Labels</h1><p>Paid school orders</p></div></div><nav className="ccic-admin-header-actions"><Link href="/ccic/admin/school-fundraisers">Back to School Orders</Link></nav></header>
-    <div className="ccic-screen-only ccic-school-distribution-controls"><form method="get"><label htmlFor="school">School </label><select id="school" name="school" defaultValue={selected.slug}>{CCIC_SCHOOL_CAMPAIGNS.map((campaign) => <option key={campaign.slug} value={campaign.slug}>{campaign.name}</option>)}</select> <button type="submit">View</button></form><p>Print the summary and classroom sheets using your browser Print command.</p><p><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selected.slug) + '&print=labels'}>Print Avery 72782 box labels (5 per sheet)</Link></p></div>
+    <div className="ccic-screen-only ccic-school-distribution-controls"><form method="get"><label htmlFor="school">School </label><select id="school" name="school" defaultValue={selected.slug}>{CCIC_SCHOOL_CAMPAIGNS.map((campaign) => <option key={campaign.slug} value={campaign.slug}>{campaign.name}</option>)}</select> <button type="submit">View</button></form><p>Print the summary and classroom sheets using your browser Print command.</p><p><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selected.slug) + '&print=labels'}>Print Avery 72782 box labels (5 per sheet)</Link></p><p><Link href={'/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selected.slug) + '&print=remittance'}>Print school payment summary (for cheque)</Link></p></div>
     <section className="ccic-school-distribution-page ccic-school-summary">
       <h1>{selected.name}</h1><h2>School distribution summary</h2>
       <p>{sorted.length} paid orders · {labels.length} boxes · {groups.length} classrooms</p>
       <table className="ccic-admin-table"><thead><tr><th>Grade</th><th>Room</th><th>Teacher</th><th>Boxes</th></tr></thead><tbody>{groups.map((group) => <tr key={JSON.stringify([group.grade, group.room, group.teacher])}><td>{group.grade}</td><td>{group.room}</td><td>{group.teacher}</td><td>{group.boxes}</td></tr>)}</tbody><tfoot><tr><th colSpan={3}>Total</th><th>{labels.length}</th></tr></tfoot></table>
+      <p className="ccic-school-summary-payout"><strong>School fundraiser proceeds:</strong> {labels.length} boxes × {formatChristmasCardMoney(450)} = <strong>{formatChristmasCardMoney(schoolShareCents)}</strong></p>
       <h3>Production totals</h3><ul>{[...totals.entries()].map(([title, count]) => <li key={title}>{title}: {count} boxes</li>)}</ul>
     </section>
     {groups.map((group) => <section className="ccic-school-distribution-page ccic-school-classroom" key={JSON.stringify([group.grade, group.room, group.teacher])}>
