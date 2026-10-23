@@ -1,5 +1,7 @@
 .ccic-school-checkout-page { background:#f7f6f4; }
 .ccic-school-checkout-brand { display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; text-transform:uppercase; letter-spacing:.04em; }
+/* Centered CCIC mark: breathing room above and below on checkout only. */
+.ccic-school-checkout-page .ccic-site-header-inner { padding-top:20px; padding-bottom:20px; }
 .ccic-school-checkout-layout { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:48px; width:min(1120px,calc(100% - 40px)); margin:0 auto; padding:54px 0 90px; align-items:start; }
 .ccic-school-checkout-main { display:grid; gap:34px; }
 .ccic-school-checkout-main h1 { margin:5px 0 8px; font-size:clamp(38px,5vw,62px); line-height:1; letter-spacing:-.045em; }
