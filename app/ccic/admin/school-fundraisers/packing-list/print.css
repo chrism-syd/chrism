@@ -52,3 +52,49 @@
 }
 
 }
+
+/* Standalone school cheque remittance: one clean printable sheet. */
+.ccic-school-remittance {
+  min-height: 100vh;
+  padding: 42px;
+  background: #f5f3f1;
+  color: #202020;
+}
+.ccic-school-remittance-controls,
+.ccic-school-remittance-sheet {
+  width: min(800px, 100%);
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.ccic-school-remittance-controls { margin-bottom: 20px; }
+.ccic-school-remittance-sheet {
+  padding: 36px;
+  background: #fff;
+  border: 1px solid #dfdbd7;
+}
+.ccic-school-remittance-heading {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  border-bottom: 1px solid #dfdbd7;
+  padding-bottom: 20px;
+}
+.ccic-school-remittance-heading h1 { margin: 0; font-size: 26px; }
+.ccic-school-remittance-heading p { margin: 6px 0 0; }
+.ccic-school-remittance-sheet h2 { margin-top: 26px; }
+.ccic-school-remittance-sheet .ccic-admin-table th { width: 70%; }
+.ccic-school-remittance-total th,
+.ccic-school-remittance-total td { font-size: 17px; font-weight: 800; }
+.ccic-school-remittance-note { margin-top: 28px; font-size: 12px; line-height: 1.5; }
+.ccic-school-summary-payout {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid #dfdbd7;
+  background: #f5f3f1;
+}
+@media print {
+  .ccic-school-remittance { padding: 0; min-height: auto; background: #fff; }
+  .ccic-school-remittance-controls { display: none !important; }
+  .ccic-school-remittance-sheet { width: 100%; border: 0; padding: 0; }
+  .ccic-school-summary-payout { background: #fff; }
+}
