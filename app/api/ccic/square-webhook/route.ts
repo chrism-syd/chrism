@@ -20,12 +20,15 @@ export async function POST(request: NextRequest) {
   if (requestedEnvironment && requestedEnvironment !== 'sandbox') {
     return NextResponse.json({ error: 'Invalid webhook environment.' }, { status: 400 })
   }
-  const environment = requestedEnvironment === 'sandbox' ? 'sandbox' : 'production'
+  const environment = requestedEnvironment === 'sandbox' || (!requestedEnvironment && process.env.SQUARE_ENVIRONMENT === 'sandbox')
+    ? 'sandbox'
+    : 'production'
   const square = getCcicSquareConfig(environment)
-  const signatureKey = environment === 'sandbox'
+  const sandboxOnProduction = environment === 'sandbox' && process.env.SQUARE_ENVIRONMENT === 'production'
+  const signatureKey = sandboxOnProduction
     ? process.env.SQUARE_SANDBOX_WEBHOOK_SIGNATURE_KEY
     : process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
-  const notificationUrl = environment === 'sandbox'
+  const notificationUrl = sandboxOnProduction
     ? process.env.SQUARE_SANDBOX_WEBHOOK_NOTIFICATION_URL
     : process.env.SQUARE_WEBHOOK_NOTIFICATION_URL
   if (!square || !signatureKey || !notificationUrl) {
