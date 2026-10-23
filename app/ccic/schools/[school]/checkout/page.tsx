@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { getCcicSquareConfig } from '@/lib/christmas-cards/square-config'
+import { getCcicSquareConfig, getCcicSchoolSquareEnvironment } from '@/lib/christmas-cards/square-config'
 import { notFound } from 'next/navigation'
 import SchoolCheckoutForm from '@/app/christmas-cards/school-checkout-form'
 import { CHRISTMAS_CARD_ORDER_CONFIG } from '@/lib/christmas-cards/catalog'
@@ -16,7 +16,7 @@ export default async function SchoolCheckoutPage({ params }: PageProps) {
   const school = getCcicSchoolCampaign(schoolSlug)
   if (!school) notFound()
   const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
-  const square = getCcicSquareConfig()
+  const square = getCcicSquareConfig(getCcicSchoolSquareEnvironment(school.slug))
   const squareApplicationId = square?.applicationId || ''
   const squareLocationId = square?.locationId || ''
   const squareEnvironment = square?.environment || null
