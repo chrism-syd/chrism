@@ -1,6 +1,6 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getCcicSquareConfig } from '@/lib/christmas-cards/square-config'
+import { getCcicSquareConfig, getCcicSchoolSquareEnvironment } from '@/lib/christmas-cards/square-config'
 import { decryptOptionalValue } from '@/lib/security/pii'
 import { sendBrevoTransactionalEmail } from '@/lib/email/brevo'
 import { getCcicSchoolCampaignByCode, formatCcicSchoolCampaignDate } from '@/lib/christmas-cards/schools'
@@ -18,10 +18,14 @@ type SquarePayment = {
 export async function finalizeCcicSchoolPayment(orderId: string, payment: SquarePayment) {
   const admin = createAdminClient()
   const { data: order, error: lookupError } = await admin.from('ccic_school_orders')
-    .select('id,order_number,status_code,total_cents,square_location_id,square_payment_id,square_environment')
+    .select('id,order_number,status_code,total_cents,school_code,square_location_id,square_payment_id,square_environment')
     .eq('id', orderId).single()
   if (lookupError || !order) throw new Error('School order could not be located.')
   if (order.square_environment !== 'sandbox' && order.square_environment !== 'production') throw new Error('Invalid stored Square environment.')
+  const school = getCcicSchoolCampaignByCode(order.school_code)
+  if (!school || order.square_environment !== getCcicSchoolSquareEnvironment(school.slug)) {
+    throw new Error('Stored school payment environment violates school policy.')
+  }
   const square = getCcicSquareConfig(order.square_environment)
   if (!square) throw new Error('Square payment processing is not enabled.')
   if (payment.status !== 'COMPLETED' || !payment.id || payment.reference_id !== orderId ||
