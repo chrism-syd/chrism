@@ -3,3 +3,25 @@
   margin-right: auto;
   margin-left: auto;
 }
+
+/* Match regular CCIC admin controls; scoped to school admin screens. */
+.ccic-school-admin-controls button {
+  appearance: none;
+  padding: 11px 16px;
+  border: 1px solid #202020;
+  border-radius: 0;
+  background: #202020;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+.ccic-school-admin-controls select {
+  min-height: 42px;
+  padding: 9px 36px 9px 12px;
+  border: 1px solid #cfcac5;
+  background: #fff;
+  color: #202020;
+  font: inherit;
+}
