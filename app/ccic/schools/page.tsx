@@ -40,23 +40,22 @@ export default function CcicSchoolsLandingPage() {
         </div>
       </section>
       <section className="ccic-schools-intro">
-        <h1>Christmas Cards That Give Back to Our Schools.</h1>
+        <h1>Christmas Cards That Give Back to Our <span className="ccic-schools-headline-last">Schools.</span></h1>
         <p>Choose your school below to support its Christmas card fundraiser. Each school has its own ordering window.</p>
       </section>
       <section className="ccic-schools-list" aria-label="Participating schools">
-        <h2>Find your school</h2>
         <div className="ccic-schools-grid">
           {schools.map((school) => {
             const open = isCcicSchoolOrderingEnabled(school)
             const preview = school.orderingEnabled !== true
             return (
-              <article className="ccic-schools-card" key={school.slug}>
+              <article className={`ccic-schools-card${open ? ' is-open' : ''}`} key={school.slug}>
                 <h3>{school.name}</h3>
                 <p className={open ? 'ccic-schools-status is-open' : 'ccic-schools-status'}>
                   {open ? 'Ordering now open' : preview ? 'Ordering window not yet open' : 'Ordering window closed'}
                 </p>
                 <p>{open ? 'Order mixed Christmas card collections and support your school.' : preview ? 'Your school’s fundraiser page is ready to preview. Orders will be accepted when the school opens its campaign.' : 'Thank you for supporting your school’s fundraiser.'}</p>
-                <Link href={`/ccic/schools/${school.slug}`} className="ccic-schools-action">
+                <Link href={`/ccic/schools/${school.slug}`} className={`ccic-schools-action${open ? ' is-open' : ''}`}>
                   {open ? 'Shop this fundraiser' : 'View school page'}
                 </Link>
               </article>
