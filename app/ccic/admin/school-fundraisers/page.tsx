@@ -120,7 +120,7 @@ export default async function SchoolFundraisersAdminPage({
 
       <section className="ccic-school-admin-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 24 }}>
         {[
-          ['Active paid parent orders', String(paid.length)],
+          ['Active paid school orders', String(paid.length)],
           ['Mixed boxes to pack (net)', String(boxes)],
           ['Original paid order value', formatChristmasCardMoney(originalPaidCents)],
           ['Order value after recorded returns', formatChristmasCardMoney(remainingValueCents)],
@@ -146,7 +146,7 @@ export default async function SchoolFundraisersAdminPage({
       </section>
 
       <section className="ccic-school-admin-content" style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, overflowX: 'auto' }}>
-        <h2>Individual parent orders</h2>
+        <h2>School orders</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead><tr>{['Order', 'School', 'Date', 'Status', 'Boxes to pack', 'Remaining order value', 'School share'].map((heading) => (
             <th key={heading} style={{ padding: 12, borderBottom: '1px solid #ddd' }}>{heading}</th>
