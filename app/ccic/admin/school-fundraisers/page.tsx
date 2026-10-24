@@ -124,7 +124,7 @@ export default async function SchoolFundraisersAdminPage({
           ['Mixed boxes to pack (net)', String(boxes)],
           ['Original paid order value', formatChristmasCardMoney(originalPaidCents)],
           ['Order value after recorded returns', formatChristmasCardMoney(remainingValueCents)],
-          ['School contributions on remaining boxes', formatChristmasCardMoney(contribution)],
+          ['School earnings on remaining boxes', formatChristmasCardMoney(contribution)],
           ['Awaiting payment reconciliation', String(orders.filter((order) => order.status_code === 'pending_payment' && order.square_environment === 'production').length)],
         ].map(([label, value]) => (
           <div key={label} style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22 }}>

@@ -51,11 +51,11 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
       <div className="ccic-school-remittance-heading"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={70} height={70} /><div><h1>School fundraiser payment summary</h1><p>Celebrate Christ in Christmas · CCIC</p></div></div>
       <h2>{selected.name}</h2>
       <p><strong>Campaign closing date:</strong> {selected.orderingClosesAt ? new Intl.DateTimeFormat('en-CA', { dateStyle: 'long', timeZone: 'America/Toronto' }).format(new Date(selected.orderingClosesAt)) : 'Not specified'}</p>
-      <p>School fundraiser proceeds based on paid orders and boxes remaining after recorded returns.</p>
+      <p>School earnings are calculated from paid purchases, excluding boxes recorded as returned. Each purchase may include more than one box.</p>
       <table className="ccic-admin-table"><tbody>
-        <tr><th scope="row">Paid school orders</th><td>{sorted.length}</td></tr>
-        <tr><th scope="row">Total boxes</th><td>{labels.length}</td></tr>
-        <tr><th scope="row">School contribution per box</th><td>{formatChristmasCardMoney(450)}</td></tr>
+        <tr><th scope="row">Number of purchases</th><td>{sorted.length}</td></tr>
+        <tr><th scope="row">Christmas card boxes sold</th><td>{labels.length}</td></tr>
+        <tr><th scope="row">School earnings per box</th><td>{formatChristmasCardMoney(450)}</td></tr>
         <tr className="ccic-school-remittance-total"><th scope="row">Total payable to school</th><td>{formatChristmasCardMoney(schoolShareCents)}</td></tr>
       </tbody></table>
       <p className="ccic-school-remittance-note">Payment by cheque enclosed separately. This summary records the calculated fundraiser amount, not confirmation that a cheque has been issued or cleared.</p>
@@ -68,7 +68,7 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
       <h1>{selected.name}</h1><h2>School distribution summary</h2>
       <p>{sorted.length} paid orders · {labels.length} boxes · {groups.length} classrooms</p>
       <table className="ccic-admin-table"><thead><tr><th>Grade</th><th>Room</th><th>Teacher</th><th>Boxes</th></tr></thead><tbody>{groups.map((group) => <tr key={JSON.stringify([group.grade, group.room, group.teacher])}><td>{group.grade}</td><td>{group.room}</td><td>{group.teacher}</td><td>{group.boxes}</td></tr>)}</tbody><tfoot><tr><th colSpan={3}>Total</th><th>{labels.length}</th></tr></tfoot></table>
-      <p className="ccic-school-summary-payout"><strong>School fundraiser proceeds:</strong> {labels.length} boxes × {formatChristmasCardMoney(450)} = <strong>{formatChristmasCardMoney(schoolShareCents)}</strong></p>
+      <p className="ccic-school-summary-payout"><strong>School earnings:</strong> {labels.length} boxes × {formatChristmasCardMoney(450)} = <strong>{formatChristmasCardMoney(schoolShareCents)}</strong></p>
       <h3>Production totals</h3><ul>{[...totals.entries()].map(([title, count]) => <li key={title}>{title}: {count} boxes</li>)}</ul>
     </section>
     {groups.map((group) => <section className="ccic-school-distribution-page ccic-school-classroom" key={JSON.stringify([group.grade, group.room, group.teacher])}>

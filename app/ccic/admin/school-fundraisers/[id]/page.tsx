@@ -156,7 +156,7 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
           </div>
           <div className="ccic-school-order-totals">
             <p><strong>{totalLabel}:</strong> {formatChristmasCardMoney(order.total_cents)}</p>
-            <p><strong>School contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
+            <p><strong>School earnings:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
             {returnedBoxes > 0 && <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>}
           </div>
         <details className="ccic-school-admin-details">
@@ -166,7 +166,7 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
             <p><strong>Original card payment:</strong> {formatChristmasCardMoney(order.total_cents)} (unchanged by returns)</p>
             <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>
             <p><strong>Total manual refund value implied by recorded returns:</strong> {formatChristmasCardMoney(returnValueCents)}</p>
-            <p><strong>Remaining school contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
+            <p><strong>Remaining school earnings:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
             <p><strong>Inventory committed:</strong> {displayDate(order.inventory_committed_at)}</p>
             <p><strong>Most recent return:</strong> {displayDate(order.last_inventory_return_at)}</p>
             <p><strong>All inventory released:</strong> {displayDate(order.inventory_released_at)}</p>
