@@ -43,6 +43,7 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
   const previewAuthorized = previewRequested && Boolean(await getCcicOrderAdminSession())
   const orderingClosed = previewAuthorized || !isCcicSchoolOrderingEnabled(school)
   const mixedAvailability = orderingClosed ? [] : await getCcicMixedBoxAvailability()
+  const beforeOpening = Boolean(school.orderingOpensAt && Date.now() < new Date(school.orderingOpensAt).getTime())
   const demonstrationOnly = school.orderingEnabled !== true
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
@@ -87,7 +88,13 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
         </div>
       ) : null}
 
-      {orderingClosed && !demonstrationOnly ? (
+      {beforeOpening && school.orderingEnabled === true ? (
+        <section className="ccic-school-campaign-closed" role="status">
+          <h2>Ordering opens November 2</h2>
+          <p>All Saints Christmas card ordering begins November 2 and closes November 13.</p>
+          <p>Cards will be delivered through the school by December 1.</p>
+        </section>
+      ) : orderingClosed && !demonstrationOnly ? (
         <section className="ccic-school-campaign-closed" role="status">
           {previewAuthorized ? <p><strong>Admin preview: this campaign is still accepting orders.</strong></p> : null}
           <h2>Thank you for your support!</h2>
