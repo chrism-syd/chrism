@@ -104,9 +104,10 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
           <h3>Still interested in purchasing Christmas cards?</h3>
           <p>Please contact your school to inquire about additional availability. A limited number of boxes may still be available after the campaign closes.</p>
         </section>
-      ) : (
-        <SchoolMixedStorefront key={school.slug} mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
-      )}
+      ) : null}
+      {(beforeOpening || !orderingClosed || demonstrationOnly) ? (
+        <SchoolMixedStorefront key={school.slug} mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly || beforeOpening} />
+      ) : null}
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
         <p>Thank you for helping keep Christ in Christmas while supporting {schoolName}.</p>
