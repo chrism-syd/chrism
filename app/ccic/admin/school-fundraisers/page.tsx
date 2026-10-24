@@ -39,15 +39,18 @@ export default async function SchoolFundraisersAdminPage({
   const params = await searchParams
   const selectedSchool = typeof params.school === 'string' ? params.school : ''
   const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('ccic_school_orders')
+  // Apply the school filter in the database before the limit; never mix
+  // another school's orders into a school-specific report or truncate them out.
+  const baseQuery = admin.from('ccic_school_orders')
     .select('id,order_number,school_slug,school_name,status_code,total_cents,paid_at,school_contribution_cents,created_at')
+  const selectedQuery = selectedSchool ? baseQuery.eq('school_slug', selectedSchool) : baseQuery
+  const { data, error } = await selectedQuery
     .order('created_at', { ascending: false })
     .limit(1000)
   if (error) throw new Error(`Unable to load school fundraiser orders: ${error.message}`)
 
   const allOrders = (data ?? []) as SchoolOrder[]
-  const orders = selectedSchool ? allOrders.filter((order) => order.school_slug === selectedSchool) : allOrders
+  const orders = allOrders
   const paid = orders.filter((order) => order.status_code === 'paid')
   const paidIds = paid.map((order) => order.id)
   const { data: lineData, error: lineError } = paidIds.length
