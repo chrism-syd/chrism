@@ -2,9 +2,9 @@ import 'server-only'
 
 export type CcicSquareEnvironment = 'sandbox' | 'production'
 
-/** Only this explicitly allowlisted school may use live Square payments. */
+/** Explicitly approved schools only; independent from the ordering-window gate. */
 export function getCcicSchoolSquareEnvironment(schoolSlug: string): CcicSquareEnvironment {
-  return schoolSlug === 'st-francis-xavier' && process.env.SQUARE_ENVIRONMENT === 'production'
+  return (schoolSlug === 'st-francis-xavier' || schoolSlug === 'all-saints') && process.env.SQUARE_ENVIRONMENT === 'production'
     ? 'production'
     : 'sandbox'
 }

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   try { body = await request.json() as Record<string, unknown> } catch { return NextResponse.json({ error: 'Invalid request.' }, { status: 400 }) }
   const draft = parseCcicSchoolOrderDraft(body.draft)
   const school = draft && getCcicSchoolCampaign(draft.schoolSlug)
-  if (!draft || !school || draft.schoolCode !== school.code || !isCcicSchoolOrderingEnabled(school)) return NextResponse.json({ error: 'This school fundraiser is unavailable or closed.' }, { status: 400 })
+  if (!draft || !school || normalize(body.schoolSlug).toLowerCase() !== school.slug || draft.schoolCode !== school.code || !isCcicSchoolOrderingEnabled(school)) return NextResponse.json({ error: 'This school fundraiser is unavailable or closed.' }, { status: 400 })
   const square = getCcicSquareConfig(getCcicSchoolSquareEnvironment(school.slug))
   if (!square) return NextResponse.json({ error: 'School payments are not enabled.' }, { status: 503 })
   const { accessToken, locationId } = square

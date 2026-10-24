@@ -15,6 +15,7 @@ type SchoolOrder = {
   order_number: string
   school_slug: string
   school_name: string
+  square_environment: string
   status_code: string
   total_cents: number
   paid_at: string | null
@@ -39,16 +40,21 @@ export default async function SchoolFundraisersAdminPage({
   const params = await searchParams
   const selectedSchool = typeof params.school === 'string' ? params.school : ''
   const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('ccic_school_orders')
-    .select('id,order_number,school_slug,school_name,status_code,total_cents,paid_at,school_contribution_cents,created_at')
+  // Apply the school filter in the database before the limit; never mix
+  // another school's orders into a school-specific report or truncate them out.
+  const baseQuery = admin.from('ccic_school_orders')
+    .select('id,order_number,school_slug,school_name,square_environment,status_code,total_cents,paid_at,school_contribution_cents,created_at')
+  const selectedQuery = selectedSchool ? baseQuery.eq('school_slug', selectedSchool) : baseQuery
+  const { data, error } = await selectedQuery
     .order('created_at', { ascending: false })
     .limit(1000)
   if (error) throw new Error(`Unable to load school fundraiser orders: ${error.message}`)
 
   const allOrders = (data ?? []) as SchoolOrder[]
-  const orders = selectedSchool ? allOrders.filter((order) => order.school_slug === selectedSchool) : allOrders
-  const paid = orders.filter((order) => order.status_code === 'paid')
+  const orders = allOrders
+  // Sandbox orders remain visible in audit history, but never count toward
+  // physical packing, school remittance or real-money campaign totals.
+  const paid = orders.filter((order) => order.status_code === 'paid' && order.square_environment === 'production')
   const paidIds = paid.map((order) => order.id)
   const { data: lineData, error: lineError } = paidIds.length
     ? await admin.from('ccic_school_order_lines')
@@ -74,7 +80,7 @@ export default async function SchoolFundraisersAdminPage({
     })
   }
 
-  const originalPaidCents = orders.filter((order) => Boolean(order.paid_at)).reduce((sum, order) => sum + order.total_cents, 0)
+  const originalPaidCents = orders.filter((order) => Boolean(order.paid_at) && order.square_environment === 'production').reduce((sum, order) => sum + order.total_cents, 0)
   const remainingValueCents = [...boxTotals.values()].reduce((sum, row) => sum + row.remainingValueCents, 0)
   const contribution = paid.reduce((sum, order) => {
     const count = boxTotals.get(order.id)
@@ -119,7 +125,7 @@ export default async function SchoolFundraisersAdminPage({
           ['Original paid order value', formatChristmasCardMoney(originalPaidCents)],
           ['Order value after recorded returns', formatChristmasCardMoney(remainingValueCents)],
           ['School contributions on remaining boxes', formatChristmasCardMoney(contribution)],
-          ['Awaiting payment reconciliation', String(orders.filter((order) => order.status_code === 'pending_payment').length)],
+          ['Awaiting payment reconciliation', String(orders.filter((order) => order.status_code === 'pending_payment' && order.square_environment === 'production').length)],
         ].map(([label, value]) => (
           <div key={label} style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22 }}>
             <div style={{ fontSize: 13, color: '#645e58' }}>{label}</div>
@@ -147,16 +153,17 @@ export default async function SchoolFundraisersAdminPage({
           ))}</tr></thead>
           <tbody>{orders.map((order) => {
             const boxInfo = boxTotals.get(order.id)
-            const partiallyReturned = order.status_code === 'paid' && boxInfo && boxInfo.remaining < boxInfo.ordered
+            const eligibleForPacking = order.status_code === 'paid' && order.square_environment === 'production'
+            const partiallyReturned = eligibleForPacking && boxInfo && boxInfo.remaining < boxInfo.ordered
             return (
               <tr key={order.id}>
                 <td style={{ padding: 12, borderBottom: '1px solid #eee' }}><Link href={'/ccic/admin/school-fundraisers/' + order.id}>{order.order_number}</Link></td>
                 <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.school_name}</td>
                 <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{date(order.created_at)}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{partiallyReturned ? 'Partially returned' : order.status_code.replaceAll('_', ' ')}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code === 'paid' ? boxInfo?.remaining ?? 0 : '—'}</td>
+                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.square_environment === 'sandbox' ? `Sandbox test (${order.status_code.replaceAll('_', ' ')})` : partiallyReturned ? 'Partially returned' : order.status_code.replaceAll('_', ' ')}</td>
+                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{eligibleForPacking ? boxInfo?.remaining ?? 0 : '—'}</td>
                 <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code === 'paid' ? formatChristmasCardMoney(boxInfo?.remainingValueCents ?? 0) : '—'}</td>
-                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{order.status_code === 'paid' && boxInfo?.ordered ? formatChristmasCardMoney(Math.round(order.school_contribution_cents * boxInfo.remaining / boxInfo.ordered)) : '—'}</td>
+                <td style={{ padding: 12, borderBottom: '1px solid #eee' }}>{eligibleForPacking && boxInfo?.ordered ? formatChristmasCardMoney(Math.round(order.school_contribution_cents * boxInfo.remaining / boxInfo.ordered)) : '—'}</td>
               </tr>
             )
           })}</tbody>

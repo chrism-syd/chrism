@@ -48,13 +48,14 @@ export default function CcicSchoolsLandingPage() {
           {schools.map((school) => {
             const open = isCcicSchoolOrderingEnabled(school)
             const preview = school.orderingEnabled !== true
+            const upcoming = Boolean(school.orderingOpensAt && Date.now() < new Date(school.orderingOpensAt).getTime())
             return (
               <article className={`ccic-schools-card${open ? ' is-open' : ''}`} key={school.slug}>
                 <h3>{school.name}</h3>
                 <p className={open ? 'ccic-schools-status is-open' : 'ccic-schools-status'}>
-                  {open ? 'Ordering now open' : preview ? 'Ordering window not yet open' : 'Ordering window closed'}
+                  {open ? 'Ordering now open' : preview || upcoming ? 'Ordering window not yet open' : 'Ordering window closed'}
                 </p>
-                <p>{open ? 'Order mixed Christmas card collections and support your school.' : preview ? 'Your school’s fundraiser page is ready to preview. Orders will be accepted when the school opens its campaign.' : 'Thank you for supporting your school’s fundraiser.'}</p>
+                <p>{open ? 'Order mixed Christmas card collections and support your school.' : preview || upcoming ? 'Your school’s fundraiser page is ready to preview. Orders will be accepted when the school opens its campaign.' : 'Thank you for supporting your school’s fundraiser.'}</p>
                 <Link href={`/ccic/schools/${school.slug}`} className={`ccic-schools-action${open ? ' is-open' : ''}`}>
                   {open ? 'Shop this fundraiser' : 'View school page'}
                 </Link>

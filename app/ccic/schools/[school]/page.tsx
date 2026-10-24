@@ -43,8 +43,11 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
   const previewAuthorized = previewRequested && Boolean(await getCcicOrderAdminSession())
   const orderingClosed = previewAuthorized || !isCcicSchoolOrderingEnabled(school)
   const mixedAvailability = orderingClosed ? [] : await getCcicMixedBoxAvailability()
+  const beforeOpening = Boolean(school.orderingOpensAt && Date.now() < new Date(school.orderingOpensAt).getTime())
   const demonstrationOnly = school.orderingEnabled !== true
+  const upcomingPreview = beforeOpening && school.orderingEnabled === true && !previewAuthorized
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
+  const opensOnLabel = formatCcicSchoolCampaignDate(school.orderingOpensAt)
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
   const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
 
@@ -80,14 +83,25 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
         </div>
       </section> : null}
 
-      {demonstrationOnly ? (
+      {demonstrationOnly || upcomingPreview ? (
         <div role="status" style={{ margin: '24px auto', padding: '20px', maxWidth: 960, background: '#fff4db', border: '2px solid #a96d15', borderRadius: 8, color: '#463000', textAlign: 'center' }}>
-          <strong>School program preview only</strong>
-          <p style={{ margin: '8px 0 0' }}>This school has not yet opened its fundraiser. Browse the collections below to see what the program offers. Orders and payments are not being accepted.</p>
+          <strong>{upcomingPreview ? `${school.name} fundraiser — ordering opens soon` : 'School program preview only'}</strong>
+          <p style={{ margin: '8px 0 0' }}>
+            {upcomingPreview
+              ? 'Browse the Christmas card collections below. Ordering and payments are not being accepted yet.'
+              : 'This school has not yet opened its fundraiser. Browse the collections below to see what the program offers. Orders and payments are not being accepted.'}
+          </p>
+          {upcomingPreview && opensOnLabel && orderByLabel && deliveryByLabel ? (
+            <div className="ccic-school-intro-dates" aria-label={`${school.name} fundraiser dates`} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'clamp(6px, 2vw, 16px)', width: 'min(680px, 100%)', margin: '20px auto 0' }}>
+              <div style={{ minWidth: 0, padding: '12px 6px' }}><span>Opens</span><strong style={{ fontSize: 'clamp(13px, 2.6vw, 17px)' }}>{opensOnLabel}</strong></div>
+              <div style={{ minWidth: 0, padding: '12px 6px' }}><span>Order by</span><strong style={{ fontSize: 'clamp(13px, 2.6vw, 17px)' }}>{orderByLabel}</strong></div>
+              <div style={{ minWidth: 0, padding: '12px 6px' }}><span>Delivery by</span><strong style={{ fontSize: 'clamp(13px, 2.6vw, 17px)' }}>{deliveryByLabel}</strong></div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {orderingClosed && !demonstrationOnly ? (
+      {orderingClosed && !demonstrationOnly && !upcomingPreview ? (
         <section className="ccic-school-campaign-closed" role="status">
           {previewAuthorized ? <p><strong>Admin preview: this campaign is still accepting orders.</strong></p> : null}
           <h2>Thank you for your support!</h2>
@@ -96,9 +110,10 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
           <h3>Still interested in purchasing Christmas cards?</h3>
           <p>Please contact your school to inquire about additional availability. A limited number of boxes may still be available after the campaign closes.</p>
         </section>
-      ) : (
-        <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
-      )}
+      ) : null}
+      {(beforeOpening || !orderingClosed || demonstrationOnly) ? (
+        <SchoolMixedStorefront key={school.slug} mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly || beforeOpening} />
+      ) : null}
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
         <p>Thank you for helping keep Christ in Christmas while supporting {schoolName}.</p>
