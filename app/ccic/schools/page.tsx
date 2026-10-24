@@ -3,6 +3,11 @@ import Link from 'next/link'
 import { CCIC_SCHOOL_CAMPAIGNS, isCcicSchoolOrderingEnabled } from '@/lib/christmas-cards/schools'
 import { CHRISTMAS_CARD_ORDER_CONFIG } from '@/lib/christmas-cards/catalog'
 import '@/app/christmas-cards/storefront.css'
+import '@/app/christmas-cards/payment-polish.css'
+import '@/app/christmas-cards/storefront-redesign.css'
+import '@/app/christmas-cards/storefront-header-polish.css'
+import '@/app/christmas-cards/storefront-inventory.css'
+import '@/app/christmas-cards/storefront-final-polish.css'
 import '@/app/christmas-cards/school-storefront.css'
 import './schools-landing.css'
 
@@ -14,7 +19,7 @@ export const metadata = {
 }
 
 export default function CcicSchoolsLandingPage() {
-  const schools = CCIC_SCHOOL_CAMPAIGNS.filter((school) => school.active)
+  const schools = CCIC_SCHOOL_CAMPAIGNS.filter((school) => school.active).sort((a, b) => Number(isCcicSchoolOrderingEnabled(b)) - Number(isCcicSchoolOrderingEnabled(a)))
   return (
     <main className="ccic-page ccic-schools-landing">
       <header className="ccic-site-header">
