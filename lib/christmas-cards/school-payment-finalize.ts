@@ -125,13 +125,20 @@ export async function sendCcicSchoolOrderConfirmation(orderId: string) {
         </div>
       </div>
     </div>`
-    const adminRecipients = [...new Set((process.env.CCIC_ORDER_NOTIFICATION_EMAIL || '')
+    // Match the working council-order notification recipient handling, including its fallback.
+    const configuredEmails = (process.env.CCIC_ORDER_NOTIFICATION_EMAIL || '')
       .split(',')
       .map((address) => address.trim().toLowerCase())
-      .filter((address) => /^\\S+@\\S+\\.\\S+$/.test(address)))].map((address) => ({
-        email: address,
-        name: 'CCIC Orders',
-      }))
+      .filter((address) => /^\S+@\S+\.\S+$/.test(address))
+    const uniqueEmails = [...new Set(configuredEmails)]
+    const fallbackEmail = process.env.BREVO_SENDER_EMAIL?.trim().toLowerCase() || ''
+    const recipientEmails = uniqueEmails.length
+      ? uniqueEmails
+      : /^\S+@\S+\.\S+$/.test(fallbackEmail) ? [fallbackEmail] : []
+    const adminRecipients = recipientEmails.map((address) => ({
+      email: address,
+      name: 'CCIC Orders',
+    }))
     const emailResults = await Promise.allSettled([
       sendBrevoTransactionalEmail({
         to: [{ email, name }],
