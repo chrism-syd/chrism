@@ -31,8 +31,10 @@ const EMPTY_DETAILS: CheckoutDetails = {
   teacherName: '',
 }
 
-export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, demonstrationOnly, deliveryByLabel, squareApplicationId, squareLocationId, squareEnvironment }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; demonstrationOnly: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string; squareEnvironment: 'sandbox' | 'production' | null }) {
+export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName, orderingClosed, orderingNotYetOpen, demonstrationOnly, deliveryByLabel, squareApplicationId, squareLocationId, squareEnvironment }: { schoolSlug: string; schoolCode: string; schoolName: string; orderingClosed: boolean; orderingNotYetOpen: boolean; demonstrationOnly: boolean; deliveryByLabel: string | null; squareApplicationId: string; squareLocationId: string; squareEnvironment: 'sandbox' | 'production' | null }) {
   const router = useRouter()
+  // Keep parent and student information scoped to this school's checkout.
+  const checkoutDetailsStorageKey = `${CCIC_SCHOOL_CHECKOUT_STORAGE_KEY}:${schoolSlug}`
   const [draft, setDraft] = useState<CcicSchoolOrderDraft | null>(null)
   const [details, setDetails] = useState<CheckoutDetails>(EMPTY_DETAILS)
   const [ready, setReady] = useState(false)
@@ -50,17 +52,17 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
         if (parsed?.schoolSlug === schoolSlug && parsed.schoolCode === schoolCode) setDraft(parsed)
       } catch {}
     }
-    const storedDetails = window.sessionStorage.getItem(CCIC_SCHOOL_CHECKOUT_STORAGE_KEY)
+    const storedDetails = window.sessionStorage.getItem(checkoutDetailsStorageKey)
     if (storedDetails) {
       try { setDetails({ ...EMPTY_DETAILS, ...JSON.parse(storedDetails) }) } catch {}
     }
     setReady(true)
-  }, [schoolCode, schoolSlug])
+  }, [schoolCode, schoolSlug, checkoutDetailsStorageKey])
 
   useEffect(() => {
     if (!ready) return
-    window.sessionStorage.setItem(CCIC_SCHOOL_CHECKOUT_STORAGE_KEY, JSON.stringify(details))
-  }, [details, ready])
+    window.sessionStorage.setItem(checkoutDetailsStorageKey, JSON.stringify(details))
+  }, [checkoutDetailsStorageKey, details, ready])
 
   const calculated = useMemo(() => draft ? calculateCcicSchoolOrder(draft) : null, [draft])
 
@@ -114,7 +116,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       const response = await fetch('/api/ccic/school-payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft, details, sourceId: tokenized.token, checkoutKey }),
+        body: JSON.stringify({ schoolSlug, draft, details, sourceId: tokenized.token, checkoutKey }),
       })
       const rawResponse = await response.text()
       let result: { error?: string; paid?: boolean; orderNumber?: string } = {}
@@ -129,7 +131,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
       if (!response.ok || !result.paid) throw new Error(result.error || `Payment could not be confirmed (HTTP ${response.status}). Please contact us before retrying.`)
       setPaidOrderNumber(result.orderNumber || '')
       window.sessionStorage.removeItem(CCIC_SCHOOL_ORDER_DRAFT_STORAGE_KEY)
-      window.sessionStorage.removeItem(CCIC_SCHOOL_CHECKOUT_STORAGE_KEY)
+      window.sessionStorage.removeItem(checkoutDetailsStorageKey)
       window.sessionStorage.removeItem(checkoutKeyStorage)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Payment could not be completed.')
@@ -276,9 +278,9 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
   if (orderingClosed) {
     return (
       <section className="ccic-school-checkout-empty">
-        <p className="ccic-eyebrow">Fundraiser complete</p>
-        <h1>School ordering is now closed</h1>
-        <p>Thank you for supporting {schoolName}. Orders for this school fundraiser are no longer being accepted.</p>
+        <p className="ccic-eyebrow">{orderingNotYetOpen ? 'Fundraiser coming soon' : 'Fundraiser complete'}</p>
+        <h1>{orderingNotYetOpen ? 'School ordering has not opened yet' : 'School ordering is now closed'}</h1>
+        <p>{orderingNotYetOpen ? `Orders for ${schoolName} will be accepted when the campaign opens.` : `Thank you for supporting ${schoolName}. Orders for this school fundraiser are no longer being accepted.`}</p>
         <a className="ccic-school-checkout-primary ccic-school-closed-link" href="/ccic">Shop CCIC Christmas Cards</a>
       </section>
     )
