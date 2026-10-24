@@ -85,6 +85,11 @@
   margin-inline: auto;
 }
 
+/* Separate optional returns/status panel from the two-column order cards. */
+.ccic-school-order-page > .ccic-school-order-layout + .ccic-admin-panel {
+  margin-top: 24px;
+}
+
 .ccic-school-order-info-column {
   display: grid;
   gap: 20px;
@@ -179,6 +184,7 @@
 }
 
 @media (max-width: 640px) {
+  .ccic-school-order-page > .ccic-school-order-layout + .ccic-admin-panel { margin-top: 18px; }
   .ccic-school-order-layout,
   .ccic-school-order-info-column { gap: 14px; }
 
