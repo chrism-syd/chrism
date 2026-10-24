@@ -31,17 +31,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/ccic/schools',
-        destination: '/ccic',
-        permanent: false,
-      },
-      {
-        source: '/schools',
-        has: [{ type: 'host', value: 'ccic.supplies' }],
-        destination: '/',
-        permanent: false,
-      },
-      {
         source: '/ccic/schools-2/:school/:path*',
         destination: '/ccic/schools/:school/:path*',
         permanent: true,
