@@ -4,6 +4,7 @@ export type CcicSchoolCampaign = {
   name: string
   active: boolean
   orderingEnabled?: boolean
+  orderingOpensAt?: string
   orderingClosesAt?: string
   deliveryBy?: string
 }
@@ -35,6 +36,10 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     code: 'ALLSAINTS26',
     name: 'All Saints',
     active: true,
+    orderingEnabled: true,
+    orderingOpensAt: '2026-11-02T00:00:00-05:00',
+    orderingClosesAt: '2026-11-13T23:59:00-05:00',
+    deliveryBy: '2026-12-01',
   },
   {
     slug: 'st-br-andre',
@@ -97,5 +102,7 @@ export function formatCcicSchoolCampaignDate(value?: string) {
 
 /** A published demonstration URL is not an open school campaign. */
 export function isCcicSchoolOrderingEnabled(school: CcicSchoolCampaign, now = new Date()) {
-  return school.orderingEnabled === true && isCcicSchoolCampaignOpen(school, now)
+  return school.orderingEnabled === true &&
+    (!school.orderingOpensAt || now.getTime() >= new Date(school.orderingOpensAt).getTime()) &&
+    isCcicSchoolCampaignOpen(school, now)
 }
