@@ -51,14 +51,13 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
       <div className="ccic-school-remittance-heading"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={70} height={70} /><div><h1>School fundraiser payment summary</h1><p>Celebrate Christ in Christmas · CCIC</p></div></div>
       <h2>{selected.name}</h2>
       <p><strong>Campaign closing date:</strong> {selected.orderingClosesAt ? new Intl.DateTimeFormat('en-CA', { dateStyle: 'long', timeZone: 'America/Toronto' }).format(new Date(selected.orderingClosesAt)) : 'Not specified'}</p>
-      <p>School earnings are calculated from paid purchases, excluding boxes recorded as returned.</p>
+      <p>School earnings are calculated from paid purchases, excluding boxes recorded as returned. Each purchase may include more than one box.</p>
       <table className="ccic-admin-table"><tbody>
         <tr><th scope="row">Number of purchases</th><td>{sorted.length}</td></tr>
         <tr><th scope="row">Christmas card boxes sold</th><td>{labels.length}</td></tr>
         <tr><th scope="row">School earnings per box</th><td>{formatChristmasCardMoney(450)}</td></tr>
         <tr className="ccic-school-remittance-total"><th scope="row">Total payable to school</th><td>{formatChristmasCardMoney(schoolShareCents)}</td></tr>
       </tbody></table>
-      <p className="ccic-school-remittance-note">Each purchase may include more than one box. Box totals exclude recorded returns.</p>
       <p className="ccic-school-remittance-note">Payment by cheque enclosed separately. This summary records the calculated fundraiser amount, not confirmation that a cheque has been issued or cleared.</p>
     </section>
   </main>
