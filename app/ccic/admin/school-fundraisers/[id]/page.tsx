@@ -225,9 +225,6 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
         </section>
       )}
 
-      {order.status_code === 'paid' && !returnsEnabled && (
-        <section className="ccic-admin-panel"><p>School-order return controls are temporarily disabled during rollout.</p></section>
-      )}
       {order.status_code === 'paid' && returnsEnabled && !canReturn && (
         <section className="ccic-admin-panel"><p className="ccic-admin-error">This order's inventory state needs reconciliation before returns can be processed.</p></section>
       )}
