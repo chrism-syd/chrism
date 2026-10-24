@@ -342,7 +342,7 @@ export default function SchoolCheckoutForm({ schoolSlug, schoolCode, schoolName,
 
         <p>
           Your Christmas cards will be delivered to {schoolName} for
-          distribution{deliveryByLabel ? ` by ${deliveryByLabel}` : ''}.
+          distribution{deliveryByLabel ? <> by <span style={{ whiteSpace: 'nowrap' }}>{deliveryByLabel.replace(/ /g, '\u00a0')}</span></> : null}.
         </p>
 
         <p>
