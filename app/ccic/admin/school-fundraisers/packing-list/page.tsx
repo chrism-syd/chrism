@@ -53,7 +53,7 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
       <p><strong>Campaign closing date:</strong> {selected.orderingClosesAt ? new Intl.DateTimeFormat('en-CA', { dateStyle: 'long', timeZone: 'America/Toronto' }).format(new Date(selected.orderingClosesAt)) : 'Not specified'}</p>
       <p>School fundraiser proceeds based on paid orders and boxes remaining after recorded returns.</p>
       <table className="ccic-admin-table"><tbody>
-        <tr><th scope="row">Paid parent orders</th><td>{sorted.length}</td></tr>
+        <tr><th scope="row">Paid school orders</th><td>{sorted.length}</td></tr>
         <tr><th scope="row">Total boxes</th><td>{labels.length}</td></tr>
         <tr><th scope="row">School contribution per box</th><td>{formatChristmasCardMoney(450)}</td></tr>
         <tr className="ccic-school-remittance-total"><th scope="row">Total payable to school</th><td>{formatChristmasCardMoney(schoolShareCents)}</td></tr>
