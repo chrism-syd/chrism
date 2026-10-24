@@ -90,6 +90,12 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
   const requestKey = randomUUID()
 
 
+  const totalLabel = order.square_environment === 'sandbox'
+    ? 'Test order total'
+    : order.status_code === 'paid'
+      ? 'Total paid'
+      : 'Order total'
+
   const displayStatus = order.square_environment === 'sandbox'
     ? 'Sandbox test order'
     : hasPartialReturn
@@ -149,7 +155,7 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
             </table>
           </div>
           <div className="ccic-school-order-totals">
-            <p><strong>Total paid:</strong> {formatChristmasCardMoney(order.total_cents)}</p>
+            <p><strong>{totalLabel}:</strong> {formatChristmasCardMoney(order.total_cents)}</p>
             <p><strong>School contribution:</strong> {formatChristmasCardMoney(estimatedShareCents)}</p>
             {returnedBoxes > 0 && <p><strong>Remaining order value:</strong> {formatChristmasCardMoney(remainingValueCents)}</p>}
           </div>
