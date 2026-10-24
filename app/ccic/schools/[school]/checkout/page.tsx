@@ -17,6 +17,7 @@ export default async function SchoolCheckoutPage({ params }: PageProps) {
   if (!school) notFound()
   const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
   const demonstrationOnly = school.orderingEnabled !== true
+  const orderingNotYetOpen = Boolean(school.orderingOpensAt && Date.now() < new Date(school.orderingOpensAt).getTime())
   const square = getCcicSquareConfig(getCcicSchoolSquareEnvironment(school.slug))
   const squareApplicationId = square?.applicationId || ''
   const squareLocationId = square?.locationId || ''
@@ -31,7 +32,7 @@ export default async function SchoolCheckoutPage({ params }: PageProps) {
         </div>
         <span aria-hidden="true" className="ccic-header-spacer" />
       </div></header>
-      <SchoolCheckoutForm schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={!isCcicSchoolOrderingEnabled(school)} demonstrationOnly={demonstrationOnly} deliveryByLabel={deliveryByLabel} squareApplicationId={squareApplicationId} squareLocationId={squareLocationId} squareEnvironment={squareEnvironment} />
+      <SchoolCheckoutForm key={school.slug} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={!isCcicSchoolOrderingEnabled(school)} orderingNotYetOpen={orderingNotYetOpen} demonstrationOnly={demonstrationOnly} deliveryByLabel={deliveryByLabel} squareApplicationId={squareApplicationId} squareLocationId={squareLocationId} squareEnvironment={squareEnvironment} />
     </main>
   )
 }
