@@ -45,6 +45,7 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
   const mixedAvailability = orderingClosed ? [] : await getCcicMixedBoxAvailability()
   const beforeOpening = Boolean(school.orderingOpensAt && Date.now() < new Date(school.orderingOpensAt).getTime())
   const demonstrationOnly = school.orderingEnabled !== true
+  const upcomingPreview = beforeOpening && school.orderingEnabled === true && !previewAuthorized
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
   const opensOnLabel = formatCcicSchoolCampaignDate(school.orderingOpensAt)
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
@@ -82,20 +83,25 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
         </div>
       </section> : null}
 
-      {demonstrationOnly ? (
+      {demonstrationOnly || upcomingPreview ? (
         <div role="status" style={{ margin: '24px auto', padding: '20px', maxWidth: 960, background: '#fff4db', border: '2px solid #a96d15', borderRadius: 8, color: '#463000', textAlign: 'center' }}>
-          <strong>School program preview only</strong>
-          <p style={{ margin: '8px 0 0' }}>This school has not yet opened its fundraiser. Browse the collections below to see what the program offers. Orders and payments are not being accepted.</p>
+          <strong>{upcomingPreview ? `${school.name} fundraiser — ordering opens soon` : 'School program preview only'}</strong>
+          <p style={{ margin: '8px 0 0' }}>
+            {upcomingPreview
+              ? 'Browse the Christmas card collections below. Ordering and payments are not being accepted yet.'
+              : 'This school has not yet opened its fundraiser. Browse the collections below to see what the program offers. Orders and payments are not being accepted.'}
+          </p>
+          {upcomingPreview && opensOnLabel && orderByLabel && deliveryByLabel ? (
+            <div className="ccic-school-intro-dates" aria-label={`${school.name} fundraiser dates`} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'clamp(6px, 2vw, 16px)', width: 'min(680px, 100%)', margin: '20px auto 0' }}>
+              <div style={{ minWidth: 0, padding: '12px 6px' }}><span>Opens</span><strong style={{ fontSize: 'clamp(13px, 2.6vw, 17px)' }}>{opensOnLabel}</strong></div>
+              <div style={{ minWidth: 0, padding: '12px 6px' }}><span>Order by</span><strong style={{ fontSize: 'clamp(13px, 2.6vw, 17px)' }}>{orderByLabel}</strong></div>
+              <div style={{ minWidth: 0, padding: '12px 6px' }}><span>Delivery by</span><strong style={{ fontSize: 'clamp(13px, 2.6vw, 17px)' }}>{deliveryByLabel}</strong></div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {beforeOpening && school.orderingEnabled === true ? (
-        <section className="ccic-school-campaign-closed" role="status">
-          <h2>Ordering opens {opensOnLabel}</h2>
-          <p>{school.name} Christmas card ordering begins {opensOnLabel}{orderByLabel ? ` and closes ${orderByLabel}` : ''}.</p>
-          {deliveryByLabel ? <p>Cards will be delivered through the school by {deliveryByLabel}.</p> : null}
-        </section>
-      ) : orderingClosed && !demonstrationOnly ? (
+      {orderingClosed && !demonstrationOnly && !upcomingPreview ? (
         <section className="ccic-school-campaign-closed" role="status">
           {previewAuthorized ? <p><strong>Admin preview: this campaign is still accepting orders.</strong></p> : null}
           <h2>Thank you for your support!</h2>
