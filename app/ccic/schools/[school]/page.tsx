@@ -46,6 +46,7 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
   const beforeOpening = Boolean(school.orderingOpensAt && Date.now() < new Date(school.orderingOpensAt).getTime())
   const demonstrationOnly = school.orderingEnabled !== true
   const schoolName = <span style={{ whiteSpace: school.name.length > 27 ? 'normal' : 'nowrap' }}>{school.name}</span>
+  const opensOnLabel = formatCcicSchoolCampaignDate(school.orderingOpensAt)
   const orderByLabel = formatCcicSchoolCampaignDate(school.orderingClosesAt)
   const deliveryByLabel = formatCcicSchoolCampaignDate(school.deliveryBy)
 
@@ -90,9 +91,9 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
 
       {beforeOpening && school.orderingEnabled === true ? (
         <section className="ccic-school-campaign-closed" role="status">
-          <h2>Ordering opens November 2</h2>
-          <p>All Saints Christmas card ordering begins November 2 and closes November 13.</p>
-          <p>Cards will be delivered through the school by December 1.</p>
+          <h2>Ordering opens {opensOnLabel}</h2>
+          <p>{school.name} Christmas card ordering begins {opensOnLabel}{orderByLabel ? ` and closes ${orderByLabel}` : ''}.</p>
+          {deliveryByLabel ? <p>Cards will be delivered through the school by {deliveryByLabel}.</p> : null}
         </section>
       ) : orderingClosed && !demonstrationOnly ? (
         <section className="ccic-school-campaign-closed" role="status">
@@ -104,7 +105,7 @@ export default async function CcicSchoolMixedCampaignPage({ params, searchParams
           <p>Please contact your school to inquire about additional availability. A limited number of boxes may still be available after the campaign closes.</p>
         </section>
       ) : (
-        <SchoolMixedStorefront mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
+        <SchoolMixedStorefront key={school.slug} mixedBoxes={CHRISTMAS_CARD_MIXED_BOXES} boxes={CHRISTMAS_CARD_BOXES} availability={mixedAvailability} schoolSlug={school.slug} schoolCode={school.code} schoolName={school.name} orderingClosed={orderingClosed} demonstrationOnly={demonstrationOnly} />
       )}
 
       <section className="ccic-support-banner" aria-label="School fundraising message">
