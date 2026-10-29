@@ -3,6 +3,7 @@ import AppHeader from '@/app/app-header';
 import { getCurrentActingCouncilContext } from '@/lib/auth/acting-context';
 import { restoreMemberAction } from '../actions';
 import { decryptPeopleRecords } from '@/lib/security/pii';
+import { mergeArchivedEntries, type EndedAssignment } from '@/lib/members/archived-entries';
 
 type ArchivedMemberRecordRow = {
   id: string;
@@ -85,14 +86,19 @@ export default async function ArchivedMembersPage({
         .from('member_records')
         .select('id, legacy_people_id, preferred_display_name, archived_at, lifecycle_state')
         .eq('local_unit_id', localUnitId)
-        .eq('lifecycle_state', 'archived')
-        .not('archived_at', 'is', null)
         .returns<ArchivedMemberRecordRow[]>()
     : { data: [] as ArchivedMemberRecordRow[], error: null };
 
-  const error = archivedMemberRecordsResult.error ?? null;
-  const archivedMemberRecords = (archivedMemberRecordsResult.data ?? []).sort((left, right) =>
-    new Date(right.archived_at ?? 0).getTime() - new Date(left.archived_at ?? 0).getTime()
+  const endedAssignmentsResult = localUnitId
+    ? await supabase.from('local_unit_people')
+        .select('id, person_id, ended_at')
+        .eq('local_unit_id', localUnitId)
+        .returns<EndedAssignment[]>()
+    : { data: [] as EndedAssignment[], error: null };
+
+  const error = archivedMemberRecordsResult.error ?? endedAssignmentsResult.error ?? null;
+  const archivedMemberRecords = mergeArchivedEntries(
+    archivedMemberRecordsResult.data ?? [], endedAssignmentsResult.data ?? []
   );
 
   const archivedPersonIds = [
@@ -112,6 +118,7 @@ export default async function ArchivedMembersPage({
           .in('id', archivedPersonIds)
           .returns<ArchivedPersonRow[]>();
 
+  const displayError = error ?? archivedPeopleResult.error;
   const archivedPeople = decryptPeopleRecords(archivedPeopleResult.data ?? []);
   const archivedPeopleById = new Map(archivedPeople.map((person) => [person.id, person]));
   const archivedEntries = archivedMemberRecords
@@ -151,8 +158,8 @@ export default async function ArchivedMembersPage({
           <section className="qv-card qv-error">{errorMessage}</section>
         ) : null}
 
-        {error ? (
-          <section className="qv-card qv-error">Could not load archived people. {error.message}</section>
+        {displayError ? (
+          <section className="qv-card qv-error">Could not load archived people. {displayError.message}</section>
         ) : archivedEntries.length === 0 ? (
           <section className="qv-card qv-empty">
             <h2 className="qv-empty-title">No archived people</h2>

@@ -1,3 +1,4 @@
+import { activeDirectoryPersonIds } from '@/lib/members/directory-assignments'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CurrentUserPermissions } from '@/lib/auth/permissions'
 import { hasAreaAccess, listAccessibleLocalUnitsForArea } from '@/lib/auth/area-access'
@@ -100,9 +101,8 @@ async function resolveScopedDirectoryPersonIdsForLocalUnit(args: {
       .is('archived_at', null),
     admin
       .from('local_unit_people')
-      .select('person_id')
-      .eq('local_unit_id', localUnitId)
-      .is('ended_at', null),
+      .select('person_id, ended_at')
+      .eq('local_unit_id', localUnitId),
   ])
 
   if (memberRecordError) {
@@ -113,23 +113,14 @@ async function resolveScopedDirectoryPersonIdsForLocalUnit(args: {
     throw new Error(`Could not load local-unit people: ${scopedError.message}`)
   }
 
-  const legacyPersonIds = [
-    ...new Set(
-      ((memberRecordRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
-        .map((row) => row.legacy_people_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ]
-
-  const scopedPersonIds = [
-    ...new Set(
-      ((scopedRows as Array<{ person_id: string | null }> | null) ?? [])
-        .map((row) => row.person_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ]
-
-  const candidateIds = [...new Set([...legacyPersonIds, ...scopedPersonIds])]
+  const assignments = (scopedRows as Array<{ person_id: string | null; ended_at: string | null }> | null) ?? []
+  const legacyCandidates = ((memberRecordRows as Array<{ legacy_people_id: string | null }> | null) ?? [])
+    .map((row) => row.legacy_people_id)
+  const candidateIds = activeDirectoryPersonIds(legacyCandidates, assignments)
+  const candidateSet = new Set(candidateIds)
+  const legacyPersonIds = [...new Set(legacyCandidates
+    .filter((id): id is string => id !== null && candidateSet.has(id)))]
+  const scopedPersonIds = activeDirectoryPersonIds([], assignments)
   if (candidateIds.length === 0) {
     return [] as string[]
   }

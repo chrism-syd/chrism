@@ -220,6 +220,8 @@ export async function createMemberAction(
     );
   }
 
+  // Preserve the automatic supporting records used by account claims and other
+  // features. Archive/restore also supports older assignment-only people.
   const { data: memberRecordId, error: memberRecordError } = await supabase.rpc(
     'ensure_member_record_for_person_local_unit',
     {
@@ -234,7 +236,6 @@ export async function createMemberAction(
       .delete()
       .eq('id', insertedPerson.id)
       .eq('primary_relationship_code', relationshipCode);
-
     return memberFormErrorState(
       values,
       `We saved the person record, but could not link this person to the active local organization. ${memberRecordError?.message ?? 'Please try again.'}`

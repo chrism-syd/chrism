@@ -1,3 +1,4 @@
+import { activeDirectoryPersonIds } from './directory-assignments'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   summarizeCurrentOfficerLabels,
@@ -131,6 +132,7 @@ function localUnitPeopleDirectoryFrom<TData = unknown>(admin: ReturnType<typeof 
 }
 
 type LocalUnitPersonDirectoryRow = {
+  ended_at: string | null
   person_id: string | null
 }
 
@@ -149,19 +151,17 @@ export async function loadLocalUnitMemberDirectoryData(args: {
       .eq('local_unit_id', localUnitId)
       .is('archived_at', null),
     localUnitPeopleDirectoryFrom<LocalUnitPersonDirectoryRow[]>(admin, 'local_unit_people')
-      .select('person_id')
-      .eq('local_unit_id', localUnitId)
-      .is('ended_at', null),
+      .select('person_id, ended_at')
+      .eq('local_unit_id', localUnitId),
   ])
 
   if (membershipError) throw new Error(`Could not load local-unit member records. ${membershipError.message}`)
   if (localUnitPeopleError) throw new Error(`Could not load local-unit people. ${localUnitPeopleError.message}`)
 
   const membershipRows = ((membershipData as Array<{ legacy_people_id: string | null; preferred_display_name: string | null }> | null) ?? [])
-  const localUnitPeopleRows = ((localUnitPeopleData as Array<{ person_id: string | null }> | null) ?? [])
+  const localUnitPeopleRows = ((localUnitPeopleData as LocalUnitPersonDirectoryRow[] | null) ?? [])
   const memberRecordPersonIds = membershipRows.map((row) => row.legacy_people_id).filter((value): value is string => Boolean(value))
-  const localUnitPersonIds = localUnitPeopleRows.map((row) => row.person_id).filter((value): value is string => Boolean(value))
-  const personIds = [...new Set([...memberRecordPersonIds, ...localUnitPersonIds])]
+  const personIds = activeDirectoryPersonIds(memberRecordPersonIds, localUnitPeopleRows)
 
   if (personIds.length === 0) {
     return buildDirectoryData({ people: [], officerTerms: [] })
