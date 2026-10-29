@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { parseCsv } from '@/lib/imports/csv';
 import { useMemo, useState, useTransition, type ChangeEvent } from 'react';
 import { applySupremeImportAction } from './actions';
 import {
@@ -54,47 +56,12 @@ type ReviewRow = {
   hasConflict: boolean;
 };
 
-function parseCsvLine(line: string) {
-  const cells: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-    const nextCharacter = line[index + 1];
-
-    if (character === '"') {
-      if (inQuotes && nextCharacter === '"') {
-        current += '"';
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (character === ',' && !inQuotes) {
-      cells.push(current);
-      current = '';
-      continue;
-    }
-
-    current += character;
-  }
-
-  cells.push(current);
-  return cells;
-}
-
 async function readSpreadsheetRows(file: File) {
   const lowerName = file.name.toLowerCase();
 
   if (lowerName.endsWith('.csv')) {
     const text = await file.text();
-    return text
-      .split(/\r?\n/)
-      .filter((line) => line.trim() !== '')
-      .map((line) => parseCsvLine(line));
+    return parseCsv(text);
   }
 
   const readXlsxFile = (await import('read-excel-file')).default;
@@ -155,10 +122,10 @@ function matchLabel(reviewRow: ReviewRow) {
     case 'name_birth_date':
       return 'Matched by name + birth date';
     case 'name_only':
-      return 'Matched by name only';
+      return 'Possible match — compare in Reviews';
     case 'new_member':
     default:
-      return 'New member candidate';
+      return 'New person candidate';
   }
 }
 
@@ -266,7 +233,7 @@ export default function SupremeImportWorkbench({
         importValues,
         differingFields,
         councilMatches:
-          !expectedCouncilNumber ||
+          !expectedCouncilNumber || !row.councilNumber ||
           normalizeLookupValue(row.councilNumber) === normalizeLookupValue(expectedCouncilNumber),
         hasConflict: match.hasConflict,
       };
@@ -278,7 +245,7 @@ export default function SupremeImportWorkbench({
     [reviewRows]
   );
 
-  const actionableRows = reviewRows.filter((reviewRow) => reviewRow.councilMatches && !reviewRow.hasConflict);
+  const actionableRows = reviewRows.filter((reviewRow) => reviewRow.councilMatches);
   const matchedRows = reviewRows.filter((reviewRow) => reviewRow.existingPerson);
   const conversionRows = reviewRows.filter(
     (reviewRow) =>
@@ -404,6 +371,9 @@ export default function SupremeImportWorkbench({
           rowId: reviewRow.row.rowId,
           sourceRowNumber: reviewRow.row.sourceRowNumber,
           councilNumber: reviewRow.row.councilNumber,
+          homePhone: reviewRow.row.homePhone,
+          otherPhone: reviewRow.row.otherPhone,
+          sourceNotes: reviewRow.row.sourceNotes,
           existingPersonId: reviewRow.existingPerson?.id ?? null,
           importMode: decision.importMode,
           fieldValues,
@@ -419,7 +389,7 @@ export default function SupremeImportWorkbench({
       }>;
 
     if (payloadRows.length === 0) {
-      setErrorMessage('Nothing is selected to apply.');
+      setErrorMessage('Nothing is selected to send to Reviews.');
       return;
     }
 
@@ -427,7 +397,7 @@ export default function SupremeImportWorkbench({
       try {
         const result = await applySupremeImportAction({ rows: payloadRows });
         setSuccessMessage(
-          `Applied ${result.appliedCount} roster rows. Updated ${result.updatedCount}, created ${result.createdCount}.`
+          `Sent ${result.queuedCount} records to People Reviews. No people were created or changed. Repeated identical submissions reuse the same review.`
         );
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Import failed.');
@@ -437,11 +407,12 @@ export default function SupremeImportWorkbench({
 
   return (
     <section className="qv-card">
+      <p><Link href="/people/reviews">Open People Reviews</Link> — uploaded rows wait there for an administrator’s decision before changing People records.</p>
       <div className="qv-directory-section-head">
         <div>
           <h2 className="qv-section-title">Import workbench</h2>
           <p className="qv-section-subtitle">
-            Step 1: upload the roster. Step 2: confirm each mapped field. Step 3: review the member updates before you apply them.
+            Step 1: upload the roster. Step 2: confirm each mapped field. Step 3: send records to People Reviews for a final decision.
           </p>
         </div>
       </div>
@@ -603,7 +574,7 @@ export default function SupremeImportWorkbench({
             </div>
             <div className="qv-stat-card">
               <div className="qv-stat-number">{newRows.length}</div>
-              <div className="qv-stat-label">New member candidates</div>
+              <div className="qv-stat-label">New person candidates</div>
             </div>
             <div className="qv-stat-card">
               <div className="qv-stat-number">{conversionRows.length}</div>
@@ -624,15 +595,15 @@ export default function SupremeImportWorkbench({
               type="button"
               className="qv-button-primary"
               onClick={handleApplyImport}
-              disabled={isPending || duplicateConflictRows.length > 0}
+              disabled={isPending || actionableRows.length === 0}
             >
-              {isPending ? 'Applying import…' : 'Apply confirmed import'}
+              {isPending ? 'Sending to Reviews…' : 'Send confirmed rows to People Reviews'}
             </button>
           </div>
 
           {duplicateConflictRows.length > 0 ? (
             <div className="qv-form-alert" style={{ marginTop: 16 }}>
-              One or more rows matched multiple people on file. Those rows stay locked until the duplicate is resolved in the member directory.
+              One or more rows matched multiple people on file. Send them to People Reviews to compare the candidates and decide what to keep.
             </div>
           ) : null}
 
@@ -644,8 +615,8 @@ export default function SupremeImportWorkbench({
                 ? reviewRow.existingPerson.primary_relationship_code === 'member'
                   ? 'Existing member'
                   : `Existing ${reviewRow.existingPerson.primary_relationship_code}`
-                : 'New member';
-              const rowLocked = reviewRow.hasConflict || !reviewRow.councilMatches;
+                : 'New person';
+              const rowLocked = !reviewRow.councilMatches;
               const visibleSections = IMPORT_FIELD_SECTIONS.map((section) => ({
                 ...section,
                 fields: getVisibleFieldsForRow(reviewRow, section.key),
@@ -683,7 +654,7 @@ export default function SupremeImportWorkbench({
                     <div className="qv-card" style={{ padding: 16 }}>
                       <div className="qv-form-row qv-form-row-2">
                         <label className="qv-control">
-                          <span className="qv-label">Apply mode</span>
+                          <span className="qv-label">Review submission</span>
                           <select
                             value={rowLocked ? 'skip' : decision.importMode}
                             onChange={(event) => {
@@ -696,9 +667,9 @@ export default function SupremeImportWorkbench({
                             disabled={rowLocked}
                           >
                             {reviewRow.existingPerson ? (
-                              <option value="update_existing">Update existing record</option>
+                              <option value="update_existing">Send row to People Reviews</option>
                             ) : (
-                              <option value="create_new">Create new member</option>
+                              <option value="create_new">Send row to People Reviews</option>
                             )}
                             <option value="skip">Skip this row</option>
                           </select>
@@ -716,13 +687,13 @@ export default function SupremeImportWorkbench({
 
                       {reviewRow.hasConflict ? (
                         <div className="qv-form-alert" style={{ marginTop: 12 }}>
-                          More than one person on file looks like a match for this row. Resolve the duplicate in the directory first, then re-run the import.
+                          More than one person on file looks like a match. This row can be sent to People Reviews, where all current candidates will be shown.
                         </div>
                       ) : null}
 
                       {reviewRow.existingPerson && reviewRow.existingPerson.primary_relationship_code !== 'member' ? (
                         <div className="qv-form-alert" style={{ marginTop: 12 }}>
-                          This existing {reviewRow.existingPerson.primary_relationship_code} will be converted into a member if you apply the row.
+                          This existing {reviewRow.existingPerson.primary_relationship_code} will keep its category when updated in Reviews. A roster upload does not approve a category change.
                         </div>
                       ) : null}
                     </div>

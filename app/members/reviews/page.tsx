@@ -1,3 +1,6 @@
+import { loadSupremeImportExistingPeopleForLocalUnit } from '@/lib/imports/supreme-existing-people'
+import { scanExistingDuplicates } from '@/lib/people-reviews/queue'
+import PeopleIntakeQueue from '@/app/people/reviews/imports/queue-panel'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppHeader from '@/app/app-header'
@@ -116,7 +119,7 @@ function capturedPersonIdForInquiry(inquiry: PublicInquiryRow) {
 }
 
 export default async function MemberReviewsPage() {
-  const { admin, council, localUnitId } = await getCurrentActingCouncilContext({
+  const { admin, council, localUnitId, permissions } = await getCurrentActingCouncilContext({
     requireAdmin: true,
     redirectTo: '/people',
     areaCode: 'members',
@@ -125,6 +128,11 @@ export default async function MemberReviewsPage() {
 
   if (!localUnitId) {
     notFound()
+  }
+
+  if (permissions.authUser) {
+    const people=await loadSupremeImportExistingPeopleForLocalUnit({admin,localUnitId,organizationId:council.organization_id??null})
+    await scanExistingDuplicates({admin,localUnitId,actorId:permissions.authUser.id,people})
   }
 
   const [pendingReviews, recentDecisions, organizationData, publicInquiryData] = await Promise.all([
@@ -182,7 +190,7 @@ export default async function MemberReviewsPage() {
                 <h1 className="qv-directory-name">Review queue</h1>
               </div>
               <p className="qv-section-subtitle" style={{ marginTop: 10 }}>
-                Review profile changes and public web-form submissions for your local organization.
+                Review incoming records, possible duplicates, profile changes and public web-form submissions for your local organization.
               </p>
             </div>
             <div className="qv-org-avatar-wrap">
@@ -197,7 +205,7 @@ export default async function MemberReviewsPage() {
           <div className="qv-stats">
             <div className="qv-stat-card">
               <div className="qv-stat-number">{pendingReviews.length}</div>
-              <div className="qv-stat-label">Pending reviews</div>
+              <div className="qv-stat-label">Pending profile changes</div>
             </div>
             <div className="qv-stat-card">
               <div className="qv-stat-number">{publicInquiries.length}</div>
@@ -207,6 +215,8 @@ export default async function MemberReviewsPage() {
         </section>
 
         <SectionMenuBar items={[{ label: 'Review decisions archive', href: '/people/reviews/archive' }]} />
+
+        <PeopleIntakeQueue admin={admin} localUnitId={localUnitId} />
 
         <section className="qv-card">
           <div className="qv-directory-section-head">

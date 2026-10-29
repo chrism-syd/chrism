@@ -177,6 +177,11 @@ function hashColumnName(field: HashableField) {
   return `${field}_hash`
 }
 
+// Preserve arbitrary review snapshots exactly, using the same authenticated PII encryption.
+export function encryptReviewSnapshot(value: string) {
+  return encryptString(value)
+}
+
 export function decryptOptionalValue(value: string | null | undefined) {
   if (!value) {
     return null

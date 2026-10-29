@@ -50,7 +50,7 @@ export default async function SupremeImportPage() {
           <p className="qv-eyebrow">Imports</p>
           <h1 className="qv-title">Supreme member sync</h1>
           <p className="qv-subtitle">
-            Upload the Supreme roster, confirm the column mapping, then review each member update before anything is written.
+            Upload the Supreme roster and confirm the column mapping. Submitted rows go to People Reviews for a decision before any person is created or changed.
           </p>
         </section>
 
@@ -65,9 +65,9 @@ export default async function SupremeImportPage() {
             </div>
             <div className="qv-detail-item">
               <div className="qv-detail-label">Import anchor</div>
-              <div className="qv-detail-value">Member number + council number</div>
+              <div className="qv-detail-value">All matching evidence within the active organization</div>
               <div className="qv-detail-meta">
-                Existing rows match by member number first, then by name plus birth date, then by name only.
+                All possible matches are compared using names, member numbers, email, phones and street address. Shared cities or blank fields alone do not identify a person.
               </div>
             </div>
             <div className="qv-detail-item">

@@ -20,7 +20,7 @@ export default async function NewMemberPage() {
           <h1 className="qv-title">Add person</h1>
           <p className="qv-subtitle">
             Choose whether this person should start as a member, volunteer, or prospect. Manual members stay
-            provisional until matched to an official import.
+            provisional until matched to an official import. Possible matches are sent to People Reviews before creating another profile.
           </p>
         </section>
 

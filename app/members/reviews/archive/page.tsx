@@ -1,3 +1,4 @@
+import PeopleIntakeQueue from '@/app/people/reviews/imports/queue-panel'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AppHeader from '@/app/app-header'
@@ -187,6 +188,8 @@ export default async function ReviewDecisionArchivePage() {
         </section>
 
         <SectionMenuBar items={[{ label: 'Back to review queue', href: '/people/reviews' }]} />
+
+        <PeopleIntakeQueue admin={admin} localUnitId={localUnitId} status="resolved"/>
 
         <section className="qv-card">
           <div className="qv-directory-section-head">

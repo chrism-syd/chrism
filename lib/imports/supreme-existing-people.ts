@@ -1,3 +1,4 @@
+import { activeDirectoryPersonIds } from '@/lib/members/directory-assignments';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ExistingSupremeComparablePerson } from '@/lib/imports/supreme';
 import { decryptPeopleRecords } from '@/lib/security/pii';
@@ -20,11 +21,13 @@ type PersonKofcProfileRow = {
 
 type LocalUnitPersonRow = {
   person_id: string | null;
+  ended_at: string | null;
 };
 
 type RawExistingPersonRow = {
   id: string;
   primary_relationship_code: string;
+  updated_at: string;
   council_activity_level_code: string | null;
   title: string | null;
   first_name: string;
@@ -33,7 +36,10 @@ type RawExistingPersonRow = {
   suffix: string | null;
   email: string | null;
   cell_phone: string | null;
+  home_phone: string | null;
+  other_phone: string | null;
   address_line_1: string | null;
+  address_line_2: string | null;
   city: string | null;
   state_province: string | null;
   postal_code: string | null;
@@ -60,6 +66,7 @@ function pickMembership(memberships: MembershipRow[], organizationId: string | n
     if (orgMatch) {
       return orgMatch;
     }
+    return null;
   }
 
   const primaryMembership = memberships.find((membership) => membership.is_primary_membership);
@@ -71,23 +78,13 @@ export async function loadSupremeImportExistingPeopleForLocalUnit(args: {
   localUnitId: string;
   organizationId: string | null;
 }) {
-  const { data: localUnitPeopleData, error: localUnitPeopleError } = await args.admin
-    .from('local_unit_people')
-    .select('person_id')
-    .eq('local_unit_id', args.localUnitId)
-    .is('ended_at', null);
-
-  if (localUnitPeopleError) {
-    throw new Error(`Could not load local-unit import candidates. ${localUnitPeopleError.message}`);
-  }
-
-  const personIds = [
-    ...new Set(
-      ((localUnitPeopleData as LocalUnitPersonRow[] | null) ?? [])
-        .map((row) => row.person_id)
-        .filter((value): value is string => Boolean(value))
-    ),
-  ];
+  const [links, records] = await Promise.all([
+    args.admin.from('local_unit_people').select('person_id, ended_at').eq('local_unit_id', args.localUnitId),
+    args.admin.from('member_records').select('legacy_people_id, member_number').eq('local_unit_id', args.localUnitId).is('archived_at', null),
+  ]);
+  if (links.error || records.error) throw new Error('Could not load local organization import candidates.');
+  const memberRecords = (records.data ?? []) as Array<{ legacy_people_id: string | null; member_number: string | null }>;
+  const personIds = activeDirectoryPersonIds(memberRecords.map(row => row.legacy_people_id), (links.data ?? []) as LocalUnitPersonRow[]);
 
   if (personIds.length === 0) {
     return [] as ExistingSupremeComparablePerson[];
@@ -96,7 +93,7 @@ export async function loadSupremeImportExistingPeopleForLocalUnit(args: {
   const { data: peopleData, error: peopleError } = await args.admin
     .from('people')
     .select(
-      'id, primary_relationship_code, council_activity_level_code, title, first_name, middle_name, last_name, suffix, email, cell_phone, address_line_1, city, state_province, postal_code, birth_date, organization_memberships(organization_id, membership_number, is_primary_membership), person_kofc_profiles(first_degree_date, second_degree_date, third_degree_date, years_in_service, member_type, member_class, assembly_number)'
+      'id, updated_at, primary_relationship_code, council_activity_level_code, title, first_name, middle_name, last_name, suffix, email, cell_phone, home_phone, other_phone, address_line_1, address_line_2, city, state_province, postal_code, birth_date, organization_memberships(organization_id, membership_number, is_primary_membership), person_kofc_profiles(first_degree_date, second_degree_date, third_degree_date, years_in_service, member_type, member_class, assembly_number)'
     )
     .in('id', personIds)
     .is('archived_at', null)
@@ -118,6 +115,7 @@ export async function loadSupremeImportExistingPeopleForLocalUnit(args: {
     return {
       id: person.id,
       primary_relationship_code: person.primary_relationship_code,
+      updated_at: person.updated_at,
       council_activity_level_code: person.council_activity_level_code,
       title: person.title,
       first_name: person.first_name,
@@ -126,12 +124,15 @@ export async function loadSupremeImportExistingPeopleForLocalUnit(args: {
       suffix: person.suffix,
       email: person.email,
       cell_phone: person.cell_phone,
+      home_phone: person.home_phone,
+      other_phone: person.other_phone,
       address_line_1: person.address_line_1,
+      address_line_2: person.address_line_2,
       city: person.city,
       state_province: person.state_province,
       postal_code: person.postal_code,
       birth_date: person.birth_date,
-      member_number: membership?.membership_number ?? null,
+      member_number: membership?.membership_number ?? memberRecords.find(row => row.legacy_people_id === person.id)?.member_number ?? null,
       supreme_member_type: kofcProfile?.member_type ?? null,
       supreme_member_class: kofcProfile?.member_class ?? null,
       assembly_number: kofcProfile?.assembly_number ?? null,

@@ -1,0 +1,3 @@
+create index people_intake_reviews_created_by_idx on public.people_intake_reviews(created_by_auth_user_id);
+create index people_intake_reviews_reviewed_by_idx on public.people_intake_reviews(reviewed_by_auth_user_id);
+create index people_intake_reviews_resolved_person_idx on public.people_intake_reviews(resolved_person_id);
