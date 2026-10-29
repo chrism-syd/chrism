@@ -1,4 +1,8 @@
 'use server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { loadSupremeImportExistingPeopleForLocalUnit } from '@/lib/imports/supreme-existing-people';
+import { findPersonMatches } from '@/lib/people-reviews/matching';
+import { enqueueReview, reviewPerson } from '@/lib/people-reviews/queue';
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -179,6 +183,15 @@ export async function createMemberAction(
     );
   }
 
+  const candidates = await loadSupremeImportExistingPeopleForLocalUnit({admin:supabase,localUnitId,organizationId:null});
+  const incoming = {kind:'manual' as const,values};
+  const matches = findPersonMatches(reviewPerson(incoming),candidates);
+  const reviewId = await enqueueReview({admin:supabase,localUnitId,actorId:user.id,input:incoming,candidateIds:matches.map(match => match.person.id)});
+  if (matches.length) {
+    revalidatePath('/people/reviews');
+    redirect(`/people/reviews/imports/${reviewId}`);
+  }
+
   const relationshipCode = normalizeRelationshipCode(values.primary_relationship_code);
 
   const payload = protectPeoplePayload({
@@ -207,45 +220,22 @@ export async function createMemberAction(
     updated_by_auth_user_id: user.id,
   });
 
-  const { data: insertedPerson, error: insertError } = await supabase
-    .from('people')
-    .insert(payload)
-    .select('id')
-    .maybeSingle<{ id: string }>();
-
-  if (insertError || !insertedPerson?.id) {
-    return memberFormErrorState(
-      values,
-      friendlyPeopleConstraintMessage(insertError?.message ?? 'We could not save this person right now.')
-    );
+  const { data: creation, error: creationError } = await (supabase as unknown as SupabaseClient).rpc('resolve_people_intake_review', {
+    p_review_id:reviewId,p_local_unit_id:localUnitId,p_actor_user_id:user.id,p_decision:'create',
+    p_person_patch:payload,p_rpc_args:{_expected_candidate_ids:[]},
+  });
+  if (creationError) {
+    redirect(`/people/reviews/imports/${reviewId}?error=${encodeURIComponent(creationError.message)}`);
   }
-
-  const { data: memberRecordId, error: memberRecordError } = await supabase.rpc(
-    'ensure_member_record_for_person_local_unit',
-    {
-      p_local_unit_id: localUnitId,
-      p_person_id: insertedPerson.id,
-    }
-  );
-
-  if (memberRecordError || !memberRecordId) {
-    await supabase
-      .from('people')
-      .delete()
-      .eq('id', insertedPerson.id)
-      .eq('primary_relationship_code', relationshipCode);
-
-    return memberFormErrorState(
-      values,
-      `We saved the person record, but could not link this person to the active local organization. ${memberRecordError?.message ?? 'Please try again.'}`
-    );
-  }
+  const createdId = (creation as {person_id?:string|null}|null)?.person_id;
+  if (!createdId) redirect(`/people/reviews/imports/${reviewId}`);
 
   revalidatePath('/');
   revalidatePath('/people');
   revalidatePath('/people/archive');
   revalidatePath('/custom-lists');
-  redirect(`/people/${insertedPerson.id}`);
+  revalidatePath('/people/reviews/archive');
+  redirect(`/people/${createdId}`);
 }
 
 export async function updateMemberAction(

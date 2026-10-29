@@ -1,3 +1,4 @@
+import { findPersonMatches } from '@/lib/people-reviews/matching'
 import {
   normalizeSupremeImportTextField,
 } from '@/lib/imports/supreme-text-normalization'
@@ -28,6 +29,7 @@ export type ImportFieldKey =
   | 'third_degree_date'
 
 export type SpreadsheetFieldKey =
+  | 'source_notes'
   | 'ignore'
   | 'council_number'
   | ImportFieldKey
@@ -67,6 +69,7 @@ export type SpreadsheetColumnDefinition = {
 export type ExistingSupremeComparablePerson = {
   id: string
   primary_relationship_code: string
+  updated_at?: string | null
   council_activity_level_code: string | null
   title: string | null
   first_name: string
@@ -75,7 +78,10 @@ export type ExistingSupremeComparablePerson = {
   suffix: string | null
   email: string | null
   cell_phone: string | null
+  home_phone?: string | null
+  other_phone?: string | null
   address_line_1: string | null
+  address_line_2?: string | null
   city: string | null
   state_province: string | null
   postal_code: string | null
@@ -102,6 +108,7 @@ export type SupremeImportRow = {
   suffix: string | null
   email: string | null
   cellPhone: string | null
+  sourceNotes?: string | null
   homePhone: string | null
   otherPhone: string | null
   streetAddress: string | null
@@ -169,8 +176,9 @@ export const IMPORT_FIELD_DEFINITIONS: ImportFieldDefinition[] = [
 
 export const SPREADSHEET_FIELD_OPTIONS: SpreadsheetFieldOption[] = [
   { key: 'ignore', label: 'Not mapped' },
-  { key: 'council_number', label: 'Council number', required: true, section: 'kofc', kofcOnly: true },
-  { key: 'member_number', label: 'Member number', required: true, section: 'membership', kofcOnly: true },
+  { key: 'source_notes', label: 'Original notes (preserved for review)', section: 'core' },
+  { key: 'council_number', label: 'Council number', section: 'kofc', kofcOnly: true },
+  { key: 'member_number', label: 'Member number', section: 'membership', kofcOnly: true },
   { key: 'title', label: 'Prefix / title', section: 'core' },
   { key: 'first_name', label: 'First name', required: true, section: 'core' },
   { key: 'middle_name', label: 'Middle name', section: 'core' },
@@ -205,13 +213,14 @@ export const SPREADSHEET_FIELD_OPTIONS: SpreadsheetFieldOption[] = [
 ]
 
 const REQUIRED_SPREADSHEET_FIELDS: SpreadsheetFieldKey[] = [
-  'council_number',
-  'member_number',
   'first_name',
   'last_name',
 ]
 
 const HEADER_ALIASES: Partial<Record<string, SpreadsheetFieldKey>> = {
+  notes: 'source_notes',
+  note: 'source_notes',
+  comments: 'source_notes',
   council_number: 'council_number',
   council_no: 'council_number',
   council: 'council_number',
@@ -363,7 +372,8 @@ export function normalizeHeader(value: string) {
 export function extractSpreadsheetColumns(rows: unknown[][]) {
   const headerIndex = rows.findIndex((row) => {
     const normalized = row.map((cell) => normalizeHeader(String(cell ?? '')))
-    return normalized.includes('member_number') && normalized.includes('council_number')
+    const keys=normalized.map(inferFieldKeyFromHeader)
+    return keys.includes('first_name') && keys.includes('last_name')
   })
 
   if (headerIndex < 0) {
@@ -442,9 +452,9 @@ export function mapSpreadsheetRowsToSupremeRows(
       const get = (field: SpreadsheetFieldKey) => readMappedCell(row, mappingEntries, field)
       const firstName = normalizeWhitespace(String(get('first_name') ?? ''))
       const lastName = normalizeWhitespace(String(get('last_name') ?? ''))
-      const memberNumber = normalizeMemberNumber(String(get('member_number') ?? ''))
+      const memberNumber = normalizeMemberNumber(String(get('member_number') ?? '')) ?? ''
 
-      if (!firstName || !lastName || !memberNumber) {
+      if (!firstName || !lastName) {
         return null
       }
 
@@ -460,6 +470,7 @@ export function mapSpreadsheetRowsToSupremeRows(
         suffix: normalizeSupremeImportTextField('suffix', String(get('suffix') ?? '')),
         email: normalizeSupremeImportTextField('email', String(get('email') ?? '')),
         cellPhone: normalizeWhitespace(String(get('cell_phone') ?? '')) || null,
+        sourceNotes: String(get('source_notes')??'').trim() || null,
         homePhone: normalizeWhitespace(String(get('home_phone') ?? '')) || null,
         otherPhone: normalizeWhitespace(String(get('other_phone') ?? '')) || null,
         streetAddress: normalizeSupremeImportTextField('address_line_1', String(get('address_line_1') ?? '')),
@@ -590,69 +601,23 @@ export function buildExistingMemberMatchIndexes(existingMembers: ExistingSupreme
     }
   }
 
-  return { byMemberNumber, byNameBirthDate, byNameOnly }
+  return { byMemberNumber, byNameBirthDate, byNameOnly, people: existingMembers }
 }
 
 export function matchImportedRowToExisting(
   row: SupremeImportRow,
   indexes: ReturnType<typeof buildExistingMemberMatchIndexes>
 ) {
-  const normalizedMemberNumber = normalizeMemberNumber(row.memberNumber)
-  const memberNumberMatches = normalizedMemberNumber
-    ? indexes.byMemberNumber.get(normalizedMemberNumber) ?? []
-    : []
-
-  if (memberNumberMatches.length === 1) {
-    return {
-      person: memberNumberMatches[0] ?? null,
-      matchReason: 'member_number' as const,
-      hasConflict: false,
-    }
-  }
-
-  if (memberNumberMatches.length > 1) {
-    return {
-      person: null,
-      matchReason: 'member_number' as const,
-      hasConflict: true,
-    }
-  }
-
-  const nameOnlyKey = [row.firstName, row.middleName, row.lastName]
-    .map((part) => normalizeLookupValue(part))
-    .join('|')
-
-  if (row.birthDate) {
-    const byNameBirthDate = indexes.byNameBirthDate.get(`${nameOnlyKey}|${row.birthDate}`) ?? []
-    if (byNameBirthDate.length === 1) {
-      return {
-        person: byNameBirthDate[0] ?? null,
-        matchReason: 'name_birth_date' as const,
-        hasConflict: false,
-      }
-    }
-
-    if (byNameBirthDate.length > 1) {
-      return {
-        person: null,
-        matchReason: 'name_birth_date' as const,
-        hasConflict: true,
-      }
-    }
-  }
-
-  const byNameOnly = indexes.byNameOnly.get(nameOnlyKey) ?? []
-  if (byNameOnly.length === 1) {
-    return {
-      person: byNameOnly[0] ?? null,
-      matchReason: 'name_only' as const,
-      hasConflict: false,
-    }
-  }
-
+  const matches = findPersonMatches({ id:'incoming', first_name:row.firstName, middle_name:row.middleName,
+    last_name:row.lastName,member_number:row.memberNumber,email:row.email,cell_phone:row.cellPhone,
+    home_phone:row.homePhone,other_phone:row.otherPhone,address_line_1:row.streetAddress,city:row.city,
+    postal_code:row.postalCode,birth_date:row.birthDate },indexes.people)
+  const unique = matches.length === 1 ? matches[0] : null
   return {
-    person: null,
-    matchReason: 'new_member' as const,
-    hasConflict: memberNumberMatches.length > 1 || byNameOnly.length > 1,
+    person: unique?.person ?? null,
+    matchReason: unique?.fields.includes('member_number') ? 'member_number' as const
+      : unique?.fields.includes('name') && unique.fields.includes('birth_date') ? 'name_birth_date' as const
+      : unique ? 'name_only' as const : 'new_member' as const,
+    hasConflict: matches.length > 1,
   }
 }
