@@ -24,6 +24,7 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     code: 'STEDWARD26',
     name: 'St. Edward',
     active: true,
+    orderingEnabled: true,
   },
   {
     slug: 'st-patrick',
