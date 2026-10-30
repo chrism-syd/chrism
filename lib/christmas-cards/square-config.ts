@@ -4,7 +4,7 @@ export type CcicSquareEnvironment = 'sandbox' | 'production'
 
 /** Explicitly approved schools only; independent from the ordering-window gate. */
 export function getCcicSchoolSquareEnvironment(schoolSlug: string): CcicSquareEnvironment {
-  return (schoolSlug === 'st-francis-xavier' || schoolSlug === 'all-saints') && process.env.SQUARE_ENVIRONMENT === 'production'
+  return (schoolSlug === 'st-francis-xavier' || schoolSlug === 'all-saints' || schoolSlug === 'st-edward') && process.env.SQUARE_ENVIRONMENT === 'production'
     ? 'production'
     : 'sandbox'
 }
