@@ -74,6 +74,7 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
   const decode = (value: string | null) => decryptOptionalValue(value) || 'Not provided'
   const originallyOrdered = items.reduce((sum, item) => sum + item.quantity, 0)
   const returnedBoxes = items.reduce((sum, item) => sum + item.returned_quantity, 0)
+  const eligibleForPacking = order.status_code === 'paid' && order.square_environment === 'production'
   const remainingBoxes = originallyOrdered - returnedBoxes
   const returnValueCents = items.reduce((sum, item) => sum + item.returned_quantity * item.unit_price_cents, 0)
   const remainingValueCents = items.reduce((sum, item) => sum + (item.quantity - item.returned_quantity) * item.unit_price_cents, 0)
@@ -149,7 +150,7 @@ export default async function SchoolParentOrderDetails({ params, searchParams }:
                   <td>{item.title}</td>
                   <td>{item.quantity}</td>
                   <td>{item.returned_quantity}</td>
-                  <td>{item.quantity - item.returned_quantity}</td>
+                  <td>{eligibleForPacking ? item.quantity - item.returned_quantity : 0}</td>
                 </tr>
               ))}</tbody>
             </table>
