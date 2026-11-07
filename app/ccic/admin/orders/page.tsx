@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptPeopleRecords } from '@/lib/security/pii'
-import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
+import { CHRISTMAS_CARD_BOXES, formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import {
   CCIC_ORDER_STATUSES,
@@ -24,6 +24,7 @@ type OrderRow = {
   cell_phone: string | null
   fulfillment_method: 'pickup' | 'shipping'
   total_cents: number
+  subtotal_cents: number
   paid_at: string | null
   created_at: string
 }
@@ -151,13 +152,46 @@ export default async function CcicOrdersPage({
   const fulfillmentStatuses = CCIC_ORDER_STATUSES.filter((status) => status !== 'paid')
 
   const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('ccic_orders')
-    .select('id, order_number, status_code, contact_name, organization_name, email, cell_phone, fulfillment_method, total_cents, paid_at, created_at')
-
-  if (error) {
-    throw new Error(`Unable to load CCIC orders: ${error.message}`)
+  const data: OrderRow[] = []
+  for (let offset = 0; ; offset += 1000) {
+    const { data: page, error } = await admin.from('ccic_orders')
+      .select('id, order_number, status_code, contact_name, organization_name, email, cell_phone, fulfillment_method, total_cents, subtotal_cents, paid_at, created_at')
+      .order('id').range(offset, offset + 999)
+    if (error) throw new Error(`Unable to load CCIC orders: ${error.message}`)
+    data.push(...((page ?? []) as OrderRow[]))
+    if (!page || page.length < 1000) break
   }
+
+  const activeOrders = ((data ?? []) as OrderRow[]).filter((order) => order.status_code !== 'cancelled')
+  const activeIds = activeOrders.map((order) => order.id)
+  const boxCounts = { current: 0, previous: 0 }
+  const catalog = new Map(CHRISTMAS_CARD_BOXES.map((box) => [box.id, box]))
+  for (let start = 0; start < activeIds.length; start += 100) {
+    const ids = activeIds.slice(start, start + 100)
+    let offset = 0
+    while (true) {
+      const { data: lines, error: lineError } = await admin.from('ccic_order_lines')
+        .select('id, catalog_id, line_type, quantity, boxes_per_unit')
+        .in('order_id', ids).order('id').range(offset, offset + 999)
+      if (lineError) throw new Error(`Unable to load CCIC order lines: ${lineError.message}`)
+      for (const line of lines ?? []) {
+        if (line.line_type === 'classic_case') {
+          boxCounts.current += line.quantity * line.boxes_per_unit
+        } else {
+          const box = catalog.get(line.catalog_id)
+          if (!box) throw new Error(`Unknown CCIC order item: ${line.catalog_id}`)
+          if (!box.isAccessory) {
+            if (box.isCasePricingEligible) boxCounts.current += line.quantity * line.boxes_per_unit
+            else boxCounts.previous += line.quantity * line.boxes_per_unit
+          }
+        }
+      }
+      if (!lines || lines.length < 1000) break
+      offset += lines.length
+    }
+  }
+  const totalReceivable = activeOrders.reduce((sum, order) => sum + order.total_cents, 0)
+  const merchandiseReceivable = activeOrders.reduce((sum, order) => sum + order.subtotal_cents, 0)
 
   const decryptedOrders = decryptPeopleRecords((data ?? []) as OrderRow[])
   const workflowFilteredOrders = statusFilter
@@ -185,6 +219,23 @@ export default async function CcicOrdersPage({
           <Link href="/ccic">View storefront</Link>
         </div>
       </header>
+
+      <section className="ccic-admin-panel" aria-label="Council sales summary">
+        <div className="ccic-admin-panel-heading"><h2>Council sales summary</h2></div>
+        <p>All non-cancelled orders, including those awaiting payment. Shipping may be awaiting a quote.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
+          {[
+            ['Current collection boxes', String(boxCounts.current)],
+            ['Previous collection boxes', String(boxCounts.previous)],
+            ['Receivables including shipping', formatChristmasCardMoney(totalReceivable)],
+            ['Receivables excluding shipping and handling', formatChristmasCardMoney(merchandiseReceivable)],
+          ].map(([label, value]) => (
+            <div key={label} style={{ padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+              <strong style={{ display: 'block', fontSize: 24 }}>{value}</strong><span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="ccic-admin-panel ccic-admin-order-controls">
         <form method="get">
