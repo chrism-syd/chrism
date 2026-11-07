@@ -230,7 +230,7 @@ export default async function CcicOrdersPage({
             ['Excluding shipping & handling', formatChristmasCardMoney(merchandiseReceivable)],
           ].map(([label, value]) => (
             <div key={label} style={{ padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
-              <strong style={{ display: 'block', fontSize: 24 }}>{value}</strong><span>{label}</span>
+              <strong style={{ display: 'block', fontSize: 24 }}>{value}{label === 'Excluding shipping & handling' ? <small style={{ fontSize: 14, fontWeight: 500, marginLeft: 8 }}>({formatChristmasCardMoney(totalReceivable - merchandiseReceivable)})</small> : null}</strong><span>{label}</span>
             </div>
           ))}
         </div>
