@@ -222,7 +222,6 @@ export default async function CcicOrdersPage({
 
       <section className="ccic-admin-panel" aria-label="Council sales summary">
         <div className="ccic-admin-panel-heading"><h2>Council sales summary</h2></div>
-        <p>All non-cancelled orders, including those awaiting payment.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
           {[
             ['Current collection boxes', String(boxCounts.current)],
