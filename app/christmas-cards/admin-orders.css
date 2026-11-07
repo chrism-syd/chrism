@@ -771,3 +771,28 @@
     padding: 8px 7px;
   }
 }
+/* Council order filters sit between the summary and order list. */
+.ccic-admin-order-controls.council-order-filters {
+  margin: 20px 0;
+  padding: 0;
+}
+.ccic-admin-order-controls.council-order-filters form {
+  display: flex;
+  flex-direction: row;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.council-order-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 1 220px;
+  min-width: 180px;
+}
+.council-order-filter-field select { width: 100%; }
+.council-order-filters button { min-height: 42px; }
+.council-order-filters a { align-self: center; }
+@media (max-width: 520px) {
+  .council-order-filter-field { flex: 1 1 100%; }
+}
