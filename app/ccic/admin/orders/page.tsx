@@ -227,8 +227,8 @@ export default async function CcicOrdersPage({
           {[
             ['Current collection boxes', String(boxCounts.current)],
             ['Previous collection boxes', String(boxCounts.previous)],
-            ['Receivables including shipping', formatChristmasCardMoney(totalReceivable)],
-            ['Receivables excluding shipping and handling', formatChristmasCardMoney(merchandiseReceivable)],
+            ['Including shipping & handling', formatChristmasCardMoney(totalReceivable)],
+            ['Excluding shipping & handling', formatChristmasCardMoney(merchandiseReceivable)],
           ].map(([label, value]) => (
             <div key={label} style={{ padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
               <strong style={{ display: 'block', fontSize: 24 }}>{value}</strong><span>{label}</span>
