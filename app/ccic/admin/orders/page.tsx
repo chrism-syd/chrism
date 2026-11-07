@@ -237,23 +237,25 @@ export default async function CcicOrdersPage({
         </div>
       </section>
 
-      <section className="ccic-admin-panel ccic-admin-order-controls">
+      <section className="ccic-admin-order-controls council-order-filters">
         <form method="get">
           <input type="hidden" name="sort" value={sortKey} />
           <input type="hidden" name="dir" value={sortDirection} />
-          <label htmlFor="status">Status</label>
+          <div className="council-order-filter-field"><label htmlFor="status">Status</label>
           <select id="status" name="status" defaultValue={statusFilter}>
             <option value="">All statuses</option>
             {fulfillmentStatuses.map((status) => (
               <option key={status} value={status}>{CCIC_ORDER_STATUS_LABELS[status]}</option>
             ))}
           </select>
-          <label htmlFor="payment">Payment</label>
+          </div>
+          <div className="council-order-filter-field"><label htmlFor="payment">Payment</label>
           <select id="payment" name="payment" defaultValue={paymentFilter}>
             <option value="">All payment statuses</option>
             <option value="awaiting_payment">Awaiting payment</option>
             <option value="paid">Paid</option>
           </select>
+          </div>
           <button type="submit">Filter orders</button>
           {statusFilter || paymentFilter ? <Link href="/ccic/admin/orders">Clear filters</Link> : null}
         </form>
