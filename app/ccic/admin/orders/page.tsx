@@ -224,8 +224,8 @@ export default async function CcicOrdersPage({
         <div className="ccic-admin-panel-heading"><h2>Council sales summary</h2></div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16 }}>
           {[
-            ['Current collection boxes', String(boxCounts.current)],
-            ['Previous collection boxes', String(boxCounts.previous)],
+            ['Current collection', `${boxCounts.current} boxes`],
+            ['Previous collection', `${boxCounts.previous} boxes`],
             ['Including shipping & handling', formatChristmasCardMoney(totalReceivable)],
             ['Excluding shipping & handling', formatChristmasCardMoney(merchandiseReceivable)],
           ].map(([label, value]) => (
