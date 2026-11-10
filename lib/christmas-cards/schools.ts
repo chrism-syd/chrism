@@ -25,7 +25,7 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     name: 'St. Edward',
     active: true,
     orderingEnabled: true,
-    orderingClosesAt: '2026-11-15T23:59:59-05:00',
+    orderingClosesAt: '2026-11-22T23:59:59-05:00',
     deliveryBy: '2026-11-30',
   },
   {
