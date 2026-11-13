@@ -98,3 +98,12 @@
   .ccic-school-remittance-sheet { width: 100%; border: 0; padding: 0; }
   .ccic-school-summary-payout { background: #fff; }
 }
+
+/* Additional in-person rows appear only on the cheque remittance, never on packing sheets. */
+.ccic-school-remittance-sheet h3 { margin: 22px 0 10px; font-size: 17px; }
+.ccic-school-remittance-sheet .ccic-school-remittance-market-table { width: 100%; }
+.ccic-school-remittance-sheet .ccic-school-remittance-market-table th { width: auto; }
+.ccic-school-remittance-market-table th:not(:first-child),
+.ccic-school-remittance-market-table td:not(:first-child) { text-align: right; }
+.ccic-school-remittance-market-table tr { break-inside: avoid; }
+.ccic-school-remittance-event { display: block; margin-top: 3px; font-size: 11px; font-weight: 400; }

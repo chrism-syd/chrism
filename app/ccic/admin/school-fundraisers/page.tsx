@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
+import { ccicSchoolMarketCollectionName, loadCcicSchoolMarketSales, summarizeCcicSchoolMarketSales } from '@/lib/christmas-cards/school-market-sales'
 import '../../../christmas-cards/admin-orders.css'
 import './school-admin.css'
 
@@ -62,6 +63,9 @@ export default async function SchoolFundraisersAdminPage({
     : { data: [] as SchoolLine[], error: null }
   if (lineError) throw new Error('Unable to load school order lines')
   const lines = (lineData ?? []) as SchoolLine[]
+  // These in-person sales are financial records only, never school orders to pack.
+  const marketSales = await loadCcicSchoolMarketSales(selectedSchool)
+  const marketTotals = summarizeCcicSchoolMarketSales(marketSales)
 
   const boxTotals = new Map<string, { ordered: number; remaining: number; remainingValueCents: number }>()
   const collectionTotals = new Map<string, { title: string; quantity: number }>()
@@ -124,7 +128,8 @@ export default async function SchoolFundraisersAdminPage({
           ['Mixed boxes to pack (net)', String(boxes)],
           ['Original paid order value', formatChristmasCardMoney(originalPaidCents)],
           ['Order value after recorded returns', formatChristmasCardMoney(remainingValueCents)],
-          ['School earnings on remaining boxes', formatChristmasCardMoney(contribution)],
+          ['School earnings from online boxes', formatChristmasCardMoney(contribution)],
+          ['Total school earnings — all channels', formatChristmasCardMoney(contribution + marketTotals.schoolEarningsCents)],
           ['Awaiting payment reconciliation', String(orders.filter((order) => order.status_code === 'pending_payment' && order.square_environment === 'production').length)],
         ].map(([label, value]) => (
           <div key={label} style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22 }}>
@@ -135,8 +140,28 @@ export default async function SchoolFundraisersAdminPage({
         <p style={{ gridColumn: '1 / -1' }}>Order value after returns is for packing and fundraiser reporting. It does not assert that manual Square or e-transfer refunds have been completed.</p>
       </section>
 
+      {marketSales.length > 0 ? (
+        <section className="ccic-school-admin-content" style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24, overflowX: 'auto' }}>
+          <h2>In-person sales — already fulfilled</h2>
+          <p>These sales count toward school earnings but not packing, labels or classroom distribution. Online order totals above remain separate.</p>
+          <p><strong>{marketTotals.boxes} boxes sold</strong> · {marketTotals.salesCents === null ? 'Some selling prices not recorded' : formatChristmasCardMoney(marketTotals.salesCents) + ' in sales'} · <strong>{formatChristmasCardMoney(marketTotals.schoolEarningsCents)} in school earnings</strong></p>
+          <table className="ccic-admin-table" style={{ width: '100%' }}>
+            <thead><tr><th>School</th><th>Date</th><th>Event</th><th>Collection</th><th>Boxes</th><th>Sales</th><th>School earnings</th></tr></thead>
+            <tbody>{marketSales.map((sale) => <tr key={sale.school_slug + ':' + sale.event_key + ':' + sale.catalog_id}>
+              <td>{CCIC_SCHOOL_CAMPAIGNS.find((school) => school.slug === sale.school_slug)?.name ?? sale.school_slug}</td>
+              <td>{sale.sale_date}</td>
+              <td>{sale.event_name}</td>
+              <td>{ccicSchoolMarketCollectionName(sale.catalog_id)}</td>
+              <td>{sale.boxes_sold}</td>
+              <td>{sale.unit_price_cents === null ? 'Not recorded' : formatChristmasCardMoney(sale.boxes_sold * sale.unit_price_cents)}</td>
+              <td>{formatChristmasCardMoney(sale.boxes_sold * sale.school_earnings_per_box_cents)}</td>
+            </tr>)}</tbody>
+          </table>
+        </section>
+      ) : null}
+
       <section className="ccic-school-admin-content" style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, marginBottom: 24 }}>
-        <h2>Production totals — remaining boxes</h2>
+        <h2>Online orders — remaining boxes to pack</h2>
         <p><Link href={selectedSchool ? '/ccic/admin/school-fundraisers/packing-list?school=' + encodeURIComponent(selectedSchool) : '/ccic/admin/school-fundraisers/packing-list'}>Packing &amp; Labels</Link></p>
         {collectionTotals.size === 0 ? <p>No boxes to pack yet.</p> : (
           <ul>{[...collectionTotals.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([sku, item]) => (
