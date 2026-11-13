@@ -84,13 +84,49 @@ export default async function SchoolFundraisersAdminPage({
     })
   }
 
-  const originalPaidCents = orders.filter((order) => Boolean(order.paid_at) && order.square_environment === 'production').reduce((sum, order) => sum + order.total_cents, 0)
   const remainingValueCents = [...boxTotals.values()].reduce((sum, row) => sum + row.remainingValueCents, 0)
   const contribution = paid.reduce((sum, order) => {
     const count = boxTotals.get(order.id)
     return sum + (count?.ordered ? Math.round(order.school_contribution_cents * count.remaining / count.ordered) : 0)
   }, 0)
   const boxes = [...boxTotals.values()].reduce((sum, row) => sum + row.remaining, 0)
+  const totalBoxes = boxes + marketTotals.boxes
+  const totalEarningsCents = contribution + marketTotals.schoolEarningsCents
+  const totalSalesCents = marketTotals.salesCents === null ? null : remainingValueCents + marketTotals.salesCents
+  const salesMetrics = [
+    {
+      label: 'Total sales',
+      value: totalSalesCents === null ? 'Incomplete' : formatChristmasCardMoney(totalSalesCents),
+      detail: 'Online + in-person · after recorded returns',
+    },
+    {
+      label: 'Total boxes sold',
+      value: String(totalBoxes),
+      detail: 'Online + in-person · after recorded returns',
+    },
+    {
+      label: 'Total school earnings',
+      value: formatChristmasCardMoney(totalEarningsCents),
+      detail: 'All sales channels',
+    },
+  ]
+  const fulfilmentMetrics = [
+    {
+      label: 'Paid online orders',
+      value: String(paid.length),
+      detail: 'Website purchases',
+    },
+    {
+      label: 'Online boxes to pack',
+      value: String(boxes),
+      detail: 'For classroom distribution',
+    },
+    {
+      label: 'In-person boxes sold',
+      value: String(marketTotals.boxes),
+      detail: 'Already handed to customers',
+    },
+  ]
   const date = (value: string) => new Intl.DateTimeFormat('en-CA', {
     dateStyle: 'medium', timeZone: 'America/Toronto',
   }).format(new Date(value))
@@ -100,7 +136,7 @@ export default async function SchoolFundraisersAdminPage({
       <header className="ccic-admin-header">
         <div className="ccic-admin-heading-brand">
           <Image src="/CCiC.png" alt="CCIC" width={82} height={82} className="ccic-admin-logo" priority />
-          <div><h1>School Orders</h1></div>
+          <div><h1>School Fundraiser Sales</h1></div>
         </div>
         <nav className="ccic-admin-header-actions">
           <Link href="/ccic/admin/orders">Council orders</Link>
@@ -122,22 +158,34 @@ export default async function SchoolFundraisersAdminPage({
         </form>
       </section>
 
-      <section className="ccic-school-admin-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 24 }}>
-        {[
-          ['Active paid school orders', String(paid.length)],
-          ['Mixed boxes to pack (net)', String(boxes)],
-          ['Original paid order value', formatChristmasCardMoney(originalPaidCents)],
-          ['Order value after recorded returns', formatChristmasCardMoney(remainingValueCents)],
-          ['School earnings from online boxes', formatChristmasCardMoney(contribution)],
-          ['Total school earnings — all channels', formatChristmasCardMoney(contribution + marketTotals.schoolEarningsCents)],
-          ['Awaiting payment reconciliation', String(orders.filter((order) => order.status_code === 'pending_payment' && order.square_environment === 'production').length)],
-        ].map(([label, value]) => (
-          <div key={label} style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22 }}>
-            <div style={{ fontSize: 13, color: '#645e58' }}>{label}</div>
-            <strong style={{ display: 'block', fontSize: 25, marginTop: 8 }}>{value}</strong>
-          </div>
-        ))}
-        <p style={{ gridColumn: '1 / -1' }}>Order value after returns is for packing and fundraiser reporting. It does not assert that manual Square or e-transfer refunds have been completed.</p>
+      <section className="ccic-school-admin-content ccic-school-sales-summary" aria-label="School sales summary">
+        <div className="ccic-school-sales-summary-heading">
+          <h2>Sales overview</h2>
+          <p>Combined online and in-person sales, with fulfilment kept separate.</p>
+        </div>
+        <div className="ccic-school-sales-metrics" aria-label="Combined sales totals">
+          {salesMetrics.map((metric) => (
+            <div className="ccic-school-sales-metric" key={metric.label}>
+              <span className="ccic-school-sales-metric-label">{metric.label}</span>
+              <strong className="ccic-school-sales-metric-value">{metric.value}</strong>
+              <span className="ccic-school-sales-metric-detail">{metric.detail}</span>
+            </div>
+          ))}
+        </div>
+        <div className="ccic-school-sales-metrics ccic-school-sales-metrics--breakdown" aria-label="Online and in-person breakdown">
+          {fulfilmentMetrics.map((metric) => (
+            <div className="ccic-school-sales-metric ccic-school-sales-metric--secondary" key={metric.label}>
+              <span className="ccic-school-sales-metric-label">{metric.label}</span>
+              <strong className="ccic-school-sales-metric-value">{metric.value}</strong>
+              <span className="ccic-school-sales-metric-detail">{metric.detail}</span>
+            </div>
+          ))}
+        </div>
+        <p className="ccic-school-sales-summary-note">
+          Figures are based on paid online purchases after recorded returns and logged in-person sales.
+          They are not a reconciliation of Square deposits or refunds.
+          In-person sales never appear in packing lists, labels or classroom distribution.
+        </p>
       </section>
 
       {marketSales.length > 0 ? (
@@ -171,7 +219,7 @@ export default async function SchoolFundraisersAdminPage({
       </section>
 
       <section className="ccic-school-admin-content" style={{ background: '#fff', border: '1px solid #e5e0da', padding: 22, overflowX: 'auto' }}>
-        <h2>School orders</h2>
+        <h2>Online school orders</h2>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead><tr>{['Order', 'School', 'Date', 'Status', 'Boxes to pack', 'Remaining order value', 'School share'].map((heading) => (
             <th key={heading} style={{ padding: 12, borderBottom: '1px solid #ddd' }}>{heading}</th>

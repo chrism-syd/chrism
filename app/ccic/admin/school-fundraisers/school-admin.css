@@ -201,3 +201,60 @@
   .ccic-school-order-info-column { gap: 12px; }
   .ccic-school-order-card { break-inside: avoid; }
 }
+
+/* All-channel financial totals with a separate online/in-person fulfilment breakdown. */
+.ccic-school-sales-summary { margin-bottom: 24px; }
+.ccic-school-sales-summary-heading { margin-bottom: 16px; }
+.ccic-school-sales-summary-heading h2 { margin: 0; font-size: 22px; line-height: 1.25; }
+.ccic-school-sales-summary-heading p { margin: 6px 0 0; color: #645e58; font-size: 14px; }
+.ccic-school-sales-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.ccic-school-sales-metrics--breakdown { margin-top: 12px; }
+.ccic-school-sales-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid #e5e0da;
+  background: #fff;
+}
+.ccic-school-sales-metric--secondary { background: #faf9f7; }
+.ccic-school-sales-metric-label {
+  color: #645e58;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.ccic-school-sales-metric-value {
+  display: block;
+  margin-top: 8px;
+  color: #202020;
+  font-size: clamp(25px, 3vw, 32px);
+  line-height: 1.15;
+  letter-spacing: -.025em;
+  overflow-wrap: anywhere;
+}
+.ccic-school-sales-metrics--breakdown .ccic-school-sales-metric-value { font-size: clamp(24px, 2.6vw, 29px); }
+.ccic-school-sales-metric-detail {
+  margin-top: 10px;
+  color: #645e58;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ccic-school-sales-summary-note {
+  margin: 14px 0 0;
+  color: #645e58;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .ccic-school-sales-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .ccic-school-sales-metrics { grid-template-columns: 1fr; }
+  .ccic-school-sales-metric { padding: 17px 18px; }
+}
