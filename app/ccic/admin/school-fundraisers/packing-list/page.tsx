@@ -67,7 +67,6 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
           <tr><th scope="row">OFF-LINE (In person) SCHOOL EARNINGS</th><td>{formatChristmasCardMoney(marketTotals.schoolEarningsCents)}</td></tr>
           <tr className="ccic-school-remittance-total"><th scope="row">TOTAL PAYABLE TO SCHOOL (Online and Offline)</th><td>{formatChristmasCardMoney(schoolShareCents + marketTotals.schoolEarningsCents)}</td></tr>
         </tbody></table>
-        <p className="ccic-school-remittance-note">Payment by cheque enclosed separately. This summary records the calculated fundraiser amount, not confirmation that a cheque has been issued or cleared.</p>
       </section>
     </main>
   }
