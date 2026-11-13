@@ -5,7 +5,7 @@ import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CCIC_SCHOOL_CAMPAIGNS } from '@/lib/christmas-cards/schools'
 import { decryptOptionalValue } from '@/lib/security/pii'
 import { formatChristmasCardMoney } from '@/lib/christmas-cards/catalog'
-import { ccicSchoolMarketCollectionName, loadCcicSchoolMarketSales, summarizeCcicSchoolMarketSales } from '@/lib/christmas-cards/school-market-sales'
+import { loadCcicSchoolMarketSales, summarizeCcicSchoolMarketSales } from '@/lib/christmas-cards/school-market-sales'
 import '../../../../christmas-cards/admin-orders.css'
 import './print.css'
 
@@ -66,16 +66,10 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
         {marketSales.length > 0 ? <>
           <h3>In-person sales — already fulfilled</h3>
           <p>Boxes sold at events were handed directly to customers. They are excluded from packing lists, student labels and classroom distribution totals.</p>
-          <table className="ccic-admin-table ccic-school-remittance-market-table">
-            <thead><tr><th scope="col">Event / collection</th><th scope="col">Boxes</th><th scope="col">Sales</th><th scope="col">School earnings</th></tr></thead>
-            <tbody>{marketSales.map((sale) => <tr key={sale.event_key + ':' + sale.catalog_id}>
-              <td><strong>{ccicSchoolMarketCollectionName(sale.catalog_id)}</strong><small className="ccic-school-remittance-event">{sale.event_name} · {sale.sale_date} · {sale.payment_method === 'square_terminal' ? 'Square Terminal' : sale.payment_method ?? 'Payment method not recorded'}</small></td>
-              <td>{sale.boxes_sold}</td>
-              <td>{sale.unit_price_cents === null ? 'Not recorded' : formatChristmasCardMoney(sale.boxes_sold * sale.unit_price_cents)}</td>
-              <td>{formatChristmasCardMoney(sale.boxes_sold * sale.school_earnings_per_box_cents)}</td>
-            </tr>)}</tbody>
-            <tfoot><tr><th scope="row">In-person totals</th><td>{marketTotals.boxes}</td><td>{marketTotals.salesCents === null ? 'Partially unrecorded' : formatChristmasCardMoney(marketTotals.salesCents)}</td><td>{formatChristmasCardMoney(marketTotals.schoolEarningsCents)}</td></tr></tfoot>
-          </table>
+          <table className="ccic-admin-table"><tbody>
+            <tr><th scope="row">Boxes sold in person</th><td>{marketTotals.boxes}</td></tr>
+            <tr><th scope="row">In-person school earnings</th><td>{formatChristmasCardMoney(marketTotals.schoolEarningsCents)}</td></tr>
+          </tbody></table>
         </> : null}
         <table className="ccic-admin-table"><tbody>
           <tr className="ccic-school-remittance-total"><th scope="row">Total payable to school (all channels)</th><td>{formatChristmasCardMoney(schoolShareCents + marketTotals.schoolEarningsCents)}</td></tr>
