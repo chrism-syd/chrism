@@ -41,7 +41,7 @@ export const CCIC_SCHOOL_CAMPAIGNS: CcicSchoolCampaign[] = [
     active: true,
     orderingEnabled: true,
     orderingOpensAt: '2026-10-30T00:00:00-04:00',
-    orderingClosesAt: '2026-11-13T23:59:59-05:00',
+    orderingClosesAt: '2026-11-20T23:59:59-05:00',
     deliveryBy: '2026-12-01',
   },
   {
