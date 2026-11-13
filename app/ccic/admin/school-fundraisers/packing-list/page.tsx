@@ -55,24 +55,17 @@ export default async function SchoolPackingList({ searchParams }: { searchParams
         <div className="ccic-school-remittance-heading"><Image src="/CCiC.png" alt="Celebrate Christ in Christmas" width={70} height={70} /><div><h1>School fundraiser payment summary</h1><p>Celebrate Christ in Christmas · CCIC</p></div></div>
         <h2>{selected.name}</h2>
         <p><strong>Campaign closing date:</strong> {selected.orderingClosesAt ? new Intl.DateTimeFormat('en-CA', { dateStyle: 'long', timeZone: 'America/Toronto' }).format(new Date(selected.orderingClosesAt)) : 'Not specified'}</p>
-        <p>School earnings include paid online purchases after recorded returns and separately recorded in-person sales. Each online purchase may include multiple boxes.</p>
-        {marketSales.length > 0 ? <h3>Online orders — classroom distribution</h3> : null}
+        <p>School earnings include paid online purchases, after any recorded returns, and any separately recorded off-line sales.</p>
+        <p>Off-line, in-person sales were already handed to customers and are excluded from classroom distribution totals.</p>
+        <h3>Order Summary</h3>
         <table className="ccic-admin-table"><tbody>
-          <tr><th scope="row">Number of online purchases</th><td>{sorted.length}</td></tr>
-          <tr><th scope="row">Boxes sold online (for distribution)</th><td>{labels.length}</td></tr>
-          <tr><th scope="row">School earnings per online box</th><td>{formatChristmasCardMoney(450)}</td></tr>
-          <tr><th scope="row">Online school earnings</th><td>{formatChristmasCardMoney(schoolShareCents)}</td></tr>
-        </tbody></table>
-        {marketSales.length > 0 ? <>
-          <h3>In-person sales — already fulfilled</h3>
-          <p>Boxes sold at events were handed directly to customers. They are excluded from packing lists, student labels and classroom distribution totals.</p>
-          <table className="ccic-admin-table"><tbody>
-            <tr><th scope="row">Boxes sold in person</th><td>{marketTotals.boxes}</td></tr>
-            <tr><th scope="row">In-person school earnings</th><td>{formatChristmasCardMoney(marketTotals.schoolEarningsCents)}</td></tr>
-          </tbody></table>
-        </> : null}
-        <table className="ccic-admin-table"><tbody>
-          <tr className="ccic-school-remittance-total"><th scope="row">Total payable to school (all channels)</th><td>{formatChristmasCardMoney(schoolShareCents + marketTotals.schoolEarningsCents)}</td></tr>
+          <tr><th scope="row">NUMBER OF ONLINE PURCHASES</th><td>{sorted.length}</td></tr>
+          <tr><th scope="row">BOXES SOLD ONLINE (For Distribution)</th><td>{labels.length}</td></tr>
+          <tr><th scope="row">BOXES SOLD OFF-LINE (Delivered In Person)</th><td>{marketTotals.boxes}</td></tr>
+          <tr><th scope="row">SCHOOL EARNINGS PER BOX</th><td>{formatChristmasCardMoney(450)}</td></tr>
+          <tr><th scope="row">ONLINE SCHOOL EARNINGS</th><td>{formatChristmasCardMoney(schoolShareCents)}</td></tr>
+          <tr><th scope="row">OFF-LINE (In person) SCHOOL EARNINGS</th><td>{formatChristmasCardMoney(marketTotals.schoolEarningsCents)}</td></tr>
+          <tr className="ccic-school-remittance-total"><th scope="row">TOTAL PAYABLE TO SCHOOL (Online and Offline)</th><td>{formatChristmasCardMoney(schoolShareCents + marketTotals.schoolEarningsCents)}</td></tr>
         </tbody></table>
         <p className="ccic-school-remittance-note">Payment by cheque enclosed separately. This summary records the calculated fundraiser amount, not confirmation that a cheque has been issued or cleared.</p>
       </section>
