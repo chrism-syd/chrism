@@ -207,7 +207,6 @@ export default async function CcicStoreControlPage({
               <tr>
                 <th>Product</th>
                 <th>Remaining full boxes</th>
-                <th>Unshipped orders</th>
                 <th>Held for Classic Cases</th>
                 <th>Available</th>
                 <th>Accounting details</th>
@@ -252,7 +251,6 @@ export default async function CcicStoreControlPage({
                       <span>{item.sku}</span>
                     </td>
                     <td>{needsReview ? 'Review required' : remainingFullBoxes === null ? 'Not tracked' : remainingFullBoxes}</td>
-                    <td>{detail.outstandingBoxes}</td>
                     <td>{needsReview ? 'Review' : classicHeldBoxes || '—'}</td>
                     <td>{row.availableBoxes === null ? 'Not limited' : row.availableBoxes}</td>
                     <td>
