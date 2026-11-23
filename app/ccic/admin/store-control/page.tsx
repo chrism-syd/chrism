@@ -171,30 +171,6 @@ export default async function CcicStoreControlPage({
         </p>
       </section>
 
-      <section className="ccic-admin-panel ccic-store-control-intro">
-        <div>
-          <h2>Stock reconciliation</h2>
-          <p>
-            These records use a gross stock balance. Previous council orders are kept as
-            historical allocations, even after delivery. The figures below distinguish
-            shipped or delivered boxes, unshipped orders, and stock assigned to school
-            mixed-box production. None of these counts changes the checkout calculation.
-          </p>
-          <p>
-            <strong>Remaining full boxes</strong> is the calculated balance after shipped/delivered
-            council orders and source boxes allocated to school mixed collections. It includes
-            boxes for unshipped council orders and backed Classic Cases.
-          </p>
-        </div>
-        <p>
-          For a physical stocktake, count full individual-product boxes, including boxes
-          set aside for Classic Cases or unshipped council orders, but <strong>exclude</strong> source
-          boxes already used or earmarked for school mixed collections. Enter that number
-          under <strong>Set counted boxes</strong>. If you only need to record an external sale
-          or correction, use <strong>Adjust gross</strong>; do not subtract delivered orders again.
-        </p>
-      </section>
-
       <section className="ccic-admin-panel">
         <div className="ccic-admin-panel-heading">
           <h2>Product inventory</h2>
