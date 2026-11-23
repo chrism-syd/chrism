@@ -4,5 +4,10 @@
       "path": "/api/jobs/public-contact-messages",
       "schedule": "0 2 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "fix/ccic-inventory-admin-reconciliation-2026-11-22": false
+    }
+  }
 }
