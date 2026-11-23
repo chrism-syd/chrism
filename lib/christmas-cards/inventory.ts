@@ -405,3 +405,79 @@ export async function allocateCcicOrderInventory(orderId: string, calculated: Cc
 
   if (error) throw error
 }
+
+
+// Admin-only reconciliation. Do not change the storefront's historical allocation model:
+// completed council orders still consume the original gross stock balance.
+export type CcicAdminStockBreakdown = {
+  dispatchedBoxes: number
+  outstandingBoxes: number
+  mixedSourceBoxes: number
+}
+
+export async function getCcicAdminStockBreakdown(): Promise<Record<string, CcicAdminStockBreakdown>> {
+  const admin = createAdminClient()
+  const [
+    { data: allocationData, error: allocationError },
+    { data: mixedData, error: mixedError },
+  ] = await Promise.all([
+    admin.from('ccic_order_inventory_allocations').select('order_id, catalog_id, quantity_boxes'),
+    admin.from('ccic_mixed_box_commitments').select('mixed_catalog_id, committed_mixed_boxes'),
+  ])
+
+  if (allocationError) throw new Error('Unable to load CCIC order allocations: ' + allocationError.message)
+  if (mixedError) throw new Error('Unable to load CCIC mixed box allocations: ' + mixedError.message)
+
+  const allocations = (allocationData ?? []) as AllocationRow[]
+  const orderIds = [...new Set(allocations.map((row) => row.order_id))]
+  const statuses = new Map<string, string>()
+  if (orderIds.length) {
+    const { data: orderData, error: orderError } = await admin
+      .from('ccic_orders')
+      .select('id, status_code')
+      .in('id', orderIds)
+    if (orderError) throw new Error('Unable to load CCIC order statuses: ' + orderError.message)
+    for (const order of (orderData ?? []) as OrderStatusRow[]) {
+      statuses.set(order.id, order.status_code)
+    }
+    if (statuses.size !== orderIds.length) {
+      throw new Error('CCIC inventory references an order without a status.')
+    }
+  }
+
+  const breakdown: Record<string, CcicAdminStockBreakdown> = {}
+  function entry(catalogId: string) {
+    return (breakdown[catalogId] ??= {
+      dispatchedBoxes: 0,
+      outstandingBoxes: 0,
+      mixedSourceBoxes: 0,
+    })
+  }
+
+  for (const allocation of allocations) {
+    const status = statuses.get(allocation.order_id)
+    if (status === 'cancelled') continue
+    const row = entry(allocation.catalog_id)
+    if (status === 'shipped' || status === 'delivered') {
+      row.dispatchedBoxes += allocation.quantity_boxes
+    } else {
+      row.outstandingBoxes += allocation.quantity_boxes
+    }
+  }
+
+  // Mirrors the existing school mixed-box source allocation without altering it.
+  for (const commitment of (mixedData ?? []) as Array<{
+    mixed_catalog_id: string
+    committed_mixed_boxes: number
+  }>) {
+    if (commitment.committed_mixed_boxes <= 0) continue
+    const mixed = CHRISTMAS_CARD_MIXED_BOXES.find((item) => item.id === commitment.mixed_catalog_id)
+    if (!mixed) throw new Error('Unknown school mixed box in inventory commitments.')
+    const sourceBoxes = Math.ceil(commitment.committed_mixed_boxes / 4)
+    for (const component of mixed.components) {
+      entry(component.boxId).mixedSourceBoxes += sourceBoxes
+    }
+  }
+
+  return breakdown
+}
