@@ -116,13 +116,7 @@ export default async function CcicStoreControlPage({
 
       <section className="ccic-admin-panel ccic-case-reserve-panel">
         <div className="ccic-admin-panel-heading">
-          <div>
-            <h2>Classic Case reserve</h2>
-            <p className="ccic-store-muted">
-              This is a campaign-wide Classic Case target. Orders already shipped or delivered still count against that target, but do not represent cases physically held.
-            </p>
-          </div>
-          <span>2 boxes of each of 16 designs per case</span>
+          <h2>Classic Case reserve</h2>
         </div>
 
         {CHRISTMAS_CARD_CURATED_CASES.map((item) => {
@@ -144,16 +138,13 @@ export default async function CcicStoreControlPage({
                   <small>
                     Target is {targetGap} case{targetGap === 1 ? '' : 's'} above current inventory capacity. Adding stock will automatically back more cases.
                   </small>
-                ) : (
-                  <small>Current inventory fully backs the reserve target.</small>
-                )}
+                ) : null}
               </div>
               <dl>
-                <div><dt>Target reserve</dt><dd>{reserve.reservedCases}</dd></div>
-                <div><dt>Backed reserve</dt><dd>{reserve.backedCases}</dd></div>
-                <div><dt>Ordered (all time)</dt><dd>{reserve.committedCases}</dd></div>
-                <div><dt>Available cases</dt><dd>{reserve.availableCases}</dd></div>
-                <div><dt>Boxes held</dt><dd>{reserve.availableCases * item.boxesPerCase}</dd></div>
+                <div><dt>Initial reserve</dt><dd>{reserve.reservedCases}</dd></div>
+                <div><dt>Ordered</dt><dd>{reserve.committedCases}</dd></div>
+                <div><dt>Remaining</dt><dd>{reserve.availableCases}</dd></div>
+                <div><dt>Boxes reserved</dt><dd>{reserve.availableCases * item.boxesPerCase}</dd></div>
               </dl>
               <form action={setCcicClassicCaseReserve} className="ccic-case-reserve-form">
                 <input type="hidden" name="case_catalog_id" value={item.id} />
@@ -166,9 +157,6 @@ export default async function CcicStoreControlPage({
             </div>
           )
         })}
-        <p className="ccic-case-reserve-note">
-          Backed reserve includes previously ordered cases plus additional cases supported by remaining stock; it does not mean that many cases are physically on hand. Only available cases hold stock for new orders.
-        </p>
       </section>
 
       <section className="ccic-admin-panel">
