@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CHRISTMAS_CARD_CURATED_CASES } from '@/lib/christmas-cards/catalog'
 import {
+  getCcicAdminStockBreakdown,
   getCcicCaseReserves,
   getCcicInventoryCatalogItems,
   getCcicStoreAvailabilityMap,
@@ -11,7 +12,7 @@ import {
 import {
   adjustCcicInventoryStock,
   setCcicClassicCaseReserve,
-  setCcicInventoryStock,
+  setCcicPhysicalStockCount,
   toggleCcicInventoryStore,
 } from './actions'
 import '../../../christmas-cards/admin-orders.css'
@@ -35,6 +36,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   'negative-stock': 'That adjustment would make the stock count negative.',
   'stock-below-reserve': 'Stock cannot be reduced below boxes already committed to orders or currently protected for backed Classic Cases.',
   'stock-update': 'The stock quantity could not be updated.',
+  'stock-changed-reload': 'Inventory changed since this page loaded. Reload and review the current quantities before saving.',
+  'physical-below-reserve': 'The physical count cannot be less than boxes still needed for unshipped orders or backed Classic Cases.',
   'store-toggle': 'The storefront availability could not be changed.',
   'invalid-case': 'That Classic Case could not be found.',
   'invalid-reserve': 'Enter a whole number of reserve target cases, zero or more.',
@@ -44,6 +47,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const UPDATED_MESSAGES: Record<string, string> = {
   stock: 'The stock count was updated.',
+  'physical-stock': 'The physical count was reconciled. Historical sales and school mixed-box allocations were preserved.',
   adjustment: 'The manual stock adjustment was applied.',
   enabled: 'The card is available in the store again.',
   disabled: 'The card is now marked sold out in the store.',
@@ -65,9 +69,10 @@ export default async function CcicStoreControlPage({
   const errorMessage = ERROR_MESSAGES[stringParam(params.error) || '']
   const updatedMessage = UPDATED_MESSAGES[stringParam(params.updated) || '']
   const items = getCcicInventoryCatalogItems()
-  const [availability, caseReserves] = await Promise.all([
+  const [availability, caseReserves, stockBreakdown] = await Promise.all([
     getCcicStoreAvailabilityMap(),
     getCcicCaseReserves(),
+    getCcicAdminStockBreakdown(),
   ])
 
   const trackedCount = items.filter((item) => availability[item.catalogId]?.stockOnHand !== null).length
@@ -114,7 +119,7 @@ export default async function CcicStoreControlPage({
           <div>
             <h2>Classic Case reserve</h2>
             <p className="ccic-store-muted">
-              Set the reserve target you want to maintain. The store only holds boxes for cases that current inventory can actually support.
+              This is a campaign-wide Classic Case target. Orders already shipped or delivered still count against that target, but do not represent cases physically held.
             </p>
           </div>
           <span>2 boxes of each of 16 designs per case</span>
@@ -146,7 +151,7 @@ export default async function CcicStoreControlPage({
               <dl>
                 <div><dt>Target reserve</dt><dd>{reserve.reservedCases}</dd></div>
                 <div><dt>Backed reserve</dt><dd>{reserve.backedCases}</dd></div>
-                <div><dt>Committed</dt><dd>{reserve.committedCases}</dd></div>
+                <div><dt>Ordered (all time)</dt><dd>{reserve.committedCases}</dd></div>
                 <div><dt>Available cases</dt><dd>{reserve.availableCases}</dd></div>
                 <div><dt>Boxes held</dt><dd>{reserve.availableCases * item.boxesPerCase}</dd></div>
               </dl>
@@ -162,20 +167,31 @@ export default async function CcicStoreControlPage({
           )
         })}
         <p className="ccic-case-reserve-note">
-          Lowering the target releases any no-longer-needed held boxes immediately. Raising it does not invent inventory: the backed reserve grows automatically only when all required designs have enough stock.
+          Backed reserve includes previously ordered cases plus additional cases supported by remaining stock; it does not mean that many cases are physically on hand. Only available cases hold stock for new orders.
         </p>
       </section>
 
       <section className="ccic-admin-panel ccic-store-control-intro">
         <div>
-          <h2>Lightweight stock control</h2>
+          <h2>Stock reconciliation</h2>
           <p>
-            Set the number of boxes available at the start of tracking. Submitted, non-cancelled orders are counted as committed automatically.
-            Use a positive or negative adjustment for sales and corrections made outside this store.
+            These records use a gross stock balance. Previous council orders are kept as
+            historical allocations, even after delivery. The figures below distinguish
+            shipped or delivered boxes, unshipped orders, and stock assigned to school
+            mixed-box production. None of these counts changes the checkout calculation.
+          </p>
+          <p>
+            <strong>Remaining full boxes</strong> is the calculated balance after shipped/delivered
+            council orders and source boxes allocated to school mixed collections. It includes
+            boxes for unshipped council orders and backed Classic Cases.
           </p>
         </div>
         <p>
-          Leaving stock blank means the design is not quantity-limited. Only boxes backing physically supportable Classic Cases are withheld from the individual-box availability shown below.
+          For a physical stocktake, count full individual-product boxes, including boxes
+          set aside for Classic Cases or unshipped council orders, but <strong>exclude</strong> source
+          boxes already used or earmarked for school mixed collections. Enter that number
+          under <strong>Set counted boxes</strong>. If you only need to record an external sale
+          or correction, use <strong>Adjust gross</strong>; do not subtract delivered orders again.
         </p>
       </section>
 
@@ -190,13 +206,14 @@ export default async function CcicStoreControlPage({
             <thead>
               <tr>
                 <th>Product</th>
-                <th>Stock</th>
-                <th>Committed</th>
-                <th>Held for cases</th>
+                <th>Remaining full boxes</th>
+                <th>Unshipped orders</th>
+                <th>Held for Classic Cases</th>
                 <th>Available</th>
+                <th>Accounting details</th>
                 <th>Store status</th>
-                <th>Set stock</th>
-                <th>Adjust stock</th>
+                <th>Set counted boxes</th>
+                <th>Adjust gross</th>
               </tr>
             </thead>
             <tbody>
@@ -208,6 +225,18 @@ export default async function CcicStoreControlPage({
                   reservedBoxes: 0,
                   availableBoxes: null,
                 }
+                const detail = stockBreakdown[item.catalogId] ?? {
+                  dispatchedBoxes: 0,
+                  outstandingBoxes: 0,
+                  mixedSourceBoxes: 0,
+                }
+                const remainingFullBoxes = row.stockOnHand === null
+                  ? null
+                  : row.stockOnHand - detail.dispatchedBoxes - detail.mixedSourceBoxes
+                const classicHeldBoxes = row.reservedBoxes - detail.mixedSourceBoxes
+                const needsReview = classicHeldBoxes < 0 ||
+                  row.committedBoxes !== detail.dispatchedBoxes + detail.outstandingBoxes ||
+                  (remainingFullBoxes !== null && remainingFullBoxes < 0)
                 const isManualOff = !row.isStoreEnabled
                 const isAutomaticallySoldOut = row.isStoreEnabled && row.availableBoxes === 0
                 const statusLabel = isManualOff
@@ -222,10 +251,15 @@ export default async function CcicStoreControlPage({
                       <strong>{item.title}</strong>
                       <span>{item.sku}</span>
                     </td>
-                    <td>{row.stockOnHand === null ? 'Not tracked' : row.stockOnHand}</td>
-                    <td>{row.committedBoxes}</td>
-                    <td>{row.reservedBoxes || '—'}</td>
+                    <td>{needsReview ? 'Review required' : remainingFullBoxes === null ? 'Not tracked' : remainingFullBoxes}</td>
+                    <td>{detail.outstandingBoxes}</td>
+                    <td>{needsReview ? 'Review' : classicHeldBoxes || '—'}</td>
                     <td>{row.availableBoxes === null ? 'Not limited' : row.availableBoxes}</td>
+                    <td>
+                      <span>Gross balance: {row.stockOnHand === null ? 'Untracked' : row.stockOnHand}</span>
+                      <span>Shipped / delivered: {detail.dispatchedBoxes}</span>
+                      <span>School mixed sources: {detail.mixedSourceBoxes}</span>
+                    </td>
                     <td>
                       <span className={`ccic-store-status is-${isManualOff ? 'off' : isAutomaticallySoldOut ? 'sold-out' : 'available'}`}>
                         {statusLabel}
@@ -239,23 +273,33 @@ export default async function CcicStoreControlPage({
                       </form>
                     </td>
                     <td>
-                      <form action={setCcicInventoryStock} className="ccic-store-inline-form">
-                        <input type="hidden" name="catalog_id" value={item.catalogId} />
-                        <input
-                          type="number"
-                          name="stock_on_hand"
-                          min="0"
-                          step="1"
-                          defaultValue={row.stockOnHand ?? ''}
-                          placeholder="Untracked"
-                          aria-label={`Set stock for ${item.title}`}
-                        />
-                        <button type="submit">Save</button>
-                      </form>
+                      {needsReview ? (
+                        <span className="ccic-store-muted">Reconcile source records first</span>
+                      ) : (
+                        <form action={setCcicPhysicalStockCount} className="ccic-store-inline-form">
+                          <input type="hidden" name="catalog_id" value={item.catalogId} />
+                          <input type="hidden" name="expected_gross" value={row.stockOnHand === null ? '' : String(row.stockOnHand)} />
+                          <input type="hidden" name="expected_dispatched" value={String(detail.dispatchedBoxes)} />
+                          <input type="hidden" name="expected_outstanding" value={String(detail.outstandingBoxes)} />
+                          <input type="hidden" name="expected_mixed" value={String(detail.mixedSourceBoxes)} />
+                          <input type="hidden" name="expected_reserved" value={String(row.reservedBoxes)} />
+                          <input
+                            type="number"
+                            name="physical_stock"
+                            min="0"
+                            step="1"
+                            defaultValue={remainingFullBoxes ?? ''}
+                            placeholder="Count"
+                            aria-label={`Count full boxes for ${item.title}`}
+                            required
+                          />
+                          <button type="submit">Apply</button>
+                        </form>
+                      )}
                     </td>
                     <td>
                       {row.stockOnHand === null ? (
-                        <span className="ccic-store-muted">Set stock first</span>
+                        <span className="ccic-store-muted">Set count first</span>
                       ) : (
                         <form action={adjustCcicInventoryStock} className="ccic-store-inline-form">
                           <input type="hidden" name="catalog_id" value={item.catalogId} />
@@ -264,7 +308,7 @@ export default async function CcicStoreControlPage({
                             name="adjustment"
                             step="1"
                             placeholder="+ / −"
-                            aria-label={`Adjust stock for ${item.title}`}
+                            aria-label={`Adjust gross stock for ${item.title}`}
                             required
                           />
                           <button type="submit">Adjust</button>
