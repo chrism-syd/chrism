@@ -6,6 +6,7 @@ import {
   getCcicAdminStockBreakdown,
   getCcicCaseReserves,
   getCcicInventoryCatalogItems,
+  getCcicMixedBoxAvailability,
   getCcicStoreAvailabilityMap,
   syncCcicStoreInventoryCatalog,
 } from '@/lib/christmas-cards/inventory'
@@ -69,10 +70,11 @@ export default async function CcicStoreControlPage({
   const errorMessage = ERROR_MESSAGES[stringParam(params.error) || '']
   const updatedMessage = UPDATED_MESSAGES[stringParam(params.updated) || '']
   const items = getCcicInventoryCatalogItems()
-  const [availability, caseReserves, stockBreakdown] = await Promise.all([
+  const [availability, caseReserves, stockBreakdown, mixedBoxes] = await Promise.all([
     getCcicStoreAvailabilityMap(),
     getCcicCaseReserves(),
     getCcicAdminStockBreakdown(),
+    getCcicMixedBoxAvailability(),
   ])
 
   const trackedCount = items.filter((item) => availability[item.catalogId]?.stockOnHand !== null).length
@@ -157,6 +159,31 @@ export default async function CcicStoreControlPage({
             </div>
           )
         })}
+      </section>
+
+      <section className="ccic-admin-panel">
+        <div className="ccic-admin-panel-heading">
+          <h2>School mixed collections</h2>
+          <span>Reserved for school orders and market sales</span>
+        </div>
+        <div className="ccic-admin-table-wrap">
+          <table className="ccic-admin-table">
+            <thead>
+              <tr><th>Collection</th><th>Reserved boxes</th></tr>
+            </thead>
+            <tbody>
+              {mixedBoxes.map((mixed) => (
+                <tr key={mixed.mixedCatalogId}>
+                  <td>
+                    <strong>{mixed.title}</strong>
+                    <span>{mixed.sku}</span>
+                  </td>
+                  <td>{mixed.committedMixedBoxes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="ccic-admin-panel">
