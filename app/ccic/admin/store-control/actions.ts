@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireCcicOrderAdmin } from '@/lib/christmas-cards/admin'
 import { CHRISTMAS_CARD_BOXES, CHRISTMAS_CARD_CURATED_CASES } from '@/lib/christmas-cards/catalog'
-import { getCcicCaseReserves, getCcicStoreAvailabilityMap } from '@/lib/christmas-cards/inventory'
+import { getCcicAdminStockBreakdown, getCcicCaseReserves, getCcicStoreAvailabilityMap } from '@/lib/christmas-cards/inventory'
 
 function formText(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -110,6 +110,91 @@ export async function adjustCcicInventoryStock(formData: FormData) {
   }
 
   finish('updated=adjustment')
+}
+
+// A physical stocktake sets the number of full boxes remaining outside school
+// mixed-box source commitments. Underlying gross stock continues to include
+// dispatched council allocations and mixed-box source commitments, so neither
+// checkout nor historical order accounting needs to change.
+export async function setCcicPhysicalStockCount(formData: FormData) {
+  await requireCcicOrderAdmin('/ccic/admin/store-control')
+
+  const catalogId = formText(formData, 'catalog_id')
+  const item = getCatalogItem(catalogId)
+  if (!item) finish('error=invalid-product')
+
+  const rawCount = formText(formData, 'physical_stock')
+  const physicalCount = Number(rawCount)
+  if (!rawCount || !Number.isInteger(physicalCount) || physicalCount < 0 || physicalCount > 999999) {
+    finish('error=invalid-stock')
+  }
+
+  const [availability, breakdown] = await Promise.all([
+    getCcicStoreAvailabilityMap(),
+    getCcicAdminStockBreakdown(),
+  ])
+  const row = availability[catalogId]
+  if (!row) finish('error=invalid-product')
+
+  const detail = breakdown[catalogId] ?? {
+    dispatchedBoxes: 0,
+    outstandingBoxes: 0,
+    mixedSourceBoxes: 0,
+  }
+  if (row.committedBoxes !== detail.dispatchedBoxes + detail.outstandingBoxes) {
+    finish('error=stock-changed-reload')
+  }
+  if (row.reservedBoxes < detail.mixedSourceBoxes) {
+    finish('error=stock-changed-reload')
+  }
+
+  // Refuse stale forms, including changes to commitments made by a new order.
+  if (
+    formText(formData, 'expected_gross') !== (row.stockOnHand === null ? '' : String(row.stockOnHand)) ||
+    formText(formData, 'expected_dispatched') !== String(detail.dispatchedBoxes) ||
+    formText(formData, 'expected_outstanding') !== String(detail.outstandingBoxes) ||
+    formText(formData, 'expected_mixed') !== String(detail.mixedSourceBoxes) ||
+    formText(formData, 'expected_reserved') !== String(row.reservedBoxes)
+  ) {
+    finish('error=stock-changed-reload')
+  }
+
+  const classicCaseHeld = row.reservedBoxes - detail.mixedSourceBoxes
+  if (physicalCount < detail.outstandingBoxes + classicCaseHeld) {
+    finish('error=physical-below-reserve')
+  }
+
+  const grossCount = physicalCount + detail.dispatchedBoxes + detail.mixedSourceBoxes
+  if (grossCount > 999999 || grossCount < row.committedBoxes + row.reservedBoxes) {
+    finish('error=invalid-stock')
+  }
+
+  const admin = createAdminClient()
+  const { data: storedRow, error: readError } = await admin
+    .from('ccic_store_inventory')
+    .select('stock_on_hand, updated_at')
+    .eq('catalog_id', catalogId)
+    .maybeSingle()
+  if (readError || !storedRow || storedRow.stock_on_hand !== row.stockOnHand) {
+    finish('error=stock-changed-reload')
+  }
+
+  let query = admin
+    .from('ccic_store_inventory')
+    .update({ stock_on_hand: grossCount, updated_at: new Date().toISOString() })
+    .eq('catalog_id', catalogId)
+    .eq('updated_at', storedRow.updated_at)
+  query = storedRow.stock_on_hand === null
+    ? query.is('stock_on_hand', null)
+    : query.eq('stock_on_hand', storedRow.stock_on_hand)
+
+  const { data: savedRows, error: writeError } = await query.select('catalog_id')
+  if (writeError) {
+    console.error('CCIC physical stocktake failed', writeError)
+    finish('error=stock-update')
+  }
+  if (savedRows?.length !== 1) finish('error=stock-changed-reload')
+  finish('updated=physical-stock')
 }
 
 export async function toggleCcicInventoryStore(formData: FormData) {
